@@ -1,0 +1,54 @@
+service: alexandria-api
+
+plugins:
+  - serverless-go-plugin
+
+provider:
+  name: aws
+  architecture: arm64
+  runtime: provided.al2
+  versionFunctions: false
+  memorySize: 128
+  stage: dev
+  timeout: 10
+  region: eu-central-1
+  endpointType: REGIONAL
+  profile: serverless-admin-profile
+  apiGateway:
+    disableDefaultEndpoint: true
+    minimumCompressionSize: 1024 # in bytes
+  iam:
+    role: arn:aws:iam::671123374425:role/rosabella_lambda_role
+  tags:
+    application: "alexandria"
+    owner: "serverless"
+  stackTags:
+    application: "alexandria"
+    owner: "serverless"
+  deploymentBucket:
+    blockPublicAccess: true
+    tags:
+      application: "alexandria"
+      owner: "serverless"
+
+custom:
+  go:
+    supportedRuntimes: provided.al2
+    buildProvidedRuntimeAsBootstrap: true
+    cmd: GOARCH=arm64 GOOS=linux go build -ldflags="-s -w"
+
+functions:
+  get-locations:
+    handler: cmd/functions/get-locations/get_locations.go
+    name: alexandria-get-locations
+    events:
+      - httpApi:
+          path: /api/v1/locations
+          method: GET
+  create-location:
+    handler: cmd/functions/create-location/create_location.go
+    name: alexandria-create-location
+    events:
+      - httpApi:
+          path: /api/v1/locations
+          method: POST
