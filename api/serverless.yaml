@@ -18,7 +18,7 @@ provider:
     disableDefaultEndpoint: true
     minimumCompressionSize: 1024 # in bytes
   iam:
-    role: arn:aws:iam::671123374425:role/rosabella_lambda_role
+    role: arn:aws:iam::671123374425:role/alexandria_lambda_role
   tags:
     application: "alexandria"
     owner: "serverless"
