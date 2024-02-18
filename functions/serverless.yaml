@@ -1,0 +1,151 @@
+service: alexandria-functions
+
+plugins:
+  - serverless-go-plugin
+  - serverless-domain-manager
+
+package:
+  individually: true
+
+provider:
+  name: aws
+  architecture: arm64
+  deploymentMethod: direct
+  runtime: provided.al2023
+  versionFunctions: false
+  memorySize: 128
+  stage: dev
+  region: eu-central-1
+  endpointType: REGIONAL
+  profile: default
+  logRetentionInDays: 7
+  apiGateway:
+    disableDefaultEndpoint: false
+    minimumCompressionSize: 1024 # in bytes
+  tags:
+    application: 'alexandria'
+    owner: 'serverless'
+  stackTags:
+    application: 'alexandria'
+    owner: 'serverless'
+  deploymentBucket:
+    blockPublicAccess: true
+    tags:
+      application: 'alexandria'
+      owner: 'serverless'
+
+custom:
+  dynamoDbTableName: alexandria
+  customDomain:
+    domainName: api-alexandria.isnan.eu
+    certificateArn: arn:aws:acm:eu-central-1:671123374425:certificate/8d1a300b-075e-4771-a7bd-c6dd00cb594f
+    hostedZoneId: ZWC66FN0XU6P9
+    stage: ${self:provider.stage}
+    autoDomain: true
+    createRoute53Record: true
+    endpointType: ${self:provider.endpointType}
+  go:
+    supportedRuntimes: provided.al2023
+    buildProvidedRuntimeAsBootstrap: true
+    cmd: GOARCH=arm64 GOOS=linux go build -ldflags="-s -w"
+
+functions:
+  api:
+    handler: api/cmd/main.go
+    name: alexandria-api
+    role: ApiRole
+    environment:
+      DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
+      REGION: ${self:provider.region}
+      #USER_POOL_ID: !Ref UserPool
+    events:
+      - http:
+          #authorizer:
+          #  type: COGNITO_USER_POOLS
+          #  authorizerId: !Ref ApiGatewayAuthorizer
+          method: any
+          path: /{proxy+}
+          cors: true
+
+resources:
+  Resources:
+    ApiRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: alexandria-api
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: alexandria-api
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow # note that these rights are given in the default policy and are required if you want logs out of your lambda(s)
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                    - logs:TagResource
+                  Resource:
+                    - Fn::Join:
+                        - ':'
+                        - - 'arn:aws:logs'
+                          - Ref: 'AWS::Region'
+                          - Ref: 'AWS::AccountId'
+                          - 'log-group:/aws/lambda/*:*:*'
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: alexandria
+        AdminCreateUserConfig:
+          AllowAdminCreateUserOnly: true
+        UsernameConfiguration:
+          CaseSensitive: false
+        AccountRecoverySetting:
+          RecoveryMechanisms:
+            - Name: admin_only
+              Priority: 1
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: true
+            RequireUppercase: true
+            TemporaryPasswordValidityDays: 7
+        UserPoolAddOns:
+          AdvancedSecurityMode: OFF
+        Schema:
+          - Name: DisplayName
+            AttributeDataType: String
+            StringAttributeConstraints:
+              MinLength: 1
+              MaxLength: 50
+        UserPoolTags:
+          application: 'alexandria'
+          owner: 'serverless'
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        UserPoolId: !Ref UserPool
+        ClientName: alexandria-auth-client
+        ExplicitAuthFlows:
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+          - ALLOW_USER_SRP_AUTH
+
+  Outputs:
+    UserPoolId:
+      Value: !Ref UserPool
+      Export:
+        Name: alexandriaUserPoolId
+    UserPoolClientId:
+      Value: !Ref UserPoolClient
+      Export:
+        Name: alexandriaClientId
