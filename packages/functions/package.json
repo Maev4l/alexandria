@@ -9,8 +9,5 @@
     "serverless": "3.38.0",
     "serverless-domain-manager": "7.3.6",
     "serverless-go-plugin": "2.3.0"
-  },
-  "dependencies": {
-    "acme-client": "5.3.0"
   }
 }
