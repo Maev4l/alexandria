@@ -35,8 +35,8 @@ export default {
         // Add every directory that needs to be compiled by Babel during the build.
         include: [
           path.resolve(appDirectory, 'src'),
-          // path.resolve(appDirectory, 'node_modules/react-native-vector-icons'),
-          // path.resolve(appDirectory, 'node_modules/react-native-web-refresh-control'),
+          path.resolve(appDirectory, '..', '..', 'node_modules/react-native-vector-icons'),
+          path.resolve(appDirectory, '..', '..', 'node_modules/react-native-web-refresh-control'),
         ],
         use: {
           loader: 'babel-loader',
@@ -82,8 +82,8 @@ export default {
     }),
     new webpack.DefinePlugin({
       'process.env': {
-        clientId: JSON.stringify(config.mealPlannerClientId),
-        userPoolId: JSON.stringify(config.mealPlannerUserPoolId),
+        clientId: JSON.stringify(config.alexandriaClientId),
+        userPoolId: JSON.stringify(config.alexandriaUserPoolId),
         region: JSON.stringify('eu-central-1'),
         version: JSON.stringify(pack.version),
         commitHash: JSON.stringify(commitHash),

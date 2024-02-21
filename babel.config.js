@@ -26,6 +26,8 @@ module.exports = {
     ],
     '@babel/plugin-transform-object-rest-spread',
     'react-native-web',
+    '@babel/plugin-transform-export-namespace-from',
+    'react-native-paper/babel', // To get smaller bundle size by excluding modules you don't use, you can use our optional babel plugin.
     // <--- Silence warnings from webpack -->
     ['@babel/plugin-transform-private-methods', { loose: true }],
     ['@babel/plugin-transform-private-property-in-object', { loose: true }],

@@ -1,22 +1,26 @@
-import { merge } from "webpack-merge";
-import { InjectManifest } from "workbox-webpack-plugin";
-import MomentLocalesPlugin from "moment-locales-webpack-plugin";
-import path from "path";
+import webpack from 'webpack';
+import { merge } from 'webpack-merge';
+import { InjectManifest } from 'workbox-webpack-plugin';
+import MomentLocalesPlugin from 'moment-locales-webpack-plugin';
+import path from 'path';
 
-import baseConfig from "./webpack.config.base.babel";
+import baseConfig from './webpack.config.base.babel';
 
 export default merge(baseConfig, {
-  mode: "production",
+  mode: 'production',
   optimization: {
     minimize: true,
   },
   plugins: [
     new InjectManifest({
-      swSrc: path.resolve(__dirname, "src", "src-sw.js"),
-      swDest: "sw.js",
+      swSrc: path.resolve(__dirname, 'src', 'src-sw.js'),
+      swDest: 'sw.js',
     }),
     new MomentLocalesPlugin({
-      localesToKeep: ["fr"],
+      localesToKeep: ['fr'],
+    }),
+    new webpack.DefinePlugin({
+      __DEV__: false,
     }),
   ],
 });
