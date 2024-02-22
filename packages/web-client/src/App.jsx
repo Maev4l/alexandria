@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { ActivityIndicator, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 
 import { useSelector, useDispatch } from './store';
 import { getToken } from './security';
-import { AuthenticationNavigator } from './Navigators';
+import { AuthenticationNavigator, AppNavigator } from './Navigators';
 
 const Splash = () => (
   <View
@@ -18,7 +18,6 @@ const Splash = () => (
     <Text adjustsFontSizeToFit variant="displayMedium" style={{ marginBottom: 10 }}>
       ALEXANDRIA
     </Text>
-    <ActivityIndicator animating size="large" />
   </View>
 );
 
@@ -36,7 +35,7 @@ const App = () => {
     return <AuthenticationNavigator />;
   }
 
-  return <Text>Hello</Text>;
+  return <AppNavigator />;
 };
 
 export default App;
