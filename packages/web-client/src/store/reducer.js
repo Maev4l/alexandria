@@ -75,6 +75,18 @@ export const reducer = (state, action) => {
       return { ...state, preferences: payload, loading: false };
     }
 
+    case ACTION_TYPES.SIGNUP_SUCCESS: {
+      return {
+        ...state,
+        loading: false,
+        notification: {
+          text: 'Your request is being processed.\nAn administrator will finalize your registration.',
+          severity: 'success',
+        },
+      };
+    }
+
+    case ACTION_TYPES.SIGNING_UP:
     case ACTION_TYPES.WRITING_APP_PREFERENCES:
     case ACTION_TYPES.READING_APP_PREFERENCES:
     case ACTION_TYPES.SIGNING_OUT:
@@ -83,6 +95,7 @@ export const reducer = (state, action) => {
       return { ...state, loading: true };
     }
 
+    case ACTION_TYPES.SIGNUP_ERROR:
     case ACTION_TYPES.WRITE_APP_PREFERENCES_ERROR:
     case ACTION_TYPES.READ_APP_PREFERENCES_ERROR:
     case ACTION_TYPES.SIGN_OUT_ERROR:

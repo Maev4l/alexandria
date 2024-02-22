@@ -103,8 +103,6 @@ resources:
       Type: AWS::Cognito::UserPool
       Properties:
         UserPoolName: alexandria
-        AdminCreateUserConfig:
-          AllowAdminCreateUserOnly: true
         UsernameConfiguration:
           CaseSensitive: false
         AccountRecoverySetting:
@@ -126,7 +124,7 @@ resources:
             AttributeDataType: String
             StringAttributeConstraints:
               MinLength: 1
-              MaxLength: 50
+              MaxLength: 20
         UserPoolTags:
           application: 'alexandria'
           owner: 'serverless'

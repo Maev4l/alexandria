@@ -6,7 +6,7 @@
     "deploy": "aws cloudformation update-stack --stack-name alexandria-web-client --template-body file://./infra.yaml --tags Key=application,Value=alexandria Key=owner,Value=cf --no-cli-pager",
     "output-functions-stack": "aws cloudformation describe-stacks --stack-name alexandria-functions-dev --query 'Stacks[0].Outputs' | jq 'map({(.ExportName): .OutputValue}) | add' > ./output.json",
     "build": "yarn output-functions-stack && webpack --config ./webpack.config.prod.babel.js --progress",
-    "serve": "webpack serve --config ./webpack.config.dev.babel.js",
+    "serve": "yarn output-functions-stack && webpack serve --config ./webpack.config.dev.babel.js",
     "upload": "yarn build && aws s3 sync ./.dist s3://alexandria-web-client --delete"
   },
   "dependencies": {

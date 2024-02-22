@@ -1,4 +1,4 @@
-import { ACTION_TYPES } from "../store";
+import { ACTION_TYPES } from '../store';
 
 const fetchingToken = () => ({ type: ACTION_TYPES.FETCHING_TOKEN });
 
@@ -45,6 +45,19 @@ const changePasswordError = () => ({
   type: ACTION_TYPES.CHANGE_PASSWORD_ERROR,
 });
 
+const signingUp = () => ({
+  type: ACTION_TYPES.SIGNING_UP,
+});
+
+const signUpSuccess = () => ({
+  type: ACTION_TYPES.SIGNUP_SUCCESS,
+});
+
+const signUpError = (error) => ({
+  type: ACTION_TYPES.SIGNUP_ERROR,
+  payload: error,
+});
+
 export default {
   fetchingToken,
   fetchTokenSuccess,
@@ -58,4 +71,7 @@ export default {
   changingPassword,
   changePasswordSuccess,
   changePasswordError,
+  signingUp,
+  signUpSuccess,
+  signUpError,
 };
