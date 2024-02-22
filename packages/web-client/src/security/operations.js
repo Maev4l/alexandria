@@ -38,12 +38,16 @@ export const signin = (username, password) => async (dispatch) => {
   dispatch(actions.signingIn());
 
   try {
-    await cognitoSignIn({ username, password });
-    const {
-      tokens: { idToken },
-    } = await fetchAuthSession();
-
-    dispatch(actions.signInSuccess(idToken));
+    const { isSignedIn } = await cognitoSignIn({ username, password });
+    if (isSignedIn) {
+      const result = await fetchAuthSession();
+      const {
+        tokens: { idToken },
+      } = result;
+      dispatch(actions.signInSuccess(idToken));
+    } else {
+      dispatch(actions.signInError(new Error('Sign up not finalized.')));
+    }
   } catch (e) {
     if (e.name !== 'UserAlreadyAuthenticatedException') {
       dispatch(actions.signInError(e));
