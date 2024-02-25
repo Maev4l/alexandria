@@ -28,6 +28,7 @@
     "react-native-vector-icons": "10.0.3",
     "react-native-web": "0.19.10",
     "react-native-web-refresh-control": "1.1.2",
+    "react-zxing": "2.0.0",
     "workbox-core": "7.0.0",
     "workbox-precaching": "7.0.0",
     "workbox-routing": "7.0.0",

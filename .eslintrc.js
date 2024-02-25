@@ -36,5 +36,6 @@ module.exports = {
       },
     ],
     'react/no-unstable-nested-components': 'off',
+    'jsx-a11y/media-has-caption': 'off',
   },
 };
