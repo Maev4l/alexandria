@@ -23,7 +23,7 @@ func init() {
 	router.Use(cors.New(config))
 
 	h := handlers.NewHTTPHandler()
-	router.GET("/test", h.Ping)
+	router.POST("/v1/detections", h.RequestDetection)
 
 	ginLambda = ginadapter.New(router)
 }
