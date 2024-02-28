@@ -15,6 +15,7 @@ type DetectedBookResponse struct {
 	Title      string   `json:"title"`
 	Summary    string   `json:"summary"`
 	PictureUrl *string  `json:"pictureUrl,omitempty"`
+	Isbn       string   `json:"isbn"`
 }
 
 type DetectResponse struct {

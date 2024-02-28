@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from '../store';
 import { detectBook } from './operations';
 
 const DetectedBook = ({ book }) => {
-  const { summary, title, authors, pictureUrl } = book;
+  const { summary, title, authors, pictureUrl, isbn } = book;
   return (
     <Card>
       <Card.Content>
@@ -30,11 +30,14 @@ const DetectedBook = ({ book }) => {
               }}
             />
           </View>
-          <View style={{ paddingLeft: 5, flexShrink: 1 }}>
-            <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
-              {title}
-            </Text>
-            <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
+          <View style={{ flex: 1, paddingLeft: 5, justifyContent: 'space-between' }}>
+            <View style={{ flexShrink: 1 }}>
+              <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
+                {title}
+              </Text>
+              <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
+            </View>
+            <Text>ISBN: {isbn}</Text>
           </View>
         </View>
         <Text style={{ paddingTop: 5, textAlign: 'justify' }}>{summary}</Text>

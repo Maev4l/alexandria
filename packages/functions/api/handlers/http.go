@@ -92,6 +92,7 @@ func (h *HTTPHandler) RequestDetection(c *gin.Context) {
 			Title:      r.Title,
 			Summary:    r.Summary,
 			PictureUrl: r.PictureUrl,
+			Isbn:       request.Code,
 		})
 	}
 
