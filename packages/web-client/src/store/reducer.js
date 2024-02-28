@@ -13,6 +13,7 @@ export const INITIAL_STATE = {
     text: null,
     severity: '', // error, success
   },
+  resolvedBooks: [],
 };
 
 export const reducer = (state, action) => {
@@ -41,6 +42,11 @@ export const reducer = (state, action) => {
         authn.state = 'LOGGED_OUT';
       }
       return { ...state, loading: false, authn };
+    }
+
+    case ACTION_TYPES.DETECT_BOOK_SUCCESS: {
+      const { detectedBooks } = payload;
+      return { ...state, loading: false, resolvedBooks: detectedBooks };
     }
 
     case ACTION_TYPES.DISMISS_NOTIFICATION: {
@@ -86,6 +92,7 @@ export const reducer = (state, action) => {
       };
     }
 
+    case ACTION_TYPES.DETECTING_BOOK:
     case ACTION_TYPES.SIGNING_UP:
     case ACTION_TYPES.WRITING_APP_PREFERENCES:
     case ACTION_TYPES.READING_APP_PREFERENCES:
@@ -95,6 +102,7 @@ export const reducer = (state, action) => {
       return { ...state, loading: true };
     }
 
+    case ACTION_TYPES.DETECT_BOOK_ERROR:
     case ACTION_TYPES.SIGNUP_ERROR:
     case ACTION_TYPES.WRITE_APP_PREFERENCES_ERROR:
     case ACTION_TYPES.READ_APP_PREFERENCES_ERROR:

@@ -53,10 +53,6 @@ const ScanCodeScreen = ({ navigation }) => {
     return unsuscribe;
   }, [navigation]);
 
-  const handleCodeDetected = (isbn) => {
-    navigation.navigate('Detection', { isbn });
-  };
-
   const handleCameraError = () => setMediaState(MediaState.PERMISSION_DENIED);
 
   const handleToggleCamera = () => {
@@ -67,7 +63,7 @@ const ScanCodeScreen = ({ navigation }) => {
     }
   };
 
-  const handleSubmitCode = (isbn) => navigation.navigate('Detection', { isbn });
+  const handleSubmitCode = (isbn) => navigation.navigate('BooksDetection', { isbn });
 
   return (
     <View style={{ padding: 10, flex: 1, alignItems: 'center' }}>
@@ -91,7 +87,7 @@ const ScanCodeScreen = ({ navigation }) => {
           {mediaState === MediaState.CAMERA_ON && (
             <Video
               style={{ marginTop: 10, width: '100%' }}
-              onResult={handleCodeDetected}
+              onResult={handleSubmitCode}
               onError={handleCameraError}
             />
           )}

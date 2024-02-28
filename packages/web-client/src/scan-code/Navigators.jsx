@@ -1,7 +1,7 @@
 import { createStackNavigator } from '@react-navigation/stack';
 
 import ScanCodeScreen from './ScanCodeScreen';
-import DetectionScreen from './DetectionScreen';
+import BookDetectionScreen from './BookDetectionScreen';
 
 const Stack = createStackNavigator();
 
@@ -16,9 +16,9 @@ const Navigator = () => (
       component={ScanCodeScreen}
     />
     <Stack.Screen
-      name="Detection"
-      options={{ headerTitle: 'Detection' }}
-      component={DetectionScreen}
+      name="BooksDetection"
+      options={{ headerTitle: 'Detected books' }}
+      component={BookDetectionScreen}
     />
   </Stack.Navigator>
 );
