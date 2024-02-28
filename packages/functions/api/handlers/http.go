@@ -82,21 +82,7 @@ func (h *HTTPHandler) RequestDetection(c *gin.Context) {
 		}
 	}
 
-	resolvedBooks := detection.ResolveBook(request.Code)
+	response := resolveBook(request.Code)
 
-	detectedBooks := make([]DetectedBookResponse, 0)
-	for _, r := range resolvedBooks {
-		detectedBooks = append(detectedBooks, DetectedBookResponse{
-			Id:         r.Id,
-			Authors:    r.Authors,
-			Title:      r.Title,
-			Summary:    r.Summary,
-			PictureUrl: r.PictureUrl,
-			Isbn:       request.Code,
-		})
-	}
-
-	c.JSON(http.StatusOK, DetectResponse{
-		DetectedBooks: detectedBooks,
-	})
+	c.JSON(http.StatusOK, response)
 }
