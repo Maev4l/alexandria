@@ -110,6 +110,32 @@ resources:
                           - Ref: 'AWS::Region'
                           - Ref: 'AWS::AccountId'
                           - 'log-group:/aws/lambda/*:*:*'
+                - Effect: Allow
+                  Action:
+                    - dynamodb:BatchExecuteStatement
+                    - dynamodb:BatchGetItem
+                    - dynamodb:BatchWriteItem
+                    - dynamodb:DeleteItem
+                    - dynamodb:ExecuteStatement
+                    - dynamodb:ExecuteTransaction
+                    - dynamodb:GetItem
+                    - dynamodb:PutItem
+                    - dynamodb:Query
+                    - dynamodb:Scan
+                    - dynamodb:TransactGetItems
+                    - dynamodb:TransactWriteItems
+                    - dynamodb:UpdateItem
+                  Resource:
+                    - !GetAtt DynamoTable.Arn
+                    - Fn::Join:
+                        - ''
+                        - - 'arn:aws:dynamodb:'
+                          - Ref: 'AWS::Region'
+                          - ':'
+                          - Ref: 'AWS::AccountId'
+                          - ':table/'
+                          - ${self:custom.dynamoDbTableName}
+                          - '/index/*'
     PreSignupRole:
       Type: AWS::IAM::Role
       Properties:
@@ -199,6 +225,50 @@ resources:
                 - Ref: 'AWS::AccountId'
                 - ':userpool/'
                 - Ref: CognitoUserPoolAlexandriaUserPool
+    DynamoTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.dynamoDbTableName}
+        TableClass: STANDARD
+        TimeToLiveSpecification:
+          AttributeName: ExpiresAt
+          Enabled: true
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+          - AttributeName: GSI1PK
+            AttributeType: S
+          - AttributeName: GSI1SK
+            AttributeType: S
+          - AttributeName: GSI2PK
+            AttributeType: S
+          - AttributeName: GSI2SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: GSI1PK
+                KeyType: HASH
+              - AttributeName: GSI1SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: GSI2
+            KeySchema:
+              - AttributeName: GSI2PK
+                KeyType: HASH
+              - AttributeName: GSI2SK
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
   Outputs:
     UserPoolId:
       Value: !Ref CognitoUserPoolAlexandriaUserPool
