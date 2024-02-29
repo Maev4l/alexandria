@@ -14,6 +14,8 @@ import { registerRoute } from 'workbox-routing';
 import { StaleWhileRevalidate /* , CacheFirst */ } from 'workbox-strategies';
 /* import { CacheableResponsePlugin } from 'workbox-cacheable-response';  */
 
+self.hash = '__HASH_COMMIT__';
+
 clientsClaim();
 
 /**

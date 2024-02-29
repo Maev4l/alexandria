@@ -31,6 +31,18 @@ export default {
         type: 'asset/resource',
       },
       {
+        // We are going to update some kind of version in the service worker
+        // so the PWA is going to self-update
+        // see: https://stackoverflow.com/questions/49739438/when-and-how-does-a-pwa-update-itself#:~:text=In%20essence%2C%20there%20are%20only,a%20changed%20scope%20or%20start_url%20.
+        test: /\.js$/,
+        loader: 'string-replace-loader',
+        options: {
+          search: '__HASH_COMMIT__',
+          replace: commitHash,
+          flags: 'g',
+        },
+      },
+      {
         test: /\.(js|jsx)$/,
         // Add every directory that needs to be compiled by Babel during the build.
         include: [

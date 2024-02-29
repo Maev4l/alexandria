@@ -61,8 +61,14 @@ const Video = ({ style, onResult, onError }) => {
   });
 
   return (
-    <View style={style}>
-      <video autoPlay ref={ref} />
+    <View style={{ overflow: 'hidden', width: '100%', height: '50%', ...style }}>
+      <video
+        autoPlay
+        ref={ref}
+        style={{
+          objectFit: 'cover',
+        }}
+      />
     </View>
   );
 };

@@ -42,7 +42,7 @@ const BarcodeInputField = ({ style, onPress }) => {
 
 const ScanCodeScreen = ({ navigation }) => {
   const [mediaState, setMediaState] = useState(MediaState.CAMERA_OFF);
-
+  const theme = useTheme();
   useEffect(() => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setMediaState(MediaState.NO_CAMERA_SUPPORT);
@@ -82,11 +82,16 @@ const ScanCodeScreen = ({ navigation }) => {
           <Text>If the detection is unsuccessful, you can enter the barcode below:</Text>
           <BarcodeInputField style={{ marginTop: 10 }} onPress={handleSubmitCode} />
           <Button mode="contained" style={{ marginTop: 10 }} onPress={handleToggleCamera}>
-            {mediaState === MediaState.CAMERA_OFF ? 'Start scanning' : 'Stop scanning'}
+            {mediaState === MediaState.CAMERA_OFF ? 'Start camera' : 'Stop camera'}
           </Button>
           {mediaState === MediaState.CAMERA_ON && (
             <Video
-              style={{ marginTop: 10, width: '100%' }}
+              style={{
+                marginTop: 10,
+                borderWidth: 2,
+                borderColor: theme.colors.primary,
+                borderRadius: '5px',
+              }}
               onResult={handleSubmitCode}
               onError={handleCameraError}
             />
