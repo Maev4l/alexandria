@@ -16,14 +16,22 @@ var ginLambda *ginadapter.GinLambda
 func init() {
 
 	gin.SetMode(gin.ReleaseMode)
-	router := gin.Default()
+
+	router := gin.New()
+	router.Use(handlers.HttpLogger())
+	router.Use(gin.Recovery())
+
 	config := cors.DefaultConfig()
 	config.AllowCredentials = true
 	config.AllowAllOrigins = true
 	router.Use(cors.New(config))
 
 	h := handlers.NewHTTPHandler()
-	router.POST("/v1/detections", h.RequestDetection)
+	g := router.Group("/v1")
+	g.Use(handlers.TokenParser())
+	g.Use(handlers.IdentityLogger())
+
+	g.POST("/detections", h.RequestDetection)
 
 	ginLambda = ginadapter.New(router)
 }

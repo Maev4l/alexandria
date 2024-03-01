@@ -27,6 +27,7 @@ payload:
 	}
 */
 func (h *HTTPHandler) RequestDetection(c *gin.Context) {
+
 	var request DetectRequest
 	err := c.BindJSON(&request)
 	if err != nil {
