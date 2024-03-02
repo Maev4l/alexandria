@@ -1,4 +1,4 @@
-package detection
+package resolvers
 
 import (
 	"bytes"
@@ -10,6 +10,9 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/api/ports"
 
 	"github.com/gocolly/colly"
 	"github.com/rs/zerolog/log"
@@ -30,7 +33,7 @@ func (r *babelioResolver) Name() string {
 	return "Babelio"
 }
 
-func (r *babelioResolver) Resolve(code string, ch chan []ResolvedBook) {
+func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	searchRequestPayload := struct {
 		IsMobile bool   `json:"isMobile"`
@@ -73,7 +76,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []ResolvedBook) {
 
 	if len(searchResult) == 0 {
 		log.Info().Msgf("Babelio - No item found for code: %s", code)
-		ch <- []ResolvedBook{}
+		ch <- []domain.ResolvedBook{}
 		return
 	}
 
@@ -82,7 +85,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []ResolvedBook) {
 
 	c := colly.NewCollector()
 
-	resolvedBook := ResolvedBook{
+	resolvedBook := domain.ResolvedBook{
 		Id:     fmt.Sprintf("%s#%s", r.Name(), foundBook.Id),
 		Source: r.Name(),
 	}
@@ -160,10 +163,10 @@ func (r *babelioResolver) Resolve(code string, ch chan []ResolvedBook) {
 		return
 	}
 
-	ch <- []ResolvedBook{resolvedBook}
+	ch <- []domain.ResolvedBook{resolvedBook}
 }
 
-func newBabelioResolver() BookResolver {
+func NewBabelioResolver() ports.BookResolver {
 	return &babelioResolver{
 		client: &http.Client{Timeout: 3 * time.Second},
 		url:    "https://www.babelio.com",

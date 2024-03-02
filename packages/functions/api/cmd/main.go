@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"os"
 
 	"alexandria.isnan.eu/functions/api/handlers"
+	"alexandria.isnan.eu/functions/api/repositories/dynamodb"
+	"alexandria.isnan.eu/functions/api/services"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
@@ -26,12 +29,18 @@ func init() {
 	config.AllowAllOrigins = true
 	router.Use(cors.New(config))
 
-	h := handlers.NewHTTPHandler()
+	region := os.Getenv("REGION")
+
+	db := dynamodb.NewDynamoDB(region)
+	s := services.NewServices(db)
+	h := handlers.NewHTTPHandler(s)
+
 	g := router.Group("/v1")
 	g.Use(handlers.TokenParser())
 	g.Use(handlers.IdentityLogger())
 
 	g.POST("/detections", h.RequestDetection)
+	g.POST("/libraries", h.CreateLibrary)
 
 	ginLambda = ginadapter.New(router)
 }

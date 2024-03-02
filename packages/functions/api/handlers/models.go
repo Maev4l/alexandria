@@ -1,12 +1,10 @@
 package handlers
 
-import (
-	"alexandria.isnan.eu/functions/api/detection"
-)
+import "time"
 
 type DetectRequest struct {
-	Type detection.Type `json:"type"`
-	Code string         `json:"code"`
+	Type int    `json:"type"`
+	Code string `json:"code"`
 }
 
 type DetectedBookResponse struct {
@@ -21,4 +19,15 @@ type DetectedBookResponse struct {
 
 type DetectResponse struct {
 	DetectedBooks []DetectedBookResponse `json:"detectedBooks"`
+}
+
+type CreateLibraryRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type CreateLibraryResponse struct {
+	Id         string     `json:"id"`
+	TotalItems int        `json:"totalItems"`
+	CreatedAt  *time.Time `json:"createdAt"`
 }

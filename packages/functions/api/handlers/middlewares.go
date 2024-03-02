@@ -13,8 +13,9 @@ import (
 )
 
 type tokenInfo struct {
-	userId   string
-	userName string
+	userId      string
+	userName    string
+	displayName string
 }
 
 func TokenParser() gin.HandlerFunc {
@@ -32,6 +33,11 @@ func TokenParser() gin.HandlerFunc {
 		username, exists := token.Get("cognito:username")
 		if exists {
 			info.userName = fmt.Sprintf("%v", username)
+		}
+
+		displayName, exists := token.Get("custom:DisplayName")
+		if exists {
+			info.displayName = fmt.Sprintf("%v", displayName)
 		}
 
 		c.Set("tokenInfo", &info)

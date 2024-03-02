@@ -1,4 +1,4 @@
-package detection
+package resolvers
 
 import (
 	"encoding/json"
@@ -6,6 +6,9 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/api/ports"
 
 	"github.com/rs/zerolog/log"
 )
@@ -41,7 +44,7 @@ func (r *googleResolver) Name() string {
 	return "Google"
 }
 
-func (r *googleResolver) Resolve(code string, ch chan []ResolvedBook) {
+func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	searchRequest, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/?q=isbn:%s", r.url, code), nil)
 	searchRequest.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
 
@@ -71,14 +74,14 @@ func (r *googleResolver) Resolve(code string, ch chan []ResolvedBook) {
 
 	if searchResult.Total == 0 {
 		log.Info().Msgf("Google - No item found for code: %s", code)
-		ch <- []ResolvedBook{}
+		ch <- []domain.ResolvedBook{}
 		return
 	}
 
-	var result []ResolvedBook
+	var result []domain.ResolvedBook
 
 	for _, b := range searchResult.Items {
-		resolvedBook := ResolvedBook{
+		resolvedBook := domain.ResolvedBook{
 			Id:         fmt.Sprintf("%s#%s", r.Name(), b.Id),
 			Source:     r.Name(),
 			Title:      b.VolumeInfo.Title,
@@ -93,7 +96,7 @@ func (r *googleResolver) Resolve(code string, ch chan []ResolvedBook) {
 	ch <- result
 }
 
-func newGoogleResolver() BookResolver {
+func NewGoogleResolver() ports.BookResolver {
 	return &googleResolver{
 		client: &http.Client{Timeout: 3 * time.Second},
 		url:    "https://www.googleapis.com/books/v1/volumes",
