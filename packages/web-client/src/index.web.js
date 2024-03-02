@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler'; // <-- Must be the first import of the entry file
 import { AppRegistry } from 'react-native';
 import { Amplify } from 'aws-amplify';
+import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
 import { StoreProvider } from './store';
 import App from './App';
@@ -17,11 +18,13 @@ Amplify.configure({
 
 const Main = () => (
   <StoreProvider>
-    <AppPreferencesProvider>
-      <NotificationBar />
-      <Loader />
-      <App />
-    </AppPreferencesProvider>
+    <ActionSheetProvider>
+      <AppPreferencesProvider>
+        <NotificationBar />
+        <Loader />
+        <App />
+      </AppPreferencesProvider>
+    </ActionSheetProvider>
   </StoreProvider>
 );
 
