@@ -14,6 +14,7 @@ export const INITIAL_STATE = {
     severity: '', // error, success
   },
   resolvedBooks: [],
+  libraries: [],
 };
 
 export const reducer = (state, action) => {
@@ -92,6 +93,12 @@ export const reducer = (state, action) => {
       };
     }
 
+    case ACTION_TYPES.FETCH_LIBRARIES_SUCCESS: {
+      const { libraries } = payload;
+      return { ...state, loading: false, libraries };
+    }
+
+    case ACTION_TYPES.FETCHING_LIBRARIES:
     case ACTION_TYPES.DETECTING_BOOK:
     case ACTION_TYPES.SIGNING_UP:
     case ACTION_TYPES.WRITING_APP_PREFERENCES:
@@ -102,6 +109,7 @@ export const reducer = (state, action) => {
       return { ...state, loading: true };
     }
 
+    case ACTION_TYPES.FETCH_LIBRARIES_ERROR:
     case ACTION_TYPES.DETECT_BOOK_ERROR:
     case ACTION_TYPES.SIGNUP_ERROR:
     case ACTION_TYPES.WRITE_APP_PREFERENCES_ERROR:

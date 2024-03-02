@@ -8,8 +8,22 @@ const get = async (path) => {
     method: 'GET',
     headers: { Authorization: token },
   });
-  const json = await response.json();
-  return json;
+
+  const text = await response.text();
+  if (!response.ok) {
+    if (text) {
+      const json = JSON.parse(text);
+      const { message } = json;
+      if (message) {
+        throw new Error(message);
+      }
+    }
+    throw new Error(`Server error: ${response.statusText}`);
+  } else if (text) {
+    const json = JSON.parse(text);
+    return json;
+  }
+  return null;
 };
 
 const post = async (path, data) => {
