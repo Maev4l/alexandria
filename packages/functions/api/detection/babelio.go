@@ -18,6 +18,7 @@ import (
 
 type babelioResolver struct {
 	client *http.Client
+	url    string
 }
 
 type babelioSearchResult struct {
@@ -25,10 +26,8 @@ type babelioSearchResult struct {
 	Id  string `json:"id_oeuvre"`
 }
 
-const babelioBaseUrl = "https://www.babelio.com"
-
 func (r *babelioResolver) Name() string {
-	return "babelio"
+	return "Babelio"
 }
 
 func (r *babelioResolver) Resolve(code string, ch chan []ResolvedBook) {
@@ -42,11 +41,11 @@ func (r *babelioResolver) Resolve(code string, ch chan []ResolvedBook) {
 	}
 
 	jsonSearchPayload, _ := json.Marshal(searchRequestPayload)
-	searchRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/aj_recherche.php", babelioBaseUrl), bytes.NewBuffer(jsonSearchPayload))
+	searchRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/aj_recherche.php", r.url), bytes.NewBuffer(jsonSearchPayload))
 	searchRequest.Host = "www.babelio.com"
 	searchRequest.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
-	searchRequest.Header.Set("Origin", babelioBaseUrl)
-	searchRequest.Header.Set("Referer", fmt.Sprintf("%s/recherche.php", babelioBaseUrl))
+	searchRequest.Header.Set("Origin", r.url)
+	searchRequest.Header.Set("Referer", fmt.Sprintf("%s/recherche.php", r.url))
 
 	searchResponse, err := r.client.Do(searchRequest)
 	if err != nil {
@@ -84,11 +83,12 @@ func (r *babelioResolver) Resolve(code string, ch chan []ResolvedBook) {
 	c := colly.NewCollector()
 
 	resolvedBook := ResolvedBook{
-		Id: fmt.Sprintf("%s#%s", r.Name(), foundBook.Id),
+		Id:     fmt.Sprintf("%s#%s", r.Name(), foundBook.Id),
+		Source: r.Name(),
 	}
 
 	c.OnHTML("img[itemprop='image']", func(e *colly.HTMLElement) {
-		imageUrl := fmt.Sprintf("%s%s", babelioBaseUrl, e.Attr("src"))
+		imageUrl := fmt.Sprintf("%s%s", r.url, e.Attr("src"))
 		resolvedBook.PictureUrl = &imageUrl
 	})
 
@@ -106,10 +106,10 @@ func (r *babelioResolver) Resolve(code string, ch chan []ResolvedBook) {
 		data := url.Values{}
 		data.Set("type", matches[1])
 		data.Set("id_obj", matches[2])
-		moreSummaryRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/aj_voir_plus_a.php", babelioBaseUrl), strings.NewReader(data.Encode()))
+		moreSummaryRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/aj_voir_plus_a.php", r.url), strings.NewReader(data.Encode()))
 		moreSummaryRequest.Host = "www.babelio.com"
 		moreSummaryRequest.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
-		moreSummaryRequest.Header.Set("Origin", babelioBaseUrl)
+		moreSummaryRequest.Header.Set("Origin", r.url)
 		moreSummaryRequest.Header.Set("Referer", foundUrl)
 		moreSummaryRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 
@@ -166,5 +166,6 @@ func (r *babelioResolver) Resolve(code string, ch chan []ResolvedBook) {
 func newBabelioResolver() BookResolver {
 	return &babelioResolver{
 		client: &http.Client{Timeout: 3 * time.Second},
+		url:    "https://www.babelio.com",
 	}
 }

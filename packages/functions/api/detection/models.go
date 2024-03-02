@@ -25,4 +25,5 @@ type ResolvedBook struct {
 	Title      string
 	Summary    string
 	PictureUrl *string
+	Source     string
 }

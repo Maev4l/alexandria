@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from '../store';
 import { detectBook } from './operations';
 
 const DetectedBook = ({ book }) => {
-  const { summary, title, authors, pictureUrl, isbn } = book;
+  const { summary, title, authors, pictureUrl, isbn, source } = book;
   return (
     <Card>
       <Card.Content>
@@ -37,7 +37,10 @@ const DetectedBook = ({ book }) => {
               </Text>
               <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
             </View>
-            <Text>ISBN: {isbn}</Text>
+            <View>
+              <Text>ISBN: {isbn}</Text>
+              <Text>(Source: {source})</Text>
+            </View>
           </View>
         </View>
         <Text style={{ paddingTop: 5, textAlign: 'justify' }}>{summary}</Text>
@@ -81,7 +84,9 @@ const BookDetectionScreen = ({ route }) => {
         </View>
       ) : null}
       {books.map((b) => (
-        <DetectedBook key={b.id} book={b} />
+        <View key={b.id} style={{ marginBottom: 10 }}>
+          <DetectedBook book={b} />
+        </View>
       ))}
     </ScrollView>
   );

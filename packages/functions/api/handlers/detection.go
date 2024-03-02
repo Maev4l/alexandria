@@ -16,6 +16,7 @@ func resolveBook(code string) DetectResponse {
 			Summary:    r.Summary,
 			PictureUrl: r.PictureUrl,
 			Isbn:       code,
+			Source:     r.Source,
 		})
 	}
 

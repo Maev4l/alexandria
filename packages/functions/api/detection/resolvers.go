@@ -30,6 +30,7 @@ func init() {
 
 	bookResolversRegistry = []BookResolver{
 		newBabelioResolver(),
+		newGoogleResolver(),
 	}
 
 }
