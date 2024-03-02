@@ -1,6 +1,9 @@
 package services
 
 import (
+	"cmp"
+	"slices"
+	"strings"
 	"time"
 
 	"alexandria.isnan.eu/functions/api/domain"
@@ -9,7 +12,26 @@ import (
 )
 
 func (s *services) ListLibraries(ownerId string) ([]domain.Library, error) {
-	return s.db.QueryLibraries(ownerId)
+
+	res, err := s.db.QueryLibraries(ownerId)
+	slices.SortFunc(res, func(a, b domain.Library) int {
+		// Sort by library name
+		r := cmp.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
+		if r != 0 {
+			return r
+		}
+
+		// Otherwise, sort by creation / update date
+		if a.UpdatedAt.After(*b.UpdatedAt) {
+			return -1
+		} else if a.UpdatedAt.Before(*b.UpdatedAt) {
+			return 1
+		}
+
+		return 0
+	})
+
+	return res, err
 }
 
 func (s *services) CreateLibrary(l *domain.Library) (*domain.Library, error) {
