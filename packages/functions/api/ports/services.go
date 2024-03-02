@@ -12,4 +12,5 @@ type BookResolver interface {
 type Services interface {
 	ResolveBook(code string) []domain.ResolvedBook
 	CreateLibrary(l *domain.Library) (*domain.Library, error)
+	ListLibraries(ownerId string) ([]domain.Library, error)
 }

@@ -31,3 +31,15 @@ type CreateLibraryResponse struct {
 	TotalItems int        `json:"totalItems"`
 	CreatedAt  *time.Time `json:"createdAt"`
 }
+
+type GetLibraryResponse struct {
+	Id          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	TotalItems  int        `json:"totalItems"`
+	CreatedAt   *time.Time `json:"createdAt"`
+}
+
+type GetLibrariesResponse struct {
+	Libraries []GetLibraryResponse `json:"libraries"`
+}

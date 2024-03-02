@@ -8,6 +8,31 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func (h *HTTPHandler) ListLibraries(c *gin.Context) {
+	t := h.getTokenInfo(c)
+	libraries, err := h.s.ListLibraries(t.userId)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to query libraries",
+		})
+		return
+	}
+
+	response := GetLibrariesResponse{}
+	for _, l := range libraries {
+		response.Libraries = append(response.Libraries, GetLibraryResponse{
+			Id:          l.Id,
+			Name:        l.Name,
+			Description: l.Description,
+			TotalItems:  l.TotalItems,
+			CreatedAt:   l.UpdatedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 /*
 payload:
 
@@ -54,7 +79,6 @@ func (h *HTTPHandler) CreateLibrary(c *gin.Context) {
 	})
 
 	if err != nil {
-		log.Error().Msgf("Failed to create library (name: %s): %s", request.Name, err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to create library",
 		})
