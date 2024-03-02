@@ -36,6 +36,7 @@ const LibraryItemList = ({ library, style, onPressActions }) => {
         size={16}
         mode="contained"
         onPress={onPressActions}
+        style={{ marginTop: 0 }}
       />
     </View>
   );
