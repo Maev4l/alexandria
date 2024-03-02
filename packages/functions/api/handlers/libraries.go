@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"alexandria.isnan.eu/functions/api/domain"
 	"github.com/gin-gonic/gin"
@@ -51,7 +52,15 @@ func (h *HTTPHandler) CreateLibrary(c *gin.Context) {
 		return
 	}
 
-	if len(request.Name) > 20 {
+	t := h.getTokenInfo(c)
+
+	library := domain.Library{
+		Name:        strings.TrimSpace(request.Name),
+		Description: strings.TrimSpace(request.Description),
+		OwnerName:   t.displayName,
+		OwnerId:     t.userId,
+	}
+	if len(library.Name) > 20 {
 		msg := "Invalid request - Name too long (max. 20 chars)"
 		log.Error().Msg(msg)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -60,7 +69,7 @@ func (h *HTTPHandler) CreateLibrary(c *gin.Context) {
 		return
 	}
 
-	if len(request.Description) > 100 {
+	if len(library.Description) > 100 {
 		msg := "Invalid request - Desccription too long (max. 100 chars)"
 		log.Error().Msg(msg)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -69,14 +78,7 @@ func (h *HTTPHandler) CreateLibrary(c *gin.Context) {
 		return
 	}
 
-	t := h.getTokenInfo(c)
-
-	result, err := h.s.CreateLibrary(&domain.Library{
-		Name:        request.Name,
-		Description: request.Description,
-		OwnerName:   t.displayName,
-		OwnerId:     t.userId,
-	})
+	result, err := h.s.CreateLibrary(&library)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
