@@ -1,9 +1,10 @@
-import { Card, Text, useTheme } from 'react-native-paper';
+import { Card, Text } from 'react-native-paper';
 import { useEffect } from 'react';
 import { ScrollView, Image, View } from 'react-native';
 
 import { useDispatch, useSelector } from '../store';
 import { detectBook } from './operations';
+import { Alert } from '../components';
 
 const DetectedBook = ({ book }) => {
   const { summary, title, authors, pictureUrl, isbn, source } = book;
@@ -54,7 +55,6 @@ const BookDetectionScreen = ({ route }) => {
     params: { isbn },
   } = route;
 
-  const theme = useTheme();
   const dispatch = useDispatch();
   const { loading, books } = useSelector((state) => ({
     books: state.resolvedBooks,
@@ -68,20 +68,7 @@ const BookDetectionScreen = ({ route }) => {
   return (
     <ScrollView style={{ flex: 1, padding: 10 }}>
       {!loading && books.length === 0 ? (
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginTop: 20,
-            borderWidth: 2,
-            borderRadius: '5px',
-            borderColor: theme.colors.error,
-            backgroundColor: theme.colors.errorContainer,
-          }}
-        >
-          <Text style={{ padding: 10, color: theme.colors.onErrorContainer }}>No match found.</Text>
-        </View>
+        <Alert variant="primary" style={{ marginTop: 20 }} text="No match found." />
       ) : null}
       {books.map((b) => (
         <View key={b.id} style={{ marginBottom: 10 }}>
