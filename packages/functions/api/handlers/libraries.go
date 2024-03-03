@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -8,6 +9,22 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
+
+func (h *HTTPHandler) validateLibrary(library *domain.Library) error {
+
+	if len(library.Name) == 0 {
+		return errors.New("Invalid request - Library name is mandatory")
+	}
+
+	if len(library.Name) > 20 {
+		return errors.New("Invalid request - Name too long (max. 20 chars)")
+	}
+
+	if len(library.Description) > 100 {
+		return errors.New("Invalid request - Desccription too long (max. 100 chars)")
+	}
+	return nil
+}
 
 func (h *HTTPHandler) ListLibraries(c *gin.Context) {
 	t := h.getTokenInfo(c)
@@ -61,29 +78,12 @@ func (h *HTTPHandler) CreateLibrary(c *gin.Context) {
 		OwnerId:     t.userId,
 	}
 
-	if len(library.Name) == 0 {
-		msg := "Invalid request - Library name is mandatory"
-		log.Error().Msg(msg)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": msg,
-		})
-		return
-	}
+	err = h.validateLibrary(&library)
 
-	if len(library.Name) > 20 {
-		msg := "Invalid request - Name too long (max. 20 chars)"
-		log.Error().Msg(msg)
+	if err != nil {
+		log.Error().Msg(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
-			"message": msg,
-		})
-		return
-	}
-
-	if len(library.Description) > 100 {
-		msg := "Invalid request - Desccription too long (max. 100 chars)"
-		log.Error().Msg(msg)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": msg,
+			"message": err.Error(),
 		})
 		return
 	}
