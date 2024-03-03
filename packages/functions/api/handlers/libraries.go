@@ -60,6 +60,16 @@ func (h *HTTPHandler) CreateLibrary(c *gin.Context) {
 		OwnerName:   t.displayName,
 		OwnerId:     t.userId,
 	}
+
+	if len(library.Name) == 0 {
+		msg := "Invalid request - Library name is mandatory"
+		log.Error().Msg(msg)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": msg,
+		})
+		return
+	}
+
 	if len(library.Name) > 20 {
 		msg := "Invalid request - Name too long (max. 20 chars)"
 		log.Error().Msg(msg)
