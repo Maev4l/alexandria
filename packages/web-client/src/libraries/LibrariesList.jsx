@@ -18,14 +18,19 @@ const LibraryItemList = ({ library, style, onPressActions }) => {
         padding: 5,
         justifyContent: 'space-between',
         flexDirection: 'row',
+        minHeight: '100px',
         ...style,
       }}
     >
-      <View>
-        <Text variant="titleMedium">{name}</Text>
-        <Text variant="bodyMedium" style={{ flexWrap: 'wrap' }}>
-          {description}
-        </Text>
+      <View style={{ paddingRight: 5, flex: 1, justifyContent: 'space-between' }}>
+        <View>
+          <Text variant="titleMedium" numberOfLines={1} ellipsizeMode="tail">
+            {name}
+          </Text>
+          <Text variant="bodyMedium" style={{ flexWrap: 'wrap' }}>
+            {description}
+          </Text>
+        </View>
         <Text variant="bodySmall" style={{ fontStyle: 'italic' }}>
           Total items: {totalItems}
         </Text>
