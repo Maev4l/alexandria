@@ -55,7 +55,7 @@ const LibrariesList = ({ libraries }) => {
   const handlePressActions = (library) => {
     showActionSheetWithOptions(
       {
-        options: ['Edit', 'Delete', 'Cancel'],
+        options: ['Update', 'Delete', 'Cancel'],
         destructiveButtonIndex: 1,
         cancelButtonIndex: 2,
         showSeparators: true,
@@ -70,7 +70,7 @@ const LibrariesList = ({ libraries }) => {
       (index) => {
         switch (index) {
           case 0: {
-            navigation.navigate('EditLibrary', {
+            navigation.navigate('UpdateLibrary', {
               libraryId: library.id,
               libraryName: library.name,
             });

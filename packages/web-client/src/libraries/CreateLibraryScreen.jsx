@@ -1,10 +1,22 @@
-import { Text } from 'react-native-paper';
 import { View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-const CreateLibraryScreen = () => (
-  <View style={{ padding: 10 }}>
-    <Text>Create Library</Text>
-  </View>
-);
+import LibraryForm from './LibraryForm';
+import { createLibrary } from './operations';
+import { useDispatch } from '../store';
+
+const CreateLibraryScreen = () => {
+  const navigation = useNavigation();
+  const dispatch = useDispatch();
+
+  const handleSubmit = (library) =>
+    dispatch(createLibrary(library, () => navigation.navigate('Libraries')));
+
+  return (
+    <View style={{ padding: 10 }}>
+      <LibraryForm library={{ name: '', description: '' }} onSubmit={handleSubmit} />
+    </View>
+  );
+};
 
 export default CreateLibraryScreen;

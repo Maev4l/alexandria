@@ -1,13 +1,23 @@
-import { Text } from 'react-native-paper';
 import { View } from 'react-native';
+
+import LibraryForm from './LibraryForm';
+import { useSelector } from '../store';
 
 const EditLibraryScreen = ({ route }) => {
   const {
-    params: { /* libraryId, */ libraryName },
+    params: { libraryId },
   } = route;
+
+  const library = useSelector((state) => {
+    const [found] = state.libraries.filter((l) => l.id === libraryId);
+    return found;
+  });
+
+  const handleSubmit = () => {};
+
   return (
     <View style={{ padding: 10 }}>
-      <Text>Edit Library {libraryName}</Text>
+      <LibraryForm library={library} onSubmit={handleSubmit} />
     </View>
   );
 };
