@@ -3,6 +3,9 @@ import { Text, useTheme, IconButton, Icon } from 'react-native-paper';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { useNavigation } from '@react-navigation/native';
 
+import { deleteLibrary } from './operations';
+import { useDispatch } from '../store';
+
 const LibraryItemList = ({ library, style, onPressActions }) => {
   const theme = useTheme();
 
@@ -51,6 +54,7 @@ const LibrariesList = ({ libraries }) => {
   const { showActionSheetWithOptions } = useActionSheet();
   const navigation = useNavigation();
   const theme = useTheme();
+  const dispatch = useDispatch();
 
   const handlePressActions = (library) => {
     showActionSheetWithOptions(
@@ -77,7 +81,7 @@ const LibrariesList = ({ libraries }) => {
             break;
           }
           case 1: {
-            // delete
+            dispatch(deleteLibrary(library.id));
             break;
           }
 

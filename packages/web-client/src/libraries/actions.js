@@ -36,7 +36,22 @@ const updateLibraryError = (error) => ({
   payload: error,
 });
 
+const deletingLibrary = () => ({ type: ACTION_TYPES.DELETING_LIBRARY });
+
+const deleteLibrarySuccess = (data) => ({
+  type: ACTION_TYPES.DELETE_LIBRARY_SUCCESS,
+  payload: data,
+});
+
+const deleteLibraryError = (error) => ({
+  type: ACTION_TYPES.DELETE_LIBRARY_ERROR,
+  payload: error,
+});
+
 export default {
+  deletingLibrary,
+  deleteLibrarySuccess,
+  deleteLibraryError,
   fetchingLibraries,
   fetchLibrariesError,
   fetchLibrariesSuccess,

@@ -13,5 +13,6 @@ type Services interface {
 	ResolveBook(code string) []domain.ResolvedBook
 	CreateLibrary(l *domain.Library) (*domain.Library, error)
 	UpdateLibrary(l *domain.Library) error
+	DeleteLibrary(l *domain.Library) error
 	ListLibraries(ownerId string) ([]domain.Library, error)
 }

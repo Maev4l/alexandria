@@ -36,3 +36,14 @@ export const updateLibrary = (library, callback) => async (dispatch) => {
     dispatch(actions.updateLibraryError(e));
   }
 };
+
+export const deleteLibrary = (libraryId) => async (dispatch) => {
+  dispatch(actions.deletingLibrary());
+  try {
+    await api.del(`/v1/libraries/${libraryId}`);
+    const data = await api.get('/v1/libraries');
+    dispatch(actions.deleteLibrarySuccess(data));
+  } catch (e) {
+    dispatch(actions.deleteLibraryError(e));
+  }
+};

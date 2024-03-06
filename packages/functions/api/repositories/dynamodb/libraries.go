@@ -2,6 +2,7 @@ package dynamodb
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"alexandria.isnan.eu/functions/api/domain"
@@ -11,6 +12,33 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog/log"
 )
+
+func (d *dynamo) DeleteLibrary(l *domain.Library) error {
+	result, err := d.client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: createLibraryPK(l.OwnerId)},
+			"SK": &types.AttributeValueMemberS{Value: createLibrarySK(l.Id)},
+		},
+		ReturnValues: types.ReturnValueAllOld,
+	})
+
+	if err != nil {
+		log.Error().Str("id", l.Id).Msgf("Failed to update library: %s", err.Error())
+		return err
+	}
+
+	// Item does not exist
+	if len(result.Attributes) == 0 {
+		log.Error().Str("id", l.Id).Msg("Library does not exists")
+		return errors.New("Library does not exists")
+	}
+
+	// TODO:
+	// Remove all books belonging to this library
+
+	return nil
+}
 
 func (d *dynamo) UpdateLibrary(l *domain.Library) error {
 

@@ -10,6 +10,17 @@ import (
 	"alexandria.isnan.eu/functions/internal/identifier"
 )
 
+func (s *services) DeleteLibrary(l *domain.Library) error {
+	err := s.db.DeleteLibrary(l)
+
+	// TODO:
+	// Remove thumbnails in S3
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *services) UpdateLibrary(l *domain.Library) error {
 
 	current := time.Now().UTC()

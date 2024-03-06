@@ -119,6 +119,19 @@ export const reducer = (state, action) => {
       };
     }
 
+    case ACTION_TYPES.DELETE_LIBRARY_SUCCESS: {
+      const { libraries } = payload;
+      return {
+        ...state,
+        loading: false,
+        libraries,
+        notification: {
+          text: 'Library deleted.',
+          severity: 'success',
+        },
+      };
+    }
+
     case ACTION_TYPES.FETCH_LIBRARIES_SUCCESS: {
       const { libraries } = payload;
       return {
@@ -128,6 +141,7 @@ export const reducer = (state, action) => {
       };
     }
 
+    case ACTION_TYPES.DELETING_LIBRARY:
     case ACTION_TYPES.UPDATING_LIBRARY:
     case ACTION_TYPES.CREATING_LIBRARY:
     case ACTION_TYPES.FETCHING_LIBRARIES:
@@ -141,6 +155,7 @@ export const reducer = (state, action) => {
       return { ...state, loading: true };
     }
 
+    case ACTION_TYPES.DELETE_LIBRARY_ERROR:
     case ACTION_TYPES.UPDATE_LIBRARY_ERROR:
     case ACTION_TYPES.CREATE_LIBRARY_ERROR:
     case ACTION_TYPES.FETCH_LIBRARIES_ERROR:

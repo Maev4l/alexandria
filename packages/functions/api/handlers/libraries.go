@@ -26,6 +26,27 @@ func (h *HTTPHandler) validateLibrary(library *domain.Library) error {
 	return nil
 }
 
+func (h *HTTPHandler) DeleteLibrary(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+
+	t := h.getTokenInfo(c)
+
+	library := domain.Library{
+		Id:      libraryId,
+		OwnerId: t.userId,
+	}
+
+	err := h.s.DeleteLibrary(&library)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to delete library",
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (h *HTTPHandler) UpdateLibrary(c *gin.Context) {
 	libraryId := c.Param("libraryId")
 
