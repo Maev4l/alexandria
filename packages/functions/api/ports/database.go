@@ -5,6 +5,7 @@ import (
 )
 
 type Database interface {
-	SaveLibrary(l *domain.Library) error
+	PutLibrary(l *domain.Library) error
+	UpdateLibrary(l *domain.Library) error
 	QueryLibraries(ownerId string) ([]domain.Library, error)
 }

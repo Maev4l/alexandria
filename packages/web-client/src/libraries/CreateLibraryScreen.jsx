@@ -9,8 +9,8 @@ const CreateLibraryScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
 
-  const handleSubmit = (library) =>
-    dispatch(createLibrary(library, () => navigation.navigate('Libraries')));
+  const handleSubmit = (item) =>
+    dispatch(createLibrary(item, () => navigation.navigate('Libraries')));
 
   return (
     <View style={{ padding: 10 }}>

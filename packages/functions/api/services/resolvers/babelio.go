@@ -52,7 +52,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	searchResponse, err := r.client.Do(searchRequest)
 	if err != nil {
-		log.Error().Msgf("Babelio - Failed to search: %s", err.Error())
+		log.Error().Str("source", "Babelio").Msgf("Failed to search: %s", err.Error())
 		ch <- nil
 		return
 	}
@@ -61,7 +61,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	searchResponseBody, err := io.ReadAll(searchResponse.Body)
 	if err != nil {
-		log.Error().Msgf("Babelio - Failed to read search response: %s", err.Error())
+		log.Error().Str("source", "Babelio").Msgf("Failed to read search response: %s", err.Error())
 		ch <- nil
 		return
 	}
@@ -69,13 +69,13 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	var searchResult []babelioSearchResult
 	err = json.Unmarshal(searchResponseBody, &searchResult)
 	if err != nil {
-		log.Error().Msgf("Babelio - Failed to unmarshal search response: %s", err.Error())
+		log.Error().Str("source", "Babelio").Msgf("Failed to unmarshal search response: %s", err.Error())
 		ch <- nil
 		return
 	}
 
 	if len(searchResult) == 0 {
-		log.Info().Msgf("Babelio - No item found for code: %s", code)
+		log.Error().Str("source", "Babelio").Msgf("No item found for code: %s", code)
 		ch <- []domain.ResolvedBook{}
 		return
 	}
@@ -118,7 +118,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 		moreSummaryResponse, err := r.client.Do(moreSummaryRequest)
 		if err != nil {
-			log.Error().Msgf("Babelio - Failed to request more summary for %s: %s", foundUrl, err.Error())
+			log.Error().Str("source", "Babelio").Msgf("Failed to request more summary for %s: %s", foundUrl, err.Error())
 			ch <- nil
 			return
 		}
@@ -128,7 +128,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		decoder := charmap.ISO8859_1.NewDecoder()
 		output, err := decoder.Bytes(body)
 		if err != nil {
-			log.Error().Msgf("Babelio - Failed to decode response for %s: %s", foundUrl, err.Error())
+			log.Error().Str("source", "Babelio").Msgf("Failed to decode response for %s: %s", foundUrl, err.Error())
 			ch <- nil
 			return
 		}
@@ -158,7 +158,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	err = c.Visit(foundUrl)
 	if err != nil {
-		log.Error().Msgf("Babelio - Failed to visit book url: %s: %s", foundUrl, err.Error())
+		log.Error().Str("source", "Babelio").Msgf(" Failed to visit book url: %s: %s", foundUrl, err.Error())
 		ch <- nil
 		return
 	}

@@ -26,6 +26,59 @@ func (h *HTTPHandler) validateLibrary(library *domain.Library) error {
 	return nil
 }
 
+func (h *HTTPHandler) UpdateLibrary(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+
+	var request UpdateLibraryRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		log.Error().Msgf("Invalid request: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	t := h.getTokenInfo(c)
+
+	library := domain.Library{
+		Id:          request.Id,
+		Name:        strings.TrimSpace(request.Name),
+		Description: strings.TrimSpace(request.Description),
+		OwnerId:     t.userId,
+	}
+
+	err = h.validateLibrary(&library)
+
+	if err != nil {
+		log.Error().Msg(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	// Libray id in path parameter does not match the library id in the update payload
+	if libraryId != request.Id {
+		msg := "Invalid request - Identifers mismatch"
+		log.Error().Msg(msg)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": msg,
+		})
+		return
+	}
+
+	err = h.s.UpdateLibrary(&library)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to update library",
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (h *HTTPHandler) ListLibraries(c *gin.Context) {
 	t := h.getTokenInfo(c)
 	libraries, err := h.s.ListLibraries(t.userId)

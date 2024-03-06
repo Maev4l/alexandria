@@ -8,8 +8,21 @@ import (
 
 	"alexandria.isnan.eu/functions/api/domain"
 	"alexandria.isnan.eu/functions/internal/identifier"
-	"github.com/rs/zerolog/log"
 )
+
+func (s *services) UpdateLibrary(l *domain.Library) error {
+
+	current := time.Now().UTC()
+	l.UpdatedAt = &current
+
+	err := s.db.UpdateLibrary(l)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (s *services) ListLibraries(ownerId string) ([]domain.Library, error) {
 
@@ -41,9 +54,8 @@ func (s *services) CreateLibrary(l *domain.Library) (*domain.Library, error) {
 	l.Id = identifier.NewId()
 	l.UpdatedAt = &current
 
-	err := s.db.SaveLibrary(l)
+	err := s.db.PutLibrary(l)
 	if err != nil {
-		log.Error().Msgf("Failed to create library (name: %s): %s", l.Name, err.Error())
 		return nil, err
 	}
 

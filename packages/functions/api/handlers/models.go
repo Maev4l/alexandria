@@ -43,3 +43,9 @@ type GetLibraryResponse struct {
 type GetLibrariesResponse struct {
 	Libraries []GetLibraryResponse `json:"libraries"`
 }
+
+type UpdateLibraryRequest struct {
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}

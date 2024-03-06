@@ -24,3 +24,15 @@ export const createLibrary = (library, callback) => async (dispatch) => {
     dispatch(actions.createLibraryError(e));
   }
 };
+
+export const updateLibrary = (library, callback) => async (dispatch) => {
+  dispatch(actions.updatingLibrary());
+  try {
+    await api.put(`/v1/libraries/${library.id}`, library);
+    const data = await api.get('/v1/libraries');
+    dispatch(actions.updateLibrarySuccess(data));
+    callback();
+  } catch (e) {
+    dispatch(actions.updateLibraryError(e));
+  }
+};

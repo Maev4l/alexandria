@@ -2,6 +2,7 @@ package dynamodb
 
 import (
 	"context"
+	"time"
 
 	"alexandria.isnan.eu/functions/api/domain"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -10,6 +11,32 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog/log"
 )
+
+func (d *dynamo) UpdateLibrary(l *domain.Library) error {
+
+	_, err := d.client.UpdateItem(context.TODO(),
+		&dynamodb.UpdateItemInput{
+			TableName: aws.String(tableName),
+			Key: map[string]types.AttributeValue{
+				"PK": &types.AttributeValueMemberS{Value: createLibraryPK(l.OwnerId)},
+				"SK": &types.AttributeValueMemberS{Value: createLibrarySK(l.Id)},
+			},
+			UpdateExpression:    aws.String("set LibraryName = :name, Description = :description, UpdatedAt = :updatedAt"),
+			ConditionExpression: aws.String("attribute_exists(PK)"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":name":        &types.AttributeValueMemberS{Value: l.Name},
+				":description": &types.AttributeValueMemberS{Value: l.Description},
+				":updatedAt":   &types.AttributeValueMemberS{Value: l.UpdatedAt.Format(time.RFC3339Nano)},
+			},
+		})
+
+	if err != nil {
+		log.Error().Str("id", l.Id).Msgf("Failed to update library: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
 
 func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 	query := dynamodb.QueryInput{
@@ -64,7 +91,7 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 	return records, nil
 }
 
-func (d *dynamo) SaveLibrary(l *domain.Library) error {
+func (d *dynamo) PutLibrary(l *domain.Library) error {
 
 	record := Library{
 		PK:          createLibraryPK(l.OwnerId),
@@ -79,7 +106,7 @@ func (d *dynamo) SaveLibrary(l *domain.Library) error {
 
 	item, err := attributevalue.MarshalMap(record)
 	if err != nil {
-		log.Error().Msgf("Failed to marshal library '%s': %s", l.Name, err.Error())
+		log.Error().Str("name", l.Name).Msgf("Failed to marshal library: %s", err.Error())
 		return err
 	}
 
@@ -89,7 +116,7 @@ func (d *dynamo) SaveLibrary(l *domain.Library) error {
 	})
 
 	if err != nil {
-		log.Error().Msgf("Failed to put library '%s': %s", l.Name, err.Error())
+		log.Error().Str("name", l.Name).Msgf("Failed to put library: %s", err.Error())
 		return err
 	}
 

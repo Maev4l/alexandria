@@ -24,6 +24,18 @@ const createLibraryError = (error) => ({
   payload: error,
 });
 
+const updatingLibrary = () => ({ type: ACTION_TYPES.UPDATING_LIBRARY });
+
+const updateLibrarySuccess = (data) => ({
+  type: ACTION_TYPES.UPDATE_LIBRARY_SUCCESS,
+  payload: data,
+});
+
+const updateLibraryError = (error) => ({
+  type: ACTION_TYPES.UPDATE_LIBRARY_ERROR,
+  payload: error,
+});
+
 export default {
   fetchingLibraries,
   fetchLibrariesError,
@@ -31,4 +43,7 @@ export default {
   creatingLibrary,
   createLibrarySuccess,
   createLibraryError,
+  updatingLibrary,
+  updateLibrarySuccess,
+  updateLibraryError,
 };

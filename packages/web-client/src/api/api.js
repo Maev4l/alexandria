@@ -59,8 +59,34 @@ const del = async (path) => {
   });
 };
 
+const put = async (path, data) => {
+  const token = await fetchToken();
+  const response = await fetch(`${basePath}${path}`, {
+    method: 'PUT',
+    headers: { Authorization: token },
+    body: JSON.stringify(data),
+  });
+
+  const text = await response.text();
+  if (!response.ok) {
+    if (text) {
+      const json = JSON.parse(text);
+      const { message } = json;
+      if (message) {
+        throw new Error(message);
+      }
+    }
+    throw new Error(`Server error: ${response.statusText}`);
+  } else if (text) {
+    const json = JSON.parse(text);
+    return json;
+  }
+  return null;
+};
+
 export default {
   get,
   post,
   del,
+  put,
 };

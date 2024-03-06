@@ -50,7 +50,7 @@ func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	searchResponse, err := r.client.Do(searchRequest)
 	if err != nil {
-		log.Error().Msgf("Google - Failed to search: %s", err.Error())
+		log.Error().Str("source", "Google").Msgf("Failed to search: %s", err.Error())
 		ch <- nil
 		return
 	}
@@ -59,7 +59,7 @@ func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	searchResponseBody, err := io.ReadAll(searchResponse.Body)
 	if err != nil {
-		log.Error().Msgf("Google - Failed to read search response: %s", err.Error())
+		log.Error().Str("source", "Google").Msgf("Failed to read search response: %s", err.Error())
 		ch <- nil
 		return
 	}
@@ -67,13 +67,13 @@ func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	var searchResult googleSearchResult
 	err = json.Unmarshal(searchResponseBody, &searchResult)
 	if err != nil {
-		log.Error().Msgf("Google - Failed to unmarshal search response: %s", err.Error())
+		log.Error().Str("source", "Google").Msgf(" Failed to unmarshal search response: %s", err.Error())
 		ch <- nil
 		return
 	}
 
 	if searchResult.Total == 0 {
-		log.Info().Msgf("Google - No item found for code: %s", code)
+		log.Info().Str("source", "Google").Msgf("No item found for code: %s", code)
 		ch <- []domain.ResolvedBook{}
 		return
 	}

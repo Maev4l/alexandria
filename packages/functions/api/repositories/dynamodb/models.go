@@ -9,7 +9,7 @@ type Library struct {
 	PK          string     `dynamodbav:"PK"` // user#1234
 	SK          string     `dynamodbav:"SK"` // library#1234
 	Id          string     `dynamodbav:"Id"`
-	Name        string     `dynamodbav:"Name"`
+	Name        string     `dynamodbav:"LibraryName"`
 	Description string     `dynamodbav:"Description"`
 	OwnerName   string     `dynamodbav:"OwnerName"`
 	TotalItems  int        `dynamodbav:"TotalItems"`
