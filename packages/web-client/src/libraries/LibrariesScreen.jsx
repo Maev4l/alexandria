@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Chip } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 
-import { useDispatch, useSelector } from '../store';
+import { useDispatch, useSelector, ACTION_TYPES } from '../store';
 import { fetchLibraries } from './operations';
 import LibrariesList from './LibrariesList';
 import { Alert } from '../components';
@@ -11,9 +11,9 @@ import { Alert } from '../components';
 const LibrariesScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const { libraries, loading } = useSelector((state) => ({
+  const { libraries, lastAction } = useSelector((state) => ({
     libraries: state.libraries,
-    loading: state.loading,
+    lastAction: state.lastAction,
   }));
 
   useEffect(() => {
@@ -36,7 +36,7 @@ const LibrariesScreen = () => {
           Add library
         </Chip>
       </View>
-      {!loading && libraries.length === 0 ? (
+      {lastAction === ACTION_TYPES.FETCH_LIBRARIES_SUCCESS && libraries.length === 0 ? (
         <Alert variant="primary" style={{ marginTop: 20 }} text="You have no libraries." />
       ) : null}
       <LibrariesList libraries={libraries} />

@@ -15,18 +15,34 @@ export const INITIAL_STATE = {
   },
   resolvedBooks: [],
   libraries: [],
+  lastAction: '',
+  libraryItems: {
+    // items:[]
+    // nextToken: <token>
+  },
 };
 
 export const reducer = (state, action) => {
   const { type, payload } = action;
 
+  const newState = { ...state, lastAction: type };
+
   switch (type) {
+    case ACTION_TYPES.FETCH_LIBRARY_ITEMS_SUCCESS: {
+      const { items, nextToken } = payload;
+      return {
+        ...newState,
+        loading: false,
+        libraryItems: { items, nextToken },
+      };
+    }
+
     case ACTION_TYPES.SIGN_IN_SUCCESS: {
       const authn = {
         state: 'LOGGED_IN',
         token: payload,
       };
-      return { ...state, loading: false, authn };
+      return { ...newState, loading: false, authn };
     }
 
     case ACTION_TYPES.FETCH_TOKEN_SUCCESS: {
@@ -42,17 +58,17 @@ export const reducer = (state, action) => {
       } else {
         authn.state = 'LOGGED_OUT';
       }
-      return { ...state, loading: false, authn };
+      return { ...newState, loading: false, authn };
     }
 
     case ACTION_TYPES.DETECT_BOOK_SUCCESS: {
       const { detectedBooks } = payload;
-      return { ...state, loading: false, resolvedBooks: detectedBooks };
+      return { ...newState, loading: false, resolvedBooks: detectedBooks };
     }
 
     case ACTION_TYPES.DISMISS_NOTIFICATION: {
       return {
-        ...state,
+        ...newState,
         loading: false,
         notification: { text: null, severity: '' },
       };
@@ -60,7 +76,7 @@ export const reducer = (state, action) => {
 
     case ACTION_TYPES.SIGN_OUT_SUCCESS: {
       return {
-        ...state,
+        ...newState,
         loading: false,
         authn: {
           state: 'LOGGED_OUT',
@@ -73,18 +89,18 @@ export const reducer = (state, action) => {
 
     case ACTION_TYPES.READ_APP_PREFERENCES_SUCCESS: {
       if (payload !== null) {
-        return { ...state, preferences: payload, loading: false };
+        return { ...newState, preferences: payload, loading: false };
       }
-      return { ...state, loading: false };
+      return { ...newState, loading: false };
     }
 
     case ACTION_TYPES.WRITE_APP_PREFERENCES_SUCCESS: {
-      return { ...state, preferences: payload, loading: false };
+      return { ...newState, preferences: payload, loading: false };
     }
 
     case ACTION_TYPES.SIGNUP_SUCCESS: {
       return {
-        ...state,
+        ...newState,
         loading: false,
         notification: {
           text: 'Your request is being processed.\nAn administrator will finalize your registration.',
@@ -96,7 +112,7 @@ export const reducer = (state, action) => {
     case ACTION_TYPES.UPDATE_LIBRARY_SUCCESS: {
       const { libraries } = payload;
       return {
-        ...state,
+        ...newState,
         loading: false,
         libraries,
         notification: {
@@ -109,7 +125,7 @@ export const reducer = (state, action) => {
     case ACTION_TYPES.CREATE_LIBRARY_SUCCESS: {
       const { libraries } = payload;
       return {
-        ...state,
+        ...newState,
         loading: false,
         libraries,
         notification: {
@@ -122,7 +138,7 @@ export const reducer = (state, action) => {
     case ACTION_TYPES.DELETE_LIBRARY_SUCCESS: {
       const { libraries } = payload;
       return {
-        ...state,
+        ...newState,
         loading: false,
         libraries,
         notification: {
@@ -135,46 +151,26 @@ export const reducer = (state, action) => {
     case ACTION_TYPES.FETCH_LIBRARIES_SUCCESS: {
       const { libraries } = payload;
       return {
-        ...state,
+        ...newState,
         loading: false,
         libraries,
       };
     }
 
-    case ACTION_TYPES.DELETING_LIBRARY:
-    case ACTION_TYPES.UPDATING_LIBRARY:
-    case ACTION_TYPES.CREATING_LIBRARY:
-    case ACTION_TYPES.FETCHING_LIBRARIES:
-    case ACTION_TYPES.DETECTING_BOOK:
-    case ACTION_TYPES.SIGNING_UP:
-    case ACTION_TYPES.WRITING_APP_PREFERENCES:
-    case ACTION_TYPES.READING_APP_PREFERENCES:
-    case ACTION_TYPES.SIGNING_OUT:
-    case ACTION_TYPES.FETCHING_TOKEN:
-    case ACTION_TYPES.SIGNING_IN: {
-      return { ...state, loading: true };
+    case ACTION_TYPES.APP_WAITING: {
+      return { ...newState, loading: true };
     }
 
-    case ACTION_TYPES.DELETE_LIBRARY_ERROR:
-    case ACTION_TYPES.UPDATE_LIBRARY_ERROR:
-    case ACTION_TYPES.CREATE_LIBRARY_ERROR:
-    case ACTION_TYPES.FETCH_LIBRARIES_ERROR:
-    case ACTION_TYPES.DETECT_BOOK_ERROR:
-    case ACTION_TYPES.SIGNUP_ERROR:
-    case ACTION_TYPES.WRITE_APP_PREFERENCES_ERROR:
-    case ACTION_TYPES.READ_APP_PREFERENCES_ERROR:
-    case ACTION_TYPES.SIGN_OUT_ERROR:
-    case ACTION_TYPES.FETCH_TOKEN_ERROR:
-    case ACTION_TYPES.SIGN_IN_ERROR: {
+    case ACTION_TYPES.APP_ERROR: {
       const error = payload;
       return {
-        ...state,
+        ...newState,
         loading: false,
         notification: { text: error.message, severity: 'error' },
       };
     }
 
     default:
-      return state;
+      return newState;
   }
 };

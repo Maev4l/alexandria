@@ -9,4 +9,5 @@ type Database interface {
 	UpdateLibrary(l *domain.Library) error
 	DeleteLibrary(l *domain.Library) error
 	QueryLibraries(ownerId string) ([]domain.Library, error)
+	QueryLibraryItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error)
 }

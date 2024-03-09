@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"alexandria.isnan.eu/functions/api/domain"
@@ -10,7 +11,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func (h *HTTPHandler) validateLibrary(library *domain.Library) error {
+func (h *HTTPHandler) validateLibraryPayload(library *domain.Library) error {
 
 	if len(library.Name) == 0 {
 		return errors.New("Invalid request - Library name is mandatory")
@@ -24,6 +25,51 @@ func (h *HTTPHandler) validateLibrary(library *domain.Library) error {
 		return errors.New("Invalid request - Desccription too long (max. 100 chars)")
 	}
 	return nil
+}
+
+func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
+
+	libraryId := c.Param("libraryId")
+	continuationToken := c.Query("nextToken")
+	limit := c.DefaultQuery("limit", "10")
+	pageSize, err := strconv.Atoi(limit)
+	if err != nil {
+		pageSize = 10
+	}
+	t := h.getTokenInfo(c)
+
+	items, err := h.s.ListLibraryItems(t.userId, libraryId, continuationToken, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to query library items ",
+		})
+		return
+	}
+
+	itemsResponse := []GetItemResponse{}
+
+	for _, i := range items.Items {
+		if i.Type == domain.ItemBook {
+			b := GetBookResponse{
+				GetItemResponseBase: GetItemResponseBase{
+					Id:    i.Id,
+					Type:  domain.ItemBook,
+					Title: i.Title,
+				},
+				Authors: i.Authors,
+				Summary: i.Summary,
+				Isbn:    i.Isbn,
+			}
+			itemsResponse = append(itemsResponse, b)
+		}
+	}
+
+	response := GetLibrariesContentResponse{
+		GetItemsResponse:  itemsResponse,
+		ContinuationToken: items.ContinuationToken,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *HTTPHandler) DeleteLibrary(c *gin.Context) {
@@ -69,7 +115,7 @@ func (h *HTTPHandler) UpdateLibrary(c *gin.Context) {
 		OwnerId:     t.userId,
 	}
 
-	err = h.validateLibrary(&library)
+	err = h.validateLibraryPayload(&library)
 
 	if err != nil {
 		log.Error().Msg(err.Error())
@@ -118,7 +164,7 @@ func (h *HTTPHandler) ListLibraries(c *gin.Context) {
 			Name:        l.Name,
 			Description: l.Description,
 			TotalItems:  l.TotalItems,
-			CreatedAt:   l.UpdatedAt,
+			UpdatedAt:   l.UpdatedAt,
 		})
 	}
 
@@ -152,7 +198,7 @@ func (h *HTTPHandler) CreateLibrary(c *gin.Context) {
 		OwnerId:     t.userId,
 	}
 
-	err = h.validateLibrary(&library)
+	err = h.validateLibraryPayload(&library)
 
 	if err != nil {
 		log.Error().Msg(err.Error())
@@ -174,6 +220,6 @@ func (h *HTTPHandler) CreateLibrary(c *gin.Context) {
 	c.JSON(http.StatusCreated, CreateLibraryResponse{
 		Id:         result.Id,
 		TotalItems: 0,
-		CreatedAt:  result.UpdatedAt,
+		UpdatedAt:  result.UpdatedAt,
 	})
 }

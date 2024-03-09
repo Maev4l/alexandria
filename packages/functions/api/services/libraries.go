@@ -1,14 +1,22 @@
 package services
 
 import (
-	"cmp"
-	"slices"
-	"strings"
 	"time"
 
 	"alexandria.isnan.eu/functions/api/domain"
 	"alexandria.isnan.eu/functions/internal/identifier"
 )
+
+func (s *services) ListLibraryItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
+
+	content, err := s.db.QueryLibraryItems(ownerId, libraryId, continuationToken, pageSize)
+	// TODO: Fetch items thumbnails
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
+}
 
 func (s *services) DeleteLibrary(l *domain.Library) error {
 	err := s.db.DeleteLibrary(l)
@@ -38,22 +46,6 @@ func (s *services) UpdateLibrary(l *domain.Library) error {
 func (s *services) ListLibraries(ownerId string) ([]domain.Library, error) {
 
 	res, err := s.db.QueryLibraries(ownerId)
-	slices.SortFunc(res, func(a, b domain.Library) int {
-		// Sort by library name
-		r := cmp.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
-		if r != 0 {
-			return r
-		}
-
-		// Otherwise, sort by creation / update date
-		if a.UpdatedAt.After(*b.UpdatedAt) {
-			return -1
-		} else if a.UpdatedAt.Before(*b.UpdatedAt) {
-			return 1
-		}
-
-		return 0
-	})
 
 	return res, err
 }

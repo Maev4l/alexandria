@@ -1,49 +1,68 @@
-import actions from './actions';
+import {
+  fetchLibrariesSuccess,
+  createLibrarySuccess,
+  updateLibrarySuccess,
+  deleteLibrarySuccess,
+  fetchLibraryItemsSuccess,
+} from './actions';
 
 import { api } from '../api';
+import { appError, appWaiting } from '../store';
+
+export const fetchLibraryItems =
+  (libraryId, nextToken = '') =>
+  async (dispatch) => {
+    dispatch(appWaiting());
+    try {
+      const data = await api.get(`/v1/libraries/${libraryId}/items?nextToken=${nextToken}`);
+      dispatch(fetchLibraryItemsSuccess(data));
+    } catch (e) {
+      dispatch(appError(e));
+    }
+  };
 
 export const fetchLibraries = () => async (dispatch) => {
-  dispatch(actions.fetchingLibraries());
+  dispatch(appWaiting());
 
   try {
     const data = await api.get('/v1/libraries');
-    dispatch(actions.fetchLibrariesSuccess(data));
+    dispatch(fetchLibrariesSuccess(data));
   } catch (e) {
-    dispatch(actions.fetchLibrariesError(e));
+    dispatch(appError(e));
   }
 };
 
 export const createLibrary = (library, callback) => async (dispatch) => {
-  dispatch(actions.creatingLibrary());
+  dispatch(appWaiting());
   try {
     await api.post('/v1/libraries', library);
     const data = await api.get('/v1/libraries');
-    dispatch(actions.createLibrarySuccess(data));
+    dispatch(createLibrarySuccess(data));
     callback();
   } catch (e) {
-    dispatch(actions.createLibraryError(e));
+    dispatch(appError(e));
   }
 };
 
 export const updateLibrary = (library, callback) => async (dispatch) => {
-  dispatch(actions.updatingLibrary());
+  dispatch(appWaiting());
   try {
     await api.put(`/v1/libraries/${library.id}`, library);
     const data = await api.get('/v1/libraries');
-    dispatch(actions.updateLibrarySuccess(data));
+    dispatch(updateLibrarySuccess(data));
     callback();
   } catch (e) {
-    dispatch(actions.updateLibraryError(e));
+    dispatch(appError(e));
   }
 };
 
 export const deleteLibrary = (libraryId) => async (dispatch) => {
-  dispatch(actions.deletingLibrary());
+  dispatch(appWaiting());
   try {
     await api.del(`/v1/libraries/${libraryId}`);
     const data = await api.get('/v1/libraries');
-    dispatch(actions.deleteLibrarySuccess(data));
+    dispatch(deleteLibrarySuccess(data));
   } catch (e) {
-    dispatch(actions.deleteLibraryError(e));
+    dispatch(appError(e));
   }
 };

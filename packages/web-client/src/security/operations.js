@@ -6,36 +6,43 @@ import {
   updatePassword,
 } from 'aws-amplify/auth';
 
-import actions from './actions';
+import {
+  fetchTokenSuccess,
+  signOutSuccess,
+  signInSuccess,
+  changePasswordSuccess,
+  signUpSuccess,
+} from './actions';
+import { appWaiting, appError } from '../store';
 
 export const getToken = () => async (dispatch) => {
-  dispatch(actions.fetchingToken());
+  dispatch(appWaiting());
 
   try {
     const { tokens } = await fetchAuthSession();
     if (tokens) {
       const { idToken } = tokens;
-      dispatch(actions.fetchTokenSuccess(idToken));
+      dispatch(fetchTokenSuccess(idToken));
     } else {
-      dispatch(actions.fetchTokenSuccess(null));
+      dispatch(fetchTokenSuccess(null));
     }
   } catch (e) {
-    dispatch(actions.fetchTokenError(e));
+    dispatch(appError(e));
   }
 };
 
 export const signout = () => async (dispatch) => {
-  dispatch(actions.signingOut());
+  dispatch(appWaiting());
   try {
     await cognitoSignOut();
-    dispatch(actions.signOutSuccess());
+    dispatch(signOutSuccess());
   } catch (e) {
-    dispatch(actions.signOutError());
+    dispatch(appError(e));
   }
 };
 
 export const signin = (username, password) => async (dispatch) => {
-  dispatch(actions.signingIn());
+  dispatch(appWaiting());
 
   try {
     const { isSignedIn } = await cognitoSignIn({ username, password });
@@ -44,29 +51,29 @@ export const signin = (username, password) => async (dispatch) => {
       const {
         tokens: { idToken },
       } = result;
-      dispatch(actions.signInSuccess(idToken));
+      dispatch(signInSuccess(idToken));
     } else {
-      dispatch(actions.signInError(new Error('Sign up not finalized.')));
+      dispatch(appError(new Error('Sign up not finalized.')));
     }
   } catch (e) {
     if (e.name !== 'UserAlreadyAuthenticatedException') {
-      dispatch(actions.signInError(e));
+      dispatch(appError(e));
     }
   }
 };
 
 export const changePassword = (oldPassword, newPassword) => async (dispatch) => {
-  dispatch(actions.changingPassword());
+  dispatch(appWaiting());
   try {
     await updatePassword({ oldPassword, newPassword });
-    dispatch(actions.changePasswordSuccess());
+    dispatch(changePasswordSuccess());
   } catch (e) {
-    dispatch(actions.changePasswordError(e));
+    dispatch(appError(e));
   }
 };
 
 export const signup = (username, password, displayName, callback) => async (dispatch) => {
-  dispatch(actions.signingUp());
+  dispatch(appWaiting());
   try {
     /* const { isSignUpComplete, userId, nextStep } = */ await cognitoSignUp({
       username,
@@ -77,16 +84,12 @@ export const signup = (username, password, displayName, callback) => async (disp
         },
       },
     });
-    /*
-    console.log(
-      `isSignUpComplete: ${isSignUpComplete} - userId: ${userId} - nextStep: ${JSON.stringify(nextStep)}`,
-    );
-    */
-    dispatch(actions.signUpSuccess());
+
+    dispatch(signUpSuccess());
     if (callback) {
       callback();
     }
   } catch (e) {
-    dispatch(actions.signUpError(e));
+    dispatch(appError(e));
   }
 };

@@ -3,6 +3,10 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LibrariesScreen from './LibrariesScreen';
 import CreateLibraryScreen from './CreateLibraryScreen';
 import EditLibraryScreen from './EditLibraryScreen';
+import ItemsScreen, { ItemsScreenHeader } from './ItemsScreen';
+
+import ScanCodeScreen from '../scan-code/ScanCodeScreen';
+import BookDetectionScreen from '../scan-code/BookDetectionScreen';
 
 const Stack = createStackNavigator();
 
@@ -25,6 +29,23 @@ const Navigator = () => (
       name="UpdateLibrary"
       options={{ headerTitle: 'Update library' }}
       component={EditLibraryScreen}
+    />
+    <Stack.Screen
+      name="LibraryItems"
+      options={({ route }) => ({
+        headerTitle: () => <ItemsScreenHeader route={route} />,
+      })}
+      component={ItemsScreen}
+    />
+    <Stack.Screen
+      name="ScanCode"
+      options={{ headerTitle: 'Scan Bar Code' }}
+      component={ScanCodeScreen}
+    />
+    <Stack.Screen
+      name="BooksDetection"
+      options={{ headerTitle: 'Detected books' }}
+      component={BookDetectionScreen}
     />
   </Stack.Navigator>
 );

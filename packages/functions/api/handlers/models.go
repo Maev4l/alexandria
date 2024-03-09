@@ -1,6 +1,10 @@
 package handlers
 
-import "time"
+import (
+	"time"
+
+	"alexandria.isnan.eu/functions/api/domain"
+)
 
 type DetectRequest struct {
 	Type int    `json:"type"`
@@ -29,7 +33,7 @@ type CreateLibraryRequest struct {
 type CreateLibraryResponse struct {
 	Id         string     `json:"id"`
 	TotalItems int        `json:"totalItems"`
-	CreatedAt  *time.Time `json:"createdAt"`
+	UpdatedAt  *time.Time `json:"updatedAt"`
 }
 
 type GetLibraryResponse struct {
@@ -37,7 +41,7 @@ type GetLibraryResponse struct {
 	Name        string     `json:"name"`
 	Description string     `json:"description"`
 	TotalItems  int        `json:"totalItems"`
-	CreatedAt   *time.Time `json:"createdAt"`
+	UpdatedAt   *time.Time `json:"updatedAt"`
 }
 
 type GetLibrariesResponse struct {
@@ -48,4 +52,34 @@ type UpdateLibraryRequest struct {
 	Id          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+}
+
+// Marker interface
+type GetItemResponse interface {
+	getType() string
+}
+
+type GetItemResponseBase struct {
+	Id         string          `json:"id"`
+	Type       domain.ItemType `json:"type"`
+	Title      string          `json:"title"`
+	Picture    *string         `json:"picture,omitempty"`
+	LibraryId  *string         `json:"libraryId,omitempty"`
+	LibrayName *string         `json:"libraryName,omitempty"`
+}
+
+func (g GetItemResponseBase) getType() string { return "" }
+
+type GetBookResponse struct {
+	GetItemResponseBase
+	Authors []string `json:"authors"`
+	Summary string   `json:"summary"`
+	Isbn    string   `json:"isbn"`
+}
+
+func (g GetBookResponse) getType() string { return domain.ItemBook.String() }
+
+type GetLibrariesContentResponse struct {
+	GetItemsResponse  []GetItemResponse `json:"items"`
+	ContinuationToken string            `json:"nextToken"`
 }

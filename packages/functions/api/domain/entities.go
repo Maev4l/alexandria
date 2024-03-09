@@ -5,15 +5,15 @@ import (
 	"time"
 )
 
-type DetectType int
+type ItemType int
 
 const (
-	DetectBook DetectType = iota
+	ItemBook ItemType = iota
 )
 
-func (e DetectType) String() string {
+func (e ItemType) String() string {
 	switch e {
-	case DetectBook:
+	case ItemBook:
 		return "Book"
 	default:
 		return fmt.Sprintf("%d", int(e))
@@ -45,7 +45,25 @@ type Library struct {
 	Description string
 	OwnerName   string
 	OwnerId     string
-	Books       []Book
 	TotalItems  int
 	UpdatedAt   *time.Time
+}
+type LibraryContent struct {
+	Items             []LibraryItem
+	ContinuationToken string
+}
+
+type LibraryItem struct {
+	Id          string
+	Title       string
+	Picture     string
+	LibraryId   string
+	LibraryName string
+	OwnerName   string
+	OwnerId     string
+	UpdatedAt   *time.Time
+	Summary     string
+	Authors     []string
+	Isbn        string
+	Type        ItemType
 }

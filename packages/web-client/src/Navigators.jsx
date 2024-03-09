@@ -7,7 +7,6 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SignIn, SignUp } from './security';
 import { LibrariesNavigators } from './libraries';
 import { SettingsNavigators } from './settings';
-import { ScanCodeNavigators } from './scan-code';
 
 const AuthenticationStack = createStackNavigator();
 
@@ -80,14 +79,6 @@ export const AppNavigator = () => (
       options={{
         tabBarLabel: 'Libraries',
         tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
-      }}
-    />
-    <AppTab.Screen
-      name="ScanCodeTab"
-      component={ScanCodeNavigators}
-      options={{
-        tabBarLabel: 'Scan',
-        tabBarIcon: ({ color, size }) => <Icon name="camera" size={size} color={color} />,
       }}
     />
     <AppTab.Screen

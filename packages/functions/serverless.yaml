@@ -20,7 +20,7 @@ provider:
   profile: default
   logRetentionInDays: 7
   apiGateway:
-    disableDefaultEndpoint: false
+    disableDefaultEndpoint: true
     minimumCompressionSize: 1024 # in bytes
   tags:
     application: 'alexandria'

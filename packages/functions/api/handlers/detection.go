@@ -31,9 +31,9 @@ func (h *HTTPHandler) RequestDetection(c *gin.Context) {
 		return
 	}
 
-	validTypes := []domain.DetectType{domain.DetectBook}
+	validTypes := []domain.ItemType{domain.ItemBook}
 
-	if !slices.Contains(validTypes, domain.DetectType(request.Type)) {
+	if !slices.Contains(validTypes, domain.ItemType(request.Type)) {
 		msg := fmt.Sprintf("Invalid request - Incorrect detection type : %d", request.Type)
 		log.Error().Msg(msg)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -43,7 +43,7 @@ func (h *HTTPHandler) RequestDetection(c *gin.Context) {
 	}
 
 	codeLength := len(request.Code)
-	if domain.DetectType(request.Type) == domain.DetectBook && (codeLength != 13 && codeLength != 10) {
+	if domain.ItemType(request.Type) == domain.ItemBook && (codeLength != 13 && codeLength != 10) {
 		msg := fmt.Sprintf("Invalid request - Incorrect code : %s (Type: %d)", request.Code, request.Type)
 		log.Error().Msg(msg)
 		c.JSON(http.StatusBadRequest, gin.H{
