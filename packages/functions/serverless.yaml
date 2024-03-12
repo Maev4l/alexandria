@@ -36,6 +36,8 @@ provider:
 
 custom:
   dynamoDbTableName: alexandria
+  picturesBucketName: alexandria-pictures
+  imagesProcessorImage: 671123374425.dkr.ecr.eu-central-1.amazonaws.com/alexandria/images-processing
   snsTopicArn: arn:aws:sns:eu-central-1:671123374425:alerting-events
   customDomain:
     domainName: api-alexandria.isnan.eu
@@ -46,7 +48,7 @@ custom:
     createRoute53Record: true
     endpointType: ${self:provider.endpointType}
   go:
-    supportedRuntimes: provided.al2023
+    supportedRuntimes: ['provided.al2023']
     buildProvidedRuntimeAsBootstrap: true
     cmd: GOARCH=arm64 GOOS=linux go build -ldflags="-s -w"
 
@@ -55,8 +57,10 @@ functions:
     handler: api/cmd/main.go
     name: alexandria-api
     role: ApiRole
+    runtime: provided.al2023
     environment:
       DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
+      S3_PICTURES_BUCKET: ${self:custom.picturesBucketName}
       REGION: ${self:provider.region}
     events:
       - http:
@@ -70,6 +74,7 @@ functions:
     handler: pre-signup/cmd/main.go
     name: alexandria-pre-signup
     role: PreSignupRole
+    runtime: provided.al2023
     environment:
       SNS_TOPIC_ARN: ${self:custom.snsTopicArn}
       REGION: ${self:provider.region}
@@ -77,6 +82,21 @@ functions:
       - cognitoUserPool:
           pool: AlexandriaUserPool
           trigger: PreSignUp
+  images-processor:
+    name: alexandria-image-processor
+    image: ${self:custom.imagesProcessorImage}:latest
+    role: ImagesProcessorRole
+    runtime: nodejs20.x
+    environment:
+      S3_PICTURES_BUCKET: ${self:custom.picturesBucketName}
+      REGION: ${self:provider.region}
+    events:
+      - s3:
+          bucket: !Ref PicturesStorage
+          event: s3:ObjectCreated:*
+          existing: true
+          rules:
+            - prefix: incoming/
 
 resources:
   Resources:
@@ -136,6 +156,21 @@ resources:
                           - ':table/'
                           - ${self:custom.dynamoDbTableName}
                           - '/index/*'
+                - Effect: Allow
+                  Action:
+                    - s3:PutObject
+                    - s3:PutObjectTagging
+                    - s3:GetObject
+                    - s3:ListBucket
+                    - s3:GetObjectTagging
+                    - s3:DeleteObject
+                  Resource:
+                    - Fn::Join:
+                        - ''
+                        - - 'arn:aws:s3:::'
+                          - Ref: PicturesStorage
+                          - '/*'
+                    - !GetAtt PicturesStorage.Arn
     PreSignupRole:
       Type: AWS::IAM::Role
       Properties:
@@ -170,6 +205,49 @@ resources:
                   Action:
                     - sns:Publish
                   Resource: ${self:custom.snsTopicArn}
+    ImagesProcessorRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: alexandria-presignup
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow # note that these rights are given in the default policy and are required if you want logs out of your lambda(s)
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                    - logs:TagResource
+                  Resource:
+                    - Fn::Join:
+                        - ':'
+                        - - 'arn:aws:logs'
+                          - Ref: 'AWS::Region'
+                          - Ref: 'AWS::AccountId'
+                          - 'log-group:/aws/lambda/*:*:*'
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                    - s3:GetObjectTagging
+                    - s3:PutObject
+                    - s3:PutObjectTagging
+                    - s3:ListBucket
+                  Resource:
+                    - Fn::Join:
+                        - ''
+                        - - 'arn:aws:s3:::'
+                          - Ref: PicturesStorage
+                          - '/*'
+                    - !GetAtt PicturesStorage.Arn
     CognitoUserPoolAlexandriaUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
@@ -269,6 +347,30 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
+    PicturesStorage:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.picturesBucketName}
+        LifecycleConfiguration:
+          Rules:
+            - Id: IncomingPicturesRule
+              Status: Enabled
+              ExpirationInDays: 1
+              Prefix: incoming
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+        Tags:
+          - Key: application
+            Value: alexandria
+          - Key: owner
+            Value: serverless
   Outputs:
     UserPoolId:
       Value: !Ref CognitoUserPoolAlexandriaUserPool
