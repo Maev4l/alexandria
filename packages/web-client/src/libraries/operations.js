@@ -8,7 +8,7 @@ import {
 } from './actions';
 
 import { api } from '../api';
-import { appError, appWaiting } from '../store';
+import { appError, appWaiting, appRefreshing } from '../store';
 
 export const fetchLibraryItems =
   (libraryId, nextToken = '') =>
@@ -22,16 +22,18 @@ export const fetchLibraryItems =
     }
   };
 
-export const fetchLibraries = () => async (dispatch) => {
-  dispatch(appWaiting());
+export const fetchLibraries =
+  (refresh = false) =>
+  async (dispatch) => {
+    dispatch(refresh ? appRefreshing() : appWaiting());
 
-  try {
-    const data = await api.get('/v1/libraries');
-    dispatch(fetchLibrariesSuccess(data));
-  } catch (e) {
-    dispatch(appError(e));
-  }
-};
+    try {
+      const data = await api.get('/v1/libraries');
+      dispatch(fetchLibrariesSuccess(data));
+    } catch (e) {
+      dispatch(appError(e));
+    }
+  };
 
 export const createLibrary = (library, callback) => async (dispatch) => {
   dispatch(appWaiting());

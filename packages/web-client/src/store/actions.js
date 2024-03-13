@@ -6,3 +6,5 @@ export const appError = (error) => ({
   type: ACTION_TYPES.APP_ERROR,
   payload: error,
 });
+
+export const appRefreshing = () => ({ type: ACTION_TYPES.APP_REFRESHING });

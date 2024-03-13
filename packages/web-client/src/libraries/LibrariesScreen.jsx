@@ -1,4 +1,5 @@
-import { View } from 'react-native';
+import { View, ScrollView } from 'react-native';
+import { RefreshControl } from 'react-native-web-refresh-control';
 import { useEffect } from 'react';
 import { Chip } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -11,9 +12,10 @@ import { Alert } from '../components';
 const LibrariesScreen = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const { libraries, lastAction } = useSelector((state) => ({
+  const { libraries, lastAction, refreshing } = useSelector((state) => ({
     libraries: state.libraries,
     lastAction: state.lastAction,
+    refreshing: state.refreshing,
   }));
 
   useEffect(() => {
@@ -21,6 +23,8 @@ const LibrariesScreen = () => {
   }, []);
 
   const handleAdd = () => navigation.navigate('AddLibrary');
+
+  const handleRefresh = () => dispatch(fetchLibraries(true));
 
   return (
     <View style={{ flex: 1, padding: 10 }}>
@@ -39,7 +43,11 @@ const LibrariesScreen = () => {
       {lastAction === ACTION_TYPES.FETCH_LIBRARIES_SUCCESS && libraries.length === 0 ? (
         <Alert variant="primary" style={{ marginTop: 20 }} text="You have no libraries." />
       ) : null}
-      <LibrariesList libraries={libraries} />
+      <ScrollView
+        refreshControl={<RefreshControl onRefresh={handleRefresh} refreshing={refreshing} />}
+      >
+        <LibrariesList libraries={libraries} />
+      </ScrollView>
     </View>
   );
 };

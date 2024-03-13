@@ -2,6 +2,7 @@ import ACTION_TYPES from './types';
 
 export const INITIAL_STATE = {
   loading: false,
+  refreshing: false,
   preferences: {
     darkMode: false,
   },
@@ -156,6 +157,7 @@ export const reducer = (state, action) => {
       return {
         ...newState,
         loading: false,
+        refreshing: false,
         libraries,
       };
     }
@@ -164,11 +166,16 @@ export const reducer = (state, action) => {
       return { ...newState, loading: true };
     }
 
+    case ACTION_TYPES.APP_REFRESHING: {
+      return { ...newState, refreshing: true };
+    }
+
     case ACTION_TYPES.APP_ERROR: {
       const error = payload;
       return {
         ...newState,
         loading: false,
+        refreshing: false,
         notification: { text: error.message, severity: 'error' },
       };
     }

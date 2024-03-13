@@ -1,4 +1,4 @@
-import { ScrollView, View, Pressable } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { Text, useTheme, IconButton, Icon } from 'react-native-paper';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { useNavigation } from '@react-navigation/native';
@@ -100,7 +100,7 @@ const LibrariesList = ({ libraries }) => {
   };
 
   return (
-    <ScrollView>
+    <>
       {libraries.map((l) => (
         <LibraryItemList
           key={l.id}
@@ -110,7 +110,7 @@ const LibrariesList = ({ libraries }) => {
           onPress={() => handlePress(l)}
         />
       ))}
-    </ScrollView>
+    </>
   );
 };
 
