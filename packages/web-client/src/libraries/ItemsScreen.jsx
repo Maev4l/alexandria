@@ -33,15 +33,17 @@ const ItemsScreen = ({ route }) => {
   const dispatch = useDispatch();
   const { items, nextToken, lastAction } = useSelector((state) => ({
     items: state.libraryItems.items,
-    continuationToken: state.libraryItems.continuationToken,
+    nextToken: state.libraryItems.nextToken,
     lastAction: state.lastAction,
   }));
 
-  useEffect(() => dispatch(fetchLibraryItems(libraryId, nextToken)), [libraryId]);
+  useEffect(() => {
+    dispatch(fetchLibraryItems(libraryId, ''));
+  }, [libraryId]);
 
-  const handleAddBook = () => {};
+  const handleAddItem = () => navigation.navigate('AddItem', { library });
 
-  const handleScanBarCode = () => navigation.navigate('ScanCode');
+  const handleScanBarCode = () => navigation.navigate('ScanCode', { library });
 
   return (
     <View style={{ flex: 1, padding: 10 }}>
@@ -53,8 +55,8 @@ const ItemsScreen = ({ route }) => {
           marginBottom: 10,
         }}
       >
-        <Chip icon="plus-circle" compact elevated onPress={handleAddBook}>
-          Add book
+        <Chip icon="plus-circle" compact elevated onPress={handleAddItem}>
+          Add item
         </Chip>
         <Chip icon="camera" compact elevated onPress={handleScanBarCode}>
           Scan barcode

@@ -4,6 +4,7 @@ import {
   updateLibrarySuccess,
   deleteLibrarySuccess,
   fetchLibraryItemsSuccess,
+  createBookSuccess,
 } from './actions';
 
 import { api } from '../api';
@@ -62,6 +63,18 @@ export const deleteLibrary = (libraryId) => async (dispatch) => {
     await api.del(`/v1/libraries/${libraryId}`);
     const data = await api.get('/v1/libraries');
     dispatch(deleteLibrarySuccess(data));
+  } catch (e) {
+    dispatch(appError(e));
+  }
+};
+
+export const createBook = (item, callback) => async (dispatch) => {
+  dispatch(appWaiting());
+  try {
+    const data = await api.post(`/v1/libraries/${item.libraryId}/books`, item);
+
+    dispatch(createBookSuccess(data));
+    callback();
   } catch (e) {
     dispatch(appError(e));
   }

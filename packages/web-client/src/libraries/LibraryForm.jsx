@@ -28,7 +28,7 @@ const LibraryForm = ({ library, onSubmit }) => {
         label="Name"
         placeholder="Enter library name"
         onChangeText={handleChangeName}
-        style={{ marginBottom: 10, width: '90%' }}
+        style={{ marginBottom: 10, width: '100%' }}
       />
 
       <TextInput
@@ -42,10 +42,10 @@ const LibraryForm = ({ library, onSubmit }) => {
         label="Description"
         placeholder="Enter library description"
         onChangeText={handleChangeDescription}
-        style={{ marginBottom: 10, width: '90%', height: 150 }}
+        style={{ marginBottom: 10, width: '100%', height: 150 }}
       />
 
-      <Button mode="contained" onPress={handleSubmit}>
+      <Button mode="contained" onPress={handleSubmit} disabled={item.name.length === 0}>
         SUBMIT
       </Button>
     </View>

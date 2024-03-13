@@ -8,6 +8,8 @@ import ItemsScreen, { ItemsScreenHeader } from './ItemsScreen';
 import ScanCodeScreen from '../scan-code/ScanCodeScreen';
 import BookDetectionScreen from '../scan-code/BookDetectionScreen';
 
+import CreateItemScreen from './CreateItemScreen';
+
 const Stack = createStackNavigator();
 
 const Navigator = () => (
@@ -29,6 +31,11 @@ const Navigator = () => (
       name="UpdateLibrary"
       options={{ headerTitle: 'Update library' }}
       component={EditLibraryScreen}
+    />
+    <Stack.Screen
+      name="AddItem"
+      options={{ headerTitle: 'Add item' }}
+      component={CreateItemScreen}
     />
     <Stack.Screen
       name="LibraryItems"

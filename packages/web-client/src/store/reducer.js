@@ -28,6 +28,9 @@ export const reducer = (state, action) => {
   const newState = { ...state, lastAction: type };
 
   switch (type) {
+    case ACTION_TYPES.CREATE_BOOK_SUCCESS: {
+      return { ...newState, loading: false };
+    }
     case ACTION_TYPES.FETCH_LIBRARY_ITEMS_SUCCESS: {
       const { items, nextToken } = payload;
       return {
