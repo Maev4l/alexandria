@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 )
@@ -22,9 +23,78 @@ func (h *HTTPHandler) validateLibraryPayload(library *domain.Library) error {
 	}
 
 	if len(library.Description) > 100 {
-		return errors.New("Invalid request - Desccription too long (max. 100 chars)")
+		return errors.New("Invalid request - Description too long (max. 100 chars)")
 	}
 	return nil
+}
+
+func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
+	if item.Type == domain.ItemBook {
+		if len(item.Title) == 0 {
+			return errors.New("Invalid request - Item title is mandatory")
+		}
+
+		if len(item.Title) > 100 {
+			return errors.New("Invalid request - Title too long (max. 100 chars)")
+		}
+
+		if len(item.Summary) > 500 {
+			return errors.New("Invalid request - Summary too long (max. 500 chars)")
+		}
+	}
+
+	return nil
+}
+
+func (h *HTTPHandler) CreateBook(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+
+	var request CreateBookRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		log.Error().Msgf("Invalid request: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	t := h.getTokenInfo(c)
+
+	item := domain.LibraryItem{
+		Title:     strings.TrimSpace(request.Title),
+		Summary:   strings.TrimSpace(request.Summary),
+		Isbn:      strings.TrimSpace(request.Isbn),
+		Authors:   slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
+		LibraryId: libraryId,
+		OwnerId:   t.userId,
+		OwnerName: t.displayName,
+		Type:      domain.ItemBook,
+	}
+
+	err = h.validateItemPayload(&item)
+
+	if err != nil {
+		log.Error().Msg(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	result, err := h.s.CreateItem(&item, request.PictureUrl)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to create item",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, &CreateBookResponse{
+		Id:        result.Id,
+		UpdatedAt: result.UpdatedAt,
+	})
+
 }
 
 func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
@@ -38,7 +108,7 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 	}
 	t := h.getTokenInfo(c)
 
-	items, err := h.s.ListLibraryItems(t.userId, libraryId, continuationToken, pageSize)
+	items, err := h.s.ListItems(t.userId, libraryId, continuationToken, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to query library items ",
@@ -109,7 +179,7 @@ func (h *HTTPHandler) UpdateLibrary(c *gin.Context) {
 	t := h.getTokenInfo(c)
 
 	library := domain.Library{
-		Id:          request.Id,
+		Id:          libraryId,
 		Name:        strings.TrimSpace(request.Name),
 		Description: strings.TrimSpace(request.Description),
 		OwnerId:     t.userId,
@@ -121,16 +191,6 @@ func (h *HTTPHandler) UpdateLibrary(c *gin.Context) {
 		log.Error().Msg(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": err.Error(),
-		})
-		return
-	}
-
-	// Libray id in path parameter does not match the library id in the update payload
-	if libraryId != request.Id {
-		msg := "Invalid request - Identifers mismatch"
-		log.Error().Msg(msg)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": msg,
 		})
 		return
 	}

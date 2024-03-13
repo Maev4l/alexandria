@@ -7,7 +7,41 @@ import (
 	"alexandria.isnan.eu/functions/internal/identifier"
 )
 
-func (s *services) ListLibraryItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
+func (s *services) CreateItem(i *domain.LibraryItem, pictureUrl *string) (*domain.LibraryItem, error) {
+	i.Id = identifier.NewId()
+
+	if pictureUrl != nil && *pictureUrl != "" {
+		data, err := fetchPicture(*pictureUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		// save picture into S3
+		err = s.storage.PutPicture(i.OwnerId, i.LibraryId, i.Id, data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	library, err := s.db.GetLibrary(i.OwnerId, i.LibraryId)
+	if err != nil {
+		return nil, err
+	}
+
+	i.LibraryName = library.Name
+
+	current := time.Now().UTC()
+	i.UpdatedAt = &current
+
+	err = s.db.PutLibraryItem(i)
+	if err != nil {
+		return nil, err
+	}
+
+	return i, nil
+}
+
+func (s *services) ListItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
 
 	content, err := s.db.QueryLibraryItems(ownerId, libraryId, continuationToken, pageSize)
 	// TODO: Fetch items thumbnails

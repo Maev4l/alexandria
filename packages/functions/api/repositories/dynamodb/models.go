@@ -86,6 +86,14 @@ type LibraryItem struct {
 	Type        int        `dynamodbav:"Type"`
 }
 
+func makeLibraryItemPK(ownerId string) string {
+	return fmt.Sprintf("owner#%s", ownerId)
+}
+
+func makeLibraryItemSK(itemId string) string {
+	return fmt.Sprintf("item#%s", itemId)
+}
+
 func makeLibraryItemGSI1PK(ownerId string, libraryId string) string {
 	return fmt.Sprintf("owner#%s#library#%s", ownerId, libraryId)
 }

@@ -29,16 +29,6 @@ type ResolvedBook struct {
 	Source     string
 }
 
-type Author string
-
-type Book struct {
-	Title     string
-	Summary   string
-	Isbn      string
-	Authors   []Author
-	Thumbnail string
-}
-
 type Library struct {
 	Id          string
 	Name        string
@@ -56,7 +46,7 @@ type LibraryContent struct {
 type LibraryItem struct {
 	Id          string
 	Title       string
-	Picture     string
+	Picture     []byte
 	LibraryId   string
 	LibraryName string
 	OwnerName   string

@@ -13,6 +13,102 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
+	record := LibraryItem{
+		PK:          makeLibraryItemPK(i.OwnerId),
+		SK:          makeLibraryItemSK(i.Id),
+		GSI1PK:      makeLibraryItemGSI1PK(i.OwnerId, i.LibraryId),
+		GSI1SK:      makeLibraryItemGSI1SK(i.Title),
+		Id:          i.Id,
+		OwnerName:   i.OwnerName,
+		OwnerId:     i.OwnerId,
+		Title:       i.Title,
+		Summary:     i.Summary,
+		UpdatedAt:   i.UpdatedAt,
+		LibraryId:   i.LibraryId,
+		LibraryName: i.LibraryName,
+		Authors:     i.Authors,
+		Isbn:        i.Isbn,
+		Type:        int(i.Type),
+	}
+
+	item, err := attributevalue.MarshalMap(record)
+	if err != nil {
+		log.Error().Str("title", i.Title).Msgf("Failed to marshal item: %s", err.Error())
+		return err
+	}
+
+	_, err = d.client.TransactWriteItems(context.TODO(), &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			// Insert the library item
+			{
+				Put: &types.Put{
+					TableName: aws.String(tableName),
+					Item:      item,
+				},
+			},
+			// Increment TotalItems attribute of the library by 1
+			{
+				Update: &types.Update{
+					TableName: aws.String(tableName),
+					Key: map[string]types.AttributeValue{
+						"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(i.OwnerId)},
+						"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(i.LibraryId)},
+					},
+					UpdateExpression: aws.String("SET TotalItems = TotalItems + :incr"),
+					ExpressionAttributeValues: map[string]types.AttributeValue{
+						":incr": &types.AttributeValueMemberN{
+							Value: "1",
+						},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		log.Error().Str("title", i.Title).Msgf("Failed to put item: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (d *dynamo) GetLibrary(ownerId string, libraryId string) (*domain.Library, error) {
+
+	output, err := d.client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(ownerId)},
+			"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(libraryId)},
+		},
+	})
+
+	if err != nil {
+		log.Error().Str("id", libraryId).Msgf("Unable to get library: %s", err.Error())
+		return nil, errors.New("Unable to get library")
+	}
+
+	if output.Item == nil {
+		log.Info().Str("id", libraryId).Msgf("Library %s does not exist for owner %s", libraryId, ownerId)
+		return nil, errors.New("Uknown library")
+	}
+
+	record := Library{}
+	if err := attributevalue.UnmarshalMap(output.Item, &record); err != nil {
+		log.Warn().Msgf("Failed to unmarshal library: %s", err.Error())
+		return nil, err
+	}
+
+	return &domain.Library{Id: record.Id,
+		Name:        record.Name,
+		Description: record.Description,
+		TotalItems:  record.TotalItems,
+		UpdatedAt:   record.UpdatedAt,
+		OwnerName:   record.OwnerName}, nil
+
+}
+
 func (d *dynamo) QueryLibraryItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
 	query := dynamodb.QueryInput{
 		TableName:              aws.String(tableName),

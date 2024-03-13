@@ -49,7 +49,6 @@ type GetLibrariesResponse struct {
 }
 
 type UpdateLibraryRequest struct {
-	Id          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 }
@@ -82,4 +81,17 @@ func (g GetBookResponse) getType() string { return domain.ItemBook.String() }
 type GetLibrariesContentResponse struct {
 	GetItemsResponse  []GetItemResponse `json:"items"`
 	ContinuationToken string            `json:"nextToken"`
+}
+
+type CreateBookRequest struct {
+	Title      string   `json:"title"`
+	Summary    string   `json:"summary"`
+	Authors    []string `json:"authors"`
+	Isbn       string   `json:"isbn"`
+	PictureUrl *string  `json:"pictureUrl,omitempty"`
+}
+
+type CreateBookResponse struct {
+	Id        string     `json:"id"`
+	UpdatedAt *time.Time `json:"updatedAt"`
 }

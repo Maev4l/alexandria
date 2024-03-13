@@ -6,6 +6,7 @@ import (
 
 	"alexandria.isnan.eu/functions/api/handlers"
 	"alexandria.isnan.eu/functions/api/repositories/dynamodb"
+	storage "alexandria.isnan.eu/functions/api/repositories/s3"
 	"alexandria.isnan.eu/functions/api/services"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -32,7 +33,8 @@ func init() {
 	region := os.Getenv("REGION")
 
 	db := dynamodb.NewDynamoDB(region)
-	s := services.NewServices(db)
+	storage := storage.NewObjectStorage(region)
+	s := services.NewServices(db, storage)
 	h := handlers.NewHTTPHandler(s)
 
 	g := router.Group("/v1")
@@ -45,6 +47,7 @@ func init() {
 	g.PUT("/libraries/:libraryId", h.UpdateLibrary)
 	g.DELETE("/libraries/:libraryId", h.DeleteLibrary)
 	g.GET("/libraries/:libraryId/items", h.ListLibraryItems)
+	g.POST("/libraries/:libraryId/books", h.CreateBook)
 
 	ginLambda = ginadapter.New(router)
 }
