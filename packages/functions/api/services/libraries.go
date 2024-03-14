@@ -7,6 +7,19 @@ import (
 	"alexandria.isnan.eu/functions/internal/identifier"
 )
 
+func (s *services) DeleteItem(i *domain.LibraryItem) error {
+
+	err := s.db.DeleteLibraryItem(i)
+	if err != nil {
+		return err
+	}
+	err = s.storage.DeletePicture(i.OwnerId, i.LibraryId, i.Id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *services) CreateItem(i *domain.LibraryItem, pictureUrl *string) (*domain.LibraryItem, error) {
 	i.Id = identifier.NewId()
 

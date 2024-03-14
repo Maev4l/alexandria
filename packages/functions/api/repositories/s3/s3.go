@@ -30,6 +30,27 @@ func NewObjectStorage(region string) *objectstorage {
 	}
 }
 
+func (o *objectstorage) DeletePicture(ownerId string, libraryId string, itemId string) error {
+	key := fmt.Sprintf("user/%s/library/%s/item/%s", ownerId, libraryId, itemId)
+
+	_, err := o.client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(key),
+	})
+
+	if err != nil {
+		var bne *types.NoSuchKey
+		if errors.As(err, &bne) {
+			// No such key error
+			log.Warn().Str("key", key).Msg("Key does not exists.")
+			return nil
+		}
+		log.Error().Str("key", key).Msgf("Failed to delete picture: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
 func (o *objectstorage) GetPicture(ownerId string, libraryId string, itemId string) ([]byte, error) {
 	key := fmt.Sprintf("user/%s/library/%s/item/%s", ownerId, libraryId, itemId)
 

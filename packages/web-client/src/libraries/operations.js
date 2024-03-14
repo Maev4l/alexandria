@@ -6,6 +6,7 @@ import {
   fetchLibraryItemsSuccess,
   createBookSuccess,
   refreshLibraryItemsSuccess,
+  deleteLibraryItemSuccess,
 } from './actions';
 
 import { api } from '../api';
@@ -70,6 +71,17 @@ export const deleteLibrary = (libraryId) => async (dispatch) => {
     await api.del(`/v1/libraries/${libraryId}`);
     const data = await api.get('/v1/libraries');
     dispatch(deleteLibrarySuccess(data));
+  } catch (e) {
+    dispatch(appError(e));
+  }
+};
+
+export const deleteLibraryItem = (libraryId, itemId) => async (dispatch) => {
+  dispatch(appRefreshing());
+  try {
+    await api.del(`/v1/libraries/${libraryId}/items/${itemId}`);
+    const data = await api.get(`/v1/libraries/${libraryId}/items`);
+    dispatch(deleteLibraryItemSuccess(data));
   } catch (e) {
     dispatch(appError(e));
   }

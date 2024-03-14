@@ -34,3 +34,8 @@ export const createBookSuccess = (data) => ({
   type: ACTION_TYPES.CREATE_BOOK_SUCCESS,
   payload: data,
 });
+
+export const deleteLibraryItemSuccess = (data) => ({
+  type: ACTION_TYPES.DELETE_LIBRARY_ITEM_SUCCESS,
+  payload: data,
+});

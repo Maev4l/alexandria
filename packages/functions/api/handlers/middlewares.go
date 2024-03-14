@@ -49,7 +49,7 @@ func TokenParser() gin.HandlerFunc {
 func IdentityLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := c.MustGet("tokenInfo").(*tokenInfo)
-		log.Logger = log.With().Str("user", t.userName).Logger()
+		log.Logger = log.With().Str("user", identifier.Normalize(t.userId)).Logger()
 		c.Next()
 	}
 }

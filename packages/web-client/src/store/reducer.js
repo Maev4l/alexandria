@@ -33,6 +33,7 @@ export const reducer = (state, action) => {
       return { ...newState, loading: false };
     }
 
+    case ACTION_TYPES.DELETE_LIBRARY_ITEM_SUCCESS:
     case ACTION_TYPES.REFRESH_LIBRARY_ITEMS_SUCCESS: {
       const { items, nextToken } = payload;
       return {

@@ -76,7 +76,7 @@ const BookDetails = ({ route }) => {
             </View>
           </View>
         </View>
-        <Text style={{ marginTop: 10 }}>{summary}</Text>
+        <Text style={{ paddingTop: 5, textAlign: 'justify' }}>{summary}</Text>
       </ScrollView>
     </View>
   );

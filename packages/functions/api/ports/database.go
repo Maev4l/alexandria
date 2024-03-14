@@ -12,4 +12,5 @@ type Database interface {
 	QueryLibraries(ownerId string) ([]domain.Library, error)
 	QueryLibraryItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error)
 	PutLibraryItem(i *domain.LibraryItem) error
+	DeleteLibraryItem(i *domain.LibraryItem) error
 }
