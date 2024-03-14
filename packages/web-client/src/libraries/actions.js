@@ -25,6 +25,11 @@ export const fetchLibraryItemsSuccess = (data) => ({
   payload: data,
 });
 
+export const refreshLibraryItemsSuccess = (data) => ({
+  type: ACTION_TYPES.REFRESH_LIBRARY_ITEMS_SUCCESS,
+  payload: data,
+});
+
 export const createBookSuccess = (data) => ({
   type: ACTION_TYPES.CREATE_BOOK_SUCCESS,
   payload: data,

@@ -18,8 +18,8 @@ export const INITIAL_STATE = {
   libraries: [],
   lastAction: '',
   libraryItems: {
-    // items:[]
-    // nextToken: <token>
+    items: [],
+    nextToken: '',
   },
 };
 
@@ -32,12 +32,24 @@ export const reducer = (state, action) => {
     case ACTION_TYPES.CREATE_BOOK_SUCCESS: {
       return { ...newState, loading: false };
     }
+
+    case ACTION_TYPES.REFRESH_LIBRARY_ITEMS_SUCCESS: {
+      const { items, nextToken } = payload;
+      return {
+        ...newState,
+        loading: false,
+        refreshing: false,
+        libraryItems: { items: [...items], nextToken },
+      };
+    }
+
     case ACTION_TYPES.FETCH_LIBRARY_ITEMS_SUCCESS: {
       const { items, nextToken } = payload;
       return {
         ...newState,
         loading: false,
-        libraryItems: { items, nextToken },
+        refreshing: false,
+        libraryItems: { items: [...newState.libraryItems.items, ...items], nextToken },
       };
     }
 

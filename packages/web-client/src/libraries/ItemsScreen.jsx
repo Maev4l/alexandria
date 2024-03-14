@@ -1,5 +1,6 @@
 import { Text, Chip } from 'react-native-paper';
-import { View } from 'react-native';
+import { View, ScrollView } from 'react-native';
+import { RefreshControl } from 'react-native-web-refresh-control';
 import { useNavigation } from '@react-navigation/native';
 import { useEffect } from 'react';
 
@@ -31,19 +32,28 @@ const ItemsScreen = ({ route }) => {
 
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const { items, nextToken, lastAction } = useSelector((state) => ({
+  const { items, nextToken, lastAction, refreshing } = useSelector((state) => ({
     items: state.libraryItems.items,
     nextToken: state.libraryItems.nextToken,
     lastAction: state.lastAction,
+    refreshing: state.refreshing,
   }));
 
   useEffect(() => {
-    dispatch(fetchLibraryItems(libraryId, ''));
+    dispatch(fetchLibraryItems(libraryId, nextToken));
   }, [libraryId]);
 
   const handleAddItem = () => navigation.navigate('AddItem', { library });
 
   const handleScanBarCode = () => navigation.navigate('ScanCode', { library });
+
+  const handleRefresh = () => dispatch(fetchLibraryItems(libraryId, nextToken, true));
+
+  const handleEndReached = () => {
+    if (nextToken) {
+      dispatch(fetchLibraryItems(libraryId, nextToken));
+    }
+  };
 
   return (
     <View style={{ flex: 1, padding: 10 }}>
@@ -69,7 +79,11 @@ const ItemsScreen = ({ route }) => {
           text="You have no items in this library."
         />
       ) : null}
-      <ItemsList items={items} library={library} />
+      <ScrollView
+        refreshControl={<RefreshControl onRefresh={handleRefresh} refreshing={refreshing} />}
+      >
+        <ItemsList items={items} library={library} onEndReached={handleEndReached} />
+      </ScrollView>
     </View>
   );
 };

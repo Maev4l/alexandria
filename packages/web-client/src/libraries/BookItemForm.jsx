@@ -92,7 +92,7 @@ const BookItemForm = ({ book, onSubmit }) => {
         autoCorrect={false}
         autoCapitalize="none"
         value={item.summary}
-        maxLength={500}
+        maxLength={2000}
         multiline
         numberOfLines={5}
         mode="outlined"

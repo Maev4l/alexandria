@@ -5,18 +5,23 @@ import {
   deleteLibrarySuccess,
   fetchLibraryItemsSuccess,
   createBookSuccess,
+  refreshLibraryItemsSuccess,
 } from './actions';
 
 import { api } from '../api';
 import { appError, appWaiting, appRefreshing } from '../store';
 
 export const fetchLibraryItems =
-  (libraryId, nextToken = '') =>
+  (libraryId, nextToken, refresh = false) =>
   async (dispatch) => {
-    dispatch(appWaiting());
+    dispatch(refresh ? appRefreshing() : appWaiting());
     try {
-      const data = await api.get(`/v1/libraries/${libraryId}/items?nextToken=${nextToken}`);
-      dispatch(fetchLibraryItemsSuccess(data));
+      let url = `/v1/libraries/${libraryId}/items`;
+      if (nextToken) {
+        url += `?nextToken=${nextToken}`;
+      }
+      const data = await api.get(url);
+      dispatch(refresh ? refreshLibraryItemsSuccess(data) : fetchLibraryItemsSuccess(data));
     } catch (e) {
       dispatch(appError(e));
     }
