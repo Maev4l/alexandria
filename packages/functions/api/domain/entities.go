@@ -39,7 +39,7 @@ type Library struct {
 	UpdatedAt   *time.Time
 }
 type LibraryContent struct {
-	Items             []LibraryItem
+	Items             []*LibraryItem
 	ContinuationToken string
 }
 

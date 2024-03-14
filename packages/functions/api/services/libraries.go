@@ -44,9 +44,19 @@ func (s *services) CreateItem(i *domain.LibraryItem, pictureUrl *string) (*domai
 func (s *services) ListItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
 
 	content, err := s.db.QueryLibraryItems(ownerId, libraryId, continuationToken, pageSize)
-	// TODO: Fetch items thumbnails
+
 	if err != nil {
 		return nil, err
+	}
+
+	for _, i := range content.Items {
+
+		pic, err := s.storage.GetPicture(ownerId, libraryId, i.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		i.Picture = pic
 	}
 
 	return content, nil

@@ -145,7 +145,7 @@ func (d *dynamo) QueryLibraryItems(ownerId string, libraryId string, continuatio
 		return nil, err
 	}
 
-	items := []domain.LibraryItem{}
+	items := []*domain.LibraryItem{}
 	for _, item := range result.Items {
 
 		record := LibraryItem{}
@@ -153,7 +153,7 @@ func (d *dynamo) QueryLibraryItems(ownerId string, libraryId string, continuatio
 			log.Warn().Str("id", libraryId).Msgf("Failed to unmarshal library item: %s", err.Error())
 		}
 
-		items = append(items, domain.LibraryItem{
+		items = append(items, &domain.LibraryItem{
 			Id:          record.Id,
 			Title:       record.Title,
 			OwnerId:     record.OwnerId,

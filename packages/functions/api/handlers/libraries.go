@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 	"alexandria.isnan.eu/functions/api/domain"
 	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/gin-gonic/gin"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -38,8 +40,8 @@ func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 			return errors.New("Invalid request - Title too long (max. 100 chars)")
 		}
 
-		if len(item.Summary) > 500 {
-			return errors.New("Invalid request - Summary too long (max. 500 chars)")
+		if len(item.Summary) > 2000 {
+			return errors.New("Invalid request - Summary too long (max. 2000 chars)")
 		}
 	}
 
@@ -106,6 +108,11 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 	if err != nil {
 		pageSize = 10
 	}
+
+	if pageSize > 20 {
+		pageSize = 20
+	}
+
 	t := h.getTokenInfo(c)
 
 	items, err := h.s.ListItems(t.userId, libraryId, continuationToken, pageSize)
@@ -129,6 +136,10 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 				Authors: i.Authors,
 				Summary: i.Summary,
 				Isbn:    i.Isbn,
+			}
+			if i.Picture != nil {
+				encodedPicture := base64.StdEncoding.EncodeToString(i.Picture)
+				b.Picture = &encodedPicture
 			}
 			itemsResponse = append(itemsResponse, b)
 		}
