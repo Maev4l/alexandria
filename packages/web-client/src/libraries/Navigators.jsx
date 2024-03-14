@@ -9,6 +9,7 @@ import ScanCodeScreen from '../scan-code/ScanCodeScreen';
 import BookDetectionScreen from '../scan-code/BookDetectionScreen';
 
 import CreateItemScreen from './CreateItemScreen';
+import BookDetails, { BookDetailsHeader } from './BookDetails';
 
 const Stack = createStackNavigator();
 
@@ -43,6 +44,13 @@ const Navigator = () => (
         headerTitle: () => <ItemsScreenHeader route={route} />,
       })}
       component={ItemsScreen}
+    />
+    <Stack.Screen
+      name="BookDetails"
+      options={({ route }) => ({
+        headerTitle: () => <BookDetailsHeader route={route} />,
+      })}
+      component={BookDetails}
     />
     <Stack.Screen
       name="ScanCode"

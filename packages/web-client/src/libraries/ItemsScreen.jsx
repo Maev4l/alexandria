@@ -40,7 +40,7 @@ const ItemsScreen = ({ route }) => {
   }));
 
   useEffect(() => {
-    dispatch(fetchLibraryItems(libraryId, nextToken));
+    dispatch(fetchLibraryItems(libraryId, nextToken, true));
   }, [libraryId]);
 
   const handleAddItem = () => navigation.navigate('AddItem', { library });
@@ -69,7 +69,7 @@ const ItemsScreen = ({ route }) => {
           Add item
         </Chip>
         <Chip icon="camera" compact elevated onPress={handleScanBarCode}>
-          Scan barcode
+          Scan ISBN
         </Chip>
       </View>
       {lastAction === ACTION_TYPES.FETCH_LIBRARY_ITEMS_SUCCESS && items.length === 0 ? (
