@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -49,29 +50,74 @@ func (d *dynamo) GetLibrary(ownerId string, libraryId string) (*domain.Library, 
 }
 
 func (d *dynamo) DeleteLibrary(l *domain.Library) error {
-	result, err := d.client.DeleteItem(context.TODO(), &dynamodb.DeleteItemInput{
-		TableName: aws.String(tableName),
-		Key: map[string]types.AttributeValue{
-			"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(l.OwnerId)},
-			"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(l.Id)},
+
+	// Get all items with PK=owner#<owner id> and SK begins with library#<library id>
+	query := dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		KeyConditionExpression: aws.String("#PK = :ownerId and begins_with(#SK,:library_sorting_key)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":ownerId": &types.AttributeValueMemberS{
+				Value: makeLibraryPK(l.OwnerId),
+			},
+			":library_sorting_key": &types.AttributeValueMemberS{
+				Value: makeLibrarySK(l.Id),
+			},
 		},
-		ConditionExpression: aws.String("attribute_exists(PK) and attribute_exists(SK)"),
-		ReturnValues:        types.ReturnValueAllOld,
-	})
-
-	if err != nil {
-		log.Error().Str("id", l.Id).Msgf("Failed to delete library: %s", err.Error())
-		return err
+		ExpressionAttributeNames: map[string]string{
+			"#PK": "PK",
+			"#SK": "SK",
+		},
+		Limit: aws.Int32(25),
 	}
 
-	// Item does not exist
-	if len(result.Attributes) == 0 {
-		log.Error().Str("id", l.Id).Msg("Library does not exists")
-		return errors.New("Library does not exists")
+	type Record struct {
+		PK string `dynamodbav:"PK"`
+		SK string `dynamodbav:"SK"`
 	}
 
-	// TODO:
-	// Remove all books belonging to this library
+	records := []types.WriteRequest{}
+	queryPaginator := dynamodb.NewQueryPaginator(d.client, &query)
+	for i := 0; queryPaginator.HasMorePages(); i++ {
+		result, err := queryPaginator.NextPage(context.TODO())
+
+		if err != nil {
+			log.Error().Str("id", l.Id).Msgf("Failed to query records to delete: %s", err.Error())
+			return err
+		}
+
+		if result.Count > 0 {
+			for _, item := range result.Items {
+				record := Record{}
+				if err := attributevalue.UnmarshalMap(item, &record); err != nil {
+					log.Warn().Msgf("Failed to unmarshal record: %s", err.Error())
+					continue
+				}
+
+				records = append(records, types.WriteRequest{
+					DeleteRequest: &types.DeleteRequest{
+						Key: map[string]types.AttributeValue{
+							"PK": &types.AttributeValueMemberS{Value: record.PK},
+							"SK": &types.AttributeValueMemberS{Value: record.SK},
+						},
+					},
+				})
+			}
+		}
+	}
+
+	chunks := slices.ChunkBy(records, 25)
+
+	for _, c := range chunks {
+		_, err := d.client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{
+				tableName: c,
+			},
+		})
+		if err != nil {
+			log.Warn().Str("id", l.Id).Msgf("Failed to batch delete records: %s", err.Error())
+			continue
+		}
+	}
 
 	return nil
 }
@@ -125,11 +171,9 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 
 	queryPaginator := dynamodb.NewQueryPaginator(d.client, &query)
 
-	ctx := context.TODO()
-
 	records := []domain.Library{}
 	for i := 0; queryPaginator.HasMorePages(); i++ {
-		result, err := queryPaginator.NextPage(ctx)
+		result, err := queryPaginator.NextPage(context.TODO())
 		if err != nil {
 			log.Error().Msgf("Failed to query libraries: %s", err.Error())
 			return nil, err
@@ -141,6 +185,7 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 				record := Library{}
 				if err := attributevalue.UnmarshalMap(item, &record); err != nil {
 					log.Warn().Msgf("Failed to unmarshal library: %s", err.Error())
+					continue
 				}
 
 				records = append(records, domain.Library{

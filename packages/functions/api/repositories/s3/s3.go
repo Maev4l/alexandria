@@ -9,6 +9,7 @@ import (
 
 	"os"
 
+	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -34,16 +35,16 @@ func NewObjectStorage(region string) *objectstorage {
 
 func (o *objectstorage) DeletePictures(ownerId string, libraryId string) error {
 
-	prefix := fmt.Sprintf("user/%s/library/%s/", ownerId, libraryId)
+	prefix := fmt.Sprintf("user/%s/library/%s", ownerId, libraryId)
 	params := &s3.ListObjectsV2Input{
-		Bucket:    aws.String(bucketName),
-		MaxKeys:   aws.Int32(1000),
-		Prefix:    aws.String(prefix),
-		Delimiter: aws.String("/"),
+		Bucket:  aws.String(bucketName),
+		MaxKeys: aws.Int32(1000),
+		Prefix:  aws.String(prefix),
 	}
 
 	p := s3.NewListObjectsV2Paginator(o.client, params)
 	var i int
+	identifiers := []types.ObjectIdentifier{}
 	for p.HasMorePages() {
 		i++
 		// Next Page takes a new context for each page retrieval. This is where
@@ -54,20 +55,25 @@ func (o *objectstorage) DeletePictures(ownerId string, libraryId string) error {
 			continue
 		}
 
-		identifiers := []types.ObjectIdentifier{}
 		for _, obj := range page.Contents {
 			identifiers = append(identifiers, types.ObjectIdentifier{Key: obj.Key})
 		}
+	}
 
-		_, err = o.client.DeleteObjects(context.TODO(), &s3.DeleteObjectsInput{
+	chunks := slices.ChunkBy(identifiers, 1000)
+
+	for _, c := range chunks {
+
+		_, err := o.client.DeleteObjects(context.TODO(), &s3.DeleteObjectsInput{
 			Bucket: aws.String(bucketName),
 			Delete: &types.Delete{
-				Objects: identifiers,
+				Objects: c,
+				Quiet:   aws.Bool(true),
 			},
 		})
-
 		if err != nil {
 			log.Warn().Str("prefix", prefix).Msgf("Failed to delete pictures: %s", err.Error())
+			continue
 		}
 	}
 

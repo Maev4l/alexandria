@@ -102,9 +102,10 @@ func (h *HTTPHandler) ListLibraries(c *gin.Context) {
 		return
 	}
 
-	response := GetLibrariesResponse{}
+	list := []GetLibraryResponse{}
+
 	for _, l := range libraries {
-		response.Libraries = append(response.Libraries, GetLibraryResponse{
+		list = append(list, GetLibraryResponse{
 			Id:          l.Id,
 			Name:        l.Name,
 			Description: l.Description,
@@ -113,6 +114,9 @@ func (h *HTTPHandler) ListLibraries(c *gin.Context) {
 		})
 	}
 
+	response := GetLibrariesResponse{
+		Libraries: list,
+	}
 	c.JSON(http.StatusOK, response)
 }
 
