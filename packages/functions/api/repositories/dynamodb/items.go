@@ -23,7 +23,7 @@ func (d *dynamo) DeleteLibraryItem(i *domain.LibraryItem) error {
 					TableName: aws.String(tableName),
 					Key: map[string]types.AttributeValue{
 						"PK": &types.AttributeValueMemberS{Value: makeLibraryItemPK(i.OwnerId)},
-						"SK": &types.AttributeValueMemberS{Value: makeLibraryItemSK(i.Id)},
+						"SK": &types.AttributeValueMemberS{Value: makeLibraryItemSK(i.LibraryId, i.Id)},
 					},
 					ConditionExpression: aws.String("attribute_exists(PK) and attribute_exists(SK)"),
 				},
@@ -58,9 +58,11 @@ func (d *dynamo) DeleteLibraryItem(i *domain.LibraryItem) error {
 func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
 	record := LibraryItem{
 		PK:          makeLibraryItemPK(i.OwnerId),
-		SK:          makeLibraryItemSK(i.Id),
+		SK:          makeLibraryItemSK(i.LibraryId, i.Id),
 		GSI1PK:      makeLibraryItemGSI1PK(i.OwnerId, i.LibraryId),
 		GSI1SK:      makeLibraryItemGSI1SK(i.Title),
+		GSI2PK:      makeLibraryItemGSI2PK(i.OwnerId),
+		GSI2SK:      makeLibraryItemGSI2SK(i.Title),
 		Id:          i.Id,
 		OwnerName:   i.OwnerName,
 		OwnerId:     i.OwnerId,
@@ -116,7 +118,7 @@ func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
 	return nil
 }
 
-func (d *dynamo) QueryLibraryItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
+func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
 	query := dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
 		IndexName:              aws.String("GSI1"),

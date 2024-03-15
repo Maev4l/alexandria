@@ -70,9 +70,11 @@ func makeLibraryGSI1SK(libraryName string) string {
 
 type LibraryItem struct {
 	PK          string     `dynamodbav:"PK"`     // owner#<owner id>
-	SK          string     `dynamodbav:"SK"`     // item#<item id>
-	GSI1PK      string     `dynamodbav:"GSI1PK"` // owner#1234#library#<library id>
+	SK          string     `dynamodbav:"SK"`     // library#<library id>#item#<item id>
+	GSI1PK      string     `dynamodbav:"GSI1PK"` // owner#<owner id>#library#<library id>
 	GSI1SK      string     `dynamodbav:"GSI1SK"` // item#<item title>
+	GSI2PK      string     `dynamodbav:"GSI2PK"` // owner#<owner id>
+	GSI2SK      string     `dynamodbav:"GSI2SK"` // item#<item title>
 	Id          string     `dynamodbav:"ItemId"`
 	Title       string     `dynamodbav:"Title"`
 	OwnerName   string     `dynamodbav:"OwnerName"`
@@ -90,8 +92,8 @@ func makeLibraryItemPK(ownerId string) string {
 	return fmt.Sprintf("owner#%s", ownerId)
 }
 
-func makeLibraryItemSK(itemId string) string {
-	return fmt.Sprintf("item#%s", itemId)
+func makeLibraryItemSK(libraryid string, itemId string) string {
+	return fmt.Sprintf("library#%s#item#%s", libraryid, itemId)
 }
 
 func makeLibraryItemGSI1PK(ownerId string, libraryId string) string {
@@ -99,5 +101,13 @@ func makeLibraryItemGSI1PK(ownerId string, libraryId string) string {
 }
 
 func makeLibraryItemGSI1SK(itemTitle string) string {
+	return fmt.Sprintf("item#%s", itemTitle)
+}
+
+func makeLibraryItemGSI2PK(ownerId string) string {
+	return fmt.Sprintf("owner#%s", ownerId)
+}
+
+func makeLibraryItemGSI2SK(itemTitle string) string {
 	return fmt.Sprintf("item#%s", itemTitle)
 }

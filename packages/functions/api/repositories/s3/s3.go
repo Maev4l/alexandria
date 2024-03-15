@@ -12,7 +12,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+
 	"github.com/rs/zerolog/log"
 )
 
@@ -28,6 +30,48 @@ func NewObjectStorage(region string) *objectstorage {
 	return &objectstorage{
 		client: client,
 	}
+}
+
+func (o *objectstorage) DeletePictures(ownerId string, libraryId string) error {
+
+	prefix := fmt.Sprintf("user/%s/library/%s/", ownerId, libraryId)
+	params := &s3.ListObjectsV2Input{
+		Bucket:    aws.String(bucketName),
+		MaxKeys:   aws.Int32(1000),
+		Prefix:    aws.String(prefix),
+		Delimiter: aws.String("/"),
+	}
+
+	p := s3.NewListObjectsV2Paginator(o.client, params)
+	var i int
+	for p.HasMorePages() {
+		i++
+		// Next Page takes a new context for each page retrieval. This is where
+		// you could add timeouts or deadlines.
+		page, err := p.NextPage(context.TODO())
+		if err != nil {
+			log.Warn().Str("prefix", prefix).Msgf("Failed to get page %d: %s", i, err.Error())
+			continue
+		}
+
+		identifiers := []types.ObjectIdentifier{}
+		for _, obj := range page.Contents {
+			identifiers = append(identifiers, types.ObjectIdentifier{Key: obj.Key})
+		}
+
+		_, err = o.client.DeleteObjects(context.TODO(), &s3.DeleteObjectsInput{
+			Bucket: aws.String(bucketName),
+			Delete: &types.Delete{
+				Objects: identifiers,
+			},
+		})
+
+		if err != nil {
+			log.Warn().Str("prefix", prefix).Msgf("Failed to delete pictures: %s", err.Error())
+		}
+	}
+
+	return nil
 }
 
 func (o *objectstorage) DeletePicture(ownerId string, libraryId string, itemId string) error {

@@ -54,9 +54,9 @@ func (s *services) CreateItem(i *domain.LibraryItem, pictureUrl *string) (*domai
 	return i, nil
 }
 
-func (s *services) ListItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
+func (s *services) ListItemsByLibrary(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
 
-	content, err := s.db.QueryLibraryItems(ownerId, libraryId, continuationToken, pageSize)
+	content, err := s.db.QueryItemsByLibrary(ownerId, libraryId, continuationToken, pageSize)
 
 	if err != nil {
 		return nil, err
@@ -78,8 +78,13 @@ func (s *services) ListItems(ownerId string, libraryId string, continuationToken
 func (s *services) DeleteLibrary(l *domain.Library) error {
 	err := s.db.DeleteLibrary(l)
 
-	// TODO:
-	// Remove thumbnails in S3
+	if err != nil {
+		return err
+	}
+
+	// TODO: Delete items belonging to the library
+
+	err = s.storage.DeletePictures(l.OwnerId, l.Id)
 	if err != nil {
 		return err
 	}

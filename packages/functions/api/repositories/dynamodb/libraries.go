@@ -55,7 +55,8 @@ func (d *dynamo) DeleteLibrary(l *domain.Library) error {
 			"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(l.OwnerId)},
 			"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(l.Id)},
 		},
-		ReturnValues: types.ReturnValueAllOld,
+		ConditionExpression: aws.String("attribute_exists(PK) and attribute_exists(SK)"),
+		ReturnValues:        types.ReturnValueAllOld,
 	})
 
 	if err != nil {

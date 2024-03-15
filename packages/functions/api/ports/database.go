@@ -10,7 +10,7 @@ type Database interface {
 	DeleteLibrary(l *domain.Library) error
 	GetLibrary(ownerId string, libraryId string) (*domain.Library, error)
 	QueryLibraries(ownerId string) ([]domain.Library, error)
-	QueryLibraryItems(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error)
+	QueryItemsByLibrary(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error)
 	PutLibraryItem(i *domain.LibraryItem) error
 	DeleteLibraryItem(i *domain.LibraryItem) error
 }

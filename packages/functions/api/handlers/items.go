@@ -121,7 +121,7 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 
 	t := h.getTokenInfo(c)
 
-	items, err := h.s.ListItems(t.userId, libraryId, continuationToken, pageSize)
+	items, err := h.s.ListItemsByLibrary(t.userId, libraryId, continuationToken, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to query library items ",
