@@ -135,9 +135,11 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 		if i.Type == domain.ItemBook {
 			b := GetBookResponse{
 				GetItemResponseBase: GetItemResponseBase{
-					Id:    i.Id,
-					Type:  domain.ItemBook,
-					Title: i.Title,
+					Id:         i.Id,
+					Type:       domain.ItemBook,
+					Title:      i.Title,
+					LibraryId:  &i.LibraryId,
+					LibrayName: &i.LibraryName,
 				},
 				Authors: i.Authors,
 				Summary: i.Summary,
