@@ -62,15 +62,14 @@ const BookDetails = ({ route }) => {
               <Text variant="headlineLarge">?</Text>
             </View>
           )}
-          <View style={{ flex: 1, paddingLeft: 5, justifyContent: 'space-between' }}>
-            <View style={{ flexShrink: 1 }}>
-              <Text variant="titleLarge" style={{ flexWrap: 'wrap' }}>
-                {title}
-              </Text>
-              <Text variant="bodyLarge" style={{ fontStyle: 'italic' }}>
-                {authors.join(', ')}
-              </Text>
-            </View>
+
+          <View style={{ flex: 1, paddingLeft: 5, flexShrink: 1 }}>
+            <Text variant="titleLarge" style={{ flexWrap: 'wrap' }}>
+              {title}
+            </Text>
+            <Text variant="bodyLarge" style={{ fontStyle: 'italic' }}>
+              {authors.join(', ')}
+            </Text>
             <View>
               <Text>ISBN: {isbn}</Text>
             </View>

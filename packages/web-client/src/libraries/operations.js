@@ -90,8 +90,8 @@ export const deleteLibraryItem = (libraryId, itemId) => async (dispatch) => {
 export const createBook = (item, callback) => async (dispatch) => {
   dispatch(appWaiting());
   try {
-    const data = await api.post(`/v1/libraries/${item.libraryId}/books`, item);
-
+    await api.post(`/v1/libraries/${item.libraryId}/books`, item);
+    const data = await api.get(`/v1/libraries/${item.libraryId}/items`);
     dispatch(createBookSuccess(data));
     callback();
   } catch (e) {
