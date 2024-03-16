@@ -1,6 +1,9 @@
 package services
 
 import (
+	"slices"
+	"strings"
+
 	"alexandria.isnan.eu/functions/api/domain"
 	"alexandria.isnan.eu/functions/api/ports"
 	"alexandria.isnan.eu/functions/api/services/resolvers"
@@ -9,7 +12,7 @@ import (
 var bookResolversRegistry []ports.BookResolver
 
 func (s *services) ResolveBook(code string) []domain.ResolvedBook {
-	var result []domain.ResolvedBook
+	result := []domain.ResolvedBook{}
 
 	ch := make(chan []domain.ResolvedBook, len(bookResolversRegistry))
 
@@ -23,6 +26,10 @@ func (s *services) ResolveBook(code string) []domain.ResolvedBook {
 			result = append(result, resolvedBooks...)
 		}
 	}
+
+	slices.SortFunc(result, func(a, b domain.ResolvedBook) int {
+		return strings.Compare(a.Source, b.Source)
+	})
 
 	return result
 }
