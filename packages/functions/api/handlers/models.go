@@ -19,6 +19,7 @@ type DetectedBookResponse struct {
 	PictureUrl *string  `json:"pictureUrl,omitempty"`
 	Isbn       string   `json:"isbn"`
 	Source     string   `json:"source"`
+	Error      *string  `json:"error,,omitempty"`
 }
 
 type DetectResponse struct {

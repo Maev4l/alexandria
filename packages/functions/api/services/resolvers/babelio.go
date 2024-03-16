@@ -129,7 +129,8 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		output, err := decoder.Bytes(body)
 		if err != nil {
 			log.Error().Str("source", "Babelio").Msgf("Failed to decode response for %s: %s", foundUrl, err.Error())
-			ch <- nil
+			msg := "Not available"
+			resolvedBook.Error = &msg
 			return
 		}
 
@@ -159,8 +160,8 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	err = c.Visit(foundUrl)
 	if err != nil {
 		log.Error().Str("source", "Babelio").Msgf(" Failed to visit book url: %s: %s", foundUrl, err.Error())
-		ch <- nil
-		return
+		msg := "Not available"
+		resolvedBook.Error = &msg
 	}
 
 	ch <- []domain.ResolvedBook{resolvedBook}

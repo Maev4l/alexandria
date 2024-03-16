@@ -27,6 +27,7 @@ type ResolvedBook struct {
 	Summary    string
 	PictureUrl *string
 	Source     string
+	Error      *string
 }
 
 type Library struct {

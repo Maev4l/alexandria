@@ -9,7 +9,7 @@ import { Alert } from '../components';
 import { ITEM_TYPE } from '../domain';
 
 const DetectedBook = ({ book, onAdd }) => {
-  const { summary, title, authors, pictureUrl, isbn, source } = book;
+  const { summary, title, authors, pictureUrl, isbn, source, error } = book;
 
   const theme = useTheme();
   return (
@@ -25,67 +25,74 @@ const DetectedBook = ({ book, onAdd }) => {
           }}
         >
           <Text variant="titleMedium">{source}</Text>
-          <IconButton
-            icon="plus-circle"
-            animated
-            mode="contained"
-            size={20}
-            style={{ marginTop: 0, marginBottom: 0, marginRight: 0 }}
-            onPress={() => onAdd(book)}
-          />
+          {error !== null ? (
+            <IconButton
+              icon="plus-circle"
+              animated
+              mode="contained"
+              size={20}
+              style={{ marginTop: 0, marginBottom: 0, marginRight: 0 }}
+              onPress={() => onAdd(book)}
+            />
+          ) : null}
         </View>
         <Divider style={{ marginBottom: 5 }} />
-
-        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
-          <View
-            style={{
-              width: 60,
-              height: 90,
-            }}
-          >
-            {pictureUrl ? (
-              <Image
-                source={{
-                  uri: pictureUrl,
-                }}
-                style={{
-                  resizeMode: 'stretch',
-                  flex: 1,
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: '5%',
-                }}
-              />
-            ) : (
+        {error !== null ? (
+          <>
+            <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
               <View
                 style={{
-                  alignItems: 'center',
-                  justifyContent: 'center',
                   width: 60,
                   height: 90,
-                  borderWidth: '1px',
-                  borderRadius: '5%',
-                  borderColor: theme.colors.primary,
                 }}
               >
-                <Text variant="titleLarge">?</Text>
+                {pictureUrl ? (
+                  <Image
+                    source={{
+                      uri: pictureUrl,
+                    }}
+                    style={{
+                      resizeMode: 'stretch',
+                      flex: 1,
+                      width: '100%',
+                      height: '100%',
+                      borderRadius: '5%',
+                    }}
+                  />
+                ) : (
+                  <View
+                    style={{
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 60,
+                      height: 90,
+                      borderWidth: '1px',
+                      borderRadius: '5%',
+                      borderColor: theme.colors.primary,
+                    }}
+                  >
+                    <Text variant="titleLarge">?</Text>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
-          <View style={{ flex: 1, paddingLeft: 5, justifyContent: 'space-between' }}>
-            <View style={{ flexShrink: 1 }}>
-              <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
-                {title}
-              </Text>
-              <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
+              <View style={{ flex: 1, paddingLeft: 5, justifyContent: 'space-between' }}>
+                <View style={{ flexShrink: 1 }}>
+                  <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
+                    {title}
+                  </Text>
+                  <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
+                </View>
+                <View>
+                  <Text>ISBN: {isbn}</Text>
+                </View>
+              </View>
             </View>
-            <View>
-              <Text>ISBN: {isbn}</Text>
-            </View>
-          </View>
-        </View>
 
-        <Text style={{ paddingTop: 5, textAlign: 'justify' }}>{summary}</Text>
+            <Text style={{ paddingTop: 5, textAlign: 'justify' }}>{summary}</Text>
+          </>
+        ) : (
+          <Text variant="headlineMedium">Not available.</Text>
+        )}
       </Card.Content>
     </Card>
   );
