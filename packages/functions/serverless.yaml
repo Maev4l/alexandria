@@ -87,6 +87,7 @@ functions:
     image: ${self:custom.imagesProcessorImage}:latest
     role: ImagesProcessorRole
     runtime: nodejs20.x
+    memorySize: 512
     environment:
       S3_PICTURES_BUCKET: ${self:custom.picturesBucketName}
       REGION: ${self:provider.region}
