@@ -44,3 +44,8 @@ export const updateBookSuccess = (data) => ({
   type: ACTION_TYPES.UPDATE_BOOK_SUCCESS,
   payload: data,
 });
+
+export const detectBookSuccess = (data) => ({
+  type: ACTION_TYPES.DETECT_BOOK_SUCCESS,
+  payload: data,
+});

@@ -5,8 +5,8 @@ import CreateLibraryScreen from './CreateLibraryScreen';
 import EditLibraryScreen from './EditLibraryScreen';
 import ItemsScreen, { ItemsScreenHeader } from './ItemsScreen';
 
-import ScanCodeScreen from '../scan-code/ScanCodeScreen';
-import BookDetectionScreen from '../scan-code/BookDetectionScreen';
+import ScanCodeScreen from './ScanCodeScreen';
+import BookDetectionScreen from './BookDetectionScreen';
 
 import CreateItemScreen from './CreateItemScreen';
 import BookDetails, { BookDetailsHeader } from './BookDetails';

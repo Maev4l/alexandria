@@ -40,7 +40,11 @@ const BarcodeInputField = ({ style, onPress }) => {
   );
 };
 
-const ScanCodeScreen = ({ navigation }) => {
+const ScanCodeScreen = ({ navigation, route }) => {
+  const {
+    params: { library },
+  } = route;
+
   const [mediaState, setMediaState] = useState(MediaState.CAMERA_OFF);
   const theme = useTheme();
   useEffect(() => {
@@ -63,7 +67,7 @@ const ScanCodeScreen = ({ navigation }) => {
     }
   };
 
-  const handleSubmitCode = (isbn) => navigation.navigate('BooksDetection', { isbn });
+  const handleSubmitCode = (code) => navigation.navigate('BooksDetection', { code, library });
 
   return (
     <View style={{ padding: 10, flex: 1, alignItems: 'center' }}>

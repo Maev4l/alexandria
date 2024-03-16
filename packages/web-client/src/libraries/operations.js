@@ -8,6 +8,7 @@ import {
   refreshLibraryItemsSuccess,
   deleteLibraryItemSuccess,
   updateBookSuccess,
+  detectBookSuccess,
 } from './actions';
 
 import { api } from '../api';
@@ -113,6 +114,17 @@ export const updateBook = (item, callback) => async (dispatch) => {
     const data = await api.get(`/v1/libraries/${item.libraryId}/items`);
     dispatch(updateBookSuccess(data));
     callback();
+  } catch (e) {
+    dispatch(appError(e));
+  }
+};
+
+export const detectBook = (code) => async (dispatch) => {
+  dispatch(appWaiting());
+
+  try {
+    const data = await api.post('/v1/detections', { type: 0, code });
+    dispatch(detectBookSuccess(data));
   } catch (e) {
     dispatch(appError(e));
   }
