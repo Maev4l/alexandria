@@ -7,6 +7,7 @@ import {
   createBookSuccess,
   refreshLibraryItemsSuccess,
   deleteLibraryItemSuccess,
+  updateBookSuccess,
 } from './actions';
 
 import { api } from '../api';
@@ -93,6 +94,24 @@ export const createBook = (item, callback) => async (dispatch) => {
     await api.post(`/v1/libraries/${item.libraryId}/books`, item);
     const data = await api.get(`/v1/libraries/${item.libraryId}/items`);
     dispatch(createBookSuccess(data));
+    callback();
+  } catch (e) {
+    dispatch(appError(e));
+  }
+};
+
+export const updateBook = (item, callback) => async (dispatch) => {
+  dispatch(appWaiting());
+  try {
+    // no need to send back the picture to the server
+    const { picture, ...rest } = item;
+
+    await api.put(`/v1/libraries/${item.libraryId}/books/${item.id}`, {
+      ...rest,
+      pictureUrl: rest.pictureUrl === '' ? null : rest.pictureUrl,
+    });
+    const data = await api.get(`/v1/libraries/${item.libraryId}/items`);
+    dispatch(updateBookSuccess(data));
     callback();
   } catch (e) {
     dispatch(appError(e));

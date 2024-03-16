@@ -1,10 +1,13 @@
 package services
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"alexandria.isnan.eu/functions/api/domain"
 	"alexandria.isnan.eu/functions/internal/identifier"
+	"github.com/rs/zerolog/log"
 )
 
 func (s *services) DeleteItem(i *domain.LibraryItem) error {
@@ -17,6 +20,45 @@ func (s *services) DeleteItem(i *domain.LibraryItem) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (s *services) UpdateItem(i *domain.LibraryItem, pictureUrl *string) error {
+
+	library, err := s.db.GetLibrary(i.OwnerId, i.LibraryId)
+	if err != nil {
+		return err
+	}
+
+	if library.OwnerId != i.OwnerId {
+		msg := fmt.Sprintf("Library %s does not belong to user", i.LibraryId)
+		log.Error().Msg(msg)
+		return errors.New(msg)
+	}
+
+	if pictureUrl != nil && *pictureUrl != "" {
+		data, err := fetchPicture(*pictureUrl)
+		if err != nil {
+			return err
+		}
+
+		// save picture into S3
+		err = s.storage.PutPicture(i.OwnerId, i.LibraryId, i.Id, data)
+		if err != nil {
+			return err
+		}
+	}
+
+	i.LibraryName = library.Name
+
+	current := time.Now().UTC()
+	i.UpdatedAt = &current
+
+	err = s.db.UpdateLibraryItem(i)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

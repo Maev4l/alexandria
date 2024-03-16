@@ -7,9 +7,9 @@ import (
 	"alexandria.isnan.eu/functions/api/domain"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-
 	"github.com/rs/zerolog/log"
 )
 
@@ -49,6 +49,38 @@ func (d *dynamo) DeleteLibraryItem(i *domain.LibraryItem) error {
 
 	if err != nil {
 		log.Error().Str("id", i.Id).Msgf("Failed to delete item: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (d *dynamo) UpdateLibraryItem(i *domain.LibraryItem) error {
+
+	upd := expression.Set(expression.Name("Title"), expression.Value(i.Title)).
+		Set(expression.Name("Summary"), expression.Value(i.Summary)).
+		Set(expression.Name("Authors"), expression.Value(i.Authors)).
+		Set(expression.Name("Isbn"), expression.Value(i.Isbn)).
+		Set(expression.Name("UpdatedAt"), expression.Value(i.UpdatedAt)).
+		Set(expression.Name("GSI1SK"), expression.Value(makeLibraryItemGSI1SK(i.Title))).
+		Set(expression.Name("GSI2SK"), expression.Value(makeLibraryItemGSI2SK(i.Title)))
+
+	expr, _ := expression.NewBuilder().WithUpdate(upd).Build()
+
+	_, err := d.client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: makeLibraryItemPK(i.OwnerId)},
+			"SK": &types.AttributeValueMemberS{Value: makeLibraryItemSK(i.LibraryId, i.Id)},
+		},
+
+		ConditionExpression:       aws.String("attribute_exists(PK) and attribute_exists(SK)"),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		UpdateExpression:          expr.Update(),
+	})
+
+	if err != nil {
 		return err
 	}
 

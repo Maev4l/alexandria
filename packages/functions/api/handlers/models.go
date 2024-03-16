@@ -95,3 +95,11 @@ type CreateBookResponse struct {
 	Id        string     `json:"id"`
 	UpdatedAt *time.Time `json:"updatedAt"`
 }
+
+type UpdateBookRequest struct {
+	Title      string   `json:"title"`
+	Summary    string   `json:"summary"`
+	Authors    []string `json:"authors"`
+	Isbn       string   `json:"isbn"`
+	PictureUrl *string  `json:"pictureUrl,omitempty"`
+}

@@ -86,7 +86,6 @@ const BookItem = ({ book, style, onPress, onPressActions }) => {
 };
 
 const ItemsList = ({ library, items, onEndReached }) => {
-  const { id: libraryId } = library;
   const dispatch = useDispatch();
 
   const navigation = useNavigation();
@@ -111,10 +110,7 @@ const ItemsList = ({ library, items, onEndReached }) => {
       (index) => {
         switch (index) {
           case 0: {
-            /* navigation.navigate('UpdateLibrary', {
-              libraryId: library.id,
-              libraryName: library.name,
-            }); */
+            navigation.navigate('UpdateItem', { item });
             break;
           }
           case 1: {

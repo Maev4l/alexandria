@@ -31,6 +31,54 @@ func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 	return nil
 }
 
+func (h *HTTPHandler) UpdateBook(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+	bookId := c.Param("bookId")
+
+	var request UpdateBookRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		log.Error().Msgf("Invalid request: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	t := h.getTokenInfo(c)
+
+	item := domain.LibraryItem{
+		Id:        bookId,
+		Title:     strings.TrimSpace(request.Title),
+		LibraryId: libraryId,
+		OwnerId:   t.userId,
+		OwnerName: t.userName,
+		Summary:   strings.TrimSpace(request.Summary),
+		Isbn:      strings.TrimSpace(request.Isbn),
+		Authors:   slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
+		Type:      domain.ItemBook,
+	}
+
+	err = h.validateItemPayload(&item)
+
+	if err != nil {
+		log.Error().Msg(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	err = h.s.UpdateItem(&item, request.PictureUrl)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to update item",
+		})
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
 func (h *HTTPHandler) DeleteItem(c *gin.Context) {
 	libraryId := c.Param("libraryId")
 	itemId := c.Param("itemId")

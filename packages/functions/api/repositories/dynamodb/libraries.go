@@ -45,6 +45,7 @@ func (d *dynamo) GetLibrary(ownerId string, libraryId string) (*domain.Library, 
 		Description: record.Description,
 		TotalItems:  record.TotalItems,
 		UpdatedAt:   record.UpdatedAt,
+		OwnerId:     record.OwnerId,
 		OwnerName:   record.OwnerName}, nil
 
 }

@@ -49,6 +49,7 @@ func init() {
 	g.GET("/libraries/:libraryId/items", h.ListLibraryItems)
 	g.POST("/libraries/:libraryId/books", h.CreateBook)
 	g.DELETE("/libraries/:libraryId/items/:itemId", h.DeleteItem)
+	g.PUT("/libraries/:libraryId/books/:bookId", h.UpdateBook)
 
 	ginLambda = ginadapter.New(router)
 }

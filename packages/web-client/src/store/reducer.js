@@ -29,6 +29,7 @@ export const reducer = (state, action) => {
   const newState = { ...state, lastAction: type };
 
   switch (type) {
+    case ACTION_TYPES.UPDATE_BOOK_SUCCESS:
     case ACTION_TYPES.CREATE_BOOK_SUCCESS:
     case ACTION_TYPES.DELETE_LIBRARY_ITEM_SUCCESS:
     case ACTION_TYPES.REFRESH_LIBRARY_ITEMS_SUCCESS: {
