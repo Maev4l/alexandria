@@ -1,5 +1,6 @@
-import { Text, useTheme, IconButton, Icon, Divider } from 'react-native-paper';
+import { Text, useTheme, IconButton, Icon, Divider, FAB } from 'react-native-paper';
 import { FlatList, View, Image, Pressable } from 'react-native';
+import { useRef } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { RefreshControl } from 'react-native-web-refresh-control';
@@ -93,7 +94,7 @@ const BookItem = ({ book, style, onPress, onPressActions, showDivider }) => {
 
 const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
   const dispatch = useDispatch();
-
+  const ref = useRef();
   const navigation = useNavigation();
   const { showActionSheetWithOptions } = useActionSheet();
   const theme = useTheme();
@@ -133,26 +134,36 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
   };
 
   return (
-    <FlatList
-      refreshControl={<RefreshControl onRefresh={onRefresh} refreshing={refreshing} />}
-      contentContainerStyle={{ flexGrow: 1 }}
-      data={items}
-      onEndReachedThreshold={0.2}
-      onEndReached={onEndReached}
-      ListEmptyComponent={() => (
-        <Alert variant="primary" style={{ marginTop: 20 }} text="You have no items." />
-      )}
-      renderItem={({ item, index }) =>
-        item.type === ITEM_TYPE.BOOK ? (
-          <BookItem
-            book={item}
-            onPress={() => navigation.navigate('BookDetails', { book: { ...item } })}
-            onPressActions={() => handlePressActions(item)}
-            showDivider={index !== items.length - 1}
-          />
-        ) : null
-      }
-    />
+    <>
+      <FlatList
+        ref={ref}
+        refreshControl={<RefreshControl onRefresh={onRefresh} refreshing={refreshing} />}
+        contentContainerStyle={{ flexGrow: 1 }}
+        data={items}
+        onEndReachedThreshold={0.2}
+        onEndReached={onEndReached}
+        ListEmptyComponent={() => (
+          <Alert variant="primary" style={{ marginTop: 20 }} text="You have no items." />
+        )}
+        renderItem={({ item, index }) =>
+          item.type === ITEM_TYPE.BOOK ? (
+            <BookItem
+              book={item}
+              onPress={() => navigation.navigate('BookDetails', { book: { ...item } })}
+              onPressActions={() => handlePressActions(item)}
+              showDivider={index !== items.length - 1}
+            />
+          ) : null
+        }
+      />
+      <FAB
+        icon="arrow-up"
+        style={{ position: 'absolute', margin: 16, right: 0, bottom: 0 }}
+        size="small"
+        visible={items.length > 0}
+        onPress={() => ref.current?.scrollToIndex({ index: 0 })}
+      />
+    </>
   );
 };
 
