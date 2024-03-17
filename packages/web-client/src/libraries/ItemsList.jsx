@@ -2,6 +2,7 @@ import { Text, useTheme, IconButton, Icon } from 'react-native-paper';
 import { FlatList, View, Image, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useActionSheet } from '@expo/react-native-action-sheet';
+import { RefreshControl } from 'react-native-web-refresh-control';
 
 import { Alert } from '../components';
 import { ITEM_TYPE } from '../domain';
@@ -85,7 +86,7 @@ const BookItem = ({ book, style, onPress, onPressActions }) => {
   );
 };
 
-const ItemsList = ({ library, items, onEndReached }) => {
+const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
   const dispatch = useDispatch();
 
   const navigation = useNavigation();
@@ -127,27 +128,26 @@ const ItemsList = ({ library, items, onEndReached }) => {
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <FlatList
-        contentContainerStyle={{ flexGrow: 1 }}
-        data={items}
-        onEndReachedThreshold={0.2}
-        onEndReached={onEndReached}
-        ListEmptyComponent={() => (
-          <Alert variant="primary" style={{ marginTop: 20 }} text="You have no items." />
-        )}
-        renderItem={({ item }) =>
-          item.type === ITEM_TYPE.BOOK ? (
-            <BookItem
-              book={item}
-              style={{ marginBottom: 10 }}
-              onPress={() => navigation.navigate('BookDetails', { book: { ...item } })}
-              onPressActions={() => handlePressActions(item)}
-            />
-          ) : null
-        }
-      />
-    </View>
+    <FlatList
+      refreshControl={<RefreshControl onRefresh={onRefresh} refreshing={refreshing} />}
+      contentContainerStyle={{ flexGrow: 1 }}
+      data={items}
+      onEndReachedThreshold={0.2}
+      onEndReached={onEndReached}
+      ListEmptyComponent={() => (
+        <Alert variant="primary" style={{ marginTop: 20 }} text="You have no items." />
+      )}
+      renderItem={({ item }) =>
+        item.type === ITEM_TYPE.BOOK ? (
+          <BookItem
+            book={item}
+            style={{ marginBottom: 10 }}
+            onPress={() => navigation.navigate('BookDetails', { book: { ...item } })}
+            onPressActions={() => handlePressActions(item)}
+          />
+        ) : null
+      }
+    />
   );
 };
 
