@@ -23,8 +23,8 @@ func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 			return errors.New("Invalid request - Title too long (max. 100 chars)")
 		}
 
-		if len(item.Summary) > 2000 {
-			return errors.New("Invalid request - Summary too long (max. 2000 chars)")
+		if len(item.Summary) > 4000 {
+			return errors.New("Invalid request - Summary too long (max. 4000 chars)")
 		}
 	}
 
