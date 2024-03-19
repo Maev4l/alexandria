@@ -51,6 +51,12 @@ func init() {
 	g.DELETE("/libraries/:libraryId/items/:itemId", h.DeleteItem)
 	g.PUT("/libraries/:libraryId/books/:bookId", h.UpdateBook)
 
+	/* g.GET("/hello", func(c *gin.Context) {
+		c.JSON(http.StatusOK, map[string]string{
+			"response": "world",
+		})
+	})
+	*/
 	ginLambda = ginadapter.New(router)
 }
 
