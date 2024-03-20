@@ -30,6 +30,18 @@ export const reducer = (state, action) => {
   const newState = { ...state, lastAction: type };
 
   switch (type) {
+    case ACTION_TYPES.CHANGE_PASSWORD_SUCCESS: {
+      return {
+        ...newState,
+        loading: false,
+        refreshing: false,
+        notification: {
+          severity: 'success',
+          text: 'Password has been changed',
+        },
+      };
+    }
+
     case ACTION_TYPES.SEARCH_ITEMS_SUCCESS: {
       const { results } = payload;
       return { ...newState, loading: false, refreshing: false, matchedItems: results };

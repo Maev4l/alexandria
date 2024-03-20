@@ -13,7 +13,7 @@ import {
 } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { useSelector, useDispatch, ACTION_TYPES } from '../store';
+import { useSelector, useDispatch, ACTION_TYPES, appError } from '../store';
 
 const { LightTheme, DarkTheme } = adaptNavigationTheme({
   reactNavigationLight: NavigationDefaultTheme,
@@ -41,23 +41,23 @@ const CombinedDarkTheme = {
 const PreferencesContext = createContext();
 
 const readAppPreferences = () => async (dispatch) => {
-  dispatch({ type: ACTION_TYPES.READING_APP_PREFERENCES });
+  // dispatch({ type: ACTION_TYPES.READING_APP_PREFERENCES });
   try {
     const value = await AsyncStorage.getItem('preferences');
     dispatch({ type: ACTION_TYPES.READ_APP_PREFERENCES_SUCCESS, payload: JSON.parse(value) });
   } catch (e) {
-    dispatch({ type: ACTION_TYPES.READ_APP_PREFERENCES_ERROR, payload: e });
+    dispatch(appError(e));
   }
 };
 
 const writeAppPreferences = (preferences) => async (dispatch) => {
-  dispatch({ type: ACTION_TYPES.WRITING_APP_PREFERENCES });
+  //  dispatch({ type: ACTION_TYPES.WRITING_APP_PREFERENCES });
   try {
     const jsonValue = JSON.stringify(preferences);
     await AsyncStorage.setItem('preferences', jsonValue);
     dispatch({ type: ACTION_TYPES.WRITE_APP_PREFERENCES_SUCCESS, payload: preferences });
   } catch (e) {
-    dispatch({ type: ACTION_TYPES.WRITE_APP_PREFERENCES_ERROR, payload: e });
+    dispatch(appError(e));
   }
 };
 
