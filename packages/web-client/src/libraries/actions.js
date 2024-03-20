@@ -49,7 +49,3 @@ export const detectBookSuccess = (data) => ({
   type: ACTION_TYPES.DETECT_BOOK_SUCCESS,
   payload: data,
 });
-
-export const resetLibraryItems = () => ({
-  type: ACTION_TYPES.RESET_LIBRARY_ITEMS,
-});

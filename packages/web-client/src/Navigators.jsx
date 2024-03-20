@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SignIn, SignUp } from './security';
 import { LibrariesNavigators } from './libraries';
 import { SettingsNavigators } from './settings';
+import { SearchNavigators } from './search';
 
 const AuthenticationStack = createStackNavigator();
 
@@ -79,6 +80,14 @@ export const AppNavigator = () => (
       options={{
         tabBarLabel: 'Libraries',
         tabBarIcon: ({ color, size }) => <Icon name="home" size={size} color={color} />,
+      }}
+    />
+    <AppTab.Screen
+      name="SearchTab"
+      component={SearchNavigators}
+      options={{
+        tabBarLabel: 'Search',
+        tabBarIcon: ({ color, size }) => <Icon name="magnify" size={size} color={color} />,
       }}
     />
     <AppTab.Screen

@@ -8,3 +8,7 @@ export const appError = (error) => ({
 });
 
 export const appRefreshing = () => ({ type: ACTION_TYPES.APP_REFRESHING });
+
+export const resetLibraryItems = () => ({
+  type: ACTION_TYPES.RESET_LIBRARY_ITEMS,
+});

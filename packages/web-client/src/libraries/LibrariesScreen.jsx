@@ -4,9 +4,8 @@ import { useEffect, useCallback } from 'react';
 import { Chip } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 
-import { useDispatch, useSelector, ACTION_TYPES } from '../store';
+import { useDispatch, useSelector, resetLibraryItems, ACTION_TYPES } from '../store';
 import { fetchLibraries } from './operations';
-import { resetLibraryItems } from './actions';
 import LibrariesList from './LibrariesList';
 import { Alert } from '../components';
 

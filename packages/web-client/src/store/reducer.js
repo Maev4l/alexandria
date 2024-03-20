@@ -21,6 +21,7 @@ export const INITIAL_STATE = {
     items: [],
     nextToken: '',
   },
+  matchedItems: [],
 };
 
 export const reducer = (state, action) => {
@@ -29,6 +30,11 @@ export const reducer = (state, action) => {
   const newState = { ...state, lastAction: type };
 
   switch (type) {
+    case ACTION_TYPES.SEARCH_ITEMS_SUCCESS: {
+      const { results } = payload;
+      return { ...newState, loading: false, refreshing: false, matchedItems: results };
+    }
+
     case ACTION_TYPES.RESET_LIBRARY_ITEMS: {
       return { ...newState, libraryItems: { items: [], nextToken: '' } };
     }

@@ -78,9 +78,7 @@ const ItemsScreen = ({ route }) => {
           text="You have no items in this library."
         />
       ) : null}
-      {/* <ScrollView
-        refreshControl={<RefreshControl onRefresh={handleRefresh} refreshing={refreshing} />}
-      > */}
+
       <ItemsList
         items={items}
         library={library}
@@ -88,7 +86,6 @@ const ItemsScreen = ({ route }) => {
         onRefresh={handleRefresh}
         refreshing={refreshing}
       />
-      {/* </ScrollView> */}
     </View>
   );
 };
