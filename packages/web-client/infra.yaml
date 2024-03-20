@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: '2010-09-09'
 Description: Infrastructure for Alexandria web client
 
 Mappings:
@@ -77,14 +77,14 @@ Resources:
             DomainName: !GetAtt WebClientBucket.RegionalDomainName
             OriginAccessControlId: !GetAtt OriginAccessControl.Id
             S3OriginConfig:
-              OriginAccessIdentity: ""
+              OriginAccessIdentity: ''
         DefaultCacheBehavior:
           TargetOriginId: web-client
           # Enable / Disable during development phase
-          # CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # (CachingOptimized) see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
-          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # (CachingDisabled) see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # (CachingOptimized) see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
+          # CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # (CachingDisabled) see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
           OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf # (Managed-CORS-S3Origin) see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policies-list
-          ViewerProtocolPolicy: "redirect-to-https"
+          ViewerProtocolPolicy: 'redirect-to-https'
           Compress: true
           AllowedMethods:
             - GET
@@ -94,27 +94,27 @@ Resources:
     Properties:
       Bucket: !Ref WebClientBucket
       PolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Action:
               - s3:GetObject
             Resource:
               - Fn::Join:
-                  - ""
-                  - - "arn:aws:s3:::"
+                  - ''
+                  - - 'arn:aws:s3:::'
                     - !Ref WebClientBucket
-                    - "/*"
+                    - '/*'
             Principal:
-              Service: "cloudfront.amazonaws.com"
+              Service: 'cloudfront.amazonaws.com'
             Condition:
               StringEquals:
-                "AWS:SourceArn":
+                'AWS:SourceArn':
                   - Fn::Join:
-                      - ""
-                      - - "arn:aws:cloudfront::"
-                        - Ref: "AWS::AccountId"
-                        - ":distribution/"
+                      - ''
+                      - - 'arn:aws:cloudfront::'
+                        - Ref: 'AWS::AccountId'
+                        - ':distribution/'
                         - Ref: Distribution
   RecordSetGroup:
     Type: AWS::Route53::RecordSetGroup
