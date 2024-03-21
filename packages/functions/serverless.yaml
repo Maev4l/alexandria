@@ -74,6 +74,13 @@ functions:
           authorizer:
             type: COGNITO_USER_POOLS
             authorizerId: !Ref ApiGatewayAuthorizer
+          method: post
+          path: /v1/libraries
+          cors: true
+      - http:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: !Ref ApiGatewayAuthorizer
           method: any
           path: /v1/libraries/{proxy+}
           cors: true
