@@ -65,9 +65,10 @@ export const AppPreferencesProvider = ({ children }) => {
   const preferences = useSelector((state) => state.preferences);
   const dispatch = useDispatch();
 
-  const readPrefs = async () => dispatch(readAppPreferences());
-
-  useEffect(() => readPrefs, []);
+  useEffect(() => {
+    const readPrefs = async () => dispatch(readAppPreferences());
+    readPrefs();
+  }, []);
 
   const { darkMode } = preferences;
 
