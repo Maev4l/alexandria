@@ -91,7 +91,14 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	}
 
 	c.OnHTML("img[itemprop='image']", func(e *colly.HTMLElement) {
-		imageUrl := fmt.Sprintf("%s%s", r.url, e.Attr("src"))
+		imgSource := e.Attr("src")
+		var imageUrl string
+		if strings.HasPrefix(imgSource, "https://") || strings.HasPrefix(imgSource, "http://") {
+			imageUrl = imgSource
+		} else {
+			imageUrl = fmt.Sprintf("%s%s", r.url, e.Attr("src"))
+		}
+
 		resolvedBook.PictureUrl = &imageUrl
 	})
 
