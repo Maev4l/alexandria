@@ -107,11 +107,13 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
         showSeparators: true,
         tintIcons: true,
         icons: [
-          <Icon source="pencil" size={20} />,
-          <Icon source="trash-can-outline" size={20} color={theme.colors.error} />,
-          <Icon source="close" size={20} />,
+          <Icon color={theme.colors.onBackground} source="pencil" size={20} />,
+          <Icon color={theme.colors.error} source="trash-can-outline" size={20} />,
+          <Icon color={theme.colors.onBackground} source="close" size={20} />,
         ],
         destructiveColor: theme.colors.error,
+        containerStyle: { backgroundColor: theme.colors.background },
+        tintColor: theme.colors.onBackground,
       },
       (index) => {
         switch (index) {
