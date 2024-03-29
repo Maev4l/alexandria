@@ -62,7 +62,14 @@ const MatchedBookItem = ({ book, style, onPress, showDivider }) => {
                 <Text variant="titleLarge">?</Text>
               </View>
             )}
-            <View style={{ flex: 1, height: 90, paddingLeft: 5, justifyContent: 'space-between' }}>
+            <View
+              style={{
+                flex: 1,
+                height: 90,
+                paddingLeft: 5,
+                justifyContent: 'space-between',
+              }}
+            >
               <View style={{ flexShrink: 1 }}>
                 <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
                   {title}
@@ -71,9 +78,21 @@ const MatchedBookItem = ({ book, style, onPress, showDivider }) => {
               </View>
               <View style={{ flexShrink: 1 }}>
                 <Text>ISBN: {isbn}</Text>
-                <Text numberOfLines={1} ellipsizeMode="tail">
-                  Library: {libraryName}
-                </Text>
+                <View style={{ alignItems: 'flex-start' }}>
+                  <Text
+                    style={{
+                      backgroundColor: theme.colors.primary,
+                      borderColor: theme.colors.onPrimaryContainer,
+                      borderRadius: '5px',
+                      padding: '3px',
+                      color: theme.colors.onPrimary,
+                    }}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {libraryName}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
