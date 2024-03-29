@@ -86,6 +86,7 @@ type LibraryItem struct {
 	Authors     []string   `dynamodbav:"Authors"`
 	Isbn        string     `dynamodbav:"Isbn"`
 	Type        int        `dynamodbav:"Type"`
+	PictureUrl  *string    `dynamodbav:"PictureUrl,omitempty"`
 }
 
 func makeLibraryItemPK(ownerId string) string {

@@ -16,7 +16,7 @@ type Services interface {
 	DeleteLibrary(l *domain.Library) error
 	ListLibraries(ownerId string) ([]domain.Library, error)
 	ListItemsByLibrary(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error)
-	CreateItem(i *domain.LibraryItem, pictureUrl *string) (*domain.LibraryItem, error)
+	CreateItem(i *domain.LibraryItem) (*domain.LibraryItem, error)
 	DeleteItem(i *domain.LibraryItem) error
-	UpdateItem(i *domain.LibraryItem, pictureUrl *string) error
+	UpdateItem(i *domain.LibraryItem) error
 }

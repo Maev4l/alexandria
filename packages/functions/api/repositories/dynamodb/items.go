@@ -63,7 +63,8 @@ func (d *dynamo) UpdateLibraryItem(i *domain.LibraryItem) error {
 		Set(expression.Name("Isbn"), expression.Value(i.Isbn)).
 		Set(expression.Name("UpdatedAt"), expression.Value(i.UpdatedAt)).
 		Set(expression.Name("GSI1SK"), expression.Value(makeLibraryItemGSI1SK(i.Title))).
-		Set(expression.Name("GSI2SK"), expression.Value(makeLibraryItemGSI2SK(i.Title)))
+		Set(expression.Name("GSI2SK"), expression.Value(makeLibraryItemGSI2SK(i.Title))).
+		Set(expression.Name("PictureUrl"), expression.Value(i.PictureUrl))
 
 	expr, _ := expression.NewBuilder().WithUpdate(upd).Build()
 
@@ -106,6 +107,7 @@ func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
 		Authors:     i.Authors,
 		Isbn:        i.Isbn,
 		Type:        int(i.Type),
+		PictureUrl:  i.PictureUrl,
 	}
 
 	item, err := attributevalue.MarshalMap(record)
@@ -206,6 +208,7 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 			Isbn:        record.Isbn,
 			UpdatedAt:   record.UpdatedAt,
 			Type:        domain.ItemType(record.Type),
+			PictureUrl:  record.PictureUrl,
 		})
 	}
 

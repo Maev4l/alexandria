@@ -95,25 +95,19 @@ const fetchPictures = async (matches) => {
   const results = await Promise.all(
     matches.map(async (m) => {
       const {
-        item: { OwnerId, LibraryId, ItemId, Isbn, LibraryName, Summary, Title, Type, Authors },
+        item: {
+          OwnerId,
+          LibraryId,
+          ItemId,
+          Isbn,
+          LibraryName,
+          Summary,
+          Title,
+          Type,
+          Authors,
+          PictureUrl,
+        },
       } = m;
-      const key = `user/${OwnerId}/library/${LibraryId}/item/${ItemId}`;
-      const params = {
-        Bucket: S3_PICTURES_BUCKET,
-        Key: key,
-      };
-
-      let data = null;
-
-      try {
-        const command = new GetObjectCommand(params);
-        const { Body } = await s3.send(command);
-        data = await streamToString(Body, 'base64');
-      } catch (e) {
-        if (e.name !== 'NoSuchKey') {
-          logger.error(`Failed to fetch picture (key: ${key}): ${e.message}`);
-        }
-      }
       const item = {
         id: ItemId,
         isbn: Isbn,
@@ -124,9 +118,31 @@ const fetchPictures = async (matches) => {
         type: Type,
         authors: Authors,
       };
-      if (data) {
-        item.picture = data;
+
+      if (PictureUrl) {
+        const key = `user/${OwnerId}/library/${LibraryId}/item/${ItemId}`;
+        const params = {
+          Bucket: S3_PICTURES_BUCKET,
+          Key: key,
+        };
+
+        let data = null;
+
+        try {
+          const command = new GetObjectCommand(params);
+          const { Body } = await s3.send(command);
+          data = await streamToString(Body, 'base64');
+        } catch (e) {
+          if (e.name !== 'NoSuchKey') {
+            logger.error(`Failed to fetch picture (key: ${key}): ${e.message}`);
+          }
+        }
+
+        if (data) {
+          item.picture = data;
+        }
       }
+
       return item;
     }),
   );

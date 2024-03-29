@@ -48,15 +48,16 @@ func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 	t := h.getTokenInfo(c)
 
 	item := domain.LibraryItem{
-		Id:        bookId,
-		Title:     strings.TrimSpace(request.Title),
-		LibraryId: libraryId,
-		OwnerId:   t.userId,
-		OwnerName: t.userName,
-		Summary:   strings.TrimSpace(request.Summary),
-		Isbn:      strings.TrimSpace(request.Isbn),
-		Authors:   slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
-		Type:      domain.ItemBook,
+		Id:         bookId,
+		Title:      strings.TrimSpace(request.Title),
+		LibraryId:  libraryId,
+		OwnerId:    t.userId,
+		OwnerName:  t.userName,
+		Summary:    strings.TrimSpace(request.Summary),
+		Isbn:       strings.TrimSpace(request.Isbn),
+		Authors:    slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
+		Type:       domain.ItemBook,
+		PictureUrl: request.PictureUrl,
 	}
 
 	err = h.validateItemPayload(&item)
@@ -69,7 +70,7 @@ func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 		return
 	}
 
-	err = h.s.UpdateItem(&item, request.PictureUrl)
+	err = h.s.UpdateItem(&item)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to update item",
@@ -118,14 +119,15 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 	t := h.getTokenInfo(c)
 
 	item := domain.LibraryItem{
-		Title:     strings.TrimSpace(request.Title),
-		Summary:   strings.TrimSpace(request.Summary),
-		Isbn:      strings.TrimSpace(request.Isbn),
-		Authors:   slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
-		LibraryId: libraryId,
-		OwnerId:   t.userId,
-		OwnerName: t.displayName,
-		Type:      domain.ItemBook,
+		Title:      strings.TrimSpace(request.Title),
+		Summary:    strings.TrimSpace(request.Summary),
+		Isbn:       strings.TrimSpace(request.Isbn),
+		Authors:    slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
+		LibraryId:  libraryId,
+		OwnerId:    t.userId,
+		OwnerName:  t.displayName,
+		Type:       domain.ItemBook,
+		PictureUrl: request.PictureUrl,
 	}
 
 	err = h.validateItemPayload(&item)
@@ -138,7 +140,7 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 		return
 	}
 
-	result, err := h.s.CreateItem(&item, request.PictureUrl)
+	result, err := h.s.CreateItem(&item)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to create item",

@@ -57,4 +57,5 @@ type LibraryItem struct {
 	Authors     []string
 	Isbn        string
 	Type        ItemType
+	PictureUrl  *string
 }

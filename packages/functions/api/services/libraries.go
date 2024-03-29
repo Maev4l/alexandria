@@ -23,7 +23,7 @@ func (s *services) DeleteItem(i *domain.LibraryItem) error {
 	return nil
 }
 
-func (s *services) UpdateItem(i *domain.LibraryItem, pictureUrl *string) error {
+func (s *services) UpdateItem(i *domain.LibraryItem) error {
 
 	library, err := s.db.GetLibrary(i.OwnerId, i.LibraryId)
 	if err != nil {
@@ -36,8 +36,8 @@ func (s *services) UpdateItem(i *domain.LibraryItem, pictureUrl *string) error {
 		return errors.New(msg)
 	}
 
-	if pictureUrl != nil && *pictureUrl != "" {
-		data, err := fetchPicture(*pictureUrl)
+	if i.PictureUrl != nil && *i.PictureUrl != "" {
+		data, err := fetchPicture(*i.PictureUrl)
 		if err != nil {
 			return err
 		}
@@ -62,11 +62,11 @@ func (s *services) UpdateItem(i *domain.LibraryItem, pictureUrl *string) error {
 	return nil
 }
 
-func (s *services) CreateItem(i *domain.LibraryItem, pictureUrl *string) (*domain.LibraryItem, error) {
+func (s *services) CreateItem(i *domain.LibraryItem) (*domain.LibraryItem, error) {
 	i.Id = identifier.NewId()
 
-	if pictureUrl != nil && *pictureUrl != "" {
-		data, err := fetchPicture(*pictureUrl)
+	if i.PictureUrl != nil && *i.PictureUrl != "" {
+		data, err := fetchPicture(*i.PictureUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -105,13 +105,14 @@ func (s *services) ListItemsByLibrary(ownerId string, libraryId string, continua
 	}
 
 	for _, i := range content.Items {
+		if i.PictureUrl != nil && *i.PictureUrl != "" {
+			pic, err := s.storage.GetPicture(ownerId, libraryId, i.Id)
+			if err != nil {
+				return nil, err
+			}
 
-		pic, err := s.storage.GetPicture(ownerId, libraryId, i.Id)
-		if err != nil {
-			return nil, err
+			i.Picture = pic
 		}
-
-		i.Picture = pic
 	}
 
 	return content, nil
