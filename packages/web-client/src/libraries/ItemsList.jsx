@@ -5,7 +5,6 @@ import { useNavigation } from '@react-navigation/native';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { RefreshControl } from 'react-native-web-refresh-control';
 
-import { Alert } from '../components';
 import { ITEM_TYPE } from '../domain';
 import { useDispatch } from '../store';
 import { deleteLibraryItem } from './operations';
@@ -142,9 +141,9 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
         data={items}
         onEndReachedThreshold={0.2}
         onEndReached={onEndReached}
-        ListEmptyComponent={() => (
+        /* ListEmptyComponent={() => (
           <Alert variant="primary" style={{ marginTop: 20 }} text="You have no items." />
-        )}
+        )} */
         renderItem={({ item, index }) =>
           item.type === ITEM_TYPE.BOOK ? (
             <BookItem

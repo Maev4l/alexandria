@@ -71,7 +71,9 @@ const ItemsScreen = ({ route }) => {
           Scan ISBN
         </Chip>
       </View>
-      {lastAction === ACTION_TYPES.FETCH_LIBRARY_ITEMS_SUCCESS && items.length === 0 ? (
+      {lastAction !== ACTION_TYPES.APP_REFRESHING &&
+      lastAction !== ACTION_TYPES.APP_WAITING &&
+      items.length === 0 ? (
         <Alert
           variant="primary"
           style={{ marginTop: 20 }}
