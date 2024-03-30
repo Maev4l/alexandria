@@ -125,8 +125,6 @@ func (s *services) DeleteLibrary(l *domain.Library) error {
 		return err
 	}
 
-	// TODO: Delete items belonging to the library
-
 	err = s.storage.DeletePictures(l.OwnerId, l.Id)
 	if err != nil {
 		return err

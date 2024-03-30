@@ -86,8 +86,9 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	c := colly.NewCollector()
 
 	resolvedBook := domain.ResolvedBook{
-		Id:     fmt.Sprintf("%s#%s", r.Name(), foundBook.Id),
-		Source: r.Name(),
+		Id:      fmt.Sprintf("%s#%s", r.Name(), foundBook.Id),
+		Source:  r.Name(),
+		Authors: []string{},
 	}
 
 	c.OnHTML("img[itemprop='image']", func(e *colly.HTMLElement) {

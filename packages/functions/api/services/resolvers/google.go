@@ -91,6 +91,10 @@ func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 			PictureUrl: &b.VolumeInfo.ImageLinks.Thumbnail,
 		}
 
+		if b.VolumeInfo.Authors == nil {
+			resolvedBook.Authors = []string{}
+		}
+
 		result = append(result, resolvedBook)
 	}
 
