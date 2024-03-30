@@ -78,23 +78,23 @@ const MatchedBookItem = ({ book, style, onPress, showDivider }) => {
               </View>
               <View style={{ flexShrink: 1 }}>
                 <Text>ISBN: {isbn}</Text>
-                <View style={{ alignItems: 'flex-start' }}>
-                  <Text
-                    style={{
-                      backgroundColor: theme.colors.primary,
-                      borderColor: theme.colors.onPrimaryContainer,
-                      borderRadius: '5px',
-                      padding: '3px',
-                      color: theme.colors.onPrimary,
-                    }}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {libraryName}
-                  </Text>
-                </View>
               </View>
             </View>
+          </View>
+          <View style={{ alignItems: 'flex-start', paddingTop: 5, paddingBottom: 5 }}>
+            <Text
+              style={{
+                backgroundColor: theme.colors.primary,
+                borderColor: theme.colors.onPrimaryContainer,
+                borderRadius: '5px',
+                padding: '3px',
+                color: theme.colors.onPrimary,
+              }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {libraryName}
+            </Text>
           </View>
         </View>
       </Pressable>
