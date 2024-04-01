@@ -4,14 +4,19 @@ import { View, ScrollView, Image } from 'react-native';
 export const BookDetailsHeader = ({ route }) => {
   const {
     params: {
-      book: { title },
+      book: { title, libraryName },
     },
   } = route;
 
   return (
-    <Text style={{ fontSize: '18px', padding: 10 }} numberOfLines={1} ellipsizeMode="tail">
-      {title}
-    </Text>
+    <View style={{ padding: 10, alignItems: 'center' }}>
+      <Text style={{ fontSize: '18px' }} numberOfLines={1} ellipsizeMode="tail">
+        {title}
+      </Text>
+      <Text numberOfLines={1} ellipsizeMode="tail">
+        {libraryName}
+      </Text>
+    </View>
   );
 };
 
