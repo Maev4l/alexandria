@@ -43,9 +43,16 @@ const getLogger = (category) => {
 
 const logger = getLogger('search');
 
-let lastScanDate = 0;
+// let lastScanDate = 0;
 // scanResult is the object that FuseJS create for the search
-let scanResult;
+const cache = {
+  /**
+   * ownerId: {
+   *  lastScanDate: "<lastscandate>"
+   *  scanResult: "<result>"
+   * }
+   */
+};
 
 const scanAll = async (ownerId) => {
   const params = {
@@ -78,8 +85,10 @@ const buildIndex = async (ownerId) => {
     keys: ['keywords'],
   };
 
-  scanResult = new Fuse(data, options);
-  lastScanDate = new Date().getTime();
+  cache[ownerId] = {
+    scanResult: new Fuse(data, options),
+    lastScanDate: new Date().getTime(),
+  };
 };
 
 const streamToString = (stream, encoding) => {
@@ -159,19 +168,23 @@ const handle = async (event) => {
     body,
   } = event;
 
-  if (
-    lastScanDate === undefined ||
-    scanResult === undefined ||
-    lastScanDate + 900000 < new Date().getTime()
-  ) {
-    const ownerId = sub.replaceAll('-', '').toUpperCase();
+  const ownerId = sub.replaceAll('-', '').toUpperCase();
 
+  let cacheByUser = cache[ownerId];
+
+  if (
+    cacheByUser === undefined ||
+    cacheByUser.lastScanDate === undefined ||
+    cacheByUser.lastScanDate + 900000 < new Date().getTime()
+  ) {
     await buildIndex(ownerId);
   }
 
+  cacheByUser = cache[ownerId];
+
   const payload = JSON.parse(body);
   const { terms } = payload;
-  const matches = scanResult
+  const matches = cacheByUser.scanResult
     .search(terms.join(' '), { limit: 10 })
     .map((i) => ({ item: i.item, score: i.score }));
 
