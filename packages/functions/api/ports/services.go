@@ -19,4 +19,5 @@ type Services interface {
 	CreateItem(i *domain.LibraryItem) (*domain.LibraryItem, error)
 	DeleteItem(i *domain.LibraryItem) error
 	UpdateItem(i *domain.LibraryItem) error
+	ShareLibrary(sh *domain.ShareLibrary) error
 }

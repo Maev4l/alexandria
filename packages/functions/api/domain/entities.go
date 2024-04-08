@@ -38,7 +38,18 @@ type Library struct {
 	OwnerId     string
 	TotalItems  int
 	UpdatedAt   *time.Time
+	SharedTo    []string
 }
+
+type ShareLibrary struct {
+	SharedFromUserId   string
+	SharedFromUserName string
+	SharedToUserId     string
+	SharedToUserName   string
+	LibraryId          string
+	UpdatedAt          *time.Time
+}
+
 type LibraryContent struct {
 	Items             []*LibraryItem
 	ContinuationToken string

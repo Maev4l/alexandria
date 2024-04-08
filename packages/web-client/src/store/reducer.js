@@ -172,6 +172,19 @@ export const reducer = (state, action) => {
       };
     }
 
+    case ACTION_TYPES.SHARE_LIBRARY_SUCCESS: {
+      const { libraries } = payload;
+      return {
+        ...newState,
+        loading: false,
+        libraries,
+        notification: {
+          text: 'Library shared.',
+          severity: 'success',
+        },
+      };
+    }
+
     case ACTION_TYPES.DELETE_LIBRARY_SUCCESS: {
       const { libraries } = payload;
       return {

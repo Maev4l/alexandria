@@ -9,6 +9,7 @@ import {
   deleteLibraryItemSuccess,
   updateBookSuccess,
   detectBookSuccess,
+  shareLibrarySuccess,
 } from './actions';
 
 import { api } from '../api';
@@ -73,6 +74,17 @@ export const deleteLibrary = (libraryId) => async (dispatch) => {
     await api.del(`/v1/libraries/${libraryId}`);
     const data = await api.get('/v1/libraries');
     dispatch(deleteLibrarySuccess(data));
+  } catch (e) {
+    dispatch(appError(e));
+  }
+};
+
+export const shareLibrary = (libraryId, userName) => async (dispatch) => {
+  dispatch(appWaiting());
+  try {
+    await api.post(`/v1/libraries/${libraryId}/share`, { userName });
+    const data = await api.get('/v1/libraries');
+    dispatch(shareLibrarySuccess(data));
   } catch (e) {
     dispatch(appError(e));
   }

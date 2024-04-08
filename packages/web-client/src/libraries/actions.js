@@ -49,3 +49,8 @@ export const detectBookSuccess = (data) => ({
   type: ACTION_TYPES.DETECT_BOOK_SUCCESS,
   payload: data,
 });
+
+export const shareLibrarySuccess = (data) => ({
+  type: ACTION_TYPES.SHARE_LIBRARY_SUCCESS,
+  payload: data,
+});

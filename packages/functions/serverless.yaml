@@ -62,6 +62,7 @@ functions:
       DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
       S3_PICTURES_BUCKET: ${self:custom.picturesBucketName}
       REGION: ${self:provider.region}
+      USER_POOL_ID: !Ref CognitoUserPoolAlexandriaUserPool
     events:
       - http:
           authorizer:
@@ -210,6 +211,12 @@ resources:
                           - Ref: PicturesStorage
                           - '/*'
                     - !GetAtt PicturesStorage.Arn
+                - Effect: Allow
+                  Action:
+                    - cognito-idp:ListUsers
+                  Resource:
+                    - !GetAtt CognitoUserPoolAlexandriaUserPool.Arn
+
     SearchRole:
       Type: AWS::IAM::Role
       Properties:

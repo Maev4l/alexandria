@@ -9,7 +9,7 @@ import { useDispatch } from '../store';
 const LibraryItemList = ({ library, style, onPressActions, onPress }) => {
   const theme = useTheme();
 
-  const { name, description, totalItems } = library;
+  const { name, description, totalItems, sharedFrom } = library;
 
   return (
     <Pressable onPress={onPress}>
@@ -39,14 +39,16 @@ const LibraryItemList = ({ library, style, onPressActions, onPress }) => {
             Total items: {totalItems}
           </Text>
         </View>
-        <IconButton
-          icon="dots-vertical"
-          animated
-          size={16}
-          mode="contained"
-          onPress={onPressActions}
-          style={{ marginTop: 0 }}
-        />
+        {!sharedFrom && (
+          <IconButton
+            icon="dots-vertical"
+            animated
+            size={16}
+            mode="contained"
+            onPress={onPressActions}
+            style={{ marginTop: 0 }}
+          />
+        )}
       </View>
     </Pressable>
   );
@@ -65,13 +67,14 @@ const LibrariesList = ({ libraries }) => {
   const handlePressActions = (library) => {
     showActionSheetWithOptions(
       {
-        options: ['Update', 'Delete', 'Cancel'],
-        destructiveButtonIndex: 1,
-        cancelButtonIndex: 2,
+        options: ['Update', 'Share', 'Delete', 'Cancel'],
+        destructiveButtonIndex: 2,
+        cancelButtonIndex: 3,
         showSeparators: true,
         tintIcons: true,
         icons: [
-          <Icon color={theme.colors.onBackground} source="pencil" size={20} />,
+          <Icon color={theme.colors.onBackground} source="pencil-outline" size={20} />,
+          <Icon color={theme.colors.onBackground} source="share-outline" size={20} />,
           <Icon color={theme.colors.error} source="trash-can-outline" size={20} />,
           <Icon color={theme.colors.onBackground} source="close" size={20} />,
         ],
@@ -89,6 +92,12 @@ const LibrariesList = ({ libraries }) => {
             break;
           }
           case 1: {
+            navigation.navigate('ShareLibrary', {
+              library,
+            });
+            break;
+          }
+          case 2: {
             dispatch(deleteLibrary(library.id));
             break;
           }

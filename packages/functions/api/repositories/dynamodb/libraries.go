@@ -40,13 +40,17 @@ func (d *dynamo) GetLibrary(ownerId string, libraryId string) (*domain.Library, 
 		return nil, err
 	}
 
-	return &domain.Library{Id: record.Id,
-		Name:        record.Name,
-		Description: record.Description,
-		TotalItems:  record.TotalItems,
-		UpdatedAt:   record.UpdatedAt,
-		OwnerId:     record.OwnerId,
-		OwnerName:   record.OwnerName}, nil
+	return &domain.Library{
+			Id:          record.Id,
+			Name:        record.Name,
+			Description: record.Description,
+			TotalItems:  record.TotalItems,
+			UpdatedAt:   record.UpdatedAt,
+			OwnerId:     record.OwnerId,
+			OwnerName:   record.OwnerName,
+			SharedTo:    record.SharedTo,
+		},
+		nil
 
 }
 
@@ -204,6 +208,68 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 	return records, nil
 }
 
+func (d *dynamo) ShareLibrary(s *domain.ShareLibrary) error {
+
+	record := SharedLibrary{
+		PK:         makeSharedLibraryPK(s.SharedToUserId),
+		SK:         makeSharedLibrarySK(s.LibraryId),
+		LibraryId:  s.LibraryId,
+		SharedFrom: s.SharedFromUserName,
+		UpdatedAt:  s.UpdatedAt,
+	}
+	item, err := attributevalue.MarshalMap(record)
+	if err != nil {
+		log.Error().Str("libraryId", s.LibraryId).Msgf("Failed to marshal shared library: %s", err.Error())
+		return err
+	}
+
+	sharedTo := types.AttributeValueMemberS{
+		Value: s.SharedToUserName,
+	}
+
+	var sharedToList []types.AttributeValue
+	sharedToList = append(sharedToList, &sharedTo)
+
+	_, err = d.client.TransactWriteItems(context.TODO(), &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				// Materialize the shared library
+				Put: &types.Put{
+					TableName: aws.String(tableName),
+					Item:      item,
+				},
+			},
+			{
+				// Update the "SharedTo" attribute of the shared library
+				Update: &types.Update{
+					TableName: aws.String(tableName),
+					Key: map[string]types.AttributeValue{
+						"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(s.SharedFromUserId)},
+						"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(s.LibraryId)},
+					},
+
+					UpdateExpression: aws.String("SET SharedTo = list_append(if_not_exists(SharedTo, :emptyList), :sharedTo)"),
+					ExpressionAttributeValues: map[string]types.AttributeValue{
+						":sharedTo": &types.AttributeValueMemberL{
+							Value: sharedToList,
+						},
+						":emptyList": &types.AttributeValueMemberL{
+							Value: []types.AttributeValue{},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		log.Error().Str("libraryName", s.LibraryId).Msgf("Failed to share library: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
+
 func (d *dynamo) PutLibrary(l *domain.Library) error {
 
 	record := Library{
@@ -218,6 +284,7 @@ func (d *dynamo) PutLibrary(l *domain.Library) error {
 		Description: l.Description,
 		TotalItems:  0,
 		UpdatedAt:   l.UpdatedAt,
+		SharedTo:    make([]string, 0),
 	}
 
 	item, err := attributevalue.MarshalMap(record)

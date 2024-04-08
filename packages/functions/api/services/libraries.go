@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"alexandria.isnan.eu/functions/api/domain"
@@ -119,7 +120,18 @@ func (s *services) ListItemsByLibrary(ownerId string, libraryId string, continua
 }
 
 func (s *services) DeleteLibrary(l *domain.Library) error {
-	err := s.db.DeleteLibrary(l)
+	libraryToDelete, err := s.db.GetLibrary(l.OwnerId, l.Id)
+	if err != nil {
+		return err
+	}
+
+	if len(libraryToDelete.SharedTo) != 0 {
+		msg := fmt.Sprintf("Cannot delete shared library.")
+		log.Error().Msg(msg)
+		return errors.New(msg)
+	}
+
+	err = s.db.DeleteLibrary(l)
 
 	if err != nil {
 		return err
@@ -166,4 +178,35 @@ func (s *services) CreateLibrary(l *domain.Library) (*domain.Library, error) {
 	}
 
 	return l, nil
+}
+
+func (s *services) ShareLibrary(sh *domain.ShareLibrary) error {
+	userIdTo, err := s.idp.GetUserIdFromUserName(sh.SharedToUserName)
+	if err != nil {
+		return err
+	}
+
+	libraryToShare, err := s.db.GetLibrary(sh.SharedFromUserId, sh.LibraryId)
+	if err != nil {
+		return err
+	}
+
+	if libraryToShare.SharedTo != nil {
+		i := slices.Index(libraryToShare.SharedTo, sh.SharedToUserName)
+		if i != -1 {
+			msg := fmt.Sprintf("Library %s already shared with %s", sh.LibraryId, sh.SharedToUserName)
+			log.Error().Msg(msg)
+			return errors.New(msg)
+		}
+	}
+
+	current := time.Now().UTC()
+	sh.SharedToUserId = userIdTo
+	sh.UpdatedAt = &current
+
+	err = s.db.ShareLibrary(sh)
+	if err != nil {
+		return err
+	}
+	return nil
 }

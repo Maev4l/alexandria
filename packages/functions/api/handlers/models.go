@@ -43,6 +43,8 @@ type GetLibraryResponse struct {
 	Description string     `json:"description"`
 	TotalItems  int        `json:"totalItems"`
 	UpdatedAt   *time.Time `json:"updatedAt"`
+	SharedTo    []string   `json:"sharedTo"`
+	SharedFrom  *string    `json:"sharedFrom"`
 }
 
 type GetLibrariesResponse struct {
@@ -103,4 +105,8 @@ type UpdateBookRequest struct {
 	Authors    []string `json:"authors"`
 	Isbn       string   `json:"isbn"`
 	PictureUrl *string  `json:"pictureUrl,omitempty"`
+}
+
+type CreateShareWithRequest struct {
+	UserName string `json:"userName"`
 }

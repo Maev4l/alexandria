@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"alexandria.isnan.eu/functions/api/handlers"
+	"alexandria.isnan.eu/functions/api/repositories/cognito"
 	"alexandria.isnan.eu/functions/api/repositories/dynamodb"
 	storage "alexandria.isnan.eu/functions/api/repositories/s3"
 	"alexandria.isnan.eu/functions/api/services"
@@ -34,7 +35,8 @@ func init() {
 
 	db := dynamodb.NewDynamoDB(region)
 	storage := storage.NewObjectStorage(region)
-	s := services.NewServices(db, storage)
+	idp := cognito.NewIdp(region)
+	s := services.NewServices(db, storage, idp)
 	h := handlers.NewHTTPHandler(s)
 
 	g := router.Group("/v1")
@@ -50,6 +52,7 @@ func init() {
 	g.POST("/libraries/:libraryId/books", h.CreateBook)
 	g.DELETE("/libraries/:libraryId/items/:itemId", h.DeleteItem)
 	g.PUT("/libraries/:libraryId/books/:bookId", h.UpdateBook)
+	g.POST("/libraries/:libraryId/share", h.ShareLibrary)
 
 	/* g.GET("/hello", func(c *gin.Context) {
 		c.JSON(http.StatusOK, map[string]string{

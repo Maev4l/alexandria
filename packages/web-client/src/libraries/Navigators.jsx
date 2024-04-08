@@ -11,6 +11,7 @@ import BookDetectionScreen from './BookDetectionScreen';
 import CreateItemScreen from './CreateItemScreen';
 import BookDetails, { BookDetailsHeader } from './BookDetails';
 import EditItemScreen from './EditItemScreen';
+import ShareLibrary, { ShareLibraryScreenHeader } from './ShareLibrary';
 
 const Stack = createStackNavigator();
 
@@ -43,6 +44,13 @@ const Navigator = () => (
       name="UpdateItem"
       options={{ headerTitle: 'Update item' }}
       component={EditItemScreen}
+    />
+    <Stack.Screen
+      name="ShareLibrary"
+      options={({ route }) => ({
+        headerTitle: () => <ShareLibraryScreenHeader route={route} />,
+      })}
+      component={ShareLibrary}
     />
     <Stack.Screen
       name="LibraryItems"

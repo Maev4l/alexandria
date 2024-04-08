@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"net/mail"
 	"strings"
 
 	"alexandria.isnan.eu/functions/api/domain"
@@ -118,6 +119,68 @@ func (h *HTTPHandler) ListLibraries(c *gin.Context) {
 		Libraries: list,
 	}
 	c.JSON(http.StatusOK, response)
+}
+
+/*
+payload:
+
+	{
+		UserName: <user email>,
+	}
+*/
+
+func (h *HTTPHandler) ShareLibrary(c *gin.Context) {
+
+	libraryId := c.Param("libraryId")
+
+	var request CreateShareWithRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		log.Error().Msgf("Invalid request: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	_, err = mail.ParseAddress(request.UserName)
+	if err != nil {
+		log.Error().Msgf("Invalid username (not an email format): %s", request.UserName)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	t := h.getTokenInfo(c)
+
+	if t.userName == request.UserName {
+		log.Error().Msgf("Cannot self share: %s", request.UserName)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	sh := domain.ShareLibrary{
+		SharedFromUserName: t.userName,
+		SharedFromUserId:   t.userId,
+		SharedToUserName:   request.UserName,
+		LibraryId:          libraryId,
+	}
+
+	err = h.s.ShareLibrary(&sh)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to share library",
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
+
+	c.Status(http.StatusOK)
 }
 
 /*

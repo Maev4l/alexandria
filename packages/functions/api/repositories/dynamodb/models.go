@@ -50,6 +50,7 @@ type Library struct {
 	OwnerId     string     `dynamodbav:"OwnerId"`
 	TotalItems  int        `dynamodbav:"TotalItems"`
 	UpdatedAt   *time.Time `dynamodbav:"UpdatedAt"`
+	SharedTo    []string   `dynamodbav:"SharedTo"`
 }
 
 func makeLibraryPK(ownerId string) string {
@@ -111,4 +112,20 @@ func makeLibraryItemGSI2PK(ownerId string) string {
 
 func makeLibraryItemGSI2SK(itemTitle string) string {
 	return fmt.Sprintf("item#%s", itemTitle)
+}
+
+type SharedLibrary struct {
+	PK         string     `dynamodbav:"PK"` // owner#<owner id>
+	SK         string     `dynamodbav:"SK"` // shared-library#<library id>
+	LibraryId  string     `dynamodbav:"LibraryId"`
+	SharedFrom string     `dynamodbav:"SharedFrom"` // original library owner
+	UpdatedAt  *time.Time `dynamodbav:"UpdatedAt"`
+}
+
+func makeSharedLibraryPK(ownerId string) string {
+	return fmt.Sprintf("owner#%s", ownerId)
+}
+
+func makeSharedLibrarySK(libraryId string) string {
+	return fmt.Sprintf("shared-library#%s", libraryId)
 }
