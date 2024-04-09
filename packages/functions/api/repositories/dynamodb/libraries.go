@@ -200,6 +200,7 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 					TotalItems:  record.TotalItems,
 					UpdatedAt:   record.UpdatedAt,
 					OwnerName:   record.OwnerName,
+					SharedTo:    record.SharedTo,
 				})
 			}
 		}

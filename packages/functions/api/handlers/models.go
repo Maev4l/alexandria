@@ -19,7 +19,7 @@ type DetectedBookResponse struct {
 	PictureUrl *string  `json:"pictureUrl,omitempty"`
 	Isbn       string   `json:"isbn"`
 	Source     string   `json:"source"`
-	Error      *string  `json:"error,,omitempty"`
+	Error      *string  `json:"error,omitempty"`
 }
 
 type DetectResponse struct {
@@ -44,7 +44,7 @@ type GetLibraryResponse struct {
 	TotalItems  int        `json:"totalItems"`
 	UpdatedAt   *time.Time `json:"updatedAt"`
 	SharedTo    []string   `json:"sharedTo"`
-	SharedFrom  *string    `json:"sharedFrom"`
+	SharedFrom  *string    `json:"sharedFrom,omitempty"`
 }
 
 type GetLibrariesResponse struct {

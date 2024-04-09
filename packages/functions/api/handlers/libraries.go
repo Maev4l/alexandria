@@ -111,6 +111,7 @@ func (h *HTTPHandler) ListLibraries(c *gin.Context) {
 			Name:        l.Name,
 			Description: l.Description,
 			TotalItems:  l.TotalItems,
+			SharedTo:    l.SharedTo,
 			UpdatedAt:   l.UpdatedAt,
 		})
 	}
