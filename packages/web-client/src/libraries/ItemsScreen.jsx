@@ -27,7 +27,7 @@ const ItemsScreen = ({ route }) => {
     params: { library },
   } = route;
 
-  const { id: libraryId } = library;
+  const { id: libraryId, sharedFrom } = library;
 
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -56,21 +56,23 @@ const ItemsScreen = ({ route }) => {
 
   return (
     <View style={{ flex: 1, padding: 10 }}>
-      <View
-        style={{
-          alignItems: 'center',
-          flexDirection: 'row',
-          gap: 10,
-          marginBottom: 10,
-        }}
-      >
-        <Chip icon="plus-circle" compact elevated onPress={handleAddItem}>
-          Add item
-        </Chip>
-        <Chip icon="camera" compact elevated onPress={handleScanBarCode}>
-          Scan ISBN
-        </Chip>
-      </View>
+      {!sharedFrom && (
+        <View
+          style={{
+            alignItems: 'center',
+            flexDirection: 'row',
+            gap: 10,
+            marginBottom: 10,
+          }}
+        >
+          <Chip icon="plus-circle" compact elevated onPress={handleAddItem}>
+            Add item
+          </Chip>
+          <Chip icon="camera" compact elevated onPress={handleScanBarCode}>
+            Scan ISBN
+          </Chip>
+        </View>
+      )}
       {(lastAction === ACTION_TYPES.FETCH_LIBRARY_ITEMS_SUCCESS ||
         lastAction === ACTION_TYPES.REFRESH_LIBRARY_ITEMS_SUCCESS) &&
       items.length === 0 ? (

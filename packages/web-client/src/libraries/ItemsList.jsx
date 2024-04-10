@@ -9,7 +9,7 @@ import { ITEM_TYPE } from '../domain';
 import { useDispatch } from '../store';
 import { deleteLibraryItem } from './operations';
 
-const BookItem = ({ book, style, onPress, onPressActions, showDivider }) => {
+const BookItem = ({ book, sharedFrom, style, onPress, onPressActions, showDivider }) => {
   const theme = useTheme();
   const { title, authors, isbn, picture } = book;
   return (
@@ -75,14 +75,16 @@ const BookItem = ({ book, style, onPress, onPressActions, showDivider }) => {
                 <Text>ISBN: {isbn}</Text>
               </View>
             </View>
-            <IconButton
-              icon="dots-vertical"
-              animated
-              size={16}
-              mode="contained"
-              onPress={onPressActions}
-              style={{ marginTop: 0 }}
-            />
+            {!sharedFrom && (
+              <IconButton
+                icon="dots-vertical"
+                animated
+                size={16}
+                mode="contained"
+                onPress={onPressActions}
+                style={{ marginTop: 0 }}
+              />
+            )}
           </View>
         </View>
       </Pressable>
@@ -92,6 +94,7 @@ const BookItem = ({ book, style, onPress, onPressActions, showDivider }) => {
 };
 
 const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
+  const { sharedFrom } = library;
   const dispatch = useDispatch();
   const ref = useRef();
   const navigation = useNavigation();
@@ -150,6 +153,7 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
           item.type === ITEM_TYPE.BOOK ? (
             <BookItem
               book={item}
+              sharedFrom={sharedFrom}
               onPress={() => navigation.navigate('BookDetails', { book: { ...item } })}
               onPressActions={() => handlePressActions(item)}
               showDivider={index !== items.length - 1}

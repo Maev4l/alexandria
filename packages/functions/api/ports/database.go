@@ -16,4 +16,5 @@ type Database interface {
 	DeleteLibraryItem(i *domain.LibraryItem) error
 	ShareLibrary(s *domain.ShareLibrary) error
 	UnshareLibrary(s *domain.ShareLibrary) error
+	GetSharedLibrary(ownerId string, libraryId string) (string, error)
 }

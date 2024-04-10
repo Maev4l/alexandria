@@ -99,7 +99,20 @@ func (s *services) CreateItem(i *domain.LibraryItem) (*domain.LibraryItem, error
 
 func (s *services) ListItemsByLibrary(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error) {
 
-	content, err := s.db.QueryItemsByLibrary(ownerId, libraryId, continuationToken, pageSize)
+	// Find if it is a shared library to the current requester
+	sharedLibraryOwnerId, err := s.db.GetSharedLibrary(ownerId, libraryId)
+	if err != nil {
+		return nil, err
+	}
+
+	var libraryOwnerId string
+	if sharedLibraryOwnerId != "" {
+		libraryOwnerId = sharedLibraryOwnerId
+	} else {
+		libraryOwnerId = ownerId
+	}
+
+	content, err := s.db.QueryItemsByLibrary(libraryOwnerId, libraryId, continuationToken, pageSize)
 
 	if err != nil {
 		return nil, err
@@ -107,7 +120,7 @@ func (s *services) ListItemsByLibrary(ownerId string, libraryId string, continua
 
 	for _, i := range content.Items {
 		if i.PictureUrl != nil && *i.PictureUrl != "" {
-			pic, err := s.storage.GetPicture(ownerId, libraryId, i.Id)
+			pic, err := s.storage.GetPicture(libraryOwnerId, libraryId, i.Id)
 			if err != nil {
 				return nil, err
 			}

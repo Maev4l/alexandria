@@ -32,7 +32,7 @@ func (d *dynamo) GetLibrary(ownerId string, libraryId string) (*domain.Library, 
 
 	if output.Item == nil {
 		log.Info().Str("id", libraryId).Msgf("Library %s does not exist for owner %s", libraryId, ownerId)
-		return nil, errors.New("Uknown library")
+		return nil, errors.New("Unknown library")
 	}
 
 	record := Library{}
@@ -428,4 +428,32 @@ func (d *dynamo) PutLibrary(l *domain.Library) error {
 	}
 
 	return nil
+}
+
+func (d *dynamo) GetSharedLibrary(ownerId string, libraryId string) (string, error) {
+	output, err := d.client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: makeSharedLibraryPK(ownerId)},
+			"SK": &types.AttributeValueMemberS{Value: makeSharedLibrarySK(libraryId)},
+		},
+	})
+
+	if err != nil {
+		log.Error().Str("id", libraryId).Msgf("Unable to get shared library: %s", err.Error())
+		return "", errors.New("Unable to get shared library")
+	}
+
+	if output.Item == nil {
+		log.Info().Str("id", libraryId).Msgf("Shared Library %s does not exist for owner %s", libraryId, ownerId)
+		return "", nil
+	}
+
+	record := SharedLibrary{}
+	if err := attributevalue.UnmarshalMap(output.Item, &record); err != nil {
+		log.Warn().Msgf("Failed to unmarshal library: %s", err.Error())
+		return "", err
+	}
+
+	return record.OwnerId, nil
 }
