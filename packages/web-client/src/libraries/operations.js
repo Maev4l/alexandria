@@ -10,6 +10,7 @@ import {
   updateBookSuccess,
   detectBookSuccess,
   shareLibrarySuccess,
+  unShareLibrarySuccess,
 } from './actions';
 
 import { api } from '../api';
@@ -79,12 +80,29 @@ export const deleteLibrary = (libraryId) => async (dispatch) => {
   }
 };
 
-export const shareLibrary = (libraryId, userName) => async (dispatch) => {
+export const shareLibrary = (libraryId, userName, callback) => async (dispatch) => {
   dispatch(appWaiting());
   try {
     await api.post(`/v1/libraries/${libraryId}/share`, { userName });
     const data = await api.get('/v1/libraries');
     dispatch(shareLibrarySuccess(data));
+    if (callback) {
+      callback();
+    }
+  } catch (e) {
+    dispatch(appError(e));
+  }
+};
+
+export const unshareLibrary = (libraryId, userName, callback) => async (dispatch) => {
+  dispatch(appWaiting());
+  try {
+    await api.post(`/v1/libraries/${libraryId}/unshare`, { userName });
+    const data = await api.get('/v1/libraries');
+    dispatch(unShareLibrarySuccess(data));
+    if (callback) {
+      callback();
+    }
   } catch (e) {
     dispatch(appError(e));
   }

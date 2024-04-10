@@ -47,6 +47,7 @@ type ShareLibrary struct {
 	SharedToUserId     string
 	SharedToUserName   string
 	LibraryId          string
+	SharedToUserIndex  int
 	UpdatedAt          *time.Time
 }
 

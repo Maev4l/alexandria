@@ -53,6 +53,7 @@ func init() {
 	g.DELETE("/libraries/:libraryId/items/:itemId", h.DeleteItem)
 	g.PUT("/libraries/:libraryId/books/:bookId", h.UpdateBook)
 	g.POST("/libraries/:libraryId/share", h.ShareLibrary)
+	g.POST("/libraries/:libraryId/unshare", h.UnshareLibrary)
 
 	/* g.GET("/hello", func(c *gin.Context) {
 		c.JSON(http.StatusOK, map[string]string{

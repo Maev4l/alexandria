@@ -180,6 +180,36 @@ func (s *services) CreateLibrary(l *domain.Library) (*domain.Library, error) {
 	return l, nil
 }
 
+func (s *services) UnshareLibrary(sh *domain.ShareLibrary) error {
+	userIdTo, err := s.idp.GetUserIdFromUserName(sh.SharedToUserName)
+	if err != nil {
+		return err
+	}
+
+	libraryToShare, err := s.db.GetLibrary(sh.SharedFromUserId, sh.LibraryId)
+	if err != nil {
+		return err
+	}
+
+	var i int
+	if libraryToShare.SharedTo != nil {
+		i = slices.Index(libraryToShare.SharedTo, sh.SharedToUserName)
+		if i == -1 {
+			msg := fmt.Sprintf("Library %s not shared with %s", sh.LibraryId, sh.SharedToUserName)
+			log.Error().Msg(msg)
+			return errors.New(msg)
+		}
+	}
+
+	sh.SharedToUserId = userIdTo
+	sh.SharedToUserIndex = i
+	err = s.db.UnshareLibrary(sh)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *services) ShareLibrary(sh *domain.ShareLibrary) error {
 	userIdTo, err := s.idp.GetUserIdFromUserName(sh.SharedToUserName)
 	if err != nil {

@@ -15,4 +15,5 @@ type Database interface {
 	UpdateLibraryItem(i *domain.LibraryItem) error
 	DeleteLibraryItem(i *domain.LibraryItem) error
 	ShareLibrary(s *domain.ShareLibrary) error
+	UnshareLibrary(s *domain.ShareLibrary) error
 }

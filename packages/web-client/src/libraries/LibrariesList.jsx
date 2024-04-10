@@ -65,16 +65,27 @@ const LibrariesList = ({ libraries }) => {
   };
 
   const handlePressActions = (library) => {
+    const { sharedTo } = library;
+
     showActionSheetWithOptions(
       {
-        options: ['Update', 'Share', 'Delete', 'Cancel'],
+        options: [
+          'Update',
+          sharedTo && sharedTo.length > 0 ? 'Unshare' : 'Share',
+          'Delete',
+          'Cancel',
+        ],
         destructiveButtonIndex: 2,
         cancelButtonIndex: 3,
         showSeparators: true,
         tintIcons: true,
         icons: [
           <Icon color={theme.colors.onBackground} source="pencil-outline" size={20} />,
-          <Icon color={theme.colors.onBackground} source="share-outline" size={20} />,
+          sharedTo && sharedTo.length > 0 ? (
+            <Icon color={theme.colors.onBackground} source="share-off-outline" size={20} />
+          ) : (
+            <Icon color={theme.colors.onBackground} source="share-outline" size={20} />
+          ),
           <Icon color={theme.colors.error} source="trash-can-outline" size={20} />,
           <Icon color={theme.colors.onBackground} source="close" size={20} />,
         ],
@@ -92,9 +103,15 @@ const LibrariesList = ({ libraries }) => {
             break;
           }
           case 1: {
-            navigation.navigate('ShareLibrary', {
-              library,
-            });
+            if (sharedTo && sharedTo.length > 0) {
+              navigation.navigate('UnshareLibrary', {
+                library,
+              });
+            } else {
+              navigation.navigate('ShareLibrary', {
+                library,
+              });
+            }
             break;
           }
           case 2: {

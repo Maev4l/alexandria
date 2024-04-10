@@ -172,6 +172,18 @@ export const reducer = (state, action) => {
       };
     }
 
+    case ACTION_TYPES.UNSHARE_LIBRARY_SUCCESS: {
+      const { libraries } = payload;
+      return {
+        ...newState,
+        loading: false,
+        libraries,
+        notification: {
+          text: 'Library unshared.',
+          severity: 'success',
+        },
+      };
+    }
     case ACTION_TYPES.SHARE_LIBRARY_SUCCESS: {
       const { libraries } = payload;
       return {

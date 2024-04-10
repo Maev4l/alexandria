@@ -12,6 +12,7 @@ import CreateItemScreen from './CreateItemScreen';
 import BookDetails, { BookDetailsHeader } from './BookDetails';
 import EditItemScreen from './EditItemScreen';
 import ShareLibrary, { ShareLibraryScreenHeader } from './ShareLibrary';
+import UnshareLibrary, { UnshareLibraryScreenHeader } from './UnshareLibrary';
 
 const Stack = createStackNavigator();
 
@@ -51,6 +52,13 @@ const Navigator = () => (
         headerTitle: () => <ShareLibraryScreenHeader route={route} />,
       })}
       component={ShareLibrary}
+    />
+    <Stack.Screen
+      name="UnshareLibrary"
+      options={({ route }) => ({
+        headerTitle: () => <UnshareLibraryScreenHeader route={route} />,
+      })}
+      component={UnshareLibrary}
     />
     <Stack.Screen
       name="LibraryItems"

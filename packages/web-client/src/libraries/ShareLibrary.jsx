@@ -1,6 +1,8 @@
 import { View } from 'react-native';
 import { TextInput, Text, Button } from 'react-native-paper';
 import { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+
 import { useSelector, useDispatch } from '../store';
 
 import { shareLibrary } from './operations';
@@ -34,6 +36,7 @@ const ShareLibrary = ({ route }) => {
   const [usernameValidity, setUsernameValidity] = useState(false);
   const self = useSelector((state) => state.authn.token.payload['cognito:username']);
   const dispatch = useDispatch();
+  const navigation = useNavigation();
 
   const handleChangeUsername = (val) => {
     setUsername(val);
@@ -42,7 +45,7 @@ const ShareLibrary = ({ route }) => {
         val,
       );
     let alreadySharedWithSameUser = false;
-    if (sharedTo) {
+    if (sharedTo && sharedTo.length > 0) {
       const index = sharedTo.findIndex(val);
       if (index !== -1) {
         alreadySharedWithSameUser = true;
@@ -51,7 +54,8 @@ const ShareLibrary = ({ route }) => {
     setUsernameValidity(valid && self !== val && !alreadySharedWithSameUser);
   };
 
-  const handleSubmit = () => dispatch(shareLibrary(libraryId, username));
+  const handleSubmit = () =>
+    dispatch(shareLibrary(libraryId, username, () => navigation.navigate('Libraries')));
 
   return (
     <View

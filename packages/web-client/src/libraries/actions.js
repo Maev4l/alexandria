@@ -54,3 +54,8 @@ export const shareLibrarySuccess = (data) => ({
   type: ACTION_TYPES.SHARE_LIBRARY_SUCCESS,
   payload: data,
 });
+
+export const unShareLibrarySuccess = (data) => ({
+  type: ACTION_TYPES.UNSHARE_LIBRARY_SUCCESS,
+  payload: data,
+});

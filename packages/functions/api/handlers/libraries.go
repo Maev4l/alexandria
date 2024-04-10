@@ -130,11 +130,69 @@ payload:
 	}
 */
 
+func (h *HTTPHandler) UnshareLibrary(c *gin.Context) {
+
+	libraryId := c.Param("libraryId")
+
+	var request ShareRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		log.Error().Msgf("Invalid request: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	_, err = mail.ParseAddress(request.UserName)
+	if err != nil {
+		log.Error().Msgf("Invalid username (not an email format): %s", request.UserName)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	t := h.getTokenInfo(c)
+
+	if t.userName == request.UserName {
+		log.Error().Msgf("Cannot self unshare: %s", request.UserName)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+	sh := domain.ShareLibrary{
+		SharedFromUserName: t.userName,
+		SharedFromUserId:   t.userId,
+		SharedToUserName:   request.UserName,
+		LibraryId:          libraryId,
+	}
+
+	err = h.s.UnshareLibrary(&sh)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to unshare library",
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+/*
+payload:
+
+	{
+		UserName: <user email>,
+	}
+*/
+
 func (h *HTTPHandler) ShareLibrary(c *gin.Context) {
 
 	libraryId := c.Param("libraryId")
 
-	var request CreateShareWithRequest
+	var request ShareRequest
 	err := c.BindJSON(&request)
 	if err != nil {
 		log.Error().Msgf("Invalid request: %s", err.Error())
@@ -178,8 +236,6 @@ func (h *HTTPHandler) ShareLibrary(c *gin.Context) {
 		})
 		return
 	}
-
-	c.Status(http.StatusOK)
 
 	c.Status(http.StatusOK)
 }

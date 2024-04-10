@@ -107,6 +107,6 @@ type UpdateBookRequest struct {
 	PictureUrl *string  `json:"pictureUrl,omitempty"`
 }
 
-type CreateShareWithRequest struct {
+type ShareRequest struct {
 	UserName string `json:"userName"`
 }

@@ -3,6 +3,7 @@ package dynamodb
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"alexandria.isnan.eu/functions/api/domain"
@@ -209,6 +210,39 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 	return records, nil
 }
 
+func (d *dynamo) UnshareLibrary(s *domain.ShareLibrary) error {
+	_, err := d.client.TransactWriteItems(context.TODO(), &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				Delete: &types.Delete{
+					TableName: aws.String(tableName),
+					Key: map[string]types.AttributeValue{
+						"PK": &types.AttributeValueMemberS{Value: makeSharedLibraryPK(s.SharedToUserId)},
+						"SK": &types.AttributeValueMemberS{Value: makeSharedLibrarySK(s.LibraryId)},
+					},
+					ConditionExpression: aws.String("attribute_exists(PK) and attribute_exists(SK)"),
+				},
+			},
+			{
+				Update: &types.Update{
+					TableName: aws.String(tableName),
+					Key: map[string]types.AttributeValue{
+						"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(s.SharedFromUserId)},
+						"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(s.LibraryId)},
+					},
+					UpdateExpression: aws.String(fmt.Sprintf("REMOVE SharedTo[%d]", s.SharedToUserIndex)),
+				},
+			},
+		},
+	})
+
+	if err != nil {
+		log.Error().Str("libraryName", s.LibraryId).Msgf("Failed to unshare library: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
 func (d *dynamo) ShareLibrary(s *domain.ShareLibrary) error {
 
 	record := SharedLibrary{
@@ -248,7 +282,6 @@ func (d *dynamo) ShareLibrary(s *domain.ShareLibrary) error {
 						"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(s.SharedFromUserId)},
 						"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(s.LibraryId)},
 					},
-
 					UpdateExpression: aws.String("SET SharedTo = list_append(if_not_exists(SharedTo, :emptyList), :sharedTo)"),
 					ExpressionAttributeValues: map[string]types.AttributeValue{
 						":sharedTo": &types.AttributeValueMemberL{
