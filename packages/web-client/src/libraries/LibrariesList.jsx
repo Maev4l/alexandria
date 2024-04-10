@@ -1,5 +1,5 @@
 import { View, Pressable } from 'react-native';
-import { Text, useTheme, IconButton, Icon } from 'react-native-paper';
+import { Text, useTheme, IconButton, Icon, Chip } from 'react-native-paper';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { useNavigation } from '@react-navigation/native';
 
@@ -9,7 +9,7 @@ import { useDispatch } from '../store';
 const LibraryItemList = ({ library, style, onPressActions, onPress }) => {
   const theme = useTheme();
 
-  const { name, description, totalItems, sharedFrom } = library;
+  const { name, description, totalItems, sharedFrom, sharedTo } = library;
 
   return (
     <Pressable onPress={onPress}>
@@ -21,12 +21,18 @@ const LibraryItemList = ({ library, style, onPressActions, onPress }) => {
           borderColor: theme.colors.secondary,
           padding: 5,
           justifyContent: 'space-between',
-          flexDirection: 'row',
-          minHeight: '100px',
+          minHeight: sharedTo && sharedTo.length > 0 ? '150px' : '100px',
           ...style,
         }}
       >
-        <View style={{ paddingRight: 5, flex: 1, justifyContent: 'space-between' }}>
+        <View
+          style={{
+            paddingRight: 5,
+            flexDirection: 'row',
+            flex: 1,
+            justifyContent: 'space-between',
+          }}
+        >
           <View>
             <Text variant="titleMedium" numberOfLines={1} ellipsizeMode="tail">
               {name}
@@ -35,20 +41,37 @@ const LibraryItemList = ({ library, style, onPressActions, onPress }) => {
               {description}
             </Text>
           </View>
-          <Text variant="bodySmall" style={{ fontStyle: 'italic' }}>
+          {!sharedFrom && (
+            <IconButton
+              icon="dots-vertical"
+              animated
+              size={16}
+              mode="contained"
+              onPress={onPressActions}
+              style={{ marginTop: 0 }}
+            />
+          )}
+        </View>
+        <View>
+          {sharedTo && sharedTo.length > 0 && (
+            <View
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              {sharedTo.map((s) => (
+                <Chip icon="share">{s}</Chip>
+              ))}
+            </View>
+          )}
+          <Text variant="bodySmall" style={{ fontStyle: 'italic', marginTop: 5 }}>
             Total items: {totalItems}
           </Text>
         </View>
-        {!sharedFrom && (
-          <IconButton
-            icon="dots-vertical"
-            animated
-            size={16}
-            mode="contained"
-            onPress={onPressActions}
-            style={{ marginTop: 0 }}
-          />
-        )}
       </View>
     </Pressable>
   );
