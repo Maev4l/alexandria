@@ -21,7 +21,7 @@ const LibraryItemList = ({ library, style, onPressActions, onPress }) => {
           borderColor: theme.colors.secondary,
           padding: 5,
           justifyContent: 'space-between',
-          minHeight: sharedTo && sharedTo.length > 0 ? '150px' : '100px',
+          minHeight: sharedFrom || (sharedTo && sharedTo.length > 0) ? '150px' : '100px',
           ...style,
         }}
       >
@@ -64,8 +64,25 @@ const LibraryItemList = ({ library, style, onPressActions, onPress }) => {
               }}
             >
               {sharedTo.map((s) => (
-                <Chip icon="share">{s}</Chip>
+                <Chip elevated icon="share">
+                  {s}
+                </Chip>
               ))}
+            </View>
+          )}
+          {sharedFrom && (
+            <View
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              <Chip selected elevated showSelectedOverlay icon="share-variant">
+                {sharedFrom}
+              </Chip>
             </View>
           )}
           <Text variant="bodySmall" style={{ fontStyle: 'italic', marginTop: 5 }}>

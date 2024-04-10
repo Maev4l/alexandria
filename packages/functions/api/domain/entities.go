@@ -39,6 +39,7 @@ type Library struct {
 	TotalItems  int
 	UpdatedAt   *time.Time
 	SharedTo    []string
+	SharedFrom  *string
 }
 
 type ShareLibrary struct {

@@ -118,6 +118,7 @@ type SharedLibrary struct {
 	PK         string     `dynamodbav:"PK"` // owner#<owner id>
 	SK         string     `dynamodbav:"SK"` // shared-library#<library id>
 	LibraryId  string     `dynamodbav:"LibraryId"`
+	OwnerId    string     `dynamodbav:"OwnerId"`    // original owner of the library
 	SharedFrom string     `dynamodbav:"SharedFrom"` // original library owner
 	UpdatedAt  *time.Time `dynamodbav:"UpdatedAt"`
 }

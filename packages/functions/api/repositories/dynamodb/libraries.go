@@ -157,7 +157,9 @@ func (d *dynamo) UpdateLibrary(l *domain.Library) error {
 }
 
 func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
-	query := dynamodb.QueryInput{
+
+	// Build the owned libraries list
+	queryOwnLibraries := dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
 		IndexName:              aws.String("GSI1"),
 		KeyConditionExpression: aws.String("#GSI1PK = :ownerId and begins_with(#GSI1SK,:library_prefix)"),
@@ -175,11 +177,11 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 		},
 	}
 
-	queryPaginator := dynamodb.NewQueryPaginator(d.client, &query)
+	queryPaginatorOwnLibraries := dynamodb.NewQueryPaginator(d.client, &queryOwnLibraries)
 
 	records := []domain.Library{}
-	for i := 0; queryPaginator.HasMorePages(); i++ {
-		result, err := queryPaginator.NextPage(context.TODO())
+	for i := 0; queryPaginatorOwnLibraries.HasMorePages(); i++ {
+		result, err := queryPaginatorOwnLibraries.NextPage(context.TODO())
 		if err != nil {
 			log.Error().Msgf("Failed to query libraries: %s", err.Error())
 			return nil, err
@@ -202,6 +204,93 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 					UpdatedAt:   record.UpdatedAt,
 					OwnerName:   record.OwnerName,
 					SharedTo:    record.SharedTo,
+				})
+			}
+		}
+	}
+
+	// Build shared libraries list from other users
+	querySharedLibraries := dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		KeyConditionExpression: aws.String("#PK = :ownerId and begins_with(#SK,:shared_library_prefix)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":ownerId": &types.AttributeValueMemberS{
+				Value: makeSharedLibraryPK(ownerId),
+			},
+			":shared_library_prefix": &types.AttributeValueMemberS{
+				Value: "shared-library#",
+			},
+		},
+		ExpressionAttributeNames: map[string]string{
+			"#PK": "PK",
+			"#SK": "SK",
+		},
+	}
+
+	queryPaginatorSharedLibraries := dynamodb.NewQueryPaginator(d.client, &querySharedLibraries)
+
+	type sharedLibraryIdentifier struct {
+		LibraryId  string `dynamodbav:"LibraryId"`
+		OwnerId    string `dynamodbav:"OwnerId"`
+		SharedFrom string `dynamodbav:"SharedFrom"`
+	}
+	sharedLibrariesIdentifiers := map[string]sharedLibraryIdentifier{}
+	for i := 0; queryPaginatorSharedLibraries.HasMorePages(); i++ {
+		result, err := queryPaginatorSharedLibraries.NextPage(context.TODO())
+		if err != nil {
+			log.Error().Msgf("Failed to query shared libraries: %s", err.Error())
+			return nil, err
+		}
+
+		if result.Count > 0 {
+			for _, item := range result.Items {
+				record := sharedLibraryIdentifier{}
+				if err := attributevalue.UnmarshalMap(item, &record); err != nil {
+					log.Warn().Msgf("Failed to unmarshal shared library id: %s", err.Error())
+					continue
+				}
+				sharedLibrariesIdentifiers[record.LibraryId] = record
+			}
+		}
+	}
+
+	if len(sharedLibrariesIdentifiers) > 0 {
+		var keys []map[string]types.AttributeValue
+		for _, v := range sharedLibrariesIdentifiers {
+			keys = append(keys, map[string]types.AttributeValue{
+				"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(v.OwnerId)},
+				"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(v.LibraryId)},
+			})
+		}
+
+		sharedLibraries, err := d.client.BatchGetItem(context.TODO(), &dynamodb.BatchGetItemInput{
+			RequestItems: map[string]types.KeysAndAttributes{
+				tableName: {
+					Keys: keys,
+				},
+			},
+		})
+
+		if err != nil {
+			log.Error().Msgf("Failed to fetch shared libraries: %s", err.Error())
+			return nil, err
+		}
+
+		for _, v := range sharedLibraries.Responses {
+			for _, v2 := range v {
+				record := Library{}
+				if err := attributevalue.UnmarshalMap(v2, &record); err != nil {
+					log.Warn().Msgf("Failed to unmarshal shared library: %s", err.Error())
+					continue
+				}
+				records = append(records, domain.Library{
+					Id:          record.Id,
+					Name:        record.Name,
+					Description: record.Description,
+					TotalItems:  record.TotalItems,
+					UpdatedAt:   record.UpdatedAt,
+					OwnerName:   record.OwnerName,
+					SharedFrom:  aws.String(sharedLibrariesIdentifiers[record.Id].SharedFrom),
 				})
 			}
 		}
@@ -249,6 +338,7 @@ func (d *dynamo) ShareLibrary(s *domain.ShareLibrary) error {
 		PK:         makeSharedLibraryPK(s.SharedToUserId),
 		SK:         makeSharedLibrarySK(s.LibraryId),
 		LibraryId:  s.LibraryId,
+		OwnerId:    s.SharedFromUserId,
 		SharedFrom: s.SharedFromUserName,
 		UpdatedAt:  s.UpdatedAt,
 	}
