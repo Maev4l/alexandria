@@ -1,5 +1,6 @@
 import { createStackNavigator } from '@react-navigation/stack';
 
+import { BookDetailsHeader, BookDetails } from '../libraries';
 import SearchScreen from './SearchScreen';
 
 const Stack = createStackNavigator();
@@ -13,6 +14,13 @@ const Navigator = () => (
       name="SearchItems"
       options={{ headerTitle: 'Search items' }}
       component={SearchScreen}
+    />
+    <Stack.Screen
+      name="BookDetails"
+      options={({ route }) => ({
+        headerTitle: () => <BookDetailsHeader route={route} />,
+      })}
+      component={BookDetails}
     />
   </Stack.Navigator>
 );
