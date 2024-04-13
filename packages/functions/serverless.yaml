@@ -39,6 +39,9 @@ custom:
   picturesBucketName: alexandria-pictures
   imagesProcessorImage: 671123374425.dkr.ecr.eu-central-1.amazonaws.com/alexandria/images-processing
   snsTopicArn: arn:aws:sns:eu-central-1:671123374425:alerting-events
+  dynamodbToSqsPipeName: alexandria-dynamodb-to-sqs
+  itemsLifecycleQueueName: alexandria-items-lifecycle
+  indexFileName: index.json
   customDomain:
     domainName: api-alexandria.isnan.eu
     certificateArn: arn:aws:acm:eu-central-1:671123374425:certificate/8d1a300b-075e-4771-a7bd-c6dd00cb594f
@@ -92,15 +95,33 @@ functions:
           method: post
           path: /v1/detections
           cors: true
+  index-items:
+    handler: index-items/cmd/main.go
+    name: alexandria-index-items
+    role: IndexItemsRole
+    memorySize: 256
+    runtime: provided.al2023
+    reservedConcurrency: 1 # Only 1 function instance can run at a given time (no need lock the index file)
+    environment:
+      REGION: ${self:provider.region}
+      S3_INDEX_BUCKET: ${self:custom.picturesBucketName}
+      INDEX_FILE_NAME: ${self:custom.indexFileName}
+    events:
+      - sqs:
+          arn: !GetAtt EventBridgePipeTargetQueue.Arn
+          batchSize: 5000
+          maximumBatchingWindow: 5
   search:
     handler: search/handler.handle
     name: alexandria-search
     role: SearchRole
+    memorySize: 256
     runtime: nodejs20.x
     environment:
       DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
       S3_PICTURES_BUCKET: ${self:custom.picturesBucketName}
       REGION: ${self:provider.region}
+      INDEX_FILE_NAME: ${self:custom.indexFileName}
     events:
       - http:
           authorizer:
@@ -216,7 +237,55 @@ resources:
                     - cognito-idp:ListUsers
                   Resource:
                     - !GetAtt CognitoUserPoolAlexandriaUserPool.Arn
-
+    IndexItemsRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: alexandria-index-items
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: alexandria-index-items
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow # note that these rights are given in the default policy and are required if you want logs out of your lambda(s)
+                  Action:
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                    - logs:TagResource
+                  Resource:
+                    - Fn::Join:
+                        - ':'
+                        - - 'arn:aws:logs'
+                          - Ref: 'AWS::Region'
+                          - Ref: 'AWS::AccountId'
+                          - 'log-group:/aws/lambda/*:*:*'
+                - Effect: Allow
+                  Action:
+                    - sqs:ReceiveMessage
+                    - sqs:DeleteMessage
+                    - sqs:GetQueueAttributes
+                  Resource:
+                    - !GetAtt EventBridgePipeTargetQueue.Arn
+                - Effect: Allow
+                  Action:
+                    - s3:PutObject
+                    - s3:GetObject
+                    - s3:ListBucket
+                  Resource:
+                    - Fn::Join:
+                        - ''
+                        - - 'arn:aws:s3:::'
+                          - Ref: PicturesStorage
+                          - '/*'
+                    - !GetAtt PicturesStorage.Arn
     SearchRole:
       Type: AWS::IAM::Role
       Properties:
@@ -448,6 +517,78 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+    EventBridgePipeTargetQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:custom.itemsLifecycleQueueName}
+        VisibilityTimeout: 30
+        Tags:
+          - Key: application
+            Value: alexandria
+          - Key: owner
+            Value: serverless
+    EventBridgePipeRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:custom.dynamodbToSqsPipeName}-role
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: pipes.amazonaws.com
+              Action: 'sts:AssumeRole'
+              Condition:
+                StringLike:
+                  'aws:SourceArn':
+                    Fn::Join:
+                      - ''
+                      - - 'arn:'
+                        - Ref: 'AWS::Partition'
+                        - ':pipes:'
+                        - Ref: 'AWS::Region'
+                        - ':'
+                        - Ref: 'AWS::AccountId'
+                        - ':pipe/'
+                        - ${self:custom.dynamodbToSqsPipeName}
+                  'aws:SourceAccount':
+                    Ref: 'AWS::AccountId'
+        Policies:
+          - PolicyName: alexandria-items-pipe-source-permissions
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - dynamodb:DescribeStream
+                    - dynamodb:GetRecords
+                    - dynamodb:GetShardIterator
+                    - dynamodb:ListStreams
+                  Resource:
+                    - !GetAtt DynamoTable.StreamArn
+          - PolicyName: alexandria-items-pipe-target-permissions
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - sqs:SendMessage
+                  Resource:
+                    - !GetAtt EventBridgePipeTargetQueue.Arn
+    EventBridgePipe:
+      Type: AWS::Pipes::Pipe
+      Properties:
+        Name: ${self:custom.dynamodbToSqsPipeName}
+        RoleArn: !GetAtt EventBridgePipeRole.Arn
+        Description: Alexandria pipeline from Dynamodb items to SQS
+        DesiredState: RUNNING
+        Source: !GetAtt DynamoTable.StreamArn
+        SourceParameters:
+          DynamoDBStreamParameters:
+            StartingPosition: LATEST
+        Target: !GetAtt EventBridgePipeTargetQueue.Arn
     PicturesStorage:
       Type: AWS::S3::Bucket
       Properties:

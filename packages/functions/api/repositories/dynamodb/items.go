@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/persistence"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
@@ -22,8 +23,8 @@ func (d *dynamo) DeleteLibraryItem(i *domain.LibraryItem) error {
 				Delete: &types.Delete{
 					TableName: aws.String(tableName),
 					Key: map[string]types.AttributeValue{
-						"PK": &types.AttributeValueMemberS{Value: makeLibraryItemPK(i.OwnerId)},
-						"SK": &types.AttributeValueMemberS{Value: makeLibraryItemSK(i.LibraryId, i.Id)},
+						"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemPK(i.OwnerId)},
+						"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemSK(i.LibraryId, i.Id)},
 					},
 					ConditionExpression: aws.String("attribute_exists(PK) and attribute_exists(SK)"),
 				},
@@ -33,8 +34,8 @@ func (d *dynamo) DeleteLibraryItem(i *domain.LibraryItem) error {
 				Update: &types.Update{
 					TableName: aws.String(tableName),
 					Key: map[string]types.AttributeValue{
-						"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(i.OwnerId)},
-						"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(i.LibraryId)},
+						"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(i.OwnerId)},
+						"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(i.LibraryId)},
 					},
 					UpdateExpression: aws.String("SET TotalItems = TotalItems - :decr"),
 					ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -62,8 +63,8 @@ func (d *dynamo) UpdateLibraryItem(i *domain.LibraryItem) error {
 		Set(expression.Name("Authors"), expression.Value(i.Authors)).
 		Set(expression.Name("Isbn"), expression.Value(i.Isbn)).
 		Set(expression.Name("UpdatedAt"), expression.Value(i.UpdatedAt)).
-		Set(expression.Name("GSI1SK"), expression.Value(makeLibraryItemGSI1SK(i.Title))).
-		Set(expression.Name("GSI2SK"), expression.Value(makeLibraryItemGSI2SK(i.Title))).
+		Set(expression.Name("GSI1SK"), expression.Value(persistence.MakeLibraryItemGSI1SK(i.Title))).
+		Set(expression.Name("GSI2SK"), expression.Value(persistence.MakeLibraryItemGSI2SK(i.Title))).
 		Set(expression.Name("PictureUrl"), expression.Value(i.PictureUrl))
 
 	expr, _ := expression.NewBuilder().WithUpdate(upd).Build()
@@ -71,8 +72,8 @@ func (d *dynamo) UpdateLibraryItem(i *domain.LibraryItem) error {
 	_, err := d.client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]types.AttributeValue{
-			"PK": &types.AttributeValueMemberS{Value: makeLibraryItemPK(i.OwnerId)},
-			"SK": &types.AttributeValueMemberS{Value: makeLibraryItemSK(i.LibraryId, i.Id)},
+			"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemPK(i.OwnerId)},
+			"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemSK(i.LibraryId, i.Id)},
 		},
 
 		ConditionExpression:       aws.String("attribute_exists(PK) and attribute_exists(SK)"),
@@ -89,13 +90,13 @@ func (d *dynamo) UpdateLibraryItem(i *domain.LibraryItem) error {
 }
 
 func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
-	record := LibraryItem{
-		PK:          makeLibraryItemPK(i.OwnerId),
-		SK:          makeLibraryItemSK(i.LibraryId, i.Id),
-		GSI1PK:      makeLibraryItemGSI1PK(i.OwnerId, i.LibraryId),
-		GSI1SK:      makeLibraryItemGSI1SK(i.Title),
-		GSI2PK:      makeLibraryItemGSI2PK(i.OwnerId),
-		GSI2SK:      makeLibraryItemGSI2SK(i.Title),
+	record := persistence.LibraryItem{
+		PK:          persistence.MakeLibraryItemPK(i.OwnerId),
+		SK:          persistence.MakeLibraryItemSK(i.LibraryId, i.Id),
+		GSI1PK:      persistence.MakeLibraryItemGSI1PK(i.OwnerId, i.LibraryId),
+		GSI1SK:      persistence.MakeLibraryItemGSI1SK(i.Title),
+		GSI2PK:      persistence.MakeLibraryItemGSI2PK(i.OwnerId),
+		GSI2SK:      persistence.MakeLibraryItemGSI2SK(i.Title),
 		Id:          i.Id,
 		OwnerName:   i.OwnerName,
 		OwnerId:     i.OwnerId,
@@ -130,8 +131,8 @@ func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
 				Update: &types.Update{
 					TableName: aws.String(tableName),
 					Key: map[string]types.AttributeValue{
-						"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(i.OwnerId)},
-						"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(i.LibraryId)},
+						"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(i.OwnerId)},
+						"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(i.LibraryId)},
 					},
 					UpdateExpression: aws.String("SET TotalItems = TotalItems + :incr"),
 					ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -159,7 +160,7 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 		KeyConditionExpression: aws.String("#GSI1PK = :gsi1pk and begins_with(#GSI1SK,:library_item_prefix)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":gsi1pk": &types.AttributeValueMemberS{
-				Value: makeLibraryItemGSI1PK(ownerId, libraryId),
+				Value: persistence.MakeLibraryItemGSI1PK(ownerId, libraryId),
 			},
 			":library_item_prefix": &types.AttributeValueMemberS{
 				Value: "item#",
@@ -173,7 +174,7 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 	}
 
 	if continuationToken != "" {
-		lek, err := deserializeLek(continuationToken)
+		lek, err := persistence.DeserializeLek(continuationToken)
 		if err != nil {
 			log.Error().Str("id", libraryId).Msg("Unable to deserialize continuation token")
 			return nil, errors.New("Unable to deserialize continuation token")
@@ -191,7 +192,7 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 	items := []*domain.LibraryItem{}
 	for _, item := range result.Items {
 
-		record := LibraryItem{}
+		record := persistence.LibraryItem{}
 		if err := attributevalue.UnmarshalMap(item, &record); err != nil {
 			log.Warn().Str("id", libraryId).Msgf("Failed to unmarshal library item: %s", err.Error())
 		}
@@ -217,7 +218,7 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 	}
 
 	if result.LastEvaluatedKey != nil {
-		nextToken, err := serializeLek(result.LastEvaluatedKey)
+		nextToken, err := persistence.SerializeLek(result.LastEvaluatedKey)
 		if err != nil {
 			log.Error().Str("id", libraryId).Msg("Unable to serialize continuation token")
 			return nil, errors.New("Unable to serialize continuation token")

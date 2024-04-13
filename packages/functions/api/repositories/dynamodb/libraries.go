@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/persistence"
 	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -20,8 +21,8 @@ func (d *dynamo) GetLibrary(ownerId string, libraryId string) (*domain.Library, 
 	output, err := d.client.GetItem(context.TODO(), &dynamodb.GetItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]types.AttributeValue{
-			"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(ownerId)},
-			"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(libraryId)},
+			"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(ownerId)},
+			"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(libraryId)},
 		},
 	})
 
@@ -35,7 +36,7 @@ func (d *dynamo) GetLibrary(ownerId string, libraryId string) (*domain.Library, 
 		return nil, errors.New("Unknown library")
 	}
 
-	record := Library{}
+	record := persistence.Library{}
 	if err := attributevalue.UnmarshalMap(output.Item, &record); err != nil {
 		log.Warn().Msgf("Failed to unmarshal library: %s", err.Error())
 		return nil, err
@@ -63,10 +64,10 @@ func (d *dynamo) DeleteLibrary(l *domain.Library) error {
 		KeyConditionExpression: aws.String("#PK = :ownerId and begins_with(#SK,:library_sorting_key)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":ownerId": &types.AttributeValueMemberS{
-				Value: makeLibraryPK(l.OwnerId),
+				Value: persistence.MakeLibraryPK(l.OwnerId),
 			},
 			":library_sorting_key": &types.AttributeValueMemberS{
-				Value: makeLibrarySK(l.Id),
+				Value: persistence.MakeLibrarySK(l.Id),
 			},
 		},
 		ExpressionAttributeNames: map[string]string{
@@ -134,8 +135,8 @@ func (d *dynamo) UpdateLibrary(l *domain.Library) error {
 		&dynamodb.UpdateItemInput{
 			TableName: aws.String(tableName),
 			Key: map[string]types.AttributeValue{
-				"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(l.OwnerId)},
-				"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(l.Id)},
+				"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(l.OwnerId)},
+				"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(l.Id)},
 			},
 			UpdateExpression:    aws.String("set LibraryName = :name, Description = :description, UpdatedAt = :updatedAt, GSI1PK = :gsi1pk, GSI1SK = :gsi1sk"),
 			ConditionExpression: aws.String("attribute_exists(PK)"),
@@ -143,8 +144,8 @@ func (d *dynamo) UpdateLibrary(l *domain.Library) error {
 				":name":        &types.AttributeValueMemberS{Value: l.Name},
 				":description": &types.AttributeValueMemberS{Value: l.Description},
 				":updatedAt":   &types.AttributeValueMemberS{Value: l.UpdatedAt.Format(time.RFC3339Nano)},
-				":gsi1pk":      &types.AttributeValueMemberS{Value: makeLibraryGSI1PK(l.OwnerId)},
-				":gsi1sk":      &types.AttributeValueMemberS{Value: makeLibraryGSI1SK(l.Name)},
+				":gsi1pk":      &types.AttributeValueMemberS{Value: persistence.MakeLibraryGSI1PK(l.OwnerId)},
+				":gsi1sk":      &types.AttributeValueMemberS{Value: persistence.MakeLibraryGSI1SK(l.Name)},
 			},
 		})
 
@@ -165,7 +166,7 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 		KeyConditionExpression: aws.String("#GSI1PK = :ownerId and begins_with(#GSI1SK,:library_prefix)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":ownerId": &types.AttributeValueMemberS{
-				Value: makeLibraryGSI1PK(ownerId),
+				Value: persistence.MakeLibraryGSI1PK(ownerId),
 			},
 			":library_prefix": &types.AttributeValueMemberS{
 				Value: "library#",
@@ -190,7 +191,7 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 		if result.Count > 0 {
 			for _, item := range result.Items {
 
-				record := Library{}
+				record := persistence.Library{}
 				if err := attributevalue.UnmarshalMap(item, &record); err != nil {
 					log.Warn().Msgf("Failed to unmarshal library: %s", err.Error())
 					continue
@@ -215,7 +216,7 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 		KeyConditionExpression: aws.String("#PK = :ownerId and begins_with(#SK,:shared_library_prefix)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":ownerId": &types.AttributeValueMemberS{
-				Value: makeSharedLibraryPK(ownerId),
+				Value: persistence.MakeSharedLibraryPK(ownerId),
 			},
 			":shared_library_prefix": &types.AttributeValueMemberS{
 				Value: "shared-library#",
@@ -258,8 +259,8 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 		var keys []map[string]types.AttributeValue
 		for _, v := range sharedLibrariesIdentifiers {
 			keys = append(keys, map[string]types.AttributeValue{
-				"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(v.OwnerId)},
-				"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(v.LibraryId)},
+				"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(v.OwnerId)},
+				"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(v.LibraryId)},
 			})
 		}
 
@@ -278,7 +279,7 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 
 		for _, v := range sharedLibraries.Responses {
 			for _, v2 := range v {
-				record := Library{}
+				record := persistence.Library{}
 				if err := attributevalue.UnmarshalMap(v2, &record); err != nil {
 					log.Warn().Msgf("Failed to unmarshal shared library: %s", err.Error())
 					continue
@@ -306,8 +307,8 @@ func (d *dynamo) UnshareLibrary(s *domain.ShareLibrary) error {
 				Delete: &types.Delete{
 					TableName: aws.String(tableName),
 					Key: map[string]types.AttributeValue{
-						"PK": &types.AttributeValueMemberS{Value: makeSharedLibraryPK(s.SharedToUserId)},
-						"SK": &types.AttributeValueMemberS{Value: makeSharedLibrarySK(s.LibraryId)},
+						"PK": &types.AttributeValueMemberS{Value: persistence.MakeSharedLibraryPK(s.SharedToUserId)},
+						"SK": &types.AttributeValueMemberS{Value: persistence.MakeSharedLibrarySK(s.LibraryId)},
 					},
 					ConditionExpression: aws.String("attribute_exists(PK) and attribute_exists(SK)"),
 				},
@@ -316,8 +317,8 @@ func (d *dynamo) UnshareLibrary(s *domain.ShareLibrary) error {
 				Update: &types.Update{
 					TableName: aws.String(tableName),
 					Key: map[string]types.AttributeValue{
-						"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(s.SharedFromUserId)},
-						"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(s.LibraryId)},
+						"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(s.SharedFromUserId)},
+						"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(s.LibraryId)},
 					},
 					UpdateExpression: aws.String(fmt.Sprintf("REMOVE SharedTo[%d]", s.SharedToUserIndex)),
 				},
@@ -334,13 +335,14 @@ func (d *dynamo) UnshareLibrary(s *domain.ShareLibrary) error {
 
 func (d *dynamo) ShareLibrary(s *domain.ShareLibrary) error {
 
-	record := SharedLibrary{
-		PK:         makeSharedLibraryPK(s.SharedToUserId),
-		SK:         makeSharedLibrarySK(s.LibraryId),
-		LibraryId:  s.LibraryId,
-		OwnerId:    s.SharedFromUserId,
-		SharedFrom: s.SharedFromUserName,
-		UpdatedAt:  s.UpdatedAt,
+	record := persistence.SharedLibrary{
+		PK:             persistence.MakeSharedLibraryPK(s.SharedToUserId),
+		SK:             persistence.MakeSharedLibrarySK(s.LibraryId),
+		LibraryId:      s.LibraryId,
+		SharedToId:     s.SharedToUserId,
+		SharedFromId:   s.SharedFromUserId,
+		SharedFromName: s.SharedFromUserName,
+		UpdatedAt:      s.UpdatedAt,
 	}
 	item, err := attributevalue.MarshalMap(record)
 	if err != nil {
@@ -369,8 +371,8 @@ func (d *dynamo) ShareLibrary(s *domain.ShareLibrary) error {
 				Update: &types.Update{
 					TableName: aws.String(tableName),
 					Key: map[string]types.AttributeValue{
-						"PK": &types.AttributeValueMemberS{Value: makeLibraryPK(s.SharedFromUserId)},
-						"SK": &types.AttributeValueMemberS{Value: makeLibrarySK(s.LibraryId)},
+						"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(s.SharedFromUserId)},
+						"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(s.LibraryId)},
 					},
 					UpdateExpression: aws.String("SET SharedTo = list_append(if_not_exists(SharedTo, :emptyList), :sharedTo)"),
 					ExpressionAttributeValues: map[string]types.AttributeValue{
@@ -396,11 +398,11 @@ func (d *dynamo) ShareLibrary(s *domain.ShareLibrary) error {
 
 func (d *dynamo) PutLibrary(l *domain.Library) error {
 
-	record := Library{
-		PK:          makeLibraryPK(l.OwnerId),
-		SK:          makeLibrarySK(l.Id),
-		GSI1PK:      makeLibraryGSI1PK(l.OwnerId),
-		GSI1SK:      makeLibraryGSI1SK(l.Name),
+	record := persistence.Library{
+		PK:          persistence.MakeLibraryPK(l.OwnerId),
+		SK:          persistence.MakeLibrarySK(l.Id),
+		GSI1PK:      persistence.MakeLibraryGSI1PK(l.OwnerId),
+		GSI1SK:      persistence.MakeLibraryGSI1SK(l.Name),
 		Id:          l.Id,
 		OwnerName:   l.OwnerName,
 		OwnerId:     l.OwnerId,
@@ -434,8 +436,8 @@ func (d *dynamo) GetSharedLibrary(ownerId string, libraryId string) (string, err
 	output, err := d.client.GetItem(context.TODO(), &dynamodb.GetItemInput{
 		TableName: aws.String(tableName),
 		Key: map[string]types.AttributeValue{
-			"PK": &types.AttributeValueMemberS{Value: makeSharedLibraryPK(ownerId)},
-			"SK": &types.AttributeValueMemberS{Value: makeSharedLibrarySK(libraryId)},
+			"PK": &types.AttributeValueMemberS{Value: persistence.MakeSharedLibraryPK(ownerId)},
+			"SK": &types.AttributeValueMemberS{Value: persistence.MakeSharedLibrarySK(libraryId)},
 		},
 	})
 
@@ -449,11 +451,11 @@ func (d *dynamo) GetSharedLibrary(ownerId string, libraryId string) (string, err
 		return "", nil
 	}
 
-	record := SharedLibrary{}
+	record := persistence.SharedLibrary{}
 	if err := attributevalue.UnmarshalMap(output.Item, &record); err != nil {
 		log.Warn().Msgf("Failed to unmarshal library: %s", err.Error())
 		return "", err
 	}
 
-	return record.OwnerId, nil
+	return record.SharedFromId, nil
 }

@@ -1,4 +1,4 @@
-package dynamodb
+package persistence
 
 import (
 	"encoding/base64"
@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-func serializeLek(input map[string]types.AttributeValue) (*string, error) {
+func SerializeLek(input map[string]types.AttributeValue) (*string, error) {
 	var inputMap map[string]interface{}
 	err := attributevalue.UnmarshalMap(input, &inputMap)
 	if err != nil {
@@ -24,7 +24,7 @@ func serializeLek(input map[string]types.AttributeValue) (*string, error) {
 	return &output, nil
 }
 
-func deserializeLek(input string) (map[string]types.AttributeValue, error) {
+func DeserializeLek(input string) (map[string]types.AttributeValue, error) {
 	bytesJSON, err := base64.StdEncoding.DecodeString(input)
 	if err != nil {
 		return nil, err
@@ -53,19 +53,19 @@ type Library struct {
 	SharedTo    []string   `dynamodbav:"SharedTo"`
 }
 
-func makeLibraryPK(ownerId string) string {
+func MakeLibraryPK(ownerId string) string {
 	return fmt.Sprintf("owner#%s", ownerId)
 }
 
-func makeLibrarySK(libraryId string) string {
+func MakeLibrarySK(libraryId string) string {
 	return fmt.Sprintf("library#%s", libraryId)
 }
 
-func makeLibraryGSI1PK(ownerId string) string {
+func MakeLibraryGSI1PK(ownerId string) string {
 	return fmt.Sprintf("owner#%s", ownerId)
 }
 
-func makeLibraryGSI1SK(libraryName string) string {
+func MakeLibraryGSI1SK(libraryName string) string {
 	return fmt.Sprintf("library#%s", libraryName)
 }
 
@@ -90,43 +90,44 @@ type LibraryItem struct {
 	PictureUrl  *string    `dynamodbav:"PictureUrl,omitempty"`
 }
 
-func makeLibraryItemPK(ownerId string) string {
+func MakeLibraryItemPK(ownerId string) string {
 	return fmt.Sprintf("owner#%s", ownerId)
 }
 
-func makeLibraryItemSK(libraryid string, itemId string) string {
+func MakeLibraryItemSK(libraryid string, itemId string) string {
 	return fmt.Sprintf("library#%s#item#%s", libraryid, itemId)
 }
 
-func makeLibraryItemGSI1PK(ownerId string, libraryId string) string {
+func MakeLibraryItemGSI1PK(ownerId string, libraryId string) string {
 	return fmt.Sprintf("owner#%s#library#%s", ownerId, libraryId)
 }
 
-func makeLibraryItemGSI1SK(itemTitle string) string {
+func MakeLibraryItemGSI1SK(itemTitle string) string {
 	return fmt.Sprintf("item#%s", itemTitle)
 }
 
-func makeLibraryItemGSI2PK(ownerId string) string {
+func MakeLibraryItemGSI2PK(ownerId string) string {
 	return fmt.Sprintf("owner#%s", ownerId)
 }
 
-func makeLibraryItemGSI2SK(itemTitle string) string {
+func MakeLibraryItemGSI2SK(itemTitle string) string {
 	return fmt.Sprintf("item#%s", itemTitle)
 }
 
 type SharedLibrary struct {
-	PK         string     `dynamodbav:"PK"` // owner#<owner id>
-	SK         string     `dynamodbav:"SK"` // shared-library#<library id>
-	LibraryId  string     `dynamodbav:"LibraryId"`
-	OwnerId    string     `dynamodbav:"OwnerId"`    // original owner of the library
-	SharedFrom string     `dynamodbav:"SharedFrom"` // original library owner
-	UpdatedAt  *time.Time `dynamodbav:"UpdatedAt"`
+	PK             string     `dynamodbav:"PK"` // owner#<owner id>
+	SK             string     `dynamodbav:"SK"` // shared-library#<library id>
+	LibraryId      string     `dynamodbav:"LibraryId"`
+	SharedToId     string     `dynamodbav:"SharedToId"`     // user the library is shared to
+	SharedFromId   string     `dynamodbav:"SharedFromId"`   // original owner of the library
+	SharedFromName string     `dynamodbav:"SharedFromName"` // original library owner
+	UpdatedAt      *time.Time `dynamodbav:"UpdatedAt"`
 }
 
-func makeSharedLibraryPK(ownerId string) string {
+func MakeSharedLibraryPK(ownerId string) string {
 	return fmt.Sprintf("owner#%s", ownerId)
 }
 
-func makeSharedLibrarySK(libraryId string) string {
+func MakeSharedLibrarySK(libraryId string) string {
 	return fmt.Sprintf("shared-library#%s", libraryId)
 }
