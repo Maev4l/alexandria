@@ -1,7 +1,7 @@
 package ports
 
 import (
-	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/domain"
 )
 
 type Database interface {
@@ -17,4 +17,5 @@ type Database interface {
 	ShareLibrary(s *domain.ShareLibrary) error
 	UnshareLibrary(s *domain.ShareLibrary) error
 	GetSharedLibrary(ownerId string, libraryId string) (string, error)
+	GetMatchedItems([]domain.IndexItem) ([]*domain.LibraryItem, error)
 }

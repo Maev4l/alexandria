@@ -1,7 +1,7 @@
 package ports
 
 import (
-	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/domain"
 )
 
 type BookResolver interface {
@@ -21,4 +21,5 @@ type Services interface {
 	UpdateItem(i *domain.LibraryItem) error
 	ShareLibrary(sh *domain.ShareLibrary) error
 	UnshareLibrary(sh *domain.ShareLibrary) error
+	SearchItems(ownerId string, terms []string) ([]*domain.LibraryItem, error)
 }

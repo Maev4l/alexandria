@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"alexandria.isnan.eu/functions/index-items/models"
+	"alexandria.isnan.eu/functions/internal/domain"
 	"alexandria.isnan.eu/functions/internal/persistence"
 	ddbconversions "github.com/aereal/go-dynamodb-attribute-conversions/v2"
 	"github.com/aws/aws-lambda-go/events"
@@ -30,9 +30,9 @@ func init() {
 	client = s3.NewFromConfig(config)
 }
 
-func processEventRecord(db *models.IndexDatabase, b string) bool {
+func processEventRecord(db *domain.IndexDatabase, b string) bool {
 	log.Info().Msgf("Payload: %s", b)
-	var r models.EventRecord
+	var r persistence.EventRecord
 	err := json.Unmarshal([]byte(b), &r)
 	if err != nil {
 		log.Error().Msgf("Failed to unmarshall event payload (%s): %s", b, err.Error())
@@ -48,12 +48,12 @@ func processEventRecord(db *models.IndexDatabase, b string) bool {
 
 			_, ok := db.Libraries[library.OwnerId]
 			if !ok {
-				db.Libraries[library.OwnerId] = map[string]*models.IndexLibrary{}
+				db.Libraries[library.OwnerId] = map[string]*domain.IndexLibrary{}
 			}
 
-			db.Libraries[library.OwnerId][library.Id] = &models.IndexLibrary{
+			db.Libraries[library.OwnerId][library.Id] = &domain.IndexLibrary{
 				Id:    library.Id,
-				Items: map[string]*models.IndexItem{},
+				Items: map[string]*domain.IndexItem{},
 			}
 			return true
 		}
@@ -77,11 +77,11 @@ func processEventRecord(db *models.IndexDatabase, b string) bool {
 				return false
 			}
 
-			i := models.IndexItem{
+			i := domain.IndexItem{
 				PK:        item.PK,
 				SK:        item.SK,
 				Id:        item.Id,
-				Type:      models.ItemType(item.Type),
+				Type:      domain.ItemType(item.Type),
 				LibraryId: item.LibraryId,
 				OwnerId:   item.OwnerId,
 				Title:     item.Title,
@@ -100,7 +100,7 @@ func processEventRecord(db *models.IndexDatabase, b string) bool {
 			var sh persistence.SharedLibrary
 			_ = attributevalue.UnmarshalMap(atv, &sh)
 
-			isl := models.IndexSharedLibrary{
+			isl := domain.IndexSharedLibrary{
 				OwnerId:   sh.SharedFromId,
 				LibraryId: sh.LibraryId,
 			}
@@ -111,7 +111,7 @@ func processEventRecord(db *models.IndexDatabase, b string) bool {
 				return true
 			}
 
-			db.UsersToSharedLibraries[sh.SharedToId] = map[string]models.IndexSharedLibrary{
+			db.UsersToSharedLibraries[sh.SharedToId] = map[string]domain.IndexSharedLibrary{
 				sh.LibraryId: isl,
 			}
 
@@ -256,9 +256,9 @@ func handler(event events.SQSEvent) error {
 		databaseExists = false
 	}
 
-	indexes := models.IndexDatabase{
-		Libraries:              map[string]map[string]*models.IndexLibrary{},
-		UsersToSharedLibraries: map[string]map[string]models.IndexSharedLibrary{},
+	indexes := domain.IndexDatabase{
+		Libraries:              map[string]map[string]*domain.IndexLibrary{},
+		UsersToSharedLibraries: map[string]map[string]domain.IndexSharedLibrary{},
 	}
 
 	if databaseExists {

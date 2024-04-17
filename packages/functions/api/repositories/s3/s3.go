@@ -12,6 +12,7 @@ import (
 	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -31,6 +32,30 @@ func NewObjectStorage(region string) *objectstorage {
 	return &objectstorage{
 		client: client,
 	}
+}
+
+func (o *objectstorage) GetIndexes() ([]byte, error) {
+	downloader := manager.NewDownloader(o.client)
+	buf := manager.NewWriteAtBuffer([]byte{})
+
+	_, err := downloader.Download(context.TODO(), buf, &s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv("S3_INDEX_BUCKET")),
+		Key:    aws.String(os.Getenv("INDEX_FILE_NAME")),
+	})
+
+	if err != nil {
+		var nsk *types.NoSuchKey
+		if !errors.As(err, &nsk) {
+			log.Error().Msgf("Unable to fetch index database: %s", err.Error())
+			// Return an error so the messages are not deleted
+			return nil, err
+		}
+		// indexes database has not been created yet
+		return nil, nil
+	}
+
+	return buf.Bytes(), nil
+
 }
 
 func (o *objectstorage) DeletePictures(ownerId string, libraryId string) error {

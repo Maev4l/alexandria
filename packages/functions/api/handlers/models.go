@@ -3,7 +3,7 @@ package handlers
 import (
 	"time"
 
-	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/domain"
 )
 
 type DetectRequest struct {
@@ -109,4 +109,12 @@ type UpdateBookRequest struct {
 
 type ShareRequest struct {
 	UserName string `json:"userName"`
+}
+
+type SearchRequest struct {
+	Terms []string `json:"terms"`
+}
+
+type SearchResponse struct {
+	Items []GetItemResponse `json:"results"`
 }

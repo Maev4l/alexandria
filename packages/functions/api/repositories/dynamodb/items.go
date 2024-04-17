@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/domain"
 	"alexandria.isnan.eu/functions/internal/persistence"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
@@ -13,6 +13,60 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog/log"
 )
+
+func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.LibraryItem, error) {
+	var keys []map[string]types.AttributeValue
+	for _, v := range matchedKeys {
+		log.Info().Msgf("Matched item: PK: %s - SK: %s", v.PK, v.SK)
+		keys = append(keys, map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: v.PK},
+			"SK": &types.AttributeValueMemberS{Value: v.SK},
+		})
+	}
+
+	result := []*domain.LibraryItem{}
+	if len(keys) > 0 {
+		res, err := d.client.BatchGetItem(context.TODO(), &dynamodb.BatchGetItemInput{
+			RequestItems: map[string]types.KeysAndAttributes{
+				tableName: {
+					Keys: keys,
+				},
+			},
+		})
+
+		if err != nil {
+			log.Error().Msgf("Failed to fetch matched items: %s", err.Error())
+			return nil, err
+		}
+
+		for _, v := range res.Responses {
+			for _, v2 := range v {
+				record := persistence.LibraryItem{}
+				if err := attributevalue.UnmarshalMap(v2, &record); err != nil {
+					log.Warn().Msgf("Failed to unmarshal matched library item: %s", err.Error())
+				}
+
+				result = append(result, &domain.LibraryItem{
+					Id:          record.Id,
+					Title:       record.Title,
+					OwnerId:     record.OwnerId,
+					OwnerName:   record.OwnerName,
+					LibraryId:   record.LibraryId,
+					LibraryName: record.LibraryName,
+					Summary:     record.Summary,
+					Authors:     record.Authors,
+					Isbn:        record.Isbn,
+					UpdatedAt:   record.UpdatedAt,
+					Type:        domain.ItemType(record.Type),
+					PictureUrl:  record.PictureUrl,
+				})
+			}
+
+		}
+	}
+
+	return result, nil
+}
 
 func (d *dynamo) DeleteLibraryItem(i *domain.LibraryItem) error {
 

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"alexandria.isnan.eu/functions/api/domain"
 	"alexandria.isnan.eu/functions/api/ports"
+	"alexandria.isnan.eu/functions/internal/domain"
 
 	"github.com/gocolly/colly"
 	"github.com/rs/zerolog/log"

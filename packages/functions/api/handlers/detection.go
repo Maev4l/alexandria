@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"slices"
 
-	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/skowalak/isbn"

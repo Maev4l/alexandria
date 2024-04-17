@@ -5,4 +5,5 @@ type Storage interface {
 	GetPicture(ownerId string, libraryId string, itemId string) ([]byte, error)
 	DeletePicture(ownerId string, libraryId string, itemId string) error
 	DeletePictures(ownerId string, libraryId string) error
+	GetIndexes() ([]byte, error)
 }

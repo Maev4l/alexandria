@@ -64,8 +64,10 @@ functions:
     environment:
       DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
       S3_PICTURES_BUCKET: ${self:custom.picturesBucketName}
+      S3_INDEX_BUCKET: ${self:custom.picturesBucketName}
       REGION: ${self:provider.region}
       USER_POOL_ID: !Ref CognitoUserPoolAlexandriaUserPool
+      INDEX_FILE_NAME: ${self:custom.indexFileName}
     events:
       - http:
           authorizer:
@@ -95,6 +97,13 @@ functions:
           method: post
           path: /v1/detections
           cors: true
+      - http:
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: !Ref ApiGatewayAuthorizer
+          method: post
+          path: /v1/search
+          cors: true
   index-items:
     handler: index-items/cmd/main.go
     name: alexandria-index-items
@@ -111,25 +120,25 @@ functions:
           arn: !GetAtt EventBridgePipeTargetQueue.Arn
           batchSize: 5000
           maximumBatchingWindow: 5
-  search:
-    handler: search/handler.handle
-    name: alexandria-search
-    role: SearchRole
-    memorySize: 256
-    runtime: nodejs20.x
-    environment:
-      DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
-      S3_PICTURES_BUCKET: ${self:custom.picturesBucketName}
-      REGION: ${self:provider.region}
-      INDEX_FILE_NAME: ${self:custom.indexFileName}
-    events:
-      - http:
-          authorizer:
-            type: COGNITO_USER_POOLS
-            authorizerId: !Ref ApiGatewayAuthorizer
-          method: post
-          path: /v1/search
-          cors: true
+  #search:
+  #  handler: search/handler.handle
+  #  name: alexandria-search
+  #  role: SearchRole
+  #  memorySize: 256
+  #  runtime: nodejs20.x
+  #  environment:
+  #    DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
+  #    S3_PICTURES_BUCKET: ${self:custom.picturesBucketName}
+  #    REGION: ${self:provider.region}
+  #    INDEX_FILE_NAME: ${self:custom.indexFileName}
+  #  #events:
+  #  #  - http:
+  #  #      authorizer:
+  #  #        type: COGNITO_USER_POOLS
+  #  #        authorizerId: !Ref ApiGatewayAuthorizer
+  #  #      method: post
+  #  #      path: /v1/search
+  #  #      cors: true
   pre-signup:
     handler: pre-signup/cmd/main.go
     name: alexandria-pre-signup
@@ -286,61 +295,61 @@ resources:
                           - Ref: PicturesStorage
                           - '/*'
                     - !GetAtt PicturesStorage.Arn
-    SearchRole:
-      Type: AWS::IAM::Role
-      Properties:
-        RoleName: alexandria-search
-        AssumeRolePolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - lambda.amazonaws.com
-              Action: sts:AssumeRole
-        Policies:
-          - PolicyName: alexandria-api
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Effect: Allow # note that these rights are given in the default policy and are required if you want logs out of your lambda(s)
-                  Action:
-                    - logs:CreateLogGroup
-                    - logs:CreateLogStream
-                    - logs:PutLogEvents
-                    - logs:TagResource
-                  Resource:
-                    - Fn::Join:
-                        - ':'
-                        - - 'arn:aws:logs'
-                          - Ref: 'AWS::Region'
-                          - Ref: 'AWS::AccountId'
-                          - 'log-group:/aws/lambda/*:*:*'
-                - Effect: Allow
-                  Action:
-                    - dynamodb:Query
-                  Resource:
-                    - !GetAtt DynamoTable.Arn
-                    - Fn::Join:
-                        - ''
-                        - - 'arn:aws:dynamodb:'
-                          - Ref: 'AWS::Region'
-                          - ':'
-                          - Ref: 'AWS::AccountId'
-                          - ':table/'
-                          - ${self:custom.dynamoDbTableName}
-                          - '/index/*'
-                - Effect: Allow
-                  Action:
-                    - s3:GetObject
-                    - s3:ListBucket
-                  Resource:
-                    - Fn::Join:
-                        - ''
-                        - - 'arn:aws:s3:::'
-                          - Ref: PicturesStorage
-                          - '/*'
-                    - !GetAtt PicturesStorage.Arn
+    #SearchRole:
+    #  Type: AWS::IAM::Role
+    #  Properties:
+    #    RoleName: alexandria-search
+    #    AssumeRolePolicyDocument:
+    #      Version: '2012-10-17'
+    #      Statement:
+    #        - Effect: Allow
+    #          Principal:
+    #            Service:
+    #              - lambda.amazonaws.com
+    #          Action: sts:AssumeRole
+    #    Policies:
+    #      - PolicyName: alexandria-api
+    #        PolicyDocument:
+    #          Version: '2012-10-17'
+    #          Statement:
+    #            - Effect: Allow # note that these rights are given in the default policy and are required if you want logs out of your lambda(s)
+    #              Action:
+    #                - logs:CreateLogGroup
+    #                - logs:CreateLogStream
+    #                - logs:PutLogEvents
+    #                - logs:TagResource
+    #              Resource:
+    #                - Fn::Join:
+    #                    - ':'
+    #                    - - 'arn:aws:logs'
+    #                      - Ref: 'AWS::Region'
+    #                      - Ref: 'AWS::AccountId'
+    #                      - 'log-group:/aws/lambda/*:*:*'
+    #            - Effect: Allow
+    #              Action:
+    #                - dynamodb:Query
+    #              Resource:
+    #                - !GetAtt DynamoTable.Arn
+    #                - Fn::Join:
+    #                    - ''
+    #                    - - 'arn:aws:dynamodb:'
+    #                      - Ref: 'AWS::Region'
+    #                      - ':'
+    #                      - Ref: 'AWS::AccountId'
+    #                      - ':table/'
+    #                      - ${self:custom.dynamoDbTableName}
+    #                      - '/index/*'
+    #            - Effect: Allow
+    #              Action:
+    #                - s3:GetObject
+    #                - s3:ListBucket
+    #              Resource:
+    #                - Fn::Join:
+    #                    - ''
+    #                    - - 'arn:aws:s3:::'
+    #                      - Ref: PicturesStorage
+    #                      - '/*'
+    #                - !GetAtt PicturesStorage.Arn
     PreSignupRole:
       Type: AWS::IAM::Role
       Properties:

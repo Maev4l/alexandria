@@ -6,7 +6,7 @@ import (
 	"slices"
 	"time"
 
-	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/domain"
 	"alexandria.isnan.eu/functions/internal/identifier"
 	"github.com/rs/zerolog/log"
 )

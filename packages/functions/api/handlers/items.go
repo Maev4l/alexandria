@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"alexandria.isnan.eu/functions/api/domain"
+	"alexandria.isnan.eu/functions/internal/domain"
 	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"

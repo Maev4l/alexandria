@@ -4,9 +4,9 @@ import (
 	"slices"
 	"strings"
 
-	"alexandria.isnan.eu/functions/api/domain"
 	"alexandria.isnan.eu/functions/api/ports"
 	"alexandria.isnan.eu/functions/api/services/resolvers"
+	"alexandria.isnan.eu/functions/internal/domain"
 )
 
 var bookResolversRegistry []ports.BookResolver

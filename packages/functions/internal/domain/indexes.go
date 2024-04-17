@@ -1,40 +1,4 @@
-package models
-
-import (
-	"github.com/aws/aws-lambda-go/events"
-)
-
-type EventRecord struct {
-	EventName            string                      `json:"eventName"`
-	DynamoDbStreamRecord events.DynamoDBStreamRecord `json:"dynamodb"`
-}
-
-/*
-
-Index structure:
-
-{
-	"items":[
-		{
-			"id": "<bookId>"",
-			"type": "book|movie"
-			"libraryId": "<libraryId>"",
-			...
-			"title": "<title>",
-			"authors": ["author1", "author2"]
-		},
-		{
-			....
-		}
-	]
-}
-*/
-
-type ItemType int
-
-const (
-	ItemBook ItemType = iota
-)
+package domain
 
 type IndexItem struct {
 	PK        string   `json:"PK"`
