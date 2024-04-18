@@ -26,15 +26,6 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		return nil, err
 	}
 
-	result := []*domain.LibraryItem{}
-
-	// collect all items belonging to the owned libraries
-	ownedLibraries, ok := db.Libraries[ownerId]
-	if !ok {
-		// User has no indexed libraries
-		return result, nil
-	}
-
 	// Create indexer instance
 	config := bluge.InMemoryOnlyConfig()
 	writer, err := bluge.OpenWriter(config)
@@ -47,18 +38,22 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 
 	batch := bluge.NewBatch()
 
-	// Collect all owned indexed items
-	for _, il := range ownedLibraries {
-		for _, ii := range il.Items {
-			docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ownerId, ii.LibraryId, ii.Id)
-			doc := bluge.NewDocument(docId).AddField(bluge.NewTextField("keywords", strings.Join(append(ii.Authors, ii.Title), " ")))
-			/* AddField(bluge.NewTextField("title", ii.Title)).
-			AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " "))) */
-			batch.Insert(doc)
+	// collect all items belonging to the owned libraries
+	ownedLibraries, ok := db.Libraries[ownerId]
+	if ok {
+		// Collect all owned indexed items
+		for _, il := range ownedLibraries {
+			for _, ii := range il.Items {
+				docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ownerId, ii.LibraryId, ii.Id)
+				doc := bluge.NewDocument(docId).AddField(bluge.NewTextField("keywords", strings.Join(append(ii.Authors, ii.Title), " ")))
+				/* AddField(bluge.NewTextField("title", ii.Title)).
+				AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " "))) */
+				batch.Insert(doc)
+			}
 		}
+		writer.Batch(batch)
+		batch.Reset()
 	}
-	writer.Batch(batch)
-	batch.Reset()
 
 	// check if there are some shared libraries with the current users
 	sls, ok := db.UsersToSharedLibraries[ownerId]
@@ -72,7 +67,7 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 				l, ok := o[sl.LibraryId]
 				if ok {
 					for _, ii := range l.Items {
-						docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ownerId, ii.LibraryId, ii.Id)
+						docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ii.OwnerId, ii.LibraryId, ii.Id)
 						doc := bluge.NewDocument(docId).AddField(bluge.NewTextField("keywords", strings.Join(append(ii.Authors, ii.Title), " ")))
 						/*AddField(bluge.NewTextField("title", ii.Title)).
 						AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " ")))*/
@@ -124,7 +119,7 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		next, err = dmi.Next()
 	}
 
-	result, err = s.db.GetMatchedItems(matchedItemsId)
+	result, err := s.db.GetMatchedItems(matchedItemsId)
 
 	for _, i := range result {
 		if i.PictureUrl != nil && *i.PictureUrl != "" {
