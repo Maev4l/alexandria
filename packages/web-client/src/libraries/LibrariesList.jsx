@@ -64,7 +64,7 @@ const LibraryItemList = ({ library, style, onPressActions, onPress }) => {
               }}
             >
               {sharedTo.map((s) => (
-                <Chip elevated icon="share">
+                <Chip key={s} elevated icon="share">
                   {s}
                 </Chip>
               ))}
