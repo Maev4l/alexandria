@@ -120,6 +120,28 @@ functions:
           arn: !GetAtt EventBridgePipeTargetQueue.Arn
           batchSize: 5000
           maximumBatchingWindow: 5
+          filterPatterns:
+            # Capture insert and remove of libraries, items and shared libraries
+            - body:
+                eventName:
+                  - INSERT
+                  - REMOVE
+                dynamodb:
+                  Keys:
+                    SK:
+                      S:
+                        - prefix: 'library#'
+                        - prefix: 'shared-library#'
+            # Capture modify of items only (when an item is added into a library, changes of TotalItems of libraries are not captured)
+            - body:
+                eventName:
+                  - MODIFY
+                dynamodb:
+                  NewImage:
+                    GSI1SK:
+                      S:
+                        - prefix: 'item#'
+
   #search:
   #  handler: search/handler.handle
   #  name: alexandria-search
