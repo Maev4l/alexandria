@@ -1,6 +1,6 @@
 import { Text, useTheme, IconButton, Icon, Divider, FAB } from 'react-native-paper';
 import { FlatList, View, Image, Pressable } from 'react-native';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { RefreshControl } from 'react-native-web-refresh-control';
@@ -100,6 +100,7 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
   const navigation = useNavigation();
   const { showActionSheetWithOptions } = useActionSheet();
   const theme = useTheme();
+  const [showFab, setFabVisibility] = useState(false);
 
   const handlePressActions = (item) => {
     showActionSheetWithOptions(
@@ -137,6 +138,16 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
     );
   };
 
+  const onScroll = (e) => {
+    const {
+      nativeEvent: {
+        contentOffset: { y },
+      },
+    } = e;
+
+    setFabVisibility(y > 0);
+  };
+
   return (
     <>
       <FlatList
@@ -146,6 +157,8 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
         data={items}
         onEndReachedThreshold={0.2}
         onEndReached={onEndReached}
+        onScroll={onScroll}
+        scrollEventThrottle={100}
         /* ListEmptyComponent={() => (
           <Alert variant="primary" style={{ marginTop: 20 }} text="You have no items." />
         )} */
@@ -161,13 +174,15 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
           ) : null
         }
       />
-      <FAB
-        icon="arrow-up"
-        style={{ position: 'absolute', margin: 16, right: 0, bottom: 0 }}
-        size="small"
-        visible={items.length > 0}
-        onPress={() => ref.current?.scrollToIndex({ index: 0 })}
-      />
+      {showFab && (
+        <FAB
+          icon="arrow-up"
+          style={{ position: 'absolute', margin: 16, right: 0, bottom: 0 }}
+          size="small"
+          visible={items.length > 0}
+          onPress={() => ref.current?.scrollToIndex({ index: 0 })}
+        />
+      )}
     </>
   );
 };
