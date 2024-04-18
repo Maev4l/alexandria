@@ -231,9 +231,9 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 	queryPaginatorSharedLibraries := dynamodb.NewQueryPaginator(d.client, &querySharedLibraries)
 
 	type sharedLibraryIdentifier struct {
-		LibraryId  string `dynamodbav:"LibraryId"`
-		OwnerId    string `dynamodbav:"OwnerId"`
-		SharedFrom string `dynamodbav:"SharedFrom"`
+		LibraryId      string `dynamodbav:"LibraryId"`
+		SharedFromId   string `dynamodbav:"SharedFromId"`
+		SharedFromName string `dynamodbav:"SharedFromName"`
 	}
 	sharedLibrariesIdentifiers := map[string]sharedLibraryIdentifier{}
 	for i := 0; queryPaginatorSharedLibraries.HasMorePages(); i++ {
@@ -259,7 +259,7 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 		var keys []map[string]types.AttributeValue
 		for _, v := range sharedLibrariesIdentifiers {
 			keys = append(keys, map[string]types.AttributeValue{
-				"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(v.OwnerId)},
+				"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(v.SharedFromId)},
 				"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(v.LibraryId)},
 			})
 		}
@@ -291,7 +291,7 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 					TotalItems:  record.TotalItems,
 					UpdatedAt:   record.UpdatedAt,
 					OwnerName:   record.OwnerName,
-					SharedFrom:  aws.String(sharedLibrariesIdentifiers[record.Id].SharedFrom),
+					SharedFrom:  aws.String(sharedLibrariesIdentifiers[record.Id].SharedFromName),
 				})
 			}
 		}
