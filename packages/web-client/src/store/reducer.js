@@ -112,16 +112,9 @@ export const reducer = (state, action) => {
     }
 
     case ACTION_TYPES.SIGN_OUT_SUCCESS: {
-      return {
-        ...newState,
-        loading: false,
-        authn: {
-          state: 'LOGGED_OUT',
-          token: null,
-        },
-        weekCursor: null,
-        schedules: [],
-      };
+      const result = { ...INITIAL_STATE };
+      result.authn.state = 'LOGGED_OUT';
+      return result;
     }
 
     case ACTION_TYPES.READ_APP_PREFERENCES_SUCCESS: {
