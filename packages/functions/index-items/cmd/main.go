@@ -10,6 +10,7 @@ import (
 
 	"alexandria.isnan.eu/functions/internal/domain"
 	"alexandria.isnan.eu/functions/internal/persistence"
+	"alexandria.isnan.eu/functions/internal/slices"
 	ddbconversions "github.com/aereal/go-dynamodb-attribute-conversions/v2"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -123,31 +124,40 @@ func processEventRecord(db *domain.IndexDatabase, b string) bool {
 
 		isItem := strings.Contains(r.DynamoDbStreamRecord.Keys["SK"].String(), "#item")
 		if isItem {
-			atv := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.NewImage)
-			var item persistence.LibraryItem
-			_ = attributevalue.UnmarshalMap(atv, &item)
+			atv_new := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.NewImage)
+			var item_new persistence.LibraryItem
+			_ = attributevalue.UnmarshalMap(atv_new, &item_new)
 
-			u, ok := db.Libraries[item.OwnerId]
+			atv_old := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.OldImage)
+			var item_old persistence.LibraryItem
+			_ = attributevalue.UnmarshalMap(atv_old, &item_old)
+
+			if item_new.Title == item_old.Title && slices.Equal(item_new.Authors, item_old.Authors) {
+				// the modification is not related to the Tietle field or the Authors field
+				return false
+			}
+
+			u, ok := db.Libraries[item_new.OwnerId]
 			if !ok {
 				// should not happen, as that means this item is added into a non-indexed user
 				return false
 			}
 
-			l, ok := u[item.LibraryId]
+			l, ok := u[item_new.LibraryId]
 			if !ok {
 				// should not happen, as that means this item is added into a non-indexed library
 				return false
 			}
 
-			i, ok := l.Items[item.Id]
+			i, ok := l.Items[item_new.Id]
 			if !ok {
 				// should not happen as that means, we are modifying an item belonging to a non indexed item
 				return false
 			}
 
-			i.LibraryId = item.LibraryId
-			i.Title = item.Title
-			i.Authors = item.Authors
+			i.LibraryId = item_new.LibraryId
+			i.Title = item_new.Title
+			i.Authors = item_new.Authors
 
 			return true
 		}
