@@ -3,9 +3,12 @@ package dynamodb
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"alexandria.isnan.eu/functions/internal/domain"
 	"alexandria.isnan.eu/functions/internal/persistence"
+	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
@@ -13,6 +16,190 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/rs/zerolog/log"
 )
+
+func (d *dynamo) QueryItemEvents(i *domain.LibraryItem, continuationToken string, pageSize int) (*domain.ItemHistory, error) {
+
+	query := dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		IndexName:              aws.String("GSI1"),
+		KeyConditionExpression: aws.String("#GSI1PK = :gsi1pk and begins_with(#GSI1SK,:library_item_history_prefix)"),
+		ExpressionAttributeNames: map[string]string{
+			"#GSI1PK": "GSI1PK",
+			"#GSI1SK": "GSI1SK",
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":gsi1pk": &types.AttributeValueMemberS{
+				Value: persistence.MakeItemEventGSI1PK(i.OwnerId, i.LibraryId, i.Id),
+			},
+			":library_item_history_prefix": &types.AttributeValueMemberS{
+				Value: "event#",
+			},
+		},
+		ScanIndexForward: aws.Bool(false),
+		Limit:            aws.Int32(int32(pageSize)),
+	}
+
+	if continuationToken != "" {
+		lek, err := persistence.DeserializeLek(continuationToken)
+		if err != nil {
+			log.Error().Str("id", i.Id).Msg("Unable to deserialize continuation token")
+			return nil, errors.New("Unable to deserialize continuation token")
+		}
+
+		query.ExclusiveStartKey = lek
+	}
+
+	result, err := d.client.Query(context.TODO(), &query)
+	if err != nil {
+		log.Error().Str("id", i.Id).Msgf("Failed to query item history: %s", err.Error())
+		return nil, err
+	}
+
+	entries := []domain.ItemEvent{}
+	for _, item := range result.Items {
+
+		record := persistence.ItemEvent{}
+		if err := attributevalue.UnmarshalMap(item, &record); err != nil {
+			log.Warn().Str("id", i.Id).Msgf("Failed to unmarshal history entry: %s", err.Error())
+		}
+
+		entries = append(entries, domain.ItemEvent{
+			Date:  record.UpdatedAt,
+			Type:  domain.ItemEventType(record.Type),
+			Event: record.Event,
+		})
+	}
+
+	history := &domain.ItemHistory{
+		Entries: entries,
+	}
+
+	if result.LastEvaluatedKey != nil {
+		nextToken, err := persistence.SerializeLek(result.LastEvaluatedKey)
+		if err != nil {
+			log.Error().Str("id", i.Id).Msg("Unable to serialize continuation token")
+			return nil, errors.New("Unable to serialize continuation token")
+		}
+		history.ContinuationToken = *nextToken
+	}
+
+	return history, nil
+
+}
+
+func (d *dynamo) PutItemEvent(i *domain.LibraryItem, evtType domain.ItemEventType, evt string, date *time.Time) error {
+
+	record := persistence.ItemEvent{
+		PK:        persistence.MakeItemEventPK(i.OwnerId),
+		SK:        persistence.MakeItemEventSK(i.LibraryId, i.Id, *date),
+		GSI1PK:    persistence.MakeItemEventGSI1PK(i.OwnerId, i.LibraryId, i.Id),
+		GSI1SK:    persistence.MakeItemEventGSI1SK(*date),
+		Type:      string(evtType),
+		Event:     evt,
+		UpdatedAt: date,
+	}
+	item, err := attributevalue.MarshalMap(record)
+	if err != nil {
+		log.Error().Str("id", i.Id).Msgf("Failed to marshal item event: %s", err.Error())
+		return err
+	}
+
+	var updReq types.Update
+	if evtType == domain.Lent {
+		updReq = types.Update{
+			TableName: aws.String(tableName),
+			Key: map[string]types.AttributeValue{
+				"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemPK(i.OwnerId)},
+				"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemSK(i.LibraryId, i.Id)},
+			},
+			UpdateExpression: aws.String("SET LentTo = :person"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":person": &types.AttributeValueMemberS{
+					Value: evt,
+				},
+			},
+		}
+	}
+
+	if evtType == domain.Returned {
+		updReq = types.Update{
+			TableName: aws.String(tableName),
+			Key: map[string]types.AttributeValue{
+				"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemPK(i.OwnerId)},
+				"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemSK(i.LibraryId, i.Id)},
+			},
+			UpdateExpression: aws.String("SET LentTo = :person"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":person": &types.AttributeValueMemberNULL{
+					Value: true,
+				},
+			},
+		}
+	}
+
+	_, err = d.client.TransactWriteItems(context.TODO(), &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				Put: &types.Put{
+					TableName: aws.String(tableName),
+					Item:      item,
+				},
+			},
+			{
+				Update: &updReq,
+			},
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *dynamo) GetLibraryItem(ownerId string, libraryId string, itemId string) (*domain.LibraryItem, error) {
+	output, err := d.client.GetItem(context.TODO(), &dynamodb.GetItemInput{
+		TableName: aws.String(tableName),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemPK(ownerId)},
+			"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryItemSK(libraryId, itemId)},
+		},
+	})
+	if err != nil {
+		log.Error().Str("id", itemId).Msgf("Unable to get item: %s", err.Error())
+		return nil, errors.New("Unable to get item")
+	}
+
+	if output.Item == nil {
+		log.Info().Str("id", itemId).Msgf("Item %s does not exist for owner %s", libraryId, ownerId)
+		return nil, errors.New("Unknown item")
+	}
+
+	record := persistence.LibraryItem{}
+	if err := attributevalue.UnmarshalMap(output.Item, &record); err != nil {
+		log.Warn().Msgf("Failed to unmarshal item: %s", err.Error())
+		return nil, err
+	}
+
+	return &domain.LibraryItem{
+			Id:          record.Id,
+			Title:       record.Title,
+			LibraryId:   record.LibraryId,
+			LibraryName: record.LibraryName,
+			OwnerName:   record.OwnerName,
+			OwnerId:     record.OwnerId,
+			UpdatedAt:   record.UpdatedAt,
+			Summary:     record.Summary,
+			Authors:     record.Authors,
+			Isbn:        record.Isbn,
+			Type:        domain.ItemBook,
+			PictureUrl:  record.PictureUrl,
+			LentTo:      record.LentTo,
+		},
+		nil
+
+}
 
 func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.LibraryItem, error) {
 	var keys []map[string]types.AttributeValue
@@ -59,6 +246,7 @@ func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.Libr
 					UpdatedAt:   record.UpdatedAt,
 					Type:        domain.ItemType(record.Type),
 					PictureUrl:  record.PictureUrl,
+					LentTo:      record.LentTo,
 				})
 			}
 
@@ -69,6 +257,74 @@ func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.Libr
 }
 
 func (d *dynamo) DeleteLibraryItem(i *domain.LibraryItem) error {
+
+	// Get all events for this item with PK=owner#<owner id> and SK begins with library#<library id>#item#<item id>#event
+	query := dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		KeyConditionExpression: aws.String("#PK = :ownerId and begins_with(#SK,:library_item_sorting_key)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":ownerId": &types.AttributeValueMemberS{
+				Value: persistence.MakeItemEventPK(i.OwnerId),
+			},
+			":library_item_sorting_key": &types.AttributeValueMemberS{
+				Value: fmt.Sprintf("library#%s#item#%s#event", i.LibraryId, i.Id),
+			},
+		},
+		ExpressionAttributeNames: map[string]string{
+			"#PK": "PK",
+			"#SK": "SK",
+		},
+		Limit: aws.Int32(25),
+	}
+
+	type Record struct {
+		PK string `dynamodbav:"PK"`
+		SK string `dynamodbav:"SK"`
+	}
+
+	records := []types.WriteRequest{}
+	queryPaginator := dynamodb.NewQueryPaginator(d.client, &query)
+	for j := 0; queryPaginator.HasMorePages(); j++ {
+		result, err := queryPaginator.NextPage(context.TODO())
+
+		if err != nil {
+			log.Error().Str("id", i.Id).Msgf("Failed to query records to delete: %s", err.Error())
+			return err
+		}
+
+		if result.Count > 0 {
+			for _, item := range result.Items {
+				record := Record{}
+				if err := attributevalue.UnmarshalMap(item, &record); err != nil {
+					log.Warn().Msgf("Failed to unmarshal record: %s", err.Error())
+					continue
+				}
+
+				records = append(records, types.WriteRequest{
+					DeleteRequest: &types.DeleteRequest{
+						Key: map[string]types.AttributeValue{
+							"PK": &types.AttributeValueMemberS{Value: record.PK},
+							"SK": &types.AttributeValueMemberS{Value: record.SK},
+						},
+					},
+				})
+			}
+		}
+	}
+
+	chunks := slices.ChunkBy(records, 25)
+
+	for _, c := range chunks {
+		_, err := d.client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{
+				tableName: c,
+			},
+		})
+		if err != nil {
+			log.Warn().Str("id", i.Id).Msgf("Failed to batch delete records: %s", err.Error())
+			continue
+		}
+	}
 
 	_, err := d.client.TransactWriteItems(context.TODO(), &dynamodb.TransactWriteItemsInput{
 		TransactItems: []types.TransactWriteItem{
@@ -264,6 +520,7 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 			UpdatedAt:   record.UpdatedAt,
 			Type:        domain.ItemType(record.Type),
 			PictureUrl:  record.PictureUrl,
+			LentTo:      record.LentTo,
 		})
 	}
 

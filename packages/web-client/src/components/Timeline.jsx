@@ -6,7 +6,7 @@ const defaultCircleSize = 16;
 const defaultCircleColor = '#007AFF';
 const defaultLineWidth = 2;
 const defaultLineColor = '#007AFF';
-const defaultTimeTextColor = 'black';
+// const defaultTimeTextColor = 'black';
 const defaultDotColor = 'white';
 const defaultInnerCircle = 'none';
 
@@ -31,6 +31,7 @@ const Timeline = ({
   dotColor = defaultDotColor,
   data,
   onEventPress,
+  options,
   lineWidth = defaultLineWidth,
   lineColor = defaultLineColor,
 }) => {
@@ -42,7 +43,7 @@ const Timeline = ({
         <Text
           style={{
             textAlign: 'right',
-            color: defaultTimeTextColor,
+            // color: defaultTimeTextColor,
             overflow: 'hidden',
             ...timeStyle,
           }}
@@ -127,13 +128,13 @@ const Timeline = ({
         >
           <View
             style={{
-              borderLeftWidth: defaultLineWidth,
+              // borderLeftWidth: defaultLineWidth,
               flexDirection: 'column',
               flex: 1,
               ...eventDetailStyle,
             }}
           >
-            {renderDetail(item, index)}
+            {renderDetail({ item, index })}
           </View>
           {renderSeparator()}
         </TouchableOpacity>
@@ -201,9 +202,9 @@ const Timeline = ({
 
   const renderItem = ({ item, index }) => (
     <View style={{ flexDirection: 'row', flex: 1, justifyContent: 'center', ...rowContainerStyle }}>
-      {renderTime(item, index)}
-      {renderEvent(item, index)}
-      {renderCircle(item, index)}
+      {renderTime({ item, index })}
+      {renderEvent({ item, index })}
+      {renderCircle({ item, index })}
     </View>
   );
 
@@ -214,6 +215,7 @@ const Timeline = ({
         contentContainerStyle={listViewContainerStyle}
         style={{ flex: 1, ...listViewStyle }}
         renderItem={renderItem}
+        {...options}
       />
     </View>
   );

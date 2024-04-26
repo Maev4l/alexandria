@@ -31,6 +31,100 @@ func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 	return nil
 }
 
+func (h *HTTPHandler) CreateItemHistoryEvent(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+	itemId := c.Param("itemId")
+
+	var request ItemHistoryEntryRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		log.Error().Msgf("Invalid request: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	if len(request.Event) > 50 {
+		log.Error().Msgf("Name too long")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Name too long.",
+		})
+		return
+	}
+
+	if len(request.Event) == 0 {
+		log.Error().Msgf("Name missing")
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Name missing.",
+		})
+		return
+	}
+
+	t := h.getTokenInfo(c)
+
+	if request.Type == domain.Lent {
+
+		err = h.s.LendItem(t.userId, libraryId, itemId, strings.TrimSpace(request.Event))
+	}
+
+	if request.Type == domain.Returned {
+		err = h.s.ReturnItem(t.userId, libraryId, itemId, strings.TrimSpace(request.Event))
+	}
+
+	if err != nil {
+		log.Error().Msg(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusCreated)
+
+}
+
+func (h *HTTPHandler) GetItemHistoryEvents(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+	itemId := c.Param("itemId")
+	continuationToken := c.Query("nextToken")
+	limit := c.DefaultQuery("limit", "10")
+	pageSize, err := strconv.Atoi(limit)
+	if err != nil {
+		pageSize = 10
+	}
+
+	if pageSize > 20 {
+		pageSize = 20
+	}
+	t := h.getTokenInfo(c)
+
+	history, err := h.s.GetLibraryItemHistory(t.userId, libraryId, itemId, continuationToken, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to query item history",
+		})
+		return
+	}
+
+	entries := []ItemHistoryEntry{}
+
+	for _, e := range history.Entries {
+		entries = append(entries, ItemHistoryEntry{
+			Date:  e.Date,
+			Type:  e.Type,
+			Event: e.Event,
+		})
+	}
+
+	response := ItemHistoryEntryListResponse{
+		Entries:           entries,
+		ContinuationToken: history.ContinuationToken,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 	libraryId := c.Param("libraryId")
 	bookId := c.Param("bookId")
@@ -190,6 +284,8 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 					Title:      i.Title,
 					LibraryId:  &i.LibraryId,
 					LibrayName: &i.LibraryName,
+					LentTo:     i.LentTo,
+					OwnerId:    i.OwnerId,
 				},
 				Authors: i.Authors,
 				Summary: i.Summary,

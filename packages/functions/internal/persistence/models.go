@@ -88,6 +88,7 @@ type LibraryItem struct {
 	Isbn        string     `dynamodbav:"Isbn"`
 	Type        int        `dynamodbav:"Type"`
 	PictureUrl  *string    `dynamodbav:"PictureUrl,omitempty"`
+	LentTo      *string    `dynamodbav:"LentTo,omitempty"`
 }
 
 func MakeLibraryItemPK(ownerId string) string {
@@ -130,4 +131,29 @@ func MakeSharedLibraryPK(ownerId string) string {
 
 func MakeSharedLibrarySK(libraryId string) string {
 	return fmt.Sprintf("shared-library#%s", libraryId)
+}
+
+type ItemEvent struct {
+	PK        string     `dynamodbav:"PK"`     // owner#<owner id>
+	SK        string     `dynamodbav:"SK"`     // library#<library id>#item#<item id>#event#<event date>
+	GSI1PK    string     `dynamodbav:"GSI1PK"` // owner#<owner id>#library#<library id>#item#<item id>
+	GSI1SK    string     `dynamodbav:"GSI1SK"` // event#<event date>
+	Type      string     `dynamodbav:"Type"`
+	Event     string     `dynamodbav:"Event"`
+	UpdatedAt *time.Time `dynamodbav:"UpdatedAt"`
+}
+
+func MakeItemEventPK(ownerId string) string {
+	return fmt.Sprintf("owner#%s", ownerId)
+}
+
+func MakeItemEventSK(libraryId string, itemId string, date time.Time) string {
+	return fmt.Sprintf("library#%s#item#%s#event#%s", libraryId, itemId, date.Format("2006/01/02.15:04:05"))
+}
+
+func MakeItemEventGSI1PK(ownerId string, libraryId string, itemId string) string {
+	return fmt.Sprintf("owner#%s#library#%s#item#%s", ownerId, libraryId, itemId)
+}
+func MakeItemEventGSI1SK(date time.Time) string {
+	return fmt.Sprintf("event#%s", date.Format("2006/01/02.15:04:05"))
 }

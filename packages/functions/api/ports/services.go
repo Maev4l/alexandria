@@ -22,4 +22,7 @@ type Services interface {
 	ShareLibrary(sh *domain.ShareLibrary) error
 	UnshareLibrary(sh *domain.ShareLibrary) error
 	SearchItems(ownerId string, terms []string) ([]*domain.LibraryItem, error)
+	LendItem(ownerId string, libraryId string, itemId string, lendTo string) error
+	ReturnItem(ownerId string, libraryId string, itemId string, from string) error
+	GetLibraryItemHistory(ownerId string, libraryId string, itemId string, continuationToken string, pageSize int) (*domain.ItemHistory, error)
 }

@@ -68,6 +68,8 @@ type GetItemResponseBase struct {
 	Picture    *string         `json:"picture,omitempty"`
 	LibraryId  *string         `json:"libraryId,omitempty"`
 	LibrayName *string         `json:"libraryName,omitempty"`
+	OwnerId    string          `json:"ownerId"`
+	LentTo     *string         `json:"lentTo,omitempty"`
 }
 
 func (g GetItemResponseBase) getType() string { return "" }
@@ -117,4 +119,20 @@ type SearchRequest struct {
 
 type SearchResponse struct {
 	Items []GetItemResponse `json:"results"`
+}
+
+type ItemHistoryEntryRequest struct {
+	Type  domain.ItemEventType `json:"type"`
+	Event string               `json:"event"`
+}
+
+type ItemHistoryEntry struct {
+	Date  *time.Time           `json:"date"`
+	Type  domain.ItemEventType `json:"type"`
+	Event string               `json:"event"`
+}
+
+type ItemHistoryEntryListResponse struct {
+	Entries           []ItemHistoryEntry `json:"events"`
+	ContinuationToken string             `json:"nextToken"`
 }

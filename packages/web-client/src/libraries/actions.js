@@ -59,3 +59,23 @@ export const unShareLibrarySuccess = (data) => ({
   type: ACTION_TYPES.UNSHARE_LIBRARY_SUCCESS,
   payload: data,
 });
+
+export const lendItemSuccess = (itemId, lentTo) => ({
+  type: ACTION_TYPES.LEND_ITEM_SUCCESS,
+  payload: { itemId, lentTo },
+});
+
+export const returnItemSuccess = (itemId) => ({
+  type: ACTION_TYPES.RETURN_ITEM_SUCCESS,
+  payload: { itemId },
+});
+
+export const fetchItemHistorySuccess = (data) => ({
+  type: ACTION_TYPES.FETCH_ITEM_HISTORY_SUCCESS,
+  payload: data,
+});
+
+export const refreshItemHistorySuccess = (data) => ({
+  type: ACTION_TYPES.REFRESH_ITEM_HISTORY_SUCCESS,
+  payload: data,
+});

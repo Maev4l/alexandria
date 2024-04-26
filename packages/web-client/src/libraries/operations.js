@@ -11,10 +11,15 @@ import {
   detectBookSuccess,
   shareLibrarySuccess,
   unShareLibrarySuccess,
+  lendItemSuccess,
+  fetchItemHistorySuccess,
+  refreshItemHistorySuccess,
+  returnItemSuccess,
 } from './actions';
 
 import { api } from '../api';
 import { appError, appWaiting, appRefreshing } from '../store';
+import { ITEM_EVENT_TYPE } from '../domain';
 
 export const fetchLibraryItems =
   (libraryId, nextToken, refresh = false) =>
@@ -27,6 +32,23 @@ export const fetchLibraryItems =
       }
       const data = await api.get(url);
       dispatch(refresh ? refreshLibraryItemsSuccess(data) : fetchLibraryItemsSuccess(data));
+    } catch (e) {
+      dispatch(appError(e));
+    }
+  };
+
+export const fetchItemHistory =
+  (item, nextToken, refresh = false) =>
+  async (dispatch) => {
+    dispatch(refresh ? appRefreshing() : appWaiting());
+
+    try {
+      let url = `/v1/libraries/${item.libraryId}/items/${item.id}/events`;
+      if (nextToken) {
+        url += `?nextToken=${nextToken}`;
+      }
+      const data = await api.get(url);
+      dispatch(refresh ? refreshItemHistorySuccess(data) : fetchItemHistorySuccess(data));
     } catch (e) {
       dispatch(appError(e));
     }
@@ -155,6 +177,37 @@ export const detectBook = (code) => async (dispatch) => {
   try {
     const data = await api.post('/v1/detections', { type: 0, code });
     dispatch(detectBookSuccess(data));
+  } catch (e) {
+    dispatch(appError(e));
+  }
+};
+
+export const lendLibraryItem = (item, lentTo, callback) => async (dispatch) => {
+  dispatch(appWaiting());
+
+  try {
+    await api.post(`/v1/libraries/${item.libraryId}/items/${item.id}/events`, {
+      type: ITEM_EVENT_TYPE.LENT,
+      event: lentTo,
+    });
+    dispatch(lendItemSuccess(item.id, lentTo));
+    if (callback) {
+      callback();
+    }
+  } catch (e) {
+    dispatch(appError(e));
+  }
+};
+
+export const returnLibraryItem = (item) => async (dispatch) => {
+  dispatch(appWaiting());
+
+  try {
+    await api.post(`/v1/libraries/${item.libraryId}/items/${item.id}/events`, {
+      type: ITEM_EVENT_TYPE.RETURNED,
+      event: item.lentTo,
+    });
+    dispatch(returnItemSuccess(item.id));
   } catch (e) {
     dispatch(appError(e));
   }

@@ -21,6 +21,10 @@ export const INITIAL_STATE = {
     items: [],
     nextToken: '',
   },
+  itemHistory: {
+    events: [],
+    nextToken: '',
+  },
   matchedItems: [],
 };
 
@@ -49,6 +53,26 @@ export const reducer = (state, action) => {
 
     case ACTION_TYPES.RESET_LIBRARY_ITEMS: {
       return { ...newState, libraryItems: { items: [], nextToken: '' } };
+    }
+
+    case ACTION_TYPES.FETCH_ITEM_HISTORY_SUCCESS: {
+      const { events, nextToken } = payload;
+      return {
+        ...newState,
+        loading: false,
+        refreshing: false,
+        itemHistory: { events: [...newState.itemHistory.events, ...events], nextToken },
+      };
+    }
+
+    case ACTION_TYPES.REFRESH_ITEM_HISTORY_SUCCESS: {
+      const { events, nextToken } = payload;
+      return {
+        ...newState,
+        loading: false,
+        refreshing: false,
+        itemHistory: { events: [...events], nextToken },
+      };
     }
 
     case ACTION_TYPES.UPDATE_BOOK_SUCCESS:
@@ -210,6 +234,40 @@ export const reducer = (state, action) => {
         loading: false,
         refreshing: false,
         libraries,
+      };
+    }
+
+    case ACTION_TYPES.LEND_ITEM_SUCCESS: {
+      const { itemId, lentTo } = payload;
+      const index = newState.libraryItems.items.findIndex((i) => i.id === itemId);
+      if (index !== -1) {
+        const item = newState.libraryItems.items[index];
+        newState.libraryItems.items[index] = { ...item, lentTo };
+      }
+      return {
+        ...newState,
+        loading: false,
+        notification: {
+          text: 'Item lent.',
+          severity: 'success',
+        },
+      };
+    }
+
+    case ACTION_TYPES.RETURN_ITEM_SUCCESS: {
+      const { itemId } = payload;
+      const index = newState.libraryItems.items.findIndex((i) => i.id === itemId);
+      if (index !== -1) {
+        const item = newState.libraryItems.items[index];
+        newState.libraryItems.items[index] = { ...item, lentTo: null };
+      }
+      return {
+        ...newState,
+        loading: false,
+        notification: {
+          text: 'Item returned.',
+          severity: 'success',
+        },
       };
     }
 

@@ -54,6 +54,8 @@ func init() {
 	g.PUT("/libraries/:libraryId/books/:bookId", h.UpdateBook)
 	g.POST("/libraries/:libraryId/share", h.ShareLibrary)
 	g.POST("/libraries/:libraryId/unshare", h.UnshareLibrary)
+	g.POST("/libraries/:libraryId/items/:itemId/events", h.CreateItemHistoryEvent)
+	g.GET("/libraries/:libraryId/items/:itemId/events", h.GetItemHistoryEvents)
 	g.POST("/search", h.Search)
 
 	/* g.GET("/hello", func(c *gin.Context) {

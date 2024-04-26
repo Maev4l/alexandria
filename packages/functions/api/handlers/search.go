@@ -41,6 +41,8 @@ func (h *HTTPHandler) Search(c *gin.Context) {
 					Title:      i.Title,
 					LibraryId:  &i.LibraryId,
 					LibrayName: &i.LibraryName,
+					LentTo:     i.LentTo,
+					OwnerId:    i.OwnerId,
 				},
 				Authors: i.Authors,
 				Summary: i.Summary,

@@ -20,6 +20,24 @@ func (e ItemType) String() string {
 	}
 }
 
+type ItemEventType string
+
+const (
+	Lent     ItemEventType = "LENT"
+	Returned ItemEventType = "RETURNED"
+)
+
+type ItemEvent struct {
+	Date  *time.Time
+	Type  ItemEventType
+	Event string
+}
+
+type ItemHistory struct {
+	Entries           []ItemEvent
+	ContinuationToken string
+}
+
 type ResolvedBook struct {
 	Id         string
 	Authors    []string
@@ -71,4 +89,5 @@ type LibraryItem struct {
 	Isbn        string
 	Type        ItemType
 	PictureUrl  *string
+	LentTo      *string
 }

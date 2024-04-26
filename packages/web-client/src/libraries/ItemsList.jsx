@@ -7,11 +7,11 @@ import { RefreshControl } from 'react-native-web-refresh-control';
 
 import { ITEM_TYPE } from '../domain';
 import { useDispatch } from '../store';
-import { deleteLibraryItem } from './operations';
+import { deleteLibraryItem, returnLibraryItem } from './operations';
 
 const BookItem = ({ book, sharedFrom, style, onPress, onPressActions, showDivider }) => {
   const theme = useTheme();
-  const { title, authors, isbn, picture } = book;
+  const { title, authors, isbn, picture, lentTo } = book;
   return (
     <>
       <Pressable onPress={onPress}>
@@ -26,7 +26,7 @@ const BookItem = ({ book, sharedFrom, style, onPress, onPressActions, showDivide
             ...style,
           }}
         >
-          <View style={{ flex: 1, flexDirection: 'row' }}>
+          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, flexDirection: 'row' }}>
               {picture ? (
                 <View
@@ -63,9 +63,7 @@ const BookItem = ({ book, sharedFrom, style, onPress, onPressActions, showDivide
                   <Text variant="titleLarge">?</Text>
                 </View>
               )}
-              <View
-                style={{ flex: 1, height: 90, paddingLeft: 5, justifyContent: 'space-between' }}
-              >
+              <View style={{ flex: 1, height: 90, paddingLeft: 5 }}>
                 <View style={{ flexShrink: 1 }}>
                   <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
                     {title}
@@ -75,16 +73,19 @@ const BookItem = ({ book, sharedFrom, style, onPress, onPressActions, showDivide
                 <Text>ISBN: {isbn}</Text>
               </View>
             </View>
-            {!sharedFrom && (
-              <IconButton
-                icon="dots-vertical"
-                animated
-                size={16}
-                mode="contained"
-                onPress={onPressActions}
-                style={{ marginTop: 0 }}
-              />
-            )}
+            <View style={{ alignItems: 'center' }}>
+              {!sharedFrom && (
+                <IconButton
+                  icon="dots-vertical"
+                  animated
+                  size={16}
+                  mode="contained"
+                  onPress={onPressActions}
+                  style={{ marginTop: 0 }}
+                />
+              )}
+              {!sharedFrom && lentTo && <Icon source="arrow-right-top" size={20} />}
+            </View>
           </View>
         </View>
       </Pressable>
@@ -105,13 +106,18 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
   const handlePressActions = (item) => {
     showActionSheetWithOptions(
       {
-        options: ['Update', 'Delete', 'Cancel'],
-        destructiveButtonIndex: 1,
-        cancelButtonIndex: 2,
+        options: ['Update', item.lentTo ? 'Return' : 'Lend', 'Delete', 'Cancel'],
+        destructiveButtonIndex: 2,
+        cancelButtonIndex: 3,
         showSeparators: true,
         tintIcons: true,
         icons: [
           <Icon color={theme.colors.onBackground} source="pencil" size={20} />,
+          item.lentTo ? (
+            <Icon color={theme.colors.onBackground} source="arrow-left-top" size={20} />
+          ) : (
+            <Icon color={theme.colors.onBackground} source="arrow-right-top" size={20} />
+          ),
           <Icon color={theme.colors.error} source="trash-can-outline" size={20} />,
           <Icon color={theme.colors.onBackground} source="close" size={20} />,
         ],
@@ -126,6 +132,14 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
             break;
           }
           case 1: {
+            if (item.lentTo) {
+              dispatch(returnLibraryItem(item));
+            } else {
+              navigation.navigate('LendItem', { item });
+            }
+            break;
+          }
+          case 2: {
             dispatch(deleteLibraryItem(library.id, item.id));
             break;
           }
