@@ -41,7 +41,7 @@ const ItemHistory = ({ route }) => {
       lastAction: state.lastAction,
       events: itemHistory.events.map((e) => {
         const { date, type, event } = e;
-        const time = `${moment(date).format('ddd YYYY-MMM-DD')}`;
+        const time = `${moment(date).format('YYYY-MMM-DD')}`;
         return {
           time,
           title: `${type}`,
@@ -66,7 +66,8 @@ const ItemHistory = ({ route }) => {
   return (
     <View style={{ flex: 1, padding: 10 }}>
       {(lastAction === ACTION_TYPES.FETCH_ITEM_HISTORY_SUCCESS ||
-        lastAction === ACTION_TYPES.REFRESH_ITEM_HISTORY_SUCCESS) &&
+        lastAction === ACTION_TYPES.REFRESH_ITEM_HISTORY_SUCCESS ||
+        lastAction === ACTION_TYPES.DELETE_ITEM_HISTORY_SUCCESS) &&
       events.length === 0 ? (
         <Alert variant="primary" style={{ marginTop: 20 }} text="This item has no history." />
       ) : null}

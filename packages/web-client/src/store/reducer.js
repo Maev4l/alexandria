@@ -55,6 +55,18 @@ export const reducer = (state, action) => {
       return { ...newState, libraryItems: { items: [], nextToken: '' } };
     }
 
+    case ACTION_TYPES.DELETE_ITEM_HISTORY_SUCCESS: {
+      return {
+        ...newState,
+        loading: false,
+        itemHistory: { events: [], nextToken: '' },
+        notification: {
+          text: 'Item history purged.',
+          severity: 'success',
+        },
+      };
+    }
+
     case ACTION_TYPES.FETCH_ITEM_HISTORY_SUCCESS: {
       const { events, nextToken } = payload;
       return {

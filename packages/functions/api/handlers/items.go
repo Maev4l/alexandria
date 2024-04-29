@@ -84,6 +84,23 @@ func (h *HTTPHandler) CreateItemHistoryEvent(c *gin.Context) {
 
 }
 
+func (h *HTTPHandler) DeleteItemHistoryEvents(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+	itemId := c.Param("itemId")
+
+	t := h.getTokenInfo(c)
+
+	err := h.s.DeleteLibraryItemHistory(t.userId, libraryId, itemId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to delete item history",
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
 func (h *HTTPHandler) GetItemHistoryEvents(c *gin.Context) {
 	libraryId := c.Param("libraryId")
 	itemId := c.Param("itemId")

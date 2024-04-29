@@ -10,6 +10,26 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func (s *services) DeleteLibraryItemHistory(ownerId string, libraryId string, itemId string) error {
+	item, err := s.db.GetLibraryItem(ownerId, libraryId, itemId)
+	if err != nil {
+		return err
+	}
+
+	if item.LentTo != nil && len(*item.LentTo) != 0 {
+		msg := "Item already lent"
+		log.Error().Str("id", item.Id).Msg(msg)
+		return errors.New(msg)
+	}
+
+	err = s.db.DeleteItemEvents(item)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *services) GetLibraryItemHistory(ownerId string, libraryId string, itemId string, continuationToken string, pageSize int) (*domain.ItemHistory, error) {
 	item, err := s.db.GetLibraryItem(ownerId, libraryId, itemId)
 	if err != nil {

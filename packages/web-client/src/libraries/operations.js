@@ -15,6 +15,7 @@ import {
   fetchItemHistorySuccess,
   refreshItemHistorySuccess,
   returnItemSuccess,
+  deleteItemHistorySuccess,
 } from './actions';
 
 import { api } from '../api';
@@ -208,6 +209,17 @@ export const returnLibraryItem = (item) => async (dispatch) => {
       event: item.lentTo,
     });
     dispatch(returnItemSuccess(item.id));
+  } catch (e) {
+    dispatch(appError(e));
+  }
+};
+
+export const deleteLibraryItemHistory = (item) => async (dispatch) => {
+  dispatch(appWaiting());
+
+  try {
+    await api.del(`/v1/libraries/${item.libraryId}/items/${item.id}/events`);
+    dispatch(deleteItemHistorySuccess());
   } catch (e) {
     dispatch(appError(e));
   }

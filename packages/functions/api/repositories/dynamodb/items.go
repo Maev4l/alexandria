@@ -17,6 +17,79 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func (d *dynamo) DeleteItemEvents(item *domain.LibraryItem) error {
+	query := dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		IndexName:              aws.String("GSI1"),
+		KeyConditionExpression: aws.String("#GSI1PK = :gsi1pk and begins_with(#GSI1SK,:library_item_history_prefix)"),
+		ExpressionAttributeNames: map[string]string{
+			"#GSI1PK": "GSI1PK",
+			"#GSI1SK": "GSI1SK",
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":gsi1pk": &types.AttributeValueMemberS{
+				Value: persistence.MakeItemEventGSI1PK(item.OwnerId, item.LibraryId, item.Id),
+			},
+			":library_item_history_prefix": &types.AttributeValueMemberS{
+				Value: "event#",
+			},
+		},
+		ScanIndexForward: aws.Bool(false),
+		Limit:            aws.Int32(int32(25)),
+	}
+
+	type Record struct {
+		PK string `dynamodbav:"PK"`
+		SK string `dynamodbav:"SK"`
+	}
+
+	records := []types.WriteRequest{}
+	queryPaginator := dynamodb.NewQueryPaginator(d.client, &query)
+
+	for i := 0; queryPaginator.HasMorePages(); i++ {
+		result, err := queryPaginator.NextPage(context.TODO())
+
+		if err != nil {
+			log.Error().Str("id", item.Id).Msgf("Failed to query records to delete: %s", err.Error())
+			return err
+		}
+
+		if result.Count > 0 {
+			for _, item := range result.Items {
+				record := Record{}
+				if err := attributevalue.UnmarshalMap(item, &record); err != nil {
+					log.Warn().Msgf("Failed to unmarshal record: %s", err.Error())
+					continue
+				}
+
+				records = append(records, types.WriteRequest{
+					DeleteRequest: &types.DeleteRequest{
+						Key: map[string]types.AttributeValue{
+							"PK": &types.AttributeValueMemberS{Value: record.PK},
+							"SK": &types.AttributeValueMemberS{Value: record.SK},
+						},
+					},
+				})
+			}
+		}
+	}
+
+	chunks := slices.ChunkBy(records, 25)
+	for _, c := range chunks {
+		_, err := d.client.BatchWriteItem(context.TODO(), &dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]types.WriteRequest{
+				tableName: c,
+			},
+		})
+		if err != nil {
+			log.Warn().Str("id", item.Id).Msgf("Failed to batch delete records: %s", err.Error())
+			continue
+		}
+	}
+
+	return nil
+}
+
 func (d *dynamo) QueryItemEvents(i *domain.LibraryItem, continuationToken string, pageSize int) (*domain.ItemHistory, error) {
 
 	query := dynamodb.QueryInput{

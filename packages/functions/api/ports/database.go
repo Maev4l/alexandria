@@ -23,4 +23,5 @@ type Database interface {
 	GetMatchedItems([]domain.IndexItem) ([]*domain.LibraryItem, error)
 	PutItemEvent(i *domain.LibraryItem, evtType domain.ItemEventType, evt string, date *time.Time) error
 	QueryItemEvents(i *domain.LibraryItem, continuationToken string, pageSize int) (*domain.ItemHistory, error)
+	DeleteItemEvents(i *domain.LibraryItem) error
 }
