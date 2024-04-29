@@ -163,13 +163,14 @@ func (d *dynamo) QueryItemEvents(i *domain.LibraryItem, continuationToken string
 func (d *dynamo) PutItemEvent(i *domain.LibraryItem, evtType domain.ItemEventType, evt string, date *time.Time) error {
 
 	record := persistence.ItemEvent{
-		PK:        persistence.MakeItemEventPK(i.OwnerId),
-		SK:        persistence.MakeItemEventSK(i.LibraryId, i.Id, *date),
-		GSI1PK:    persistence.MakeItemEventGSI1PK(i.OwnerId, i.LibraryId, i.Id),
-		GSI1SK:    persistence.MakeItemEventGSI1SK(*date),
-		Type:      string(evtType),
-		Event:     evt,
-		UpdatedAt: date,
+		PK:         persistence.MakeItemEventPK(i.OwnerId),
+		SK:         persistence.MakeItemEventSK(i.LibraryId, i.Id, *date),
+		GSI1PK:     persistence.MakeItemEventGSI1PK(i.OwnerId, i.LibraryId, i.Id),
+		GSI1SK:     persistence.MakeItemEventGSI1SK(*date),
+		Type:       string(evtType),
+		Event:      evt,
+		UpdatedAt:  date,
+		EntityType: persistence.TypeEvent,
 	}
 	item, err := attributevalue.MarshalMap(record)
 	if err != nil {
@@ -492,6 +493,7 @@ func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
 		Isbn:        i.Isbn,
 		Type:        int(i.Type),
 		PictureUrl:  i.PictureUrl,
+		EntityType:  persistence.TypeBook,
 	}
 
 	item, err := attributevalue.MarshalMap(record)

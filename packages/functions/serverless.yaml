@@ -121,26 +121,34 @@ functions:
           batchSize: 5000
           maximumBatchingWindow: 5
           filterPatterns:
-            # Capture insert and remove of libraries, items and shared libraries
             - body:
                 eventName:
                   - INSERT
-                  - REMOVE
                 dynamodb:
-                  Keys:
-                    SK:
+                  NewImage:
+                    EntityType:
                       S:
-                        - prefix: 'library#'
-                        - prefix: 'shared-library#'
-            # Capture modify of items only (when an item is added into a library, changes of TotalItems of libraries are not captured)
+                        - LIBRARY
+                        - BOOK
+                        - SHARED_LIBRARY
             - body:
                 eventName:
                   - MODIFY
                 dynamodb:
                   NewImage:
-                    GSI1SK:
+                    EntityType:
                       S:
-                        - prefix: 'item#'
+                        - BOOK
+            - body:
+                eventName:
+                  - REMOVE
+                dynamodb:
+                  OldImage:
+                    EntityType:
+                      S:
+                        - LIBRARY
+                        - BOOK
+                        - SHARED_LIBRARY
 
   #search:
   #  handler: search/handler.handle

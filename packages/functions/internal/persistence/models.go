@@ -10,6 +10,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
+type EntityType string
+
+const (
+	TypeLibrary      EntityType = "LIBRARY"
+	TypSharedLibrary EntityType = "SHARED_LIBRARY"
+	TypeBook         EntityType = "BOOK"
+	TypeEvent        EntityType = "EVENT"
+)
+
 func SerializeLek(input map[string]types.AttributeValue) (*string, error) {
 	var inputMap map[string]interface{}
 	err := attributevalue.UnmarshalMap(input, &inputMap)
@@ -51,6 +60,7 @@ type Library struct {
 	TotalItems  int        `dynamodbav:"TotalItems"`
 	UpdatedAt   *time.Time `dynamodbav:"UpdatedAt"`
 	SharedTo    []string   `dynamodbav:"SharedTo"`
+	EntityType  EntityType `dynamodbav:"EntityType"`
 }
 
 func MakeLibraryPK(ownerId string) string {
@@ -89,6 +99,7 @@ type LibraryItem struct {
 	Type        int        `dynamodbav:"Type"`
 	PictureUrl  *string    `dynamodbav:"PictureUrl,omitempty"`
 	LentTo      *string    `dynamodbav:"LentTo,omitempty"`
+	EntityType  EntityType `dynamodbav:"EntityType"`
 }
 
 func MakeLibraryItemPK(ownerId string) string {
@@ -123,6 +134,7 @@ type SharedLibrary struct {
 	SharedFromId   string     `dynamodbav:"SharedFromId"`   // original owner of the library
 	SharedFromName string     `dynamodbav:"SharedFromName"` // original library owner
 	UpdatedAt      *time.Time `dynamodbav:"UpdatedAt"`
+	EntityType     EntityType `dynamodbav:"EntityType"`
 }
 
 func MakeSharedLibraryPK(ownerId string) string {
@@ -134,13 +146,14 @@ func MakeSharedLibrarySK(libraryId string) string {
 }
 
 type ItemEvent struct {
-	PK        string     `dynamodbav:"PK"`     // owner#<owner id>
-	SK        string     `dynamodbav:"SK"`     // library#<library id>#item#<item id>#event#<event date>
-	GSI1PK    string     `dynamodbav:"GSI1PK"` // owner#<owner id>#library#<library id>#item#<item id>
-	GSI1SK    string     `dynamodbav:"GSI1SK"` // event#<event date>
-	Type      string     `dynamodbav:"Type"`
-	Event     string     `dynamodbav:"Event"`
-	UpdatedAt *time.Time `dynamodbav:"UpdatedAt"`
+	PK         string     `dynamodbav:"PK"`     // owner#<owner id>
+	SK         string     `dynamodbav:"SK"`     // library#<library id>#item#<item id>#event#<event date>
+	GSI1PK     string     `dynamodbav:"GSI1PK"` // owner#<owner id>#library#<library id>#item#<item id>
+	GSI1SK     string     `dynamodbav:"GSI1SK"` // event#<event date>
+	Type       string     `dynamodbav:"Type"`
+	Event      string     `dynamodbav:"Event"`
+	UpdatedAt  *time.Time `dynamodbav:"UpdatedAt"`
+	EntityType EntityType `dynamodbav:"EntityType"`
 }
 
 func MakeItemEventPK(ownerId string) string {

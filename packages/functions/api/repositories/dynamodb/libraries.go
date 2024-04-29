@@ -343,6 +343,7 @@ func (d *dynamo) ShareLibrary(s *domain.ShareLibrary) error {
 		SharedFromId:   s.SharedFromUserId,
 		SharedFromName: s.SharedFromUserName,
 		UpdatedAt:      s.UpdatedAt,
+		EntityType:     persistence.TypSharedLibrary,
 	}
 	item, err := attributevalue.MarshalMap(record)
 	if err != nil {
@@ -411,6 +412,7 @@ func (d *dynamo) PutLibrary(l *domain.Library) error {
 		TotalItems:  0,
 		UpdatedAt:   l.UpdatedAt,
 		SharedTo:    make([]string, 0),
+		EntityType:  persistence.TypeLibrary,
 	}
 
 	item, err := attributevalue.MarshalMap(record)
