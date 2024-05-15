@@ -136,7 +136,7 @@ export const deleteLibraryItem = (libraryId, itemId) => async (dispatch) => {
   try {
     await api.del(`/v1/libraries/${libraryId}/items/${itemId}`);
     const data = await api.get(`/v1/libraries/${libraryId}/items`);
-    dispatch(deleteLibraryItemSuccess(data));
+    dispatch(deleteLibraryItemSuccess({ ...data, libraryId }));
   } catch (e) {
     dispatch(appError(e));
   }
@@ -147,7 +147,7 @@ export const createBook = (item, callback) => async (dispatch) => {
   try {
     await api.post(`/v1/libraries/${item.libraryId}/books`, item);
     const data = await api.get(`/v1/libraries/${item.libraryId}/items`);
-    dispatch(createBookSuccess(data));
+    dispatch(createBookSuccess({ ...data, libraryId: item.libraryId }));
     callback();
   } catch (e) {
     dispatch(appError(e));

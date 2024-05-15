@@ -87,9 +87,37 @@ export const reducer = (state, action) => {
       };
     }
 
+    case ACTION_TYPES.CREATE_BOOK_SUCCESS: {
+      const { items, nextToken, libraryId } = payload;
+      const index = newState.libraries.findIndex((l) => l.id === libraryId);
+      if (index !== -1) {
+        const library = newState.libraries[index];
+        newState.libraries[index] = { ...library, totalItems: library.totalItems + 1 };
+      }
+      return {
+        ...newState,
+        loading: false,
+        refreshing: false,
+        libraryItems: { items: [...items], nextToken },
+      };
+    }
+
+    case ACTION_TYPES.DELETE_LIBRARY_ITEM_SUCCESS: {
+      const { items, nextToken, libraryId } = payload;
+      const index = newState.libraries.findIndex((l) => l.id === libraryId);
+      if (index !== -1) {
+        const library = newState.libraries[index];
+        newState.libraries[index] = { ...library, totalItems: library.totalItems - 1 };
+      }
+      return {
+        ...newState,
+        loading: false,
+        refreshing: false,
+        libraryItems: { items: [...items], nextToken },
+      };
+    }
+
     case ACTION_TYPES.UPDATE_BOOK_SUCCESS:
-    case ACTION_TYPES.CREATE_BOOK_SUCCESS:
-    case ACTION_TYPES.DELETE_LIBRARY_ITEM_SUCCESS:
     case ACTION_TYPES.REFRESH_LIBRARY_ITEMS_SUCCESS: {
       const { items, nextToken } = payload;
       return {
