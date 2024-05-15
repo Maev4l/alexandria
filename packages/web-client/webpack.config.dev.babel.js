@@ -13,6 +13,7 @@ export default merge(baseConfig, {
       overlay: false,
     },
   },
+
   plugins: [
     new webpack.DefinePlugin({
       __DEV__: true,

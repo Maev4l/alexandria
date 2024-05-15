@@ -50,14 +50,10 @@ export default {
           path.resolve(appDirectory, '..', '..', 'node_modules/react-native-vector-icons'),
           path.resolve(appDirectory, '..', '..', 'node_modules/react-native-web-refresh-control'),
         ],
-        use: {
-          loader: 'babel-loader',
-          options: {
-            cacheDirectory: true,
-            // Re-write paths to import only the modules needed by the app
-            plugins: ['react-native-web'],
-            rootMode: 'upward',
-          },
+        loader: 'esbuild-loader',
+        options: {
+          target: 'es2015',
+          loader: 'jsx', // allow jsx in .js files
         },
       },
     ],
@@ -103,6 +99,9 @@ export default {
     }),
     new MomentLocalesPlugin({
       localesToKeep: ['fr'],
+    }),
+    new webpack.ProvidePlugin({
+      React: 'react', // autoimatically inject React in our components
     }),
   ],
 };
