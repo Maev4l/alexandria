@@ -47,25 +47,19 @@ func init() {
 	}
 }
 
-func processEventRecord(db *domain.IndexDatabase, b string) bool {
-	var r persistence.EventRecord
-	err := json.Unmarshal([]byte(b), &r)
-	if err != nil {
-		log.Error().Msgf("Failed to unmarshall event payload (%s): %s", b, err.Error())
-		return false
-	}
+func processEventRecord(db *domain.IndexDatabase, evt events.DynamoDBEventRecord) bool {
 
-	hs, ok := handlers[r.EventName]
+	hs, ok := handlers[evt.EventName]
 	if !ok {
-		log.Error().Msgf("Unknown event name: %s", r.EventName)
+		log.Error().Msgf("Unknown event name: %s", evt.EventName)
 		return false
 	}
 
 	var entityType persistence.EntityType
-	if r.EventName == "REMOVE" {
-		entityType = persistence.EntityType(r.DynamoDbStreamRecord.OldImage["EntityType"].String())
+	if evt.EventName == "REMOVE" {
+		entityType = persistence.EntityType(evt.Change.OldImage["EntityType"].String())
 	} else {
-		entityType = persistence.EntityType(r.DynamoDbStreamRecord.NewImage["EntityType"].String())
+		entityType = persistence.EntityType(evt.Change.NewImage["EntityType"].String())
 	}
 
 	handler, ok := hs[entityType]
@@ -74,11 +68,11 @@ func processEventRecord(db *domain.IndexDatabase, b string) bool {
 		return false
 	}
 
-	return handler(db, &r)
+	return handler(db, &evt)
 
 }
 
-func handler(event events.SQSEvent) error {
+func handler(event events.DynamoDBEvent) error {
 
 	downloader := manager.NewDownloader(client)
 	buf := manager.NewWriteAtBuffer([]byte{})
@@ -114,8 +108,10 @@ func handler(event events.SQSEvent) error {
 	}
 
 	databaseModified := false
+	// b, _ := json.Marshal(&event)
+	// log.Info().Msgf("Event: %s", string(b))
 	for _, r := range event.Records {
-		databaseModified = databaseModified || processEventRecord(&indexes, r.Body)
+		databaseModified = databaseModified || processEventRecord(&indexes, r)
 	}
 
 	if !databaseModified {

@@ -4,12 +4,13 @@ import (
 	"alexandria.isnan.eu/functions/internal/domain"
 	"alexandria.isnan.eu/functions/internal/persistence"
 	ddbconversions "github.com/aereal/go-dynamodb-attribute-conversions/v2"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/rs/zerolog/log"
 )
 
-func NewLibraryHandler(db *domain.IndexDatabase, r *persistence.EventRecord) bool {
-	atv := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.NewImage)
+func NewLibraryHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) bool {
+	atv := ddbconversions.AttributeValueMapFrom(evt.Change.NewImage)
 	var library persistence.Library
 	_ = attributevalue.UnmarshalMap(atv, &library)
 
@@ -26,14 +27,15 @@ func NewLibraryHandler(db *domain.IndexDatabase, r *persistence.EventRecord) boo
 	return true
 }
 
-func DeleteLibraryHandler(db *domain.IndexDatabase, r *persistence.EventRecord) bool {
-	atv := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.OldImage)
+func DeleteLibraryHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) bool {
+	atv := ddbconversions.AttributeValueMapFrom(evt.Change.OldImage)
 	var library persistence.Library
 	_ = attributevalue.UnmarshalMap(atv, &library)
 
 	u, ok := db.Libraries[library.OwnerId]
 	if !ok {
-		// should not happen, as that means this item is added into a non-indexed user
+		// should not happen, as that means this library was added into a non-indexed user
+		log.Warn().Str("ownerId", library.OwnerId).Str("libraryId", library.Id).Msg("No owner found for deleted library.")
 		return false
 	}
 
@@ -55,8 +57,8 @@ func DeleteLibraryHandler(db *domain.IndexDatabase, r *persistence.EventRecord) 
 	return true
 }
 
-func NewSharedLibraryHandler(db *domain.IndexDatabase, r *persistence.EventRecord) bool {
-	atv := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.NewImage)
+func NewSharedLibraryHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) bool {
+	atv := ddbconversions.AttributeValueMapFrom(evt.Change.NewImage)
 	var sh persistence.SharedLibrary
 	_ = attributevalue.UnmarshalMap(atv, &sh)
 
@@ -80,14 +82,15 @@ func NewSharedLibraryHandler(db *domain.IndexDatabase, r *persistence.EventRecor
 	return true
 }
 
-func DeleteSharedLibraryHandler(db *domain.IndexDatabase, r *persistence.EventRecord) bool {
-	atv := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.OldImage)
+func DeleteSharedLibraryHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) bool {
+	atv := ddbconversions.AttributeValueMapFrom(evt.Change.OldImage)
 	var sh persistence.SharedLibrary
 	_ = attributevalue.UnmarshalMap(atv, &sh)
 
 	u, ok := db.UsersToSharedLibraries[sh.SharedToId]
 	if !ok {
 		// Should not happen, as that means we unshare a library whose sharing has not been indexed
+		log.Warn().Str("sharedToId", sh.SharedToId).Str("libraryId", sh.LibraryId).Msg("No owner found for deleted shared library.")
 		return false
 	}
 	delete(u, sh.LibraryId)

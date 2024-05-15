@@ -2,7 +2,7 @@ package processing
 
 import (
 	"alexandria.isnan.eu/functions/internal/domain"
-	"alexandria.isnan.eu/functions/internal/persistence"
+	"github.com/aws/aws-lambda-go/events"
 )
 
-type Handler func(db *domain.IndexDatabase, r *persistence.EventRecord) bool
+type Handler func(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) bool

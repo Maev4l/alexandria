@@ -6,16 +6,17 @@ import (
 	"alexandria.isnan.eu/functions/internal/domain"
 	"alexandria.isnan.eu/functions/internal/persistence"
 	ddbconversions "github.com/aereal/go-dynamodb-attribute-conversions/v2"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/rs/zerolog/log"
 )
 
-func UpdateItemHandler(db *domain.IndexDatabase, r *persistence.EventRecord) bool {
-	atv_new := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.NewImage)
+func UpdateItemHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) bool {
+	atv_new := ddbconversions.AttributeValueMapFrom(evt.Change.NewImage)
 	var item_new persistence.LibraryItem
 	_ = attributevalue.UnmarshalMap(atv_new, &item_new)
 
-	atv_old := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.OldImage)
+	atv_old := ddbconversions.AttributeValueMapFrom(evt.Change.OldImage)
 	var item_old persistence.LibraryItem
 	_ = attributevalue.UnmarshalMap(atv_old, &item_old)
 
@@ -28,18 +29,21 @@ func UpdateItemHandler(db *domain.IndexDatabase, r *persistence.EventRecord) boo
 	u, ok := db.Libraries[item_new.OwnerId]
 	if !ok {
 		// should not happen, as that means this item is added into a non-indexed user
+		log.Warn().Str("ownerId", item_new.OwnerId).Str("itemId", item_new.Id).Msg("No owner found for updated item.")
 		return false
 	}
 
 	l, ok := u[item_new.LibraryId]
 	if !ok {
-		// should not happen, as that means this item is added into a non-indexed library
+		// should not happen, as that means this item belongs into a non-indexed library
+		log.Warn().Str("libraryId", item_new.LibraryId).Str("itemId", item_new.Id).Msg("No library found for updated item.")
 		return false
 	}
 
 	i, ok := l.Items[item_new.Id]
 	if !ok {
 		// should not happen as that means, we are modifying an item belonging to a non indexed item
+		log.Warn().Str("itemId", item_new.Id).Msg("No index found for updated item.")
 		return false
 	}
 
@@ -51,20 +55,22 @@ func UpdateItemHandler(db *domain.IndexDatabase, r *persistence.EventRecord) boo
 	return true
 }
 
-func DeleteItemHandler(db *domain.IndexDatabase, r *persistence.EventRecord) bool {
-	atv := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.OldImage)
+func DeleteItemHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) bool {
+	atv := ddbconversions.AttributeValueMapFrom(evt.Change.OldImage)
 	var item persistence.LibraryItem
 	_ = attributevalue.UnmarshalMap(atv, &item)
 
 	u, ok := db.Libraries[item.OwnerId]
 	if !ok {
-		// should not happen, as that means this item is added into a non-indexed user
+		// should not happen, as that means this item is removed from a non-indexed user
+		log.Warn().Str("ownerId", item.OwnerId).Str("itemId", item.Id).Msg("No owner found for deleted item.")
 		return false
 	}
 
 	l, ok := u[item.LibraryId]
 	if !ok {
 		// should not happen, as that means this item is added into a non-indexed library
+		log.Warn().Str("libraryId", item.LibraryId).Str("itemId", item.Id).Msg("No library found for deleted item.")
 		return false
 	}
 
@@ -74,20 +80,22 @@ func DeleteItemHandler(db *domain.IndexDatabase, r *persistence.EventRecord) boo
 	return true
 }
 
-func NewItemHandler(db *domain.IndexDatabase, r *persistence.EventRecord) bool {
-	atv := ddbconversions.AttributeValueMapFrom(r.DynamoDbStreamRecord.NewImage)
+func NewItemHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) bool {
+	atv := ddbconversions.AttributeValueMapFrom(evt.Change.NewImage)
 	var item persistence.LibraryItem
 	_ = attributevalue.UnmarshalMap(atv, &item)
 
 	u, ok := db.Libraries[item.OwnerId]
 	if !ok {
 		// should not happen, as that means this item is added into a non-indexed user
+		log.Warn().Str("ownerId", item.OwnerId).Str("itemId", item.Id).Msg("No owner found for new item.")
 		return false
 	}
 
 	l, ok := u[item.LibraryId]
 	if !ok {
 		// should not happen, as that means this item is added into a non-indexed library
+		log.Warn().Str("libraryId", item.LibraryId).Str("itemId", item.Id).Msg("No library found for new item.")
 		return false
 	}
 
