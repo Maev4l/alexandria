@@ -74,7 +74,9 @@ const ItemsScreen = ({ route }) => {
         </View>
       )}
       {(lastAction === ACTION_TYPES.FETCH_LIBRARY_ITEMS_SUCCESS ||
-        lastAction === ACTION_TYPES.REFRESH_LIBRARY_ITEMS_SUCCESS) &&
+        lastAction === ACTION_TYPES.REFRESH_LIBRARY_ITEMS_SUCCESS ||
+        lastAction === ACTION_TYPES.DELETE_LIBRARY_ITEM_SUCCESS ||
+        lastAction === ACTION_TYPES.DISMISS_NOTIFICATION) &&
       items.length === 0 ? (
         <Alert
           variant="primary"

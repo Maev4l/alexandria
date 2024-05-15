@@ -47,7 +47,10 @@ const LibrariesScreen = () => {
           Add library
         </Chip>
       </View>
-      {lastAction === ACTION_TYPES.FETCH_LIBRARIES_SUCCESS && libraries.length === 0 ? (
+      {(lastAction === ACTION_TYPES.FETCH_LIBRARIES_SUCCESS ||
+        lastAction === ACTION_TYPES.DELETE_LIBRARY_SUCCESS ||
+        lastAction === ACTION_TYPES.DISMISS_NOTIFICATION) &&
+      libraries.length === 0 ? (
         <Alert variant="primary" style={{ marginTop: 20 }} text="You have no libraries." />
       ) : null}
       <ScrollView
