@@ -194,6 +194,12 @@ func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 
 	err = h.validateItemPayload(&item)
 
+	var collectionStr string
+	if request.Collection != nil {
+		collectionStr = strings.TrimSpace(*request.Collection)
+		item.Collection = &collectionStr
+	}
+
 	if err != nil {
 		log.Error().Msg(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -265,6 +271,12 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 	}
 
 	err = h.validateItemPayload(&item)
+
+	var collectionStr string
+	if request.Collection != nil {
+		collectionStr = strings.TrimSpace(*request.Collection)
+		item.Collection = &collectionStr
+	}
 
 	if err != nil {
 		log.Error().Msg(err.Error())

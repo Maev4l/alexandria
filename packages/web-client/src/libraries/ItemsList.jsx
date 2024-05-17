@@ -30,6 +30,7 @@ const CollectionItem = ({ collection, sharedFrom, onPress, onPressActions, showD
         <View style={{ marginLeft: 10, flex: 1 }}>
           {items.map((item, index) => (
             <BookItem
+              key={item.id}
               book={item}
               sharedFrom={sharedFrom}
               onPress={() => onPress(item)}
@@ -203,7 +204,7 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
   items.forEach((item, index) => {
     const { collection } = item;
     if (collection) {
-      const found = collection2index[collection];
+      const found = collection in collection2index;
       if (!found) {
         collection2index[collection] = index;
         // const { picture, ...rest } = item;
@@ -213,9 +214,9 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
         };
         groupedItems = [...groupedItems, col];
       } else {
-        const col = groupedItems[found];
+        const col = groupedItems[collection2index[collection]];
         // const { picture, ...rest } = item;
-        groupedItems[found] = { ...col, items: [...col.items, item] };
+        groupedItems[collection2index[collection]] = { ...col, items: [...col.items, item] };
       }
     } else {
       // const { picture, ...rest } = item;
@@ -223,6 +224,7 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
     }
   });
 
+  // console.log(`groupeditems: ${JSON.stringify(groupedItems)}`);
   const renderElement = ({ item, index }) => {
     const { items: collectionItems, type } = item;
     // if the element has "items" property exists, that means we have to render
@@ -231,6 +233,7 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
     if (collectionItems) {
       return (
         <CollectionItem
+          key={item.id}
           collection={item}
           sharedFrom={sharedFrom}
           onPress={(i) => navigation.navigate('BookDetails', { book: { ...i } })}
@@ -246,6 +249,7 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
 
     return (
       <BookItem
+        key={item.id}
         book={item}
         sharedFrom={sharedFrom}
         onPress={() => navigation.navigate('BookDetails', { book: { ...item } })}
