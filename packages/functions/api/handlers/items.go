@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,6 +26,24 @@ func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 
 		if len(item.Summary) > 4000 {
 			return errors.New("Invalid request - Summary too long (max. 4000 chars)")
+		}
+
+		if item.Collection == nil && item.Order != nil {
+			return errors.New("Invalid request - Collection name must be specified.")
+		}
+
+		if item.Collection != nil {
+			if len(*item.Collection) == 0 || len(*item.Collection) > 100 {
+				return errors.New(fmt.Sprintf("Invalid request - Invalid collection name (1-100 chars): %d chars", len(*item.Collection)))
+			}
+
+			if item.Order == nil {
+				return errors.New("Invalid request - Collection order must be specified.")
+			}
+
+			if *item.Order <= 0 || *item.Order > 1000 {
+				return errors.New("Invalid request - Invalid collection order (Must be between 1 and 1000")
+			}
 		}
 	}
 
@@ -169,6 +188,8 @@ func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 		Authors:    slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
 		Type:       domain.ItemBook,
 		PictureUrl: request.PictureUrl,
+		Collection: request.Collection,
+		Order:      request.Order,
 	}
 
 	err = h.validateItemPayload(&item)
@@ -239,6 +260,8 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 		OwnerName:  t.displayName,
 		Type:       domain.ItemBook,
 		PictureUrl: request.PictureUrl,
+		Collection: request.Collection,
+		Order:      request.Order,
 	}
 
 	err = h.validateItemPayload(&item)
@@ -303,6 +326,8 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 					LibrayName: &i.LibraryName,
 					LentTo:     i.LentTo,
 					OwnerId:    i.OwnerId,
+					Collection: i.Collection,
+					Order:      i.Order,
 				},
 				Authors: i.Authors,
 				Summary: i.Summary,

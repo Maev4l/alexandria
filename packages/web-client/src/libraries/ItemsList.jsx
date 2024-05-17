@@ -9,9 +9,44 @@ import { ITEM_TYPE } from '../domain';
 import { useDispatch } from '../store';
 import { deleteLibraryItem, returnLibraryItem } from './operations';
 
+const CollectionItem = ({ collection, sharedFrom, onPress, onPressActions, showDivider }) => {
+  const { name, items } = collection;
+  return (
+    <View style={{ flex: 1, minHeight: '100px' }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          flex: 1,
+          marginBottom: 5,
+          alignItems: 'center',
+          columnGap: 5,
+        }}
+      >
+        <Icon source="archive-outline" size={20} style={{ marginLeft: 0, paddingLeft: 0 }} />
+        <Text style={{ fontWeight: 600, flexWrap: 'wrap' }}>{name}</Text>
+      </View>
+      <View style={{ flexDirection: 'row' }}>
+        <Divider style={{ width: 1, height: '100%' }} />
+        <View style={{ marginLeft: 10, flex: 1 }}>
+          {items.map((item, index) => (
+            <BookItem
+              book={item}
+              sharedFrom={sharedFrom}
+              onPress={() => onPress(item)}
+              onPressActions={() => onPressActions(item)}
+              showDivider={index !== items.length - 1}
+            />
+          ))}
+        </View>
+      </View>
+      {showDivider ? <Divider style={{ marginBottom: 10 }} horizontalInset /> : null}
+    </View>
+  );
+};
+
 const BookItem = ({ book, sharedFrom, style, onPress, onPressActions, showDivider }) => {
   const theme = useTheme();
-  const { title, authors, isbn, picture, lentTo } = book;
+  const { title, authors, /* isbn, */ picture, lentTo } = book;
   return (
     <>
       <Pressable onPress={onPress}>
@@ -70,7 +105,7 @@ const BookItem = ({ book, sharedFrom, style, onPress, onPressActions, showDivide
                   </Text>
                   <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
                 </View>
-                <Text>ISBN: {isbn}</Text>
+                {/* <Text>ISBN: {isbn}</Text> */}
               </View>
             </View>
             <View style={{ alignItems: 'center' }}>
@@ -162,13 +197,71 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
     setFabVisibility(y > 0);
   };
 
+  // Group items by collection (if any)
+  const collection2index = {};
+  let groupedItems = [];
+  items.forEach((item, index) => {
+    const { collection } = item;
+    if (collection) {
+      const found = collection2index[collection];
+      if (!found) {
+        collection2index[collection] = index;
+        // const { picture, ...rest } = item;
+        const col = {
+          name: collection,
+          items: [item],
+        };
+        groupedItems = [...groupedItems, col];
+      } else {
+        const col = groupedItems[found];
+        // const { picture, ...rest } = item;
+        groupedItems[found] = { ...col, items: [...col.items, item] };
+      }
+    } else {
+      // const { picture, ...rest } = item;
+      groupedItems = [...groupedItems, item];
+    }
+  });
+
+  const renderElement = ({ item, index }) => {
+    const { items: collectionItems, type } = item;
+    // if the element has "items" property exists, that means we have to render
+    // a collection
+
+    if (collectionItems) {
+      return (
+        <CollectionItem
+          collection={item}
+          sharedFrom={sharedFrom}
+          onPress={(i) => navigation.navigate('BookDetails', { book: { ...i } })}
+          onPressActions={(i) => handlePressActions(i)}
+          showDivider={index !== items.length - 1}
+        />
+      );
+    }
+
+    if (type !== ITEM_TYPE.BOOK) {
+      return null;
+    }
+
+    return (
+      <BookItem
+        book={item}
+        sharedFrom={sharedFrom}
+        onPress={() => navigation.navigate('BookDetails', { book: { ...item } })}
+        onPressActions={() => handlePressActions(item)}
+        showDivider={index !== items.length - 1}
+      />
+    );
+  };
+
   return (
     <>
       <FlatList
         ref={ref}
         refreshControl={<RefreshControl onRefresh={onRefresh} refreshing={refreshing} />}
         contentContainerStyle={{ flexGrow: 1 }}
-        data={items}
+        data={groupedItems}
         onEndReachedThreshold={0.2}
         onEndReached={onEndReached}
         onScroll={onScroll}
@@ -176,17 +269,7 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
         /* ListEmptyComponent={() => (
           <Alert variant="primary" style={{ marginTop: 20 }} text="You have no items." />
         )} */
-        renderItem={({ item, index }) =>
-          item.type === ITEM_TYPE.BOOK ? (
-            <BookItem
-              book={item}
-              sharedFrom={sharedFrom}
-              onPress={() => navigation.navigate('BookDetails', { book: { ...item } })}
-              onPressActions={() => handlePressActions(item)}
-              showDivider={index !== items.length - 1}
-            />
-          ) : null
-        }
+        renderItem={renderElement}
       />
       {showFab && (
         <FAB

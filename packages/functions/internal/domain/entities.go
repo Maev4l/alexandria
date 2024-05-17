@@ -90,4 +90,6 @@ type LibraryItem struct {
 	Type        ItemType
 	PictureUrl  *string
 	LentTo      *string
+	Collection  *string
+	Order       *int
 }

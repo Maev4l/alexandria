@@ -100,6 +100,8 @@ type LibraryItem struct {
 	PictureUrl  *string    `dynamodbav:"PictureUrl,omitempty"`
 	LentTo      *string    `dynamodbav:"LentTo,omitempty"`
 	EntityType  EntityType `dynamodbav:"EntityType"`
+	Collection  *string    `json:"Collection,omitempty"`
+	Order       *int       `json:"Order,omitempty"`
 }
 
 func MakeLibraryItemPK(ownerId string) string {
@@ -114,8 +116,14 @@ func MakeLibraryItemGSI1PK(ownerId string, libraryId string) string {
 	return fmt.Sprintf("owner#%s#library#%s", ownerId, libraryId)
 }
 
-func MakeLibraryItemGSI1SK(itemTitle string) string {
-	return fmt.Sprintf("item#%s", itemTitle)
+func MakeLibraryItemGSI1SK(itemTitle string, collection *string, order *int) string {
+	if (collection == nil || len(*collection) == 0) && (order == nil || *order < 0) {
+		return fmt.Sprintf("item#%s", itemTitle)
+	}
+
+	orderStr := fmt.Sprintf("%05d", *order)
+	return fmt.Sprintf("item#%s#%s#%s", *collection, orderStr, itemTitle)
+
 }
 
 func MakeLibraryItemGSI2PK(ownerId string) string {

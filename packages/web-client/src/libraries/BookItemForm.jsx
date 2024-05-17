@@ -14,6 +14,12 @@ const BookItemForm = ({ book, onSubmit }) => {
   const handleChangeSummary = (v) => setItem({ ...item, summary: v });
   const handleChangeAuthors = (v) => setItem({ ...item, authors: v.split(',') });
   const handleChangeIsbn = (v) => setItem({ ...item, isbn: v });
+  const handleCollectionName = (v) => setItem({ ...item, collection: v });
+  const handleCollectionOrder = (v) =>
+    setItem({ ...item, order: Number(v.replace(/[^0-9]/g, '')) });
+
+  const isSubmitDisabled = () =>
+    item.title.length === 0 || (item.collection && !item.order) || (!item.collection && item.order);
 
   const handlePressPictureUrlIcon = async () => {
     setPreviewUrl({ ...previewUrl, preview: true });
@@ -122,7 +128,30 @@ const BookItemForm = ({ book, onSubmit }) => {
         onChangeText={handleChangeIsbn}
         style={{ marginBottom: 5, width: '100%' }}
       />
-      <Button mode="contained" onPress={handleSubmit} disabled={item.title.length === 0}>
+      <TextInput
+        autoCorrect={false}
+        autoCapitalize="none"
+        value={item.collection}
+        maxLength={100}
+        mode="outlined"
+        label="Serie"
+        placeholder="Enter serie name"
+        onChangeText={handleCollectionName}
+        style={{ marginBottom: 5, width: '100%' }}
+      />
+      <TextInput
+        autoCorrect={false}
+        autoCapitalize="none"
+        value={item.order}
+        keyboardType="numeric"
+        maxLength={5}
+        mode="outlined"
+        label="Order"
+        placeholder="Enter serie order"
+        onChangeText={handleCollectionOrder}
+        style={{ marginBottom: 5, width: '100%' }}
+      />
+      <Button mode="contained" onPress={handleSubmit} disabled={isSubmitDisabled()}>
         SUBMIT
       </Button>
     </ScrollView>

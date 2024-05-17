@@ -70,6 +70,8 @@ type GetItemResponseBase struct {
 	LibrayName *string         `json:"libraryName,omitempty"`
 	OwnerId    string          `json:"ownerId"`
 	LentTo     *string         `json:"lentTo,omitempty"`
+	Collection *string         `json:"collection,omitempty"`
+	Order      *int            `json:"order,omitempty"`
 }
 
 func (g GetItemResponseBase) getType() string { return "" }
@@ -94,6 +96,8 @@ type CreateBookRequest struct {
 	Authors    []string `json:"authors"`
 	Isbn       string   `json:"isbn"`
 	PictureUrl *string  `json:"pictureUrl,omitempty"`
+	Collection *string  `json:"collection,omitempty"`
+	Order      *int     `json:"order,omitempty"`
 }
 
 type CreateBookResponse struct {
@@ -107,6 +111,8 @@ type UpdateBookRequest struct {
 	Authors    []string `json:"authors"`
 	Isbn       string   `json:"isbn"`
 	PictureUrl *string  `json:"pictureUrl,omitempty"`
+	Collection *string  `json:"collection,omitempty"`
+	Order      *int     `json:"order,omitempty"`
 }
 
 type ShareRequest struct {
