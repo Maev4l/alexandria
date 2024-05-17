@@ -109,18 +109,12 @@ const LibrariesList = ({ libraries }) => {
 
     showActionSheetWithOptions(
       {
-        options: [
-          'Update',
-          sharedTo && sharedTo.length > 0 ? 'Unshare' : 'Share',
-          'Delete',
-          'Cancel',
-        ],
-        destructiveButtonIndex: 2,
-        cancelButtonIndex: 3,
+        options: [sharedTo && sharedTo.length > 0 ? 'Unshare' : 'Share', 'Delete', 'Cancel'],
+        destructiveButtonIndex: 1,
+        cancelButtonIndex: 2,
         showSeparators: true,
         tintIcons: true,
         icons: [
-          <Icon color={theme.colors.onBackground} source="pencil-outline" size={20} />,
           sharedTo && sharedTo.length > 0 ? (
             <Icon color={theme.colors.onBackground} source="share-off-outline" size={20} />
           ) : (
@@ -136,13 +130,6 @@ const LibrariesList = ({ libraries }) => {
       (index) => {
         switch (index) {
           case 0: {
-            navigation.navigate('UpdateLibrary', {
-              libraryId: library.id,
-              libraryName: library.name,
-            });
-            break;
-          }
-          case 1: {
             if (sharedTo && sharedTo.length > 0) {
               navigation.navigate('UnshareLibrary', {
                 library,
@@ -154,7 +141,7 @@ const LibrariesList = ({ libraries }) => {
             }
             break;
           }
-          case 2: {
+          case 1: {
             dispatch(deleteLibrary(library.id));
             break;
           }
