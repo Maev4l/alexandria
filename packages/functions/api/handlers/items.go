@@ -328,6 +328,7 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 					OwnerId:    i.OwnerId,
 					Collection: i.Collection,
 					Order:      i.Order,
+					PictureUrl: i.PictureUrl,
 				},
 				Authors: i.Authors,
 				Summary: i.Summary,

@@ -6,7 +6,7 @@ import { useState } from 'react';
 const BookItemForm = ({ book, onSubmit }) => {
   const [item, setItem] = useState(book);
   const theme = useTheme();
-  const [previewUrl, setPreviewUrl] = useState({ url: '', preview: false });
+  const [previewUrl, setPreviewUrl] = useState({ url: book.pictureUrl, preview: false });
 
   const handleChangePictureUrl = (v) => setPreviewUrl({ ...previewUrl, url: v });
 

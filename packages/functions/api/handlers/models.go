@@ -66,6 +66,7 @@ type GetItemResponseBase struct {
 	Type       domain.ItemType `json:"type"`
 	Title      string          `json:"title"`
 	Picture    *string         `json:"picture,omitempty"`
+	PictureUrl *string         `json:"pictureUrl,omitempty"`
 	LibraryId  *string         `json:"libraryId,omitempty"`
 	LibrayName *string         `json:"libraryName,omitempty"`
 	OwnerId    string          `json:"ownerId"`
