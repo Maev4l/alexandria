@@ -46,7 +46,7 @@ func init() {
 	g.POST("/detections", h.RequestDetection)
 	g.POST("/libraries", h.CreateLibrary)
 	g.GET("/libraries", h.ListLibraries)
-	// g.PUT("/libraries/:libraryId", h.UpdateLibrary)
+	g.PUT("/libraries/:libraryId", h.UpdateLibrary)
 	g.DELETE("/libraries/:libraryId", h.DeleteLibrary)
 	g.GET("/libraries/:libraryId/items", h.ListLibraryItems)
 	g.POST("/libraries/:libraryId/books", h.CreateBook)
