@@ -108,8 +108,8 @@ func MakeLibraryItemPK(ownerId string) string {
 	return fmt.Sprintf("owner#%s", ownerId)
 }
 
-func MakeLibraryItemSK(libraryid string, itemId string) string {
-	return fmt.Sprintf("library#%s#item#%s", libraryid, itemId)
+func MakeLibraryItemSK(libraryId string, itemId string) string {
+	return fmt.Sprintf("library#%s#item#%s", libraryId, itemId)
 }
 
 func MakeLibraryItemGSI1PK(ownerId string, libraryId string) string {
