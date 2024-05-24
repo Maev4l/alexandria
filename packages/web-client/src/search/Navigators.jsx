@@ -1,7 +1,7 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import { IconButton } from 'react-native-paper';
 
-import { BookDetailsHeader, BookDetails, ItemHistoryHeader, ItemHistory } from '../libraries';
+import { BookDetailsHeader, BookDetails, ItemHistoryHeader, ItemHistory } from '../items';
 import SearchScreen from './SearchScreen';
 import { useAuth } from '../store';
 

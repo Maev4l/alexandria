@@ -10,15 +10,20 @@ import ScanCodeScreen from './ScanCodeScreen';
 import BookDetectionScreen from './BookDetectionScreen';
 
 import CreateItemScreen from './CreateItemScreen';
-import BookDetails, { BookDetailsHeader } from './BookDetails';
+import {
+  BookDetails,
+  ItemHistory,
+  BookDetailsHeader,
+  ItemHistoryHeader,
+  deleteLibraryItemHistory,
+} from '../items';
 import EditItemScreen from './EditItemScreen';
 import ShareLibrary, { ShareLibraryScreenHeader } from './ShareLibrary';
 import UnshareLibrary, { UnshareLibraryScreenHeader } from './UnshareLibrary';
-import ItemHistory, { ItemHistoryHeader } from './ItemHistory';
+
 import LendItem, { LendItemScreenHeader } from './LendItem';
 
 import { useAuth, useSelector, useDispatch } from '../store';
-import { deleteLibraryItemHistory } from './operations';
 
 const Stack = createStackNavigator();
 
