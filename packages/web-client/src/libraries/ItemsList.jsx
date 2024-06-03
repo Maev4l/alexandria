@@ -201,18 +201,18 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
   // Group items by collection (if any)
   const collection2index = {};
   let groupedItems = [];
-  items.forEach((item, index) => {
+  items.forEach((item) => {
     const { collection } = item;
     if (collection) {
       const found = collection in collection2index;
       if (!found) {
-        collection2index[collection] = index;
         // const { picture, ...rest } = item;
         const col = {
           name: collection,
           items: [item],
         };
         groupedItems = [...groupedItems, col];
+        collection2index[collection] = groupedItems.length - 1;
       } else {
         const col = groupedItems[collection2index[collection]];
         // const { picture, ...rest } = item;
