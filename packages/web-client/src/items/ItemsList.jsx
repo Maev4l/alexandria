@@ -37,6 +37,7 @@ const CollectionItem = ({ collection, sharedFrom, onPress, onPressActions, showD
               onPress={() => onPress(item)}
               onPressActions={() => onPressActions(item)}
               showDivider={index !== items.length - 1}
+              showOrder
             />
           ))}
         </View>

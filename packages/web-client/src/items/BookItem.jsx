@@ -3,10 +3,18 @@ import { View, Image, Pressable } from 'react-native';
 
 import { useAuth } from '../store';
 
-const BookItem = ({ book, style, onPress, onPressActions, showDivider, showLibrary }) => {
+const BookItem = ({
+  book,
+  style,
+  onPress,
+  onPressActions,
+  showDivider,
+  showLibrary,
+  showOrder,
+}) => {
   const theme = useTheme();
   const { userId } = useAuth();
-  const { title, authors, /* isbn, */ picture, ownerId, libraryName, lentTo } = book;
+  const { title, authors, /* isbn, */ picture, ownerId, libraryName, lentTo, order } = book;
   return (
     <>
       <Pressable onPress={onPress}>
@@ -61,7 +69,7 @@ const BookItem = ({ book, style, onPress, onPressActions, showDivider, showLibra
               <View style={{ flex: 1, height: 90, paddingLeft: 5 }}>
                 <View style={{ flexShrink: 1 }}>
                   <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
-                    {title}
+                    {title} {showOrder && order ? `(${order})` : null}
                   </Text>
                   <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
                 </View>
