@@ -16,12 +16,13 @@ import {
   BookDetailsHeader,
   ItemHistoryHeader,
   deleteLibraryItemHistory,
+  EditItemScreen,
+  LendItem,
+  LendItemScreenHeader,
 } from '../items';
-import EditItemScreen from './EditItemScreen';
+
 import ShareLibrary, { ShareLibraryScreenHeader } from './ShareLibrary';
 import UnshareLibrary, { UnshareLibraryScreenHeader } from './UnshareLibrary';
-
-import LendItem, { LendItemScreenHeader } from './LendItem';
 
 import { useAuth, useSelector, useDispatch } from '../store';
 

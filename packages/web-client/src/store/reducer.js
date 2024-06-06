@@ -103,11 +103,16 @@ export const reducer = (state, action) => {
     }
 
     case ACTION_TYPES.DELETE_LIBRARY_ITEM_SUCCESS: {
-      const { items, nextToken, libraryId } = payload;
-      const index = newState.libraries.findIndex((l) => l.id === libraryId);
+      const { items, nextToken, libraryId, itemId } = payload;
+      let index = newState.libraries.findIndex((l) => l.id === libraryId);
       if (index !== -1) {
         const library = newState.libraries[index];
         newState.libraries[index] = { ...library, totalItems: library.totalItems - 1 };
+      }
+
+      index = newState.matchedItems.findIndex((m) => m.id === itemId);
+      if (index !== -1) {
+        newState.matchedItems = newState.matchedItems.splice(index, index);
       }
       return {
         ...newState,
@@ -279,11 +284,19 @@ export const reducer = (state, action) => {
 
     case ACTION_TYPES.LEND_ITEM_SUCCESS: {
       const { itemId, lentTo } = payload;
-      const index = newState.libraryItems.items.findIndex((i) => i.id === itemId);
+      let index = newState.libraryItems.items.findIndex((i) => i.id === itemId);
+      let item = null;
       if (index !== -1) {
-        const item = newState.libraryItems.items[index];
+        item = newState.libraryItems.items[index];
         newState.libraryItems.items[index] = { ...item, lentTo };
       }
+
+      index = newState.matchedItems.findIndex((m) => m.id === itemId);
+      if (index !== -1) {
+        item = newState.matchedItems[index];
+        newState.matchedItems[index] = { ...item, lentTo };
+      }
+
       return {
         ...newState,
         loading: false,
@@ -296,10 +309,16 @@ export const reducer = (state, action) => {
 
     case ACTION_TYPES.RETURN_ITEM_SUCCESS: {
       const { itemId } = payload;
-      const index = newState.libraryItems.items.findIndex((i) => i.id === itemId);
+      let index = newState.libraryItems.items.findIndex((i) => i.id === itemId);
+      let item = null;
       if (index !== -1) {
-        const item = newState.libraryItems.items[index];
+        item = newState.libraryItems.items[index];
         newState.libraryItems.items[index] = { ...item, lentTo: null };
+      }
+      index = newState.matchedItems.findIndex((m) => m.id === itemId);
+      if (index !== -1) {
+        item = newState.matchedItems[index];
+        newState.matchedItems[index] = { ...item, lentTo: null };
       }
       return {
         ...newState,

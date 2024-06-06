@@ -43,6 +43,7 @@ func (h *HTTPHandler) Search(c *gin.Context) {
 					LibrayName: &i.LibraryName,
 					LentTo:     i.LentTo,
 					OwnerId:    i.OwnerId,
+					PictureUrl: i.PictureUrl,
 				},
 				Authors: i.Authors,
 				Summary: i.Summary,

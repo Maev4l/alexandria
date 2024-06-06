@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 
 import { Alert } from '../components';
 import { ACTION_TYPES, useSelector, useDispatch } from '../store';
-import ItemsList from './ItemsList';
+import { ItemsList } from '../items';
 import { fetchLibraryItems } from './operations';
 
 export const ItemsScreenHeader = ({ route }) => {

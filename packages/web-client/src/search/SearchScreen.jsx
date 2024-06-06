@@ -1,107 +1,15 @@
-import { Text, TextInput, useTheme, Divider } from 'react-native-paper';
-import { View, ScrollView, Pressable, Image } from 'react-native';
+import { TextInput, Icon, useTheme } from 'react-native-paper';
+import { View, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
+import { useActionSheet } from '@expo/react-native-action-sheet';
 
 import { useDispatch, useSelector, ACTION_TYPES } from '../store';
 import { searchItems } from './operations';
 
 import { Alert } from '../components';
 import { ITEM_TYPE } from '../domain';
-
-const MatchedBookItem = ({ book, style, onPress, showDivider }) => {
-  const theme = useTheme();
-  const { title, authors, isbn, picture, libraryName } = book;
-  return (
-    <>
-      <Pressable onPress={onPress}>
-        <View
-          style={{
-            flex: 1,
-            /* borderWidth: 2,
-          borderRadius: '5px',
-          borderColor: theme.colors.secondary,
-          padding: 5, */
-            minHeight: '100px',
-            ...style,
-          }}
-        >
-          <View style={{ flex: 1, flexDirection: 'row' }}>
-            {picture ? (
-              <View
-                style={{
-                  width: 60,
-                  height: 90,
-                }}
-              >
-                <Image
-                  source={{
-                    uri: `data:image/jpeg;base64,${picture}`,
-                  }}
-                  style={{
-                    resizeMode: 'stretch',
-                    flex: 1,
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '5%',
-                  }}
-                />
-              </View>
-            ) : (
-              <View
-                style={{
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 60,
-                  height: 90,
-                  borderWidth: '1px',
-                  borderRadius: '5%',
-                  borderColor: theme.colors.primary,
-                }}
-              >
-                <Text variant="titleLarge">?</Text>
-              </View>
-            )}
-            <View
-              style={{
-                flex: 1,
-                height: 90,
-                paddingLeft: 5,
-                justifyContent: 'space-between',
-              }}
-            >
-              <View style={{ flexShrink: 1 }}>
-                <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
-                  {title}
-                </Text>
-                <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
-              </View>
-              <View style={{ flexShrink: 1 }}>
-                <Text>ISBN: {isbn}</Text>
-              </View>
-            </View>
-          </View>
-          <View style={{ alignItems: 'flex-start', paddingTop: 5, paddingBottom: 5 }}>
-            <Text
-              style={{
-                backgroundColor: theme.colors.primary,
-                borderColor: theme.colors.onPrimaryContainer,
-                borderRadius: '5px',
-                padding: '3px',
-                color: theme.colors.onPrimary,
-              }}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {libraryName}
-            </Text>
-          </View>
-        </View>
-      </Pressable>
-      {showDivider ? <Divider style={{ marginBottom: 10 }} horizontalInset /> : null}
-    </>
-  );
-};
+import { BookItem, returnLibraryItem, deleteLibraryItem } from '../items';
 
 const SearchScreen = () => {
   const [terms, setTerms] = useState('');
@@ -111,10 +19,61 @@ const SearchScreen = () => {
     matchedItems: state.matchedItems,
     lastAction: state.lastAction,
   }));
+  const { showActionSheetWithOptions } = useActionSheet();
+  const theme = useTheme();
 
   const handleChangeTerms = (v) => setTerms(v);
 
   const handlePressSearch = () => dispatch(searchItems(terms));
+
+  const handlePressActions = (item) => {
+    showActionSheetWithOptions(
+      {
+        options: ['Update', item.lentTo ? 'Return' : 'Lend', 'Delete', 'Cancel'],
+        destructiveButtonIndex: 2,
+        cancelButtonIndex: 3,
+        showSeparators: true,
+        tintIcons: true,
+        icons: [
+          <Icon color={theme.colors.onBackground} source="pencil" size={20} />,
+          item.lentTo ? (
+            <Icon color={theme.colors.onBackground} source="arrow-left-top" size={20} />
+          ) : (
+            <Icon color={theme.colors.onBackground} source="arrow-right-top" size={20} />
+          ),
+          <Icon color={theme.colors.error} source="trash-can-outline" size={20} />,
+          <Icon color={theme.colors.onBackground} source="close" size={20} />,
+        ],
+        destructiveColor: theme.colors.error,
+        containerStyle: { backgroundColor: theme.colors.background },
+        tintColor: theme.colors.onBackground,
+      },
+      (index) => {
+        switch (index) {
+          case 0: {
+            navigation.navigate('UpdateItem', { item });
+            break;
+          }
+          case 1: {
+            if (item.lentTo) {
+              dispatch(returnLibraryItem(item));
+            } else {
+              navigation.navigate('LendItem', { item });
+            }
+            break;
+          }
+          case 2: {
+            dispatch(deleteLibraryItem(item.libraryId, item.id));
+            break;
+          }
+
+          default: {
+            /* empty */
+          }
+        }
+      },
+    );
+  };
 
   return (
     <View style={{ padding: 10, flex: 1, alignItems: 'center' }}>
@@ -140,11 +99,13 @@ const SearchScreen = () => {
           {matchedItems.map((m, index) => {
             const { type } = m;
             return type === ITEM_TYPE.BOOK ? (
-              <MatchedBookItem
+              <BookItem
                 key={m.id}
                 book={m}
-                showDivider={index !== matchedItems.length - 1}
                 onPress={() => navigation.navigate('BookDetails', { book: { ...m } })}
+                onPressActions={() => handlePressActions(m)}
+                showDivider={index !== matchedItems.length - 1}
+                showLibrary
               />
             ) : null;
           })}

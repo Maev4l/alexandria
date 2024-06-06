@@ -1,7 +1,15 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import { IconButton } from 'react-native-paper';
 
-import { BookDetailsHeader, BookDetails, ItemHistoryHeader, ItemHistory } from '../items';
+import {
+  BookDetailsHeader,
+  BookDetails,
+  ItemHistoryHeader,
+  ItemHistory,
+  EditItemScreen,
+  LendItem,
+  LendItemScreenHeader,
+} from '../items';
 import SearchScreen from './SearchScreen';
 import { useAuth } from '../store';
 
@@ -46,6 +54,18 @@ const Navigator = () => {
           headerTitle: () => <ItemHistoryHeader route={route} />,
         })}
         component={ItemHistory}
+      />
+      <Stack.Screen
+        name="UpdateItem"
+        options={{ headerTitle: 'Update item' }}
+        component={EditItemScreen}
+      />
+      <Stack.Screen
+        name="LendItem"
+        options={({ route }) => ({
+          headerTitle: () => <LendItemScreenHeader route={route} />,
+        })}
+        component={LendItem}
       />
     </Stack.Navigator>
   );

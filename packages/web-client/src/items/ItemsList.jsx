@@ -1,5 +1,5 @@
-import { Text, useTheme, IconButton, Icon, Divider, FAB } from 'react-native-paper';
-import { FlatList, View, Image, Pressable } from 'react-native';
+import { Text, useTheme, Icon, Divider, FAB } from 'react-native-paper';
+import { FlatList, View } from 'react-native';
 import { useRef, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { useActionSheet } from '@expo/react-native-action-sheet';
@@ -8,6 +8,7 @@ import { RefreshControl } from 'react-native-web-refresh-control';
 import { ITEM_TYPE } from '../domain';
 import { useDispatch } from '../store';
 import { deleteLibraryItem, returnLibraryItem } from './operations';
+import BookItem from './BookItem';
 
 const CollectionItem = ({ collection, sharedFrom, onPress, onPressActions, showDivider }) => {
   const { name, items } = collection;
@@ -45,93 +46,7 @@ const CollectionItem = ({ collection, sharedFrom, onPress, onPressActions, showD
   );
 };
 
-const BookItem = ({ book, sharedFrom, style, onPress, onPressActions, showDivider }) => {
-  const theme = useTheme();
-  const { title, authors, /* isbn, */ picture, lentTo } = book;
-  return (
-    <>
-      <Pressable onPress={onPress}>
-        <View
-          style={{
-            flex: 1,
-            /* borderWidth: 2,
-          borderRadius: '5px',
-          borderColor: theme.colors.secondary,
-          padding: 5, */
-            minHeight: '100px',
-            ...style,
-          }}
-        >
-          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <View style={{ flex: 1, flexDirection: 'row' }}>
-              {picture ? (
-                <View
-                  style={{
-                    width: 60,
-                    height: 90,
-                  }}
-                >
-                  <Image
-                    source={{
-                      uri: `data:image/jpeg;base64,${picture}`,
-                    }}
-                    style={{
-                      resizeMode: 'stretch',
-                      flex: 1,
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: '5%',
-                    }}
-                  />
-                </View>
-              ) : (
-                <View
-                  style={{
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 60,
-                    height: 90,
-                    borderWidth: '1px',
-                    borderRadius: '5%',
-                    borderColor: theme.colors.primary,
-                  }}
-                >
-                  <Text variant="titleLarge">?</Text>
-                </View>
-              )}
-              <View style={{ flex: 1, height: 90, paddingLeft: 5 }}>
-                <View style={{ flexShrink: 1 }}>
-                  <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
-                    {title}
-                  </Text>
-                  <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
-                </View>
-                {/* <Text>ISBN: {isbn}</Text> */}
-              </View>
-            </View>
-            <View style={{ alignItems: 'center' }}>
-              {!sharedFrom && (
-                <IconButton
-                  icon="dots-vertical"
-                  animated
-                  size={16}
-                  mode="contained"
-                  onPress={onPressActions}
-                  style={{ marginTop: 0 }}
-                />
-              )}
-              {!sharedFrom && lentTo && <Icon source="arrow-right-top" size={20} />}
-            </View>
-          </View>
-        </View>
-      </Pressable>
-      {showDivider ? <Divider style={{ marginBottom: 10 }} horizontalInset /> : null}
-    </>
-  );
-};
-
 const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
-  const { sharedFrom } = library;
   const dispatch = useDispatch();
   const ref = useRef();
   const navigation = useNavigation();
@@ -235,7 +150,6 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
         <CollectionItem
           key={item.id}
           collection={item}
-          sharedFrom={sharedFrom}
           onPress={(i) => navigation.navigate('BookDetails', { book: { ...i } })}
           onPressActions={(i) => handlePressActions(i)}
           showDivider={index !== items.length - 1}
@@ -251,7 +165,6 @@ const ItemsList = ({ library, items, onEndReached, onRefresh, refreshing }) => {
       <BookItem
         key={item.id}
         book={item}
-        sharedFrom={sharedFrom}
         onPress={() => navigation.navigate('BookDetails', { book: { ...item } })}
         onPressActions={() => handlePressActions(item)}
         showDivider={index !== items.length - 1}

@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-import BookItemForm from './BookItemForm';
+import { BookItemForm } from '../items';
 import { createBook } from './operations';
 import { useDispatch } from '../store';
 import { ITEM_TYPE } from '../domain';
