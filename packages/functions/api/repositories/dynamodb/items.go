@@ -113,7 +113,7 @@ func (d *dynamo) QueryItemEvents(i *domain.LibraryItem, continuationToken string
 	}
 
 	if continuationToken != "" {
-		lek, err := persistence.DeserializeLek(continuationToken)
+		lek, err := deserializeLek(continuationToken)
 		if err != nil {
 			log.Error().Str("id", i.Id).Msg("Unable to deserialize continuation token")
 			return nil, errors.New("Unable to deserialize continuation token")
@@ -148,7 +148,7 @@ func (d *dynamo) QueryItemEvents(i *domain.LibraryItem, continuationToken string
 	}
 
 	if result.LastEvaluatedKey != nil {
-		nextToken, err := persistence.SerializeLek(result.LastEvaluatedKey)
+		nextToken, err := serializeLek(result.LastEvaluatedKey)
 		if err != nil {
 			log.Error().Str("id", i.Id).Msg("Unable to serialize continuation token")
 			return nil, errors.New("Unable to serialize continuation token")
@@ -563,9 +563,9 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 	}
 
 	if continuationToken != "" {
-		lek, err := persistence.DeserializeLek(continuationToken)
+		lek, err := deserializeLek(continuationToken)
 		if err != nil {
-			log.Error().Str("id", libraryId).Msg("Unable to deserialize continuation token")
+			log.Error().Str("id", libraryId).Msgf("Unable to deserialize continuation token: %s", err.Error())
 			return nil, errors.New("Unable to deserialize continuation token")
 		}
 
@@ -610,7 +610,7 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 	}
 
 	if result.LastEvaluatedKey != nil {
-		nextToken, err := persistence.SerializeLek(result.LastEvaluatedKey)
+		nextToken, err := serializeLek(result.LastEvaluatedKey)
 		if err != nil {
 			log.Error().Str("id", libraryId).Msg("Unable to serialize continuation token")
 			return nil, errors.New("Unable to serialize continuation token")

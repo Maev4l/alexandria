@@ -30,7 +30,7 @@ export const fetchItemHistory =
     try {
       let url = `/v1/libraries/${item.libraryId}/items/${item.id}/events`;
       if (nextToken) {
-        url += `?nextToken=${nextToken}`;
+        url += `?nextToken=${encodeURIComponent(nextToken)}`;
       }
       const data = await api.get(url);
       dispatch(refresh ? refreshItemHistorySuccess(data) : fetchItemHistorySuccess(data));

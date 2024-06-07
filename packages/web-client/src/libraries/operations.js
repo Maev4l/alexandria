@@ -21,7 +21,7 @@ export const fetchLibraryItems =
     try {
       let url = `/v1/libraries/${libraryId}/items`;
       if (nextToken) {
-        url += `?nextToken=${nextToken}`;
+        url += `?nextToken=${encodeURIComponent(nextToken)}`;
       }
       const data = await api.get(url);
       dispatch(refresh ? refreshLibraryItemsSuccess(data) : fetchLibraryItemsSuccess(data));

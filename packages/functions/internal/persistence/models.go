@@ -1,13 +1,8 @@
 package persistence
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 type EntityType string
@@ -18,34 +13,6 @@ const (
 	TypeBook         EntityType = "BOOK"
 	TypeEvent        EntityType = "EVENT"
 )
-
-func SerializeLek(input map[string]types.AttributeValue) (*string, error) {
-	var inputMap map[string]interface{}
-	err := attributevalue.UnmarshalMap(input, &inputMap)
-	if err != nil {
-		return nil, err
-	}
-	bytesJSON, err := json.Marshal(inputMap)
-	if err != nil {
-		return nil, err
-	}
-	output := base64.StdEncoding.EncodeToString(bytesJSON)
-	return &output, nil
-}
-
-func DeserializeLek(input string) (map[string]types.AttributeValue, error) {
-	bytesJSON, err := base64.StdEncoding.DecodeString(input)
-	if err != nil {
-		return nil, err
-	}
-	outputJSON := map[string]interface{}{}
-	err = json.Unmarshal(bytesJSON, &outputJSON)
-	if err != nil {
-		return nil, err
-	}
-
-	return attributevalue.MarshalMap(outputJSON)
-}
 
 type Library struct {
 	PK          string     `dynamodbav:"PK"`     // owner#<owner id>

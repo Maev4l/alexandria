@@ -68,6 +68,7 @@ functions:
       REGION: ${self:provider.region}
       USER_POOL_ID: !Ref CognitoUserPoolAlexandriaUserPool
       INDEX_FILE_NAME: ${self:custom.indexFileName}
+      LEK_SECRET_KEY: ${ssm:alexandria.lastevaluatedkey.secret}
     events:
       - http:
           authorizer:
