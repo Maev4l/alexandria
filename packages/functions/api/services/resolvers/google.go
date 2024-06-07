@@ -10,6 +10,7 @@ import (
 	"alexandria.isnan.eu/functions/api/ports"
 	"alexandria.isnan.eu/functions/internal/domain"
 
+	"github.com/corpix/uarand"
 	"github.com/rs/zerolog/log"
 )
 
@@ -46,7 +47,7 @@ func (r *googleResolver) Name() string {
 
 func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	searchRequest, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/?q=isbn:%s", r.url, code), nil)
-	searchRequest.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
+	searchRequest.Header.Set("User-Agent", uarand.GetRandom())
 
 	searchResponse, err := r.client.Do(searchRequest)
 	if err != nil {

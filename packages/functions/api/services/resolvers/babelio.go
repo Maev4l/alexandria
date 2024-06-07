@@ -14,7 +14,9 @@ import (
 	"alexandria.isnan.eu/functions/api/ports"
 	"alexandria.isnan.eu/functions/internal/domain"
 
+	"github.com/corpix/uarand"
 	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/extensions"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/text/encoding/charmap"
 )
@@ -46,7 +48,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	jsonSearchPayload, _ := json.Marshal(searchRequestPayload)
 	searchRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/aj_recherche.php", r.url), bytes.NewBuffer(jsonSearchPayload))
 	searchRequest.Host = "www.babelio.com"
-	searchRequest.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
+	searchRequest.Header.Set("User-Agent", uarand.GetRandom())
 	searchRequest.Header.Set("Origin", r.url)
 	searchRequest.Header.Set("Referer", fmt.Sprintf("%s/recherche.php", r.url))
 
@@ -84,7 +86,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	foundUrl := fmt.Sprintf("https://www.babelio.com%s", foundBook.Url)
 
 	c := colly.NewCollector()
-
+	extensions.RandomUserAgent(c)
 	resolvedBook := domain.ResolvedBook{
 		Id:      fmt.Sprintf("%s#%s", r.Name(), foundBook.Id),
 		Source:  r.Name(),
@@ -119,7 +121,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		data.Set("id_obj", matches[2])
 		moreSummaryRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/aj_voir_plus_a.php", r.url), strings.NewReader(data.Encode()))
 		moreSummaryRequest.Host = "www.babelio.com"
-		moreSummaryRequest.Header.Set("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1")
+		moreSummaryRequest.Header.Set("User-Agent", uarand.GetRandom())
 		moreSummaryRequest.Header.Set("Origin", r.url)
 		moreSummaryRequest.Header.Set("Referer", foundUrl)
 		moreSummaryRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")

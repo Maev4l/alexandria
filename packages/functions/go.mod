@@ -16,6 +16,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sns v1.28.2
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.1
 	github.com/blugelabs/bluge v0.2.2
+	github.com/corpix/uarand v0.2.0
 	github.com/gin-contrib/cors v1.7.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/gocolly/colly v1.2.0
