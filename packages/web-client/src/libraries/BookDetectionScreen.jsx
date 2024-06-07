@@ -25,7 +25,7 @@ const DetectedBook = ({ book, onAdd }) => {
           }}
         >
           <Text variant="titleMedium">{source}</Text>
-          {error !== null ? (
+          {!error ? (
             <IconButton
               icon="plus-circle"
               animated
@@ -37,7 +37,7 @@ const DetectedBook = ({ book, onAdd }) => {
           ) : null}
         </View>
         <Divider style={{ marginBottom: 5 }} />
-        {error !== null ? (
+        {!error ? (
           <>
             <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
               <View
@@ -91,7 +91,7 @@ const DetectedBook = ({ book, onAdd }) => {
             <Text style={{ paddingTop: 5, textAlign: 'justify' }}>{summary}</Text>
           </>
         ) : (
-          <Text variant="headlineMedium">Not available.</Text>
+          <Text>{error}</Text>
         )}
       </Card.Content>
     </Card>

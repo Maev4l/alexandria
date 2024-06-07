@@ -75,7 +75,9 @@ func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	if searchResult.Total == 0 {
 		log.Info().Str("source", "Google").Msgf("No item found for code: %s", code)
 		msg := fmt.Sprintf("No item found for code: %s", code)
-		ch <- []domain.ResolvedBook{{Error: &msg}}
+		ch <- []domain.ResolvedBook{{
+			Source: r.Name(),
+			Error:  &msg}}
 		return
 	}
 
