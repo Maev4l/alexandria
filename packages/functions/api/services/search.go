@@ -45,9 +45,10 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		for _, il := range ownedLibraries {
 			for _, ii := range il.Items {
 				docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ownerId, ii.LibraryId, ii.Id)
-				doc := bluge.NewDocument(docId).AddField(bluge.NewTextField("keywords", strings.Join(append(ii.Authors, ii.Title), " ")))
-				/* AddField(bluge.NewTextField("title", ii.Title)).
-				AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " "))) */
+				// doc := bluge.NewDocument(docId).AddField(bluge.NewTextField("keywords", strings.Join(append(ii.Authors, ii.Title), " ")))
+				doc := bluge.NewDocument(docId)
+				doc.AddField(bluge.NewTextField("title", ii.Title))
+				doc.AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " ")))
 				batch.Insert(doc)
 			}
 		}
@@ -68,9 +69,10 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 				if ok {
 					for _, ii := range l.Items {
 						docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ii.OwnerId, ii.LibraryId, ii.Id)
-						doc := bluge.NewDocument(docId).AddField(bluge.NewTextField("keywords", strings.Join(append(ii.Authors, ii.Title), " ")))
-						/*AddField(bluge.NewTextField("title", ii.Title)).
-						AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " ")))*/
+						// doc := bluge.NewDocument(docId).AddField(bluge.NewTextField("keywords", strings.Join(append(ii.Authors, ii.Title), " ")))
+						doc := bluge.NewDocument(docId)
+						doc.AddField(bluge.NewTextField("title", ii.Title))
+						doc.AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " ")))
 						batch.Insert(doc)
 					}
 					writer.Batch(batch)
@@ -89,8 +91,13 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 
 	defer reader.Close()
 
-	q := bluge.NewFuzzyQuery(terms[0]).SetField("keywords")
-	req := bluge.NewTopNSearch(10, q)
+	qTitle := bluge.NewFuzzyQuery(terms[0]).SetField("title")
+	qAuthors := bluge.NewFuzzyQuery(terms[0]).SetField("authors")
+	bq := bluge.NewBooleanQuery()
+	bq.AddShould(qTitle)
+	bq.AddShould(qAuthors)
+
+	req := bluge.NewTopNSearch(10, bq)
 	// Sort by score and title
 	req.SortBy([]string{"-_score"})
 	dmi, err := reader.Search(context.TODO(), req)
