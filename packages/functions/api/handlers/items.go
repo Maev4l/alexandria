@@ -41,7 +41,7 @@ func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 				return errors.New("Invalid request - Collection order must be specified.")
 			}
 
-			if *item.Order <= 0 || *item.Order > 1000 {
+			if *item.Order < 0 || *item.Order > 1000 {
 				return errors.New("Invalid request - Invalid collection order (Must be between 1 and 1000")
 			}
 		}
@@ -255,6 +255,11 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 	}
 
 	t := h.getTokenInfo(c)
+
+	// Order = 0 means no order has been set
+	if request.Order != nil && *request.Order == 0 {
+		request.Order = nil
+	}
 
 	item := domain.LibraryItem{
 		Title:      strings.TrimSpace(request.Title),
