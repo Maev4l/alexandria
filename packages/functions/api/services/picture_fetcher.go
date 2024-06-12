@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/corpix/uarand"
 	"github.com/rs/zerolog/log"
 )
 
@@ -12,6 +13,7 @@ func fetchPicture(url string) ([]byte, error) {
 	httpClient := &http.Client{Timeout: 3 * time.Second}
 	fetchPictureRequest, _ := http.NewRequest(http.MethodGet, url, nil)
 	fetchPictureRequest.Header.Add("Accept-Encoding", "gzip,deflate")
+	fetchPictureRequest.Header.Set("User-Agent", uarand.GetRandom())
 	fetchPictureResponse, err := httpClient.Do(fetchPictureRequest)
 
 	if err != nil {
