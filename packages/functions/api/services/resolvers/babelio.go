@@ -55,7 +55,10 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	searchResponse, err := r.client.Do(searchRequest)
 	if err != nil {
 		log.Error().Str("source", "Babelio").Msgf("Failed to search: %s", err.Error())
-		ch <- nil
+		msg := "Unavailable - Try later."
+		ch <- []domain.ResolvedBook{{
+			Source: r.Name(),
+			Error:  &msg}}
 		return
 	}
 
