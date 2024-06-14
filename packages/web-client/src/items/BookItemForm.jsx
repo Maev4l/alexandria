@@ -26,7 +26,11 @@ const BookItemForm = ({ book, onSubmit }) => {
   };
 
   const handleSubmit = () => {
-    onSubmit({ ...item, pictureUrl: previewUrl.url });
+    onSubmit({
+      ...item,
+      pictureUrl: previewUrl.url,
+      updatePicture: book.pictureUrl !== previewUrl.url,
+    });
   };
 
   return (

@@ -102,7 +102,7 @@ func (s *services) DeleteItem(i *domain.LibraryItem) error {
 	return nil
 }
 
-func (s *services) UpdateItem(i *domain.LibraryItem) error {
+func (s *services) UpdateItem(i *domain.LibraryItem, fetchPic bool) error {
 
 	library, err := s.db.GetLibrary(i.OwnerId, i.LibraryId)
 	if err != nil {
@@ -115,7 +115,7 @@ func (s *services) UpdateItem(i *domain.LibraryItem) error {
 		return errors.New(msg)
 	}
 
-	if i.PictureUrl != nil && *i.PictureUrl != "" {
+	if fetchPic && i.PictureUrl != nil && *i.PictureUrl != "" {
 		data, err := fetchPicture(*i.PictureUrl)
 		if err != nil {
 			return err

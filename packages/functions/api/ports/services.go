@@ -18,7 +18,7 @@ type Services interface {
 	ListItemsByLibrary(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error)
 	CreateItem(i *domain.LibraryItem) (*domain.LibraryItem, error)
 	DeleteItem(i *domain.LibraryItem) error
-	UpdateItem(i *domain.LibraryItem) error
+	UpdateItem(i *domain.LibraryItem, fetchPicture bool) error
 	ShareLibrary(sh *domain.ShareLibrary) error
 	UnshareLibrary(sh *domain.ShareLibrary) error
 	SearchItems(ownerId string, terms []string) ([]*domain.LibraryItem, error)

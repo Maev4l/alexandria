@@ -107,13 +107,14 @@ type CreateBookResponse struct {
 }
 
 type UpdateBookRequest struct {
-	Title      string   `json:"title"`
-	Summary    string   `json:"summary"`
-	Authors    []string `json:"authors"`
-	Isbn       string   `json:"isbn"`
-	PictureUrl *string  `json:"pictureUrl,omitempty"`
-	Collection *string  `json:"collection,omitempty"`
-	Order      *int     `json:"order,omitempty"`
+	Title         string   `json:"title"`
+	Summary       string   `json:"summary"`
+	Authors       []string `json:"authors"`
+	Isbn          string   `json:"isbn"`
+	PictureUrl    *string  `json:"pictureUrl,omitempty"`
+	Collection    *string  `json:"collection,omitempty"`
+	Order         *int     `json:"order,omitempty"`
+	UpdatePicture *bool    `json:"updatePicture,omitempty"`
 }
 
 type ShareRequest struct {

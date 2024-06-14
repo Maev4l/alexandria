@@ -208,7 +208,12 @@ func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 		return
 	}
 
-	err = h.s.UpdateItem(&item)
+	fetchPicture := false
+	if request.UpdatePicture != nil && *request.UpdatePicture == true {
+		fetchPicture = true
+	}
+
+	err = h.s.UpdateItem(&item, fetchPicture)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to update item",
