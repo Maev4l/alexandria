@@ -14,6 +14,7 @@ import (
 
 	"alexandria.isnan.eu/functions/api/ports"
 	"alexandria.isnan.eu/functions/internal/domain"
+	"golang.org/x/text/encoding/charmap"
 
 	"github.com/corpix/uarand"
 	"github.com/gocolly/colly"
@@ -137,6 +138,13 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		}
 		defer moreSummaryResponse.Body.Close()
 		body, _ := io.ReadAll(moreSummaryResponse.Body)
+		dec8859_1 := charmap.ISO8859_1.NewDecoder()
+		body, err = dec8859_1.Bytes(body)
+		if err != nil {
+			log.Error().Msg("Failed to encode in utf-8")
+			ch <- nil
+			return
+		}
 		summary := string(body)
 		// Remove line breaks
 		summary = strings.Trim(summary, "\n\t")
@@ -150,10 +158,19 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	c.OnHTML(".livre_resume", func(e *colly.HTMLElement) {
 		if !needExpandSummary {
-			summary := strings.TrimSpace(e.Text)
-			summary = strings.Trim(summary, "\n\t")
-			summary = strings.TrimSpace(summary)
+			dec8859_1 := charmap.ISO8859_1.NewDecoder()
+			summary, err := dec8859_1.String(e.Text)
+			if err != nil {
+				log.Error().Msg("Failed to encode in utf-8")
+				ch <- nil
+				return
+			}
 
+			summary = strings.Trim(summary, "\n\t")
+			// The replace <br> tag, with line breaks
+			summary = strings.ReplaceAll(summary, "<br>", "\n")
+			summary = html.UnescapeString(summary)
+			summary = strings.TrimSpace(summary)
 			resolvedBook.Summary = summary
 		}
 	})

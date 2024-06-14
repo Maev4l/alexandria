@@ -24,6 +24,7 @@ require (
 	github.com/lestrrat-go/jwx v1.2.28
 	github.com/rs/zerolog v1.32.0
 	github.com/skowalak/isbn v0.0.0-20240205221643-aa3ad5df03ab
+	golang.org/x/text v0.14.0
 )
 
 require (
@@ -103,7 +104,6 @@ require (
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
