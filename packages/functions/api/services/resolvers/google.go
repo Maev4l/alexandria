@@ -3,6 +3,7 @@ package resolvers
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"time"
@@ -90,7 +91,7 @@ func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 			Source:     r.Name(),
 			Title:      b.VolumeInfo.Title,
 			Authors:    b.VolumeInfo.Authors,
-			Summary:    b.VolumeInfo.Description,
+			Summary:    html.UnescapeString(b.VolumeInfo.Description),
 			PictureUrl: &b.VolumeInfo.ImageLinks.Thumbnail,
 		}
 

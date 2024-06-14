@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -18,7 +19,6 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/gocolly/colly/extensions"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/text/encoding/charmap"
 )
 
 type babelioResolver struct {
@@ -137,21 +137,13 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		}
 		defer moreSummaryResponse.Body.Close()
 		body, _ := io.ReadAll(moreSummaryResponse.Body)
-
-		decoder := charmap.ISO8859_1.NewDecoder()
-		output, err := decoder.Bytes(body)
-		if err != nil {
-			log.Error().Str("source", "Babelio").Msgf("Failed to decode response for %s: %s", foundUrl, err.Error())
-			msg := "Not available"
-			resolvedBook.Error = &msg
-			return
-		}
-
-		summary := string(output)
+		summary := string(body)
 		// Remove line breaks
 		summary = strings.Trim(summary, "\n\t")
+
 		// The replace <br> tag, with line breaks
-		summary = strings.ReplaceAll(summary, "\u003cbr\u003e", "\n")
+		summary = strings.ReplaceAll(summary, "<br>", "\n")
+		summary = html.UnescapeString(summary)
 		summary = strings.TrimSpace(summary)
 		resolvedBook.Summary = summary
 	})
