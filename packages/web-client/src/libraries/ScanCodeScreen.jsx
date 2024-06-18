@@ -28,6 +28,7 @@ const BarcodeInputField = ({ style, onPress }) => {
       style={style}
       label="ISBN Code"
       mode="outlined"
+      keyboardType="numeric"
       onChangeText={handleChange}
       right={
         <TextInput.Icon
@@ -36,6 +37,7 @@ const BarcodeInputField = ({ style, onPress }) => {
           color={theme.colors.primary}
         />
       }
+      onSubmitEditing={handlePress}
     />
   );
 };
