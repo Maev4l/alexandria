@@ -39,6 +39,7 @@ func init() {
 	bookResolversRegistry = []ports.BookResolver{
 		resolvers.NewBabelioResolver(),
 		resolvers.NewGoogleResolver(),
+		resolvers.NewGoodReadsResolver(),
 	}
 
 }

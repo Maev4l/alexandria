@@ -22,6 +22,7 @@ require (
 	github.com/gocolly/colly v1.2.0
 	github.com/google/uuid v1.6.0
 	github.com/lestrrat-go/jwx v1.2.28
+	github.com/microcosm-cc/bluemonday v1.0.26
 	github.com/rs/zerolog v1.32.0
 	github.com/skowalak/isbn v0.0.0-20240205221643-aa3ad5df03ab
 	golang.org/x/text v0.14.0
@@ -52,6 +53,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6 // indirect
 	github.com/aws/smithy-go v1.20.2 // indirect
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/blevesearch/go-porterstemmer v1.0.3 // indirect
 	github.com/blevesearch/mmap-go v1.0.4 // indirect
@@ -77,6 +79,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/gorilla/css v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kennygrant/sanitize v1.2.4 // indirect
