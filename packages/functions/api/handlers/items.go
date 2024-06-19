@@ -177,6 +177,16 @@ func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 
 	t := h.getTokenInfo(c)
 
+	// Order = 0 means no order has been set
+	if request.Order != nil && *request.Order == 0 {
+		request.Order = nil
+	}
+
+	// Empty collection name means no collection has been set
+	if request.Collection != nil && *request.Collection == "" {
+		request.Collection = nil
+	}
+
 	item := domain.LibraryItem{
 		Id:         bookId,
 		Title:      strings.TrimSpace(request.Title),
@@ -264,6 +274,11 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 	// Order = 0 means no order has been set
 	if request.Order != nil && *request.Order == 0 {
 		request.Order = nil
+	}
+
+	// Empty collection name means no collection has been set
+	if request.Collection != nil && *request.Collection == "" {
+		request.Collection = nil
 	}
 
 	item := domain.LibraryItem{
