@@ -321,6 +321,8 @@ func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.Libr
 					Type:        domain.ItemType(record.Type),
 					PictureUrl:  record.PictureUrl,
 					LentTo:      record.LentTo,
+					Collection:  record.Collection,
+					Order:       record.Order,
 				})
 			}
 

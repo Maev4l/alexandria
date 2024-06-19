@@ -11,10 +11,12 @@ const BookItem = ({
   showDivider,
   showLibrary,
   showOrder,
+  showCollection,
 }) => {
   const theme = useTheme();
   const { userId } = useAuth();
-  const { title, authors, /* isbn, */ picture, ownerId, libraryName, lentTo, order } = book;
+  const { title, authors, /* isbn, */ picture, ownerId, libraryName, lentTo, order, collection } =
+    book;
   return (
     <>
       <Pressable onPress={onPress}>
@@ -67,10 +69,33 @@ const BookItem = ({
                 </View>
               )}
               <View style={{ flex: 1, height: 90, paddingLeft: 5 }}>
-                <View style={{ flexShrink: 1 }}>
-                  <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
-                    {title} {showOrder && order ? `(${order})` : null}
-                  </Text>
+                <View style={{ flex: 1, justifyContent: 'space-between' }}>
+                  <View>
+                    <View style={{ flexShrink: 1 }}>
+                      <Text variant="labelLarge" style={{ flexWrap: 'wrap' }}>
+                        {title} {showOrder && order ? `(${order})` : null}
+                      </Text>
+                      {showCollection && collection && (
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            flex: 1,
+                            columnGap: 5,
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Icon
+                            source="archive-outline"
+                            size={20}
+                            style={{ marginLeft: 0, paddingLeft: 0 }}
+                          />
+                          <Text numberOfLines={1} ellipsizeMode="tail">
+                            {collection}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
                   <Text style={{ fontStyle: 'italic' }}>{authors.join(', ')}</Text>
                 </View>
                 {/* <Text>ISBN: {isbn}</Text> */}

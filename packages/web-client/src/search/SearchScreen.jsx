@@ -106,6 +106,8 @@ const SearchScreen = () => {
                 onPressActions={() => handlePressActions(m)}
                 showDivider={index !== matchedItems.length - 1}
                 showLibrary
+                showOrder
+                showCollection
               />
             ) : null;
           })}

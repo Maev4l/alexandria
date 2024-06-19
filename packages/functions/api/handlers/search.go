@@ -44,6 +44,8 @@ func (h *HTTPHandler) Search(c *gin.Context) {
 					LentTo:     i.LentTo,
 					OwnerId:    i.OwnerId,
 					PictureUrl: i.PictureUrl,
+					Collection: i.Collection,
+					Order:      i.Order,
 				},
 				Authors: i.Authors,
 				Summary: i.Summary,
