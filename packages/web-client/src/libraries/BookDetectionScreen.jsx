@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { useDispatch, useSelector } from '../store';
 import { detectBook, createBook } from './operations';
-import { Alert } from '../components';
+import { Alert, ResolverIcon } from '../components';
 import { ITEM_TYPE } from '../domain';
 
 const DetectedBook = ({ book, onAdd }) => {
@@ -37,7 +37,16 @@ const DetectedBook = ({ book, onAdd }) => {
             paddingBottom: 5,
           }}
         >
-          <Text variant="titleMedium">{item.source}</Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              columnGap: 5,
+            }}
+          >
+            <ResolverIcon style={{ width: 30, height: 30 }} source={item.source} />
+            <Text variant="titleMedium">{item.source}</Text>
+          </View>
           {!item.error ? (
             <Chip
               icon="plus-circle"
