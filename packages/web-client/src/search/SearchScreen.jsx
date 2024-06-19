@@ -87,6 +87,7 @@ const SearchScreen = () => {
         onChangeText={handleChangeTerms}
         style={{ marginBottom: 10, width: '80%' }}
         right={<TextInput.Icon icon="magnify" onPress={handlePressSearch} />}
+        onSubmitEditing={handlePressSearch}
       />
       {lastAction === ACTION_TYPES.SEARCH_ITEMS_SUCCESS && matchedItems.length === 0 ? (
         <Alert
