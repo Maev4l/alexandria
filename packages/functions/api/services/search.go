@@ -45,10 +45,13 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		for _, il := range ownedLibraries {
 			for _, ii := range il.Items {
 				docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ownerId, ii.LibraryId, ii.Id)
-				// doc := bluge.NewDocument(docId).AddField(bluge.NewTextField("keywords", strings.Join(append(ii.Authors, ii.Title), " ")))
 				doc := bluge.NewDocument(docId)
 				doc.AddField(bluge.NewTextField("title", ii.Title))
 				doc.AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " ")))
+				if ii.Collection != nil {
+					doc.AddField(bluge.NewTextField("collection", *ii.Collection))
+				}
+
 				batch.Insert(doc)
 			}
 		}
@@ -69,10 +72,13 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 				if ok {
 					for _, ii := range l.Items {
 						docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ii.OwnerId, ii.LibraryId, ii.Id)
-						// doc := bluge.NewDocument(docId).AddField(bluge.NewTextField("keywords", strings.Join(append(ii.Authors, ii.Title), " ")))
 						doc := bluge.NewDocument(docId)
 						doc.AddField(bluge.NewTextField("title", ii.Title))
 						doc.AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " ")))
+						if ii.Collection != nil {
+							doc.AddField(bluge.NewTextField("collection", *ii.Collection))
+						}
+
 						batch.Insert(doc)
 					}
 					writer.Batch(batch)
@@ -93,13 +99,16 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 
 	qTitle := bluge.NewFuzzyQuery(terms[0]).SetField("title")
 	qAuthors := bluge.NewFuzzyQuery(terms[0]).SetField("authors")
+	qCollection := bluge.NewFuzzyQuery(terms[0]).SetField("collection")
 	bq := bluge.NewBooleanQuery()
 	bq.AddShould(qTitle)
 	bq.AddShould(qAuthors)
+	bq.AddShould(qCollection)
 
-	req := bluge.NewTopNSearch(10, bq)
+	// req := bluge.NewTopNSearch(10, bq)
+	req := bluge.NewAllMatches(bq)
 	// Sort by score and title
-	req.SortBy([]string{"-_score"})
+	//req.SortBy([]string{"-_score"})
 	dmi, err := reader.Search(context.TODO(), req)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to execute search: %s", err.Error())

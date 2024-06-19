@@ -11,6 +11,23 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func isSameCollection(collA, collB *string) bool {
+	if collA == nil && collB == nil {
+		return true
+	}
+
+	if collA == nil || collB == nil {
+		return false
+	}
+
+	if *collA == *collB {
+		return true
+	}
+
+	return false
+
+}
+
 func UpdateItemHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) bool {
 	atv_new := ddbconversions.AttributeValueMapFrom(evt.Change.NewImage)
 	var item_new persistence.LibraryItem
@@ -20,7 +37,9 @@ func UpdateItemHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord
 	var item_old persistence.LibraryItem
 	_ = attributevalue.UnmarshalMap(atv_old, &item_old)
 
-	if item_new.Title == item_old.Title && slices.Equal(item_new.Authors, item_old.Authors) {
+	if item_new.Title == item_old.Title &&
+		slices.Equal(item_new.Authors, item_old.Authors) &&
+		isSameCollection(item_new.Collection, item_old.Collection) {
 		log.Info().Str("itemId", item_new.Id).Str("libraryId", item_new.LibraryId).Msg("Updated item not indexed. No modification to indexable fields.")
 		// the modification is not related to the Tietle field or the Authors field
 		return false
@@ -50,6 +69,7 @@ func UpdateItemHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord
 	i.LibraryId = item_new.LibraryId
 	i.Title = item_new.Title
 	i.Authors = item_new.Authors
+	i.Collection = item_new.Collection
 
 	log.Info().Str("itemId", item_new.Id).Str("libraryId", item_new.LibraryId).Msg("Indexed item updated.")
 	return true
@@ -100,14 +120,15 @@ func NewItemHandler(db *domain.IndexDatabase, evt *events.DynamoDBEventRecord) b
 	}
 
 	i := domain.IndexItem{
-		PK:        item.PK,
-		SK:        item.SK,
-		Id:        item.Id,
-		Type:      domain.ItemType(item.Type),
-		LibraryId: item.LibraryId,
-		OwnerId:   item.OwnerId,
-		Title:     item.Title,
-		Authors:   item.Authors,
+		PK:         item.PK,
+		SK:         item.SK,
+		Id:         item.Id,
+		Type:       domain.ItemType(item.Type),
+		LibraryId:  item.LibraryId,
+		OwnerId:    item.OwnerId,
+		Title:      item.Title,
+		Authors:    item.Authors,
+		Collection: item.Collection,
 	}
 
 	l.Items[item.Id] = &i

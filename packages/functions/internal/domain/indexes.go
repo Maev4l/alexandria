@@ -1,14 +1,15 @@
 package domain
 
 type IndexItem struct {
-	PK        string   `json:"PK"`
-	SK        string   `json:"SK"`
-	Id        string   `json:"id"`
-	Type      ItemType `json:"type"`
-	OwnerId   string   `json:"ownerId"`
-	LibraryId string   `json:"libraryId"`
-	Title     string   `json:"title"`
-	Authors   []string `json:"authors,omitempty"`
+	PK         string   `json:"PK"`
+	SK         string   `json:"SK"`
+	Id         string   `json:"id"`
+	Type       ItemType `json:"type"`
+	OwnerId    string   `json:"ownerId"`
+	LibraryId  string   `json:"libraryId"`
+	Title      string   `json:"title"`
+	Authors    []string `json:"authors,omitempty"`
+	Collection *string  `json:"collection,omitempty"`
 }
 
 type IndexLibrary struct {
