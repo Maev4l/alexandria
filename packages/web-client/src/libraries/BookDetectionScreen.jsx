@@ -79,7 +79,10 @@ const DetectedBook = ({ book, onAdd }) => {
                       flex: 1,
                       width: '100%',
                       height: '100%',
-                      borderRadius: '5%',
+                      borderBottomLeftRadius: '0px 6%',
+                      borderTopLeftRadius: '0px 6%',
+                      borderBottomRightRadius: '10% 6%',
+                      borderTopRightRadius: '10% 6%',
                     }}
                   />
                 ) : (
