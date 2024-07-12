@@ -2,7 +2,7 @@ import { Text, TextInput, Button, useTheme } from 'react-native-paper';
 import { View } from 'react-native';
 import { useState, useEffect } from 'react';
 
-import Video from './Video';
+import VideoIsbn from './VideoIsbn';
 
 const MediaState = Object.freeze({
   NO_CAMERA_SUPPORT: 1,
@@ -91,7 +91,7 @@ const ScanCodeScreen = ({ navigation, route }) => {
             {mediaState === MediaState.CAMERA_OFF ? 'Start camera' : 'Stop camera'}
           </Button>
           {mediaState === MediaState.CAMERA_ON && (
-            <Video
+            <VideoIsbn
               style={{
                 marginTop: 10,
                 borderWidth: 2,

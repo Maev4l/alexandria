@@ -38,7 +38,7 @@ const BarcodeFormat = Object.freeze({
   UPC_EAN_EXTENSION: 16,
 });
 
-const Video = ({ style, onResult, onError }) => {
+const VideoIsbn = ({ style, onResult, onError }) => {
   // eslint-disable-next-line no-undef
   const constraints = __DEV__
     ? {
@@ -73,4 +73,4 @@ const Video = ({ style, onResult, onError }) => {
   );
 };
 
-export default Video;
+export default VideoIsbn;
