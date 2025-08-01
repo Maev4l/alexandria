@@ -1,9 +1,8 @@
-ARG NODE_VERSION=20.10.0
 ARG FUNCTION_DIR="/function"
 
-FROM 671123374425.dkr.ecr.eu-central-1.amazonaws.com/common/sharp-base as sharp
+FROM 671123374425.dkr.ecr.eu-central-1.amazonaws.com/common/sharp-base AS sharp
 
-FROM public.ecr.aws/lambda/nodejs:20 as build
+FROM public.ecr.aws/lambda/nodejs:22 AS build
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
 RUN mkdir -p ${FUNCTION_DIR}
@@ -13,7 +12,7 @@ COPY handler.js package.json ${FUNCTION_DIR}
 
 RUN npm install --cpu=arm64 --os=linux --omit=dev --omit=optional
 
-FROM public.ecr.aws/lambda/nodejs:20
+FROM public.ecr.aws/lambda/nodejs:22
 # Include global arg in this stage of the build
 ARG FUNCTION_DIR
 #RUN mkdir -p ${FUNCTION_DIR}

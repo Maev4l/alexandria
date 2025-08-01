@@ -207,7 +207,7 @@ functions:
     name: alexandria-image-processor
     image: ${self:custom.imagesProcessorImage}:latest
     role: ImagesProcessorRole
-    runtime: nodejs20.x
+    runtime: nodejs20.x # Do not remove, it indicates it should not be built as a golang function
     memorySize: 512
     environment:
       S3_PICTURES_BUCKET: ${self:custom.picturesBucketName}
