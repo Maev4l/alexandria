@@ -1,0 +1,58 @@
+.PHONY: build build-api build-indexer build-consistency-manager build-presignup package package-api package-indexer package-presignup clean
+# Build settings for AWS Lambda (ARM64)
+GOOS := linux
+GOARCH := arm64
+LDFLAGS := -s -w
+
+# Output directory
+BIN_DIR := bin
+
+# Package directory
+PACKAGE_DIR := dist
+
+# Build API handler for Lambda
+build-api:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o api/$(BIN_DIR)/bootstrap ./api/cmd
+
+# Build Indexer for Lambda
+build-indexer:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o index-items/$(BIN_DIR)/bootstrap ./api/cmd
+
+build-consistency-manager:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o consistency-manager/$(BIN_DIR)/bootstrap ./api/cmd
+
+build-presignup:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o pre-signup/$(BIN_DIR)/bootstrap ./api/cmd
+
+# Build all Lambda binaries
+build: build-api build-indexer build-consistency-manager build-presignup
+
+package-api: build-api
+	mkdir -p api/$(PACKAGE_DIR)
+	cd api/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/bootstrap.zip bootstrap
+
+package-indexer: build-indexer
+	mkdir -p index-items/$(PACKAGE_DIR)
+	cd index-items/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/bootstrap.zip bootstrap
+
+package-consistency-manager: build-consistency-manager
+	mkdir -p consistency-manager/$(PACKAGE_DIR)
+	cd consistency-manager/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/bootstrap.zip bootstrap
+
+package-presignup: build-presignup
+	mkdir -p pre-signup/$(PACKAGE_DIR)
+	cd pre-signup/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/bootstrap.zip bootstrap
+
+# Package all Lambdas
+package: package-api package-indexer package-consistency-manager package-presignup
+
+clean:
+	rm -rf api/$(BIN_DIR)
+	rm -rf api/$(PACKAGE_DIR)
+	rm -rf index-items/$(BIN_DIR)
+	rm -rf index-items/$(PACKAGE_DIR)
+	rm -rf consistency-manager/$(BIN_DIR)
+	rm -rf consistency-manager/$(PACKAGE_DIR)
+	rm -rf pre-signup/$(BIN_DIR)
+	rm -rf pre-signup/$(PACKAGE_DIR)
+	rm -rf .serverless

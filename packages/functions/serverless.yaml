@@ -1,8 +1,7 @@
 service: alexandria-functions
 
 plugins:
-  - serverless-go-plugin
-  - serverless-domain-manager
+   - serverless-domain-manager
 
 package:
   individually: true
@@ -50,16 +49,14 @@ custom:
     autoDomain: true
     createRoute53Record: true
     endpointType: ${self:provider.endpointType}
-  go:
-    supportedRuntimes: ['provided.al2023']
-    buildProvidedRuntimeAsBootstrap: true
-    cmd: GOARCH=arm64 GOOS=linux go build -ldflags="-s -w"
 
 functions:
   api:
     handler: api/cmd/main.go
     name: alexandria-api
     role: ApiRole
+    package:
+      artifact: api/dist/bootstrap.zip
     runtime: provided.al2023
     environment:
       DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
@@ -109,6 +106,8 @@ functions:
     handler: index-items/cmd/main.go
     name: alexandria-index-items
     role: IndexItemsRole
+    package:
+      artifact: index-items/dist/bootstrap.zip
     memorySize: 256
     runtime: provided.al2023
     reservedConcurrency: 1 # Only 1 function instance can run at a given time (no need lock the index file)
@@ -152,6 +151,8 @@ functions:
     handler: consistency-manager/cmd/main.go
     name: alexandria-consistency-manager
     role: ConsistencyManagerRole
+    package:
+      artifact: consistency-manager/dist/bootstrap.zip
     memorySize: 256
     runtime: provided.al2023
     environment:
@@ -195,6 +196,8 @@ functions:
     handler: pre-signup/cmd/main.go
     name: alexandria-pre-signup
     role: PreSignupRole
+    package:
+      artifact: pre-signup/dist/bootstrap.zip
     runtime: provided.al2023
     environment:
       SNS_TOPIC_ARN: ${self:custom.snsTopicArn}

@@ -2,17 +2,15 @@
   "name": "@alexandria/functions",
   "version": "1.0.0",
   "scripts": {
-    "deploy": "sls deploy",
-    "build": "sls go build",
+    "deploy": "make package && sls deploy",
     "create-ecr": "aws ecr create-repository --repository-name alexandria/images-processing --tags Key=application,Value=alexandria",
     "create-ecr-policy": "aws ecr put-lifecycle-policy --repository-name  alexandria/images-processing --lifecycle-policy-text file://images-processing/ecr-lifecycle-policy.json",
     "build-images-processing": "docker buildx build --platform linux/arm64 -t alexandria/images-processing -f ./images-processing/Dockerfile ./images-processing && docker tag alexandria/images-processing 671123374425.dkr.ecr.eu-central-1.amazonaws.com/alexandria/images-processing && docker image prune --force",
     "push-images-processing": "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 671123374425.dkr.ecr.eu-central-1.amazonaws.com && docker push 671123374425.dkr.ecr.eu-central-1.amazonaws.com/alexandria/images-processing"
   },
   "devDependencies": {
-    "serverless": "3.38.0",
-    "serverless-domain-manager": "7.3.6",
-    "serverless-go-plugin": "2.3.0"
+    "serverless": "4.29.0",
+    "serverless-domain-manager": "7.3.3"
   },
   "dependencies": {}
 }
