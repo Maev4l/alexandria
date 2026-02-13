@@ -7,7 +7,7 @@ import (
 )
 
 func Normalize(val string) string {
-	return strings.ToUpper(strings.Replace(val, "-", "", -1))
+	return strings.ToUpper(strings.ReplaceAll(val, "-", ""))
 }
 
 func NewId() string {

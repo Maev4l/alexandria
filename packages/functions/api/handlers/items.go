@@ -17,32 +17,32 @@ import (
 func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 	if item.Type == domain.ItemBook {
 		if len(item.Title) == 0 {
-			return errors.New("Invalid request - Item title is mandatory")
+			return errors.New("invalid request - item title is mandatory")
 		}
 
 		if len(item.Title) > 100 {
-			return errors.New("Invalid request - Title too long (max. 100 chars)")
+			return errors.New("invalid request - title too long (max. 100 chars)")
 		}
 
 		if len(item.Summary) > 4000 {
-			return errors.New("Invalid request - Summary too long (max. 4000 chars)")
+			return errors.New("invalid request - summary too long (max. 4000 chars)")
 		}
 
 		if item.Collection == nil && item.Order != nil {
-			return errors.New("Invalid request - Collection name must be specified.")
+			return errors.New("invalid request - collection name must be specified")
 		}
 
 		if item.Collection != nil {
 			if len(*item.Collection) == 0 || len(*item.Collection) > 100 {
-				return errors.New(fmt.Sprintf("Invalid request - Invalid collection name (1-100 chars): %d chars", len(*item.Collection)))
+				return fmt.Errorf("invalid request - invalid collection name (1-100 chars): %d chars", len(*item.Collection))
 			}
 
 			if item.Order == nil {
-				return errors.New("Invalid request - Collection order must be specified.")
+				return errors.New("invalid request - collection order must be specified")
 			}
 
 			if *item.Order < 0 || *item.Order > 1000 {
-				return errors.New("Invalid request - Invalid collection order (Must be between 1 and 1000")
+				return errors.New("invalid request - invalid collection order (must be between 1 and 1000)")
 			}
 		}
 	}
@@ -218,10 +218,7 @@ func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 		return
 	}
 
-	fetchPicture := false
-	if request.UpdatePicture != nil && *request.UpdatePicture == true {
-		fetchPicture = true
-	}
+	fetchPicture := request.UpdatePicture != nil && *request.UpdatePicture
 
 	err = h.s.UpdateItem(&item, fetchPicture)
 	if err != nil {

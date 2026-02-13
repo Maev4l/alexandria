@@ -44,7 +44,7 @@ func (r *goodreadsResolver) Resolve(code string, ch chan []domain.ResolvedBook) 
 		return
 	}
 
-	defer searchResponse.Body.Close()
+	defer func() { _ = searchResponse.Body.Close() }()
 
 	location, err := searchResponse.Location()
 	if err != nil {
@@ -56,7 +56,7 @@ func (r *goodreadsResolver) Resolve(code string, ch chan []domain.ResolvedBook) 
 	cookies := searchResponse.Cookies()
 
 	c := colly.NewCollector()
-	c.SetCookies(r.url, cookies)
+	_ = c.SetCookies(r.url, cookies)
 	c.OnRequest(func(request *colly.Request) {
 		request.Headers.Set("User-Agent", uarand.GetRandom())
 		request.Headers.Set("Origin", r.url)

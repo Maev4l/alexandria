@@ -40,7 +40,7 @@ func (i *idp) GetUserIdFromUserName(userName string) (string, error) {
 		return "", err
 	}
 
-	if out.Users == nil || len(out.Users) == 0 {
+	if len(out.Users) == 0 {
 		msg := fmt.Sprintf("No user with name: %s", userName)
 		log.Warn().Msg(msg)
 		return "", errors.New(msg)

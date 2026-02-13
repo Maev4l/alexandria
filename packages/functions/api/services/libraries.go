@@ -18,7 +18,7 @@ func (s *services) DeleteLibrary(l *domain.Library) error {
 	}
 
 	if len(libraryToDelete.SharedTo) != 0 {
-		msg := fmt.Sprintf("Cannot delete shared library.")
+		msg := "cannot delete shared library"
 		log.Error().Msg(msg)
 		return errors.New(msg)
 	}

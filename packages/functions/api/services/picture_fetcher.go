@@ -20,7 +20,7 @@ func fetchPicture(url string) ([]byte, error) {
 		log.Error().Str("url", url).Msgf("Failed to fetch picture: %s", err.Error())
 		return nil, err
 	}
-	defer fetchPictureResponse.Body.Close()
+	defer func() { _ = fetchPictureResponse.Body.Close() }()
 
 	data, err := io.ReadAll(fetchPictureResponse.Body)
 	if err != nil {

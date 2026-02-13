@@ -122,11 +122,15 @@ func handler(event events.DynamoDBEvent) error {
 	j, _ := json.MarshalIndent(indexes, "", "  ")
 
 	uploader := manager.NewUploader(client)
-	uploader.Upload(context.TODO(), &s3.PutObjectInput{
+	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(os.Getenv("S3_INDEX_BUCKET")),
 		Key:    aws.String(os.Getenv("INDEX_FILE_NAME")),
 		Body:   bytes.NewReader(j),
 	})
+	if err != nil {
+		log.Error().Msgf("Failed to upload index database: %s", err.Error())
+		return err
+	}
 
 	log.Debug().Msg("Index database saved")
 

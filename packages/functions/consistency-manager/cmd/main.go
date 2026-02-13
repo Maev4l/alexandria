@@ -16,7 +16,6 @@ import (
 var client *dynamodb.Client
 var handlers map[string]map[persistence.EntityType]processing.Handler
 
-var tableName string = os.Getenv("DYNAMODB_TABLE_NAME")
 var region string = os.Getenv("REGION")
 
 func init() {

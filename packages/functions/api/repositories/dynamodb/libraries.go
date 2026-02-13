@@ -28,12 +28,12 @@ func (d *dynamo) GetLibrary(ownerId string, libraryId string) (*domain.Library, 
 
 	if err != nil {
 		log.Error().Str("id", libraryId).Msgf("Unable to get library: %s", err.Error())
-		return nil, errors.New("Unable to get library")
+		return nil, errors.New("unable to get library")
 	}
 
 	if output.Item == nil {
 		log.Info().Str("id", libraryId).Msgf("Library %s does not exist for owner %s", libraryId, ownerId)
-		return nil, errors.New("Unknown library")
+		return nil, errors.New("unknown library")
 	}
 
 	record := persistence.Library{}
@@ -445,7 +445,7 @@ func (d *dynamo) GetSharedLibrary(ownerId string, libraryId string) (string, err
 
 	if err != nil {
 		log.Error().Str("id", libraryId).Msgf("Unable to get shared library: %s", err.Error())
-		return "", errors.New("Unable to get shared library")
+		return "", errors.New("unable to get shared library")
 	}
 
 	if output.Item == nil {

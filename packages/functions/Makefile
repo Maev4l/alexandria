@@ -1,4 +1,4 @@
-.PHONY: build build-api build-indexer build-consistency-manager build-presignup package package-api package-indexer package-presignup clean
+.PHONY: build build-api build-indexer build-consistency-manager build-presignup package package-api package-indexer package-presignup clean lint
 # Build settings for AWS Lambda (ARM64)
 GOOS := linux
 GOARCH := arm64
@@ -45,6 +45,15 @@ package-presignup: build-presignup
 
 # Package all Lambdas
 package: package-api package-indexer package-consistency-manager package-presignup
+
+# Lint all Go code
+lint:
+	golangci-lint run ./...
+
+# Format all Go code
+format:
+	golangci-lint fmt ./...
+
 
 clean:
 	rm -rf api/$(BIN_DIR)

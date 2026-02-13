@@ -34,7 +34,7 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		log.Error().Msg(msg)
 		return nil, errors.New(msg)
 	}
-	defer writer.Close()
+	defer func() { _ = writer.Close() }()
 
 	batch := bluge.NewBatch()
 
@@ -55,7 +55,7 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 				batch.Insert(doc)
 			}
 		}
-		writer.Batch(batch)
+		_ = writer.Batch(batch)
 		batch.Reset()
 	}
 
@@ -81,7 +81,7 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 
 						batch.Insert(doc)
 					}
-					writer.Batch(batch)
+					_ = writer.Batch(batch)
 					batch.Reset()
 				}
 			}
@@ -95,7 +95,7 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		return nil, errors.New(msg)
 	}
 
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	qTitle := bluge.NewFuzzyQuery(terms[0]).SetField("title")
 	qAuthors := bluge.NewFuzzyQuery(terms[0]).SetField("authors")

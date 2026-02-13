@@ -116,7 +116,7 @@ func (d *dynamo) QueryItemEvents(i *domain.LibraryItem, continuationToken string
 		lek, err := deserializeLek(continuationToken)
 		if err != nil {
 			log.Error().Str("id", i.Id).Msg("Unable to deserialize continuation token")
-			return nil, errors.New("Unable to deserialize continuation token")
+			return nil, errors.New("unable to deserialize continuation token")
 		}
 
 		query.ExclusiveStartKey = lek
@@ -151,7 +151,7 @@ func (d *dynamo) QueryItemEvents(i *domain.LibraryItem, continuationToken string
 		nextToken, err := serializeLek(result.LastEvaluatedKey)
 		if err != nil {
 			log.Error().Str("id", i.Id).Msg("Unable to serialize continuation token")
-			return nil, errors.New("Unable to serialize continuation token")
+			return nil, errors.New("unable to serialize continuation token")
 		}
 		history.ContinuationToken = *nextToken
 	}
@@ -242,12 +242,12 @@ func (d *dynamo) GetLibraryItem(ownerId string, libraryId string, itemId string)
 	})
 	if err != nil {
 		log.Error().Str("id", itemId).Msgf("Unable to get item: %s", err.Error())
-		return nil, errors.New("Unable to get item")
+		return nil, errors.New("unable to get item")
 	}
 
 	if output.Item == nil {
 		log.Info().Str("id", itemId).Msgf("Item %s does not exist for owner %s", libraryId, ownerId)
-		return nil, errors.New("Unknown item")
+		return nil, errors.New("unknown item")
 	}
 
 	record := persistence.LibraryItem{}
@@ -568,7 +568,7 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 		lek, err := deserializeLek(continuationToken)
 		if err != nil {
 			log.Error().Str("id", libraryId).Msgf("Unable to deserialize continuation token: %s", err.Error())
-			return nil, errors.New("Unable to deserialize continuation token")
+			return nil, errors.New("unable to deserialize continuation token")
 		}
 
 		query.ExclusiveStartKey = lek
@@ -615,7 +615,7 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 		nextToken, err := serializeLek(result.LastEvaluatedKey)
 		if err != nil {
 			log.Error().Str("id", libraryId).Msg("Unable to serialize continuation token")
-			return nil, errors.New("Unable to serialize continuation token")
+			return nil, errors.New("unable to serialize continuation token")
 		}
 		content.ContinuationToken = *nextToken
 	}

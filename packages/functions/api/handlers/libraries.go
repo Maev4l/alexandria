@@ -15,15 +15,15 @@ import (
 func (h *HTTPHandler) validateLibraryPayload(library *domain.Library) error {
 
 	if len(library.Name) == 0 {
-		return errors.New("Invalid request - Library name is mandatory")
+		return errors.New("invalid request - library name is mandatory")
 	}
 
 	if len(library.Name) > 20 {
-		return errors.New("Invalid request - Name too long (max. 20 chars)")
+		return errors.New("invalid request - name too long (max. 20 chars)")
 	}
 
 	if len(library.Description) > 100 {
-		return errors.New("Invalid request - Description too long (max. 100 chars)")
+		return errors.New("invalid request - description too long (max. 100 chars)")
 	}
 	return nil
 }

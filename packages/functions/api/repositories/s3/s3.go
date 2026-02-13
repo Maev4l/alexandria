@@ -145,7 +145,7 @@ func (o *objectstorage) GetPicture(ownerId string, libraryId string, itemId stri
 		return nil, err
 	}
 
-	defer output.Body.Close()
+	defer func() { _ = output.Body.Close() }()
 	b, err := io.ReadAll(output.Body)
 	if err != nil {
 		log.Error().Str("key", key).Msgf("Failed to read downloaded picture: %s", err.Error())

@@ -17,7 +17,7 @@ func (s *services) DeleteLibraryItemHistory(ownerId string, libraryId string, it
 	}
 
 	if item.LentTo != nil && len(*item.LentTo) != 0 {
-		msg := "Item already lent"
+		msg := "item already lent"
 		log.Error().Str("id", item.Id).Msg(msg)
 		return errors.New(msg)
 	}
@@ -52,7 +52,7 @@ func (s *services) LendItem(ownerId string, libraryId string, itemId string, len
 	}
 
 	if item.LentTo != nil {
-		msg := fmt.Sprintf("Item already lent")
+		msg := "item already lent"
 		log.Error().Str("id", itemId).Msg(msg)
 		return errors.New(msg)
 	}
@@ -74,7 +74,7 @@ func (s *services) ReturnItem(ownerId string, libraryId string, itemId string, f
 	}
 
 	if item.LentTo == nil {
-		msg := fmt.Sprintf("Item not lent")
+		msg := "item not lent"
 		log.Error().Str("id", itemId).Msg(msg)
 		return errors.New(msg)
 	}

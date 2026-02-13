@@ -57,7 +57,7 @@ func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		return
 	}
 
-	defer searchResponse.Body.Close()
+	defer func() { _ = searchResponse.Body.Close() }()
 
 	searchResponseBody, err := io.ReadAll(searchResponse.Body)
 	if err != nil {

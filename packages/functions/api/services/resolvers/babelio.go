@@ -63,7 +63,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		return
 	}
 
-	defer searchResponse.Body.Close()
+	defer func() { _ = searchResponse.Body.Close() }()
 
 	searchResponseBody, err := io.ReadAll(searchResponse.Body)
 	if err != nil {
@@ -136,7 +136,7 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 			ch <- nil
 			return
 		}
-		defer moreSummaryResponse.Body.Close()
+		defer func() { _ = moreSummaryResponse.Body.Close() }()
 		body, _ := io.ReadAll(moreSummaryResponse.Body)
 		dec8859_1 := charmap.ISO8859_1.NewDecoder()
 		body, err = dec8859_1.Bytes(body)
