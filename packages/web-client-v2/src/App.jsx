@@ -4,12 +4,14 @@ import { Library, Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { LibrariesProvider } from '@/state';
 import { TabNavigator } from '@/navigation';
+import { ToastProvider } from '@/components/Toast';
 import Login from '@/pages/Login';
 import Libraries from '@/pages/Libraries';
+import NewLibrary from '@/pages/NewLibrary';
 import Search from '@/pages/Search';
 import Settings from '@/pages/Settings';
 
-// Declarative screen configuration (React Navigation-inspired)
+// Tab screens (shown with bottom tabs)
 const screens = [
   {
     name: 'libraries',
@@ -31,6 +33,15 @@ const screens = [
     icon: SlidersHorizontal,
     component: Settings,
     options: { title: 'Settings' },
+  },
+];
+
+// Stack screens (pushed on top, no bottom tabs)
+const stackScreens = [
+  {
+    name: 'newLibrary',
+    component: NewLibrary,
+    options: { title: 'New Library' },
   },
 ];
 
@@ -68,9 +79,11 @@ const App = () => (
           path="/"
           element={
             <ProtectedRoute>
-              <LibrariesProvider>
-                <TabNavigator screens={screens} initialRoute="libraries" />
-              </LibrariesProvider>
+              <ToastProvider>
+                <LibrariesProvider>
+                  <TabNavigator screens={screens} stackScreens={stackScreens} initialRoute="libraries" />
+                </LibrariesProvider>
+              </ToastProvider>
             </ProtectedRoute>
           }
         />

@@ -16,6 +16,8 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
       setNavigationStack((prev) => [...prev, currentRoute]);
     }
     setCurrentRoute(route);
+    // Reset screen options when navigating
+    setScreenOptions({});
   }, [currentRoute]);
 
   // Go back to previous screen in stack
