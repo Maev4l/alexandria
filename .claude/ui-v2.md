@@ -68,7 +68,9 @@ packages/web-client-v2/
     │   ├── Card.jsx
     │   ├── Input.jsx
     │   └── Label.jsx
-    ├── lib/utils.js        # cn() utility (clsx + tailwind-merge)
+    ├── lib/
+    │   ├── utils.js        # cn() utility (clsx + tailwind-merge)
+    │   └── splash.js       # hideSplash() utility
     └── assets/
 ```
 
@@ -78,4 +80,5 @@ packages/web-client-v2/
 - [x] Routing setup (react-router-dom, protected/public routes)
 - [x] Authentication (AWS Cognito via aws-amplify, login form, auth context)
 - [x] App layout: sticky AppBar + BottomTabs with declarative navigation
+- [x] Splash screen with logo and tagline (fades out when auth resolves)
 - [ ] Core pages implementation (Libraries, Search, Settings)
