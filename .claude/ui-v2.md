@@ -47,14 +47,22 @@ packages/web-client-v2/
 │   └── favicon.svg
 └── src/
     ├── main.jsx            # Entry point, Amplify init
-    ├── App.jsx             # Root component, routing + auth
+    ├── App.jsx             # Root component, routing + auth + screens config
     ├── config.js           # Cognito & API config from output.json
     ├── index.css           # Tailwind + shadcn/ui CSS variables (light/dark)
     ├── auth/
     │   └── AuthContext.jsx # AuthProvider, useAuth hook (Cognito)
+    ├── navigation/         # Declarative navigation system (React Navigation-inspired)
+    │   ├── index.js        # Module exports
+    │   ├── NavigationContext.jsx  # Navigation state, useNavigation hook
+    │   ├── AppBar.jsx      # Sticky header: centered title, back button, right slot
+    │   ├── BottomTabs.jsx  # Sticky footer with tab buttons
+    │   └── TabNavigator.jsx # Combines AppBar + content + BottomTabs
     ├── pages/
     │   ├── Login.jsx       # Login form
-    │   └── Home.jsx        # Placeholder home page
+    │   ├── Libraries.jsx   # Libraries tab (placeholder)
+    │   ├── Search.jsx      # Search tab (placeholder)
+    │   └── Settings.jsx    # Settings tab (placeholder)
     ├── components/ui/      # shadcn/ui components
     │   ├── Button.jsx
     │   ├── Card.jsx
@@ -69,4 +77,5 @@ packages/web-client-v2/
 - [x] Scaffold: Vite + React + PWA + Tailwind CSS + shadcn/ui foundation
 - [x] Routing setup (react-router-dom, protected/public routes)
 - [x] Authentication (AWS Cognito via aws-amplify, login form, auth context)
-- [ ] Core pages and layouts
+- [x] App layout: sticky AppBar + BottomTabs with declarative navigation
+- [ ] Core pages implementation (Libraries, Search, Settings)
