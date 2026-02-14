@@ -52,6 +52,19 @@ export const LibrariesProvider = ({ children }) => {
     setLibraries((prev) => prev.filter((lib) => lib.id !== libraryId));
   }, []);
 
+  // Share a library with another user
+  const shareLibrary = useCallback(async (libraryId, userName) => {
+    await librariesApi.share(libraryId, userName);
+    // Update local state to reflect the new share
+    setLibraries((prev) =>
+      prev.map((lib) =>
+        lib.id === libraryId
+          ? { ...lib, sharedTo: [...(lib.sharedTo || []), userName] }
+          : lib
+      )
+    );
+  }, []);
+
   // Separate owned vs shared libraries, sorted alphabetically by name
   const ownedLibraries = useMemo(
     () => libraries
@@ -77,6 +90,7 @@ export const LibrariesProvider = ({ children }) => {
     createLibrary,
     updateLibrary,
     deleteLibrary,
+    shareLibrary,
   }), [
     libraries,
     ownedLibraries,
@@ -87,6 +101,7 @@ export const LibrariesProvider = ({ children }) => {
     createLibrary,
     updateLibrary,
     deleteLibrary,
+    shareLibrary,
   ]);
 
   return (

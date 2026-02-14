@@ -9,6 +9,7 @@ import Login from '@/pages/Login';
 import Libraries from '@/pages/Libraries';
 import NewLibrary from '@/pages/NewLibrary';
 import EditLibrary from '@/pages/EditLibrary';
+import ShareLibrary from '@/pages/ShareLibrary';
 import Search from '@/pages/Search';
 import Settings from '@/pages/Settings';
 
@@ -48,6 +49,11 @@ const stackScreens = [
     name: 'editLibrary',
     component: EditLibrary,
     options: { title: 'Edit Library' },
+  },
+  {
+    name: 'shareLibrary',
+    component: ShareLibrary,
+    options: { title: 'Share Library' },
   },
 ];
 
