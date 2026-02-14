@@ -8,6 +8,7 @@ import { ToastProvider } from '@/components/Toast';
 import Login from '@/pages/Login';
 import Libraries from '@/pages/Libraries';
 import NewLibrary from '@/pages/NewLibrary';
+import EditLibrary from '@/pages/EditLibrary';
 import Search from '@/pages/Search';
 import Settings from '@/pages/Settings';
 
@@ -42,6 +43,11 @@ const stackScreens = [
     name: 'newLibrary',
     component: NewLibrary,
     options: { title: 'New Library' },
+  },
+  {
+    name: 'editLibrary',
+    component: EditLibrary,
+    options: { title: 'Edit Library' },
   },
 ];
 

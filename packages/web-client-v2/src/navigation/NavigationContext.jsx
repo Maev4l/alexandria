@@ -9,6 +9,7 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
   const [currentRoute, setCurrentRoute] = useState(initialRoute);
   const [navigationStack, setNavigationStack] = useState([]);
   const [screenOptions, setScreenOptions] = useState({});
+  const [routeParams, setRouteParams] = useState(null);
 
   // Navigate to a route, optionally pushing to stack for back navigation
   const navigate = useCallback((route, options = {}) => {
@@ -16,6 +17,7 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
       setNavigationStack((prev) => [...prev, currentRoute]);
     }
     setCurrentRoute(route);
+    setRouteParams(options.params || null);
     // Reset screen options when navigating
     setScreenOptions({});
   }, [currentRoute]);
@@ -26,6 +28,7 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
       const prevRoute = navigationStack[navigationStack.length - 1];
       setNavigationStack((prev) => prev.slice(0, -1));
       setCurrentRoute(prevRoute);
+      setRouteParams(null);
       return true;
     }
     return false;
@@ -41,12 +44,13 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
 
   const value = useMemo(() => ({
     currentRoute,
+    params: routeParams,
     navigate,
     goBack,
     canGoBack,
     screenOptions,
     setOptions,
-  }), [currentRoute, navigate, goBack, canGoBack, screenOptions, setOptions]);
+  }), [currentRoute, routeParams, navigate, goBack, canGoBack, screenOptions, setOptions]);
 
   return (
     <NavigationContext.Provider value={value}>

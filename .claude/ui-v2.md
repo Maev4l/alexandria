@@ -39,12 +39,17 @@
 
 ```
 packages/web-client-v2/
-├── index.html
+├── index.html              # Splash screen + app shell
 ├── package.json
 ├── vite.config.js          # Vite + React + Tailwind + PWA plugins, "@" alias
 ├── jsconfig.json           # Path alias for "@/*" -> "./src/*"
 ├── public/
-│   └── favicon.svg
+│   ├── favicon.ico
+│   ├── favicon-16x16.png
+│   ├── favicon-32x32.png
+│   ├── logo144.png
+│   ├── logo192.svg
+│   └── logo512.svg
 └── src/
     ├── main.jsx            # Entry point, Amplify init
     ├── App.jsx             # Root component, routing + auth + screens config
@@ -54,10 +59,10 @@ packages/web-client-v2/
     │   └── AuthContext.jsx # AuthProvider, useAuth hook (Cognito)
     ├── navigation/         # Declarative navigation system (React Navigation-inspired)
     │   ├── index.js        # Module exports
-    │   ├── NavigationContext.jsx  # Navigation state, useNavigation hook
+    │   ├── NavigationContext.jsx  # Navigation state + params, useNavigation hook
     │   ├── AppBar.jsx      # Sticky header: centered title, back button, right slot
     │   ├── BottomTabs.jsx  # Sticky footer with tab buttons
-    │   └── TabNavigator.jsx # Combines AppBar + content + BottomTabs
+    │   └── TabNavigator.jsx # Tab screens + stack screens support
     ├── api/                # API client layer
     │   ├── index.js        # Module exports
     │   ├── client.js       # Base fetch with auth token injection
@@ -67,16 +72,23 @@ packages/web-client-v2/
     │   └── LibrariesContext.jsx  # Libraries state + actions
     ├── pages/
     │   ├── Login.jsx       # Login form
-    │   ├── Libraries.jsx   # Libraries list (owned + shared)
+    │   ├── Libraries.jsx   # Libraries list with pull-to-refresh + actions
+    │   ├── NewLibrary.jsx  # Create library form
+    │   ├── EditLibrary.jsx # Edit library form
     │   ├── Search.jsx      # Search tab (placeholder)
     │   └── Settings.jsx    # Settings tab (placeholder)
     ├── components/
-    │   ├── LibraryCard.jsx # Compact card for library display
+    │   ├── LibraryCard.jsx # Compact card with long press support
+    │   ├── LibraryActionsSheet.jsx  # Actions: Edit, Share, Unshare, Delete
+    │   ├── PullToRefresh.jsx  # Pull-to-refresh wrapper
+    │   ├── BottomSheet.jsx # Reusable bottom sheet
+    │   ├── Toast.jsx       # Toast notification system
     │   └── ui/             # shadcn/ui components
     │       ├── Button.jsx
     │       ├── Card.jsx
     │       ├── Input.jsx
-    │       └── Label.jsx
+    │       ├── Label.jsx
+    │       └── Textarea.jsx
     ├── lib/
     │   ├── utils.js        # cn() utility (clsx + tailwind-merge)
     │   └── splash.js       # hideSplash() utility
@@ -89,10 +101,19 @@ packages/web-client-v2/
 - [x] Routing setup (react-router-dom, protected/public routes)
 - [x] Authentication (AWS Cognito via aws-amplify, login form, auth context)
 - [x] App layout: sticky AppBar + BottomTabs with declarative navigation
-- [x] Splash screen with logo and tagline (fades out when auth resolves)
+- [x] Splash screen with logo and tagline (min 2s display, fades out)
+- [x] PWA icons configured (favicon, apple-touch-icon, manifest)
 - [x] API client with auth token injection
 - [x] Libraries state management (React Context)
-- [x] Libraries page: fetch + display owned/shared libraries with different styling
+- [x] Libraries page: fetch + display owned/shared with different styling
+- [x] Pull-to-refresh on Libraries page
+- [x] Alphabetical sorting of libraries
+- [x] Create library: dedicated page with form
+- [x] Edit library: dedicated page with pre-filled form
+- [x] Long press on library card → action sheet (Edit, Share, Unshare, Delete)
+- [x] Toast notification system for errors
+- [ ] Share/Unshare library actions
+- [ ] Delete library with confirmation
 - [ ] Library detail page (items list)
 - [ ] Search page implementation
 - [ ] Settings page implementation
