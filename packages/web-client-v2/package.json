@@ -1,0 +1,31 @@
+{
+  "name": "@alexandria/web-client-v2",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "init": "aws cloudformation deploy --stack-name alexandria-web-client --template-file ./infra.yaml --tags application=alexandria owner=cf --no-cli-pager",
+    "output-functions-stack": "aws cloudformation describe-stacks --stack-name alexandria-functions-dev --query 'Stacks[0].Outputs' | jq 'map({(.ExportName): .OutputValue}) | add' > ./output.json"
+  },
+  "dependencies": {
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "lucide-react": "0.469.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tailwind-merge": "2.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.1.18",
+    "@types/node": "22.10.0",
+    "@vitejs/plugin-react": "4.5.2",
+    "tailwindcss": "4.1.18",
+    "vite": "6.3.5",
+    "vite-plugin-pwa": "1.2.0",
+    "workbox-build": "7.4.0",
+    "workbox-window": "7.4.0"
+  }
+}

@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Infrastructure for Alexandria web client
+
+Mappings:
+  Bucket:
+    Name:
+      Value: alexandria-web-client
+  Domain:
+    Name:
+      Value: alexandria.isnan.eu
+  Certificate:
+    Arn:
+      Value: arn:aws:acm:us-east-1:671123374425:certificate/1ccf3bea-dd45-4635-a9f4-af4308b40463 # must be an us-east-1 certificate for cloudfront
+  HostedZone:
+    Id:
+      Value: ZWC66FN0XU6P9
+
+Resources:
+  WebClientBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !FindInMap [Bucket, Name, Value]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: application
+          Value: alexandria
+        - Key: owner
+          Value: cf
+  OriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: alexandria-oai
+        Description: OAC for alexandria distribution
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: CloudFront Distribution for alexandria
+        IPV6Enabled: true
+        Enabled: true
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Aliases:
+          - !FindInMap [Domain, Name, Value]
+        ViewerCertificate:
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+          AcmCertificateArn: !FindInMap [Certificate, Arn, Value]
+        CustomErrorResponses:
+          - ErrorCachingMinTTL: 300
+            ErrorCode: 400
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCachingMinTTL: 300
+            ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCachingMinTTL: 300
+            ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+        Origins:
+          - Id: web-client
+            DomainName: !GetAtt WebClientBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt OriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: web-client
+          # Enable / Disable during development phase
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # (CachingOptimized) see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
+          # CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # (CachingDisabled) see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
+          OriginRequestPolicyId: 88a5eaf4-2fd4-4709-b370-b4c650ea3fcf # (Managed-CORS-S3Origin) see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-origin-request-policies.html#managed-origin-request-policies-list
+          ViewerProtocolPolicy: 'redirect-to-https'
+          Compress: true
+          AllowedMethods:
+            - GET
+            - HEAD
+  WebClientBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebClientBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+            Resource:
+              - Fn::Join:
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref WebClientBucket
+                    - '/*'
+            Principal:
+              Service: 'cloudfront.amazonaws.com'
+            Condition:
+              StringEquals:
+                'AWS:SourceArn':
+                  - Fn::Join:
+                      - ''
+                      - - 'arn:aws:cloudfront::'
+                        - Ref: 'AWS::AccountId'
+                        - ':distribution/'
+                        - Ref: Distribution
+  RecordSetGroup:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !FindInMap [HostedZone, Id, Value]
+      RecordSets:
+        - Name: !FindInMap [Domain, Name, Value]
+          Type: A
+          AliasTarget:
+            HostedZoneId: Z2FDTNDATAQYW2 # Built-in value for Cloudfront
+            DNSName: !GetAtt Distribution.DomainName
+        - Name: !FindInMap [Domain, Name, Value]
+          Type: AAAA
+          AliasTarget:
+            HostedZoneId: Z2FDTNDATAQYW2 # Built-in value for Cloudfront
+            DNSName: !GetAtt Distribution.DomainName
+
+Outputs:
+  BucketName:
+    Value: !FindInMap [Bucket, Name, Value]
+    Export:
+      Name: alexandriaWebClientBucketName
+  DistributionId:
+    Value: !Ref Distribution
+    Export:
+      Name: alexandriaWebClientDistributionId
