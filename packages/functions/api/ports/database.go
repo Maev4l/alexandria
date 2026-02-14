@@ -17,7 +17,7 @@ type Database interface {
 	UpdateLibraryItem(i *domain.LibraryItem) error
 	DeleteLibraryItem(i *domain.LibraryItem) error
 	ShareLibrary(s *domain.ShareLibrary) error
-	UnshareLibrary(s *domain.ShareLibrary) error
+	UnshareLibrary(s *domain.UnshareLibrary) error
 	GetLibraryItem(ownerId string, libraryId string, itemId string) (*domain.LibraryItem, error)
 	GetSharedLibrary(ownerId string, libraryId string) (string, error)
 	GetMatchedItems([]domain.IndexItem) ([]*domain.LibraryItem, error)

@@ -3,7 +3,6 @@ package dynamodb
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"alexandria.isnan.eu/functions/internal/domain"
@@ -300,34 +299,51 @@ func (d *dynamo) QueryLibraries(ownerId string) ([]domain.Library, error) {
 	return records, nil
 }
 
-func (d *dynamo) UnshareLibrary(s *domain.ShareLibrary) error {
-	_, err := d.client.TransactWriteItems(context.TODO(), &dynamodb.TransactWriteItemsInput{
-		TransactItems: []types.TransactWriteItem{
-			{
-				Delete: &types.Delete{
-					TableName: aws.String(tableName),
-					Key: map[string]types.AttributeValue{
-						"PK": &types.AttributeValueMemberS{Value: persistence.MakeSharedLibraryPK(s.SharedToUserId)},
-						"SK": &types.AttributeValueMemberS{Value: persistence.MakeSharedLibrarySK(s.LibraryId)},
-					},
-					ConditionExpression: aws.String("attribute_exists(PK) and attribute_exists(SK)"),
+func (d *dynamo) UnshareLibrary(s *domain.UnshareLibrary) error {
+	// Build transact items: delete shared library records + update library
+	transactItems := make([]types.TransactWriteItem, 0, len(s.SharedToUserIds)+1)
+
+	// Delete each shared library record
+	for _, userId := range s.SharedToUserIds {
+		transactItems = append(transactItems, types.TransactWriteItem{
+			Delete: &types.Delete{
+				TableName: aws.String(tableName),
+				Key: map[string]types.AttributeValue{
+					"PK": &types.AttributeValueMemberS{Value: persistence.MakeSharedLibraryPK(userId)},
+					"SK": &types.AttributeValueMemberS{Value: persistence.MakeSharedLibrarySK(s.LibraryId)},
 				},
+				ConditionExpression: aws.String("attribute_exists(PK) and attribute_exists(SK)"),
 			},
-			{
-				Update: &types.Update{
-					TableName: aws.String(tableName),
-					Key: map[string]types.AttributeValue{
-						"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(s.SharedFromUserId)},
-						"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(s.LibraryId)},
-					},
-					UpdateExpression: aws.String(fmt.Sprintf("REMOVE SharedTo[%d]", s.SharedToUserIndex)),
-				},
+		})
+	}
+
+	// Build the new sharedTo list attribute
+	newSharedToAttr := &types.AttributeValueMemberL{Value: make([]types.AttributeValue, 0, len(s.NewSharedToList))}
+	for _, userName := range s.NewSharedToList {
+		newSharedToAttr.Value = append(newSharedToAttr.Value, &types.AttributeValueMemberS{Value: userName})
+	}
+
+	// Update library with filtered sharedTo list
+	transactItems = append(transactItems, types.TransactWriteItem{
+		Update: &types.Update{
+			TableName: aws.String(tableName),
+			Key: map[string]types.AttributeValue{
+				"PK": &types.AttributeValueMemberS{Value: persistence.MakeLibraryPK(s.SharedFromUserId)},
+				"SK": &types.AttributeValueMemberS{Value: persistence.MakeLibrarySK(s.LibraryId)},
+			},
+			UpdateExpression: aws.String("SET SharedTo = :sharedTo"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":sharedTo": newSharedToAttr,
 			},
 		},
 	})
 
+	_, err := d.client.TransactWriteItems(context.TODO(), &dynamodb.TransactWriteItemsInput{
+		TransactItems: transactItems,
+	})
+
 	if err != nil {
-		log.Error().Str("libraryName", s.LibraryId).Msgf("Failed to unshare library: %s", err.Error())
+		log.Error().Str("libraryId", s.LibraryId).Msgf("Failed to unshare library: %s", err.Error())
 		return err
 	}
 	return nil

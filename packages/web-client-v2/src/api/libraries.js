@@ -18,6 +18,6 @@ export const librariesApi = {
   // Share a library with another user
   share: (libraryId, userName) => api.post(`/libraries/${libraryId}/share`, { userName }),
 
-  // Unshare a library
-  unshare: (libraryId, userName) => api.post(`/libraries/${libraryId}/unshare`, { userName }),
+  // Unshare a library from one or more users
+  unshare: (libraryId, userNames) => api.post(`/libraries/${libraryId}/unshare`, { userNames }),
 };

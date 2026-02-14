@@ -62,8 +62,7 @@ const Libraries = () => {
         navigate('shareLibrary', { push: true, params: { library } });
         break;
       case 'unshare':
-        // TODO: Open unshare sheet
-        console.log('Unshare library:', library);
+        navigate('unshareLibrary', { push: true, params: { library } });
         break;
       case 'delete':
         // TODO: Show delete confirmation

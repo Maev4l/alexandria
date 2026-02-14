@@ -121,6 +121,10 @@ type ShareRequest struct {
 	UserName string `json:"userName"`
 }
 
+type UnshareRequest struct {
+	UserNames []string `json:"userNames"`
+}
+
 type SearchRequest struct {
 	Terms []string `json:"terms"`
 }

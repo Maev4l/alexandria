@@ -65,6 +65,21 @@ export const LibrariesProvider = ({ children }) => {
     );
   }, []);
 
+  // Unshare a library from one or more users
+  const unshareLibrary = useCallback(async (libraryId, userNames) => {
+    // Ensure userNames is an array
+    const users = Array.isArray(userNames) ? userNames : [userNames];
+    await librariesApi.unshare(libraryId, users);
+    // Update local state to remove the shares
+    setLibraries((prev) =>
+      prev.map((lib) =>
+        lib.id === libraryId
+          ? { ...lib, sharedTo: (lib.sharedTo || []).filter((u) => !users.includes(u)) }
+          : lib
+      )
+    );
+  }, []);
+
   // Separate owned vs shared libraries, sorted alphabetically by name
   const ownedLibraries = useMemo(
     () => libraries
@@ -91,6 +106,7 @@ export const LibrariesProvider = ({ children }) => {
     updateLibrary,
     deleteLibrary,
     shareLibrary,
+    unshareLibrary,
   }), [
     libraries,
     ownedLibraries,
@@ -102,6 +118,7 @@ export const LibrariesProvider = ({ children }) => {
     updateLibrary,
     deleteLibrary,
     shareLibrary,
+    unshareLibrary,
   ]);
 
   return (

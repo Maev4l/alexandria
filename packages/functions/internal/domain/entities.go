@@ -70,6 +70,17 @@ type ShareLibrary struct {
 	UpdatedAt          *time.Time
 }
 
+// UnshareLibrary supports removing multiple users at once
+type UnshareLibrary struct {
+	SharedFromUserId   string
+	SharedFromUserName string
+	SharedToUserNames  []string
+	SharedToUserIds    []string
+	LibraryId          string
+	// NewSharedToList is the filtered list after removing users
+	NewSharedToList []string
+}
+
 type LibraryContent struct {
 	Items             []*LibraryItem
 	ContinuationToken string

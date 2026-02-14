@@ -76,6 +76,7 @@ packages/web-client-v2/
     │   ├── NewLibrary.jsx  # Create library form
     │   ├── EditLibrary.jsx # Edit library form
     │   ├── ShareLibrary.jsx # Share library form
+    │   ├── UnshareLibrary.jsx # Unshare library - user selection
     │   ├── Search.jsx      # Search tab (placeholder)
     │   └── Settings.jsx    # Settings tab (placeholder)
     ├── components/
@@ -114,7 +115,7 @@ packages/web-client-v2/
 - [x] Long press on library card → action sheet (Edit, Share, Unshare, Delete)
 - [x] Toast notification system for errors
 - [x] Share library: dedicated page with email input
-- [ ] Unshare library action
+- [x] Unshare library: dedicated page with user list + selection
 - [ ] Delete library with confirmation
 - [ ] Library detail page (items list)
 - [ ] Search page implementation

@@ -20,7 +20,7 @@ type Services interface {
 	DeleteItem(i *domain.LibraryItem) error
 	UpdateItem(i *domain.LibraryItem, fetchPicture bool) error
 	ShareLibrary(sh *domain.ShareLibrary) error
-	UnshareLibrary(sh *domain.ShareLibrary) error
+	UnshareLibrary(sh *domain.UnshareLibrary) error
 	SearchItems(ownerId string, terms []string) ([]*domain.LibraryItem, error)
 	LendItem(ownerId string, libraryId string, itemId string, lendTo string) error
 	ReturnItem(ownerId string, libraryId string, itemId string, from string) error
