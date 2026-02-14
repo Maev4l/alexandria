@@ -12,6 +12,7 @@ Regarding the data persistence:
 
 ### API
 Source code: @../packages/functions/api
+OpenAPI spec: @../packages/functions/api/openapi.yaml
 
 This function exposes the core HTTP APIS behind and AWS API Gateway.
 In addition, it exposes a search endpoint that allows a fuzzy search. This search functionality is based on the "bluge" library.

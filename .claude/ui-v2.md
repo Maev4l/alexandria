@@ -58,16 +58,25 @@ packages/web-client-v2/
     │   ├── AppBar.jsx      # Sticky header: centered title, back button, right slot
     │   ├── BottomTabs.jsx  # Sticky footer with tab buttons
     │   └── TabNavigator.jsx # Combines AppBar + content + BottomTabs
+    ├── api/                # API client layer
+    │   ├── index.js        # Module exports
+    │   ├── client.js       # Base fetch with auth token injection
+    │   └── libraries.js    # Library API endpoints
+    ├── state/              # Shared state (React Context, no Redux)
+    │   ├── index.js        # Module exports
+    │   └── LibrariesContext.jsx  # Libraries state + actions
     ├── pages/
     │   ├── Login.jsx       # Login form
-    │   ├── Libraries.jsx   # Libraries tab (placeholder)
+    │   ├── Libraries.jsx   # Libraries list (owned + shared)
     │   ├── Search.jsx      # Search tab (placeholder)
     │   └── Settings.jsx    # Settings tab (placeholder)
-    ├── components/ui/      # shadcn/ui components
-    │   ├── Button.jsx
-    │   ├── Card.jsx
-    │   ├── Input.jsx
-    │   └── Label.jsx
+    ├── components/
+    │   ├── LibraryCard.jsx # Compact card for library display
+    │   └── ui/             # shadcn/ui components
+    │       ├── Button.jsx
+    │       ├── Card.jsx
+    │       ├── Input.jsx
+    │       └── Label.jsx
     ├── lib/
     │   ├── utils.js        # cn() utility (clsx + tailwind-merge)
     │   └── splash.js       # hideSplash() utility
@@ -81,4 +90,9 @@ packages/web-client-v2/
 - [x] Authentication (AWS Cognito via aws-amplify, login form, auth context)
 - [x] App layout: sticky AppBar + BottomTabs with declarative navigation
 - [x] Splash screen with logo and tagline (fades out when auth resolves)
-- [ ] Core pages implementation (Libraries, Search, Settings)
+- [x] API client with auth token injection
+- [x] Libraries state management (React Context)
+- [x] Libraries page: fetch + display owned/shared libraries with different styling
+- [ ] Library detail page (items list)
+- [ ] Search page implementation
+- [ ] Settings page implementation
