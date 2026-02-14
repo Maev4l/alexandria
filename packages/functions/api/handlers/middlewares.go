@@ -1,3 +1,4 @@
+// Edited by Claude.
 package handlers
 
 import (
@@ -23,21 +24,29 @@ func TokenParser() gin.HandlerFunc {
 		tokenString := c.Request.Header.Get("Authorization")
 		var info tokenInfo
 
-		token, _ := jwt.Parse([]byte(tokenString))
-
-		id, exists := token.Get("sub")
-		if exists {
-			info.userId = identifier.Normalize(fmt.Sprintf("%v", id))
+		// Strip "Bearer " prefix if present
+		if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
+			tokenString = tokenString[7:]
 		}
 
-		username, exists := token.Get("cognito:username")
-		if exists {
-			info.userName = fmt.Sprintf("%v", username)
-		}
+		token, err := jwt.Parse([]byte(tokenString))
 
-		displayName, exists := token.Get("custom:DisplayName")
-		if exists {
-			info.displayName = fmt.Sprintf("%v", displayName)
+		// Only extract claims if token parsed successfully
+		if err == nil && token != nil {
+			id, exists := token.Get("sub")
+			if exists {
+				info.userId = identifier.Normalize(fmt.Sprintf("%v", id))
+			}
+
+			username, exists := token.Get("cognito:username")
+			if exists {
+				info.userName = fmt.Sprintf("%v", username)
+			}
+
+			displayName, exists := token.Get("custom:DisplayName")
+			if exists {
+				info.displayName = fmt.Sprintf("%v", displayName)
+			}
 		}
 
 		c.Set("tokenInfo", &info)
