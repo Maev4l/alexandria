@@ -7,10 +7,12 @@ import { useNavigation } from '@/navigation';
 import LibraryCard from '@/components/LibraryCard';
 import PullToRefresh from '@/components/PullToRefresh';
 import LibraryActionsSheet from '@/components/LibraryActionsSheet';
+import { useToast } from '@/components/Toast';
 
 const Libraries = () => {
-  const { ownedLibraries, sharedLibraries, isLoading, error, fetchLibraries } = useLibraries();
+  const { ownedLibraries, sharedLibraries, isLoading, error, fetchLibraries, deleteLibrary } = useLibraries();
   const { setOptions, navigate } = useNavigation();
+  const toast = useToast();
   const [selectedLibrary, setSelectedLibrary] = useState(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
 
@@ -53,7 +55,7 @@ const Libraries = () => {
     setSelectedLibrary(null);
   }, []);
 
-  const handleAction = useCallback((action, library) => {
+  const handleAction = useCallback(async (action, library) => {
     switch (action) {
       case 'edit':
         navigate('editLibrary', { push: true, params: { library } });
@@ -65,13 +67,16 @@ const Libraries = () => {
         navigate('unshareLibrary', { push: true, params: { library } });
         break;
       case 'delete':
-        // TODO: Show delete confirmation
-        console.log('Delete library:', library);
+        try {
+          await deleteLibrary(library.id);
+        } catch (err) {
+          toast.error(err.message || 'Failed to delete library');
+        }
         break;
       default:
         break;
     }
-  }, [navigate]);
+  }, [navigate, deleteLibrary, toast]);
 
   // Determine content based on state
   const hasData = ownedLibraries.length > 0 || sharedLibraries.length > 0;

@@ -116,7 +116,7 @@ packages/web-client-v2/
 - [x] Toast notification system for errors
 - [x] Share library: dedicated page with email input
 - [x] Unshare library: dedicated page with user list + selection
-- [ ] Delete library with confirmation
+- [x] Delete library with two-step confirmation in action sheet
 - [ ] Library detail page (items list)
 - [ ] Search page implementation
 - [ ] Settings page implementation
