@@ -11,7 +11,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "apple-touch-icon-180x180.png"],
+      includeAssets: ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "logo144.png"],
       manifest: {
         name: "Alexandria",
         short_name: "Alexandria",
@@ -23,19 +23,24 @@ export default defineConfig({
         start_url: "/",
         icons: [
           {
-            src: "pwa-192x192.png",
+            src: "logo144.png",
+            sizes: "144x144",
+            type: "image/png",
+          },
+          {
+            src: "logo192.svg",
             sizes: "192x192",
-            type: "image/png",
+            type: "image/svg+xml",
           },
           {
-            src: "pwa-512x512.png",
+            src: "logo512.svg",
             sizes: "512x512",
-            type: "image/png",
+            type: "image/svg+xml",
           },
           {
-            src: "pwa-512x512.png",
+            src: "logo512.svg",
             sizes: "512x512",
-            type: "image/png",
+            type: "image/svg+xml",
             purpose: "any maskable",
           },
         ],
