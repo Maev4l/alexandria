@@ -1,8 +1,11 @@
 // Edited by Claude.
 // New book page - manual entry form
+// Uses LibrariesContext to create items
 import { useEffect, useState, useCallback } from 'react';
 import { BookOpen } from 'lucide-react';
 import { useNavigation } from '@/navigation';
+import { useLibraries } from '@/state';
+import { useToast } from '@/components/Toast';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
@@ -10,6 +13,8 @@ import { cn } from '@/lib/utils';
 
 const NewBook = () => {
   const { setOptions, params, goBack } = useNavigation();
+  const { createItem } = useLibraries();
+  const { showToast } = useToast();
   const library = params?.library;
 
   const [cover, setCover] = useState('');
@@ -31,28 +36,28 @@ const NewBook = () => {
   const canSubmit = title.trim() && !isSubmitting;
 
   const handleSubmit = useCallback(async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !library?.id) return;
 
     setIsSubmitting(true);
     try {
-      // TODO: Call API to create book
-      // const authorsArray = authors.split(',').map(a => a.trim()).filter(Boolean);
-      // await librariesApi.createBook(library.id, {
-      //   title,
-      //   summary,
-      //   authors: authorsArray,
-      //   isbn,
-      //   pictureUrl: cover,
-      //   collection: collection || null,
-      //   order: order ? parseInt(order, 10) : null,
-      // });
+      const authorsArray = authors.split(',').map((a) => a.trim()).filter(Boolean);
+      await createItem(library.id, {
+        title: title.trim(),
+        summary: summary.trim() || null,
+        authors: authorsArray,
+        isbn: isbn.trim() || null,
+        pictureUrl: cover.trim() || null,
+        collection: collection.trim() || null,
+        order: order ? parseInt(order, 10) : null,
+      });
+      // Go back twice: NewBook → AddBook → LibraryContent
+      goBack();
       goBack();
     } catch (err) {
-      console.error('Failed to create book:', err);
-    } finally {
+      showToast(err.message || 'Failed to create book', 'error');
       setIsSubmitting(false);
     }
-  }, [canSubmit, goBack]);
+  }, [canSubmit, library?.id, title, summary, authors, isbn, cover, collection, order, createItem, goBack, showToast]);
 
   // Set up header with Done button
   useEffect(() => {

@@ -1,14 +1,16 @@
 // Edited by Claude.
 // Library detail page - shows list of books with infinite scroll
 // Groups items by collection, sorted alphabetically
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+// Uses LibrariesContext for state management
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { Loader2, BookOpen, AlertCircle, Plus } from 'lucide-react';
 import { useNavigation } from '@/navigation';
-import { librariesApi } from '@/api';
+import { useLibraries } from '@/state';
 import PullToRefresh from '@/components/PullToRefresh';
 import BookCard from '@/components/BookCard';
 import CollectionCard from '@/components/CollectionCard';
 import ItemActionsSheet from '@/components/ItemActionsSheet';
+import { useState } from 'react';
 
 // Build unified sorted list: standalone items + collections, alphabetically
 const buildSortedList = (items) => {
@@ -43,11 +45,16 @@ const LibraryContent = () => {
   const { setOptions, params, registerScrollToTop, navigate } = useNavigation();
   const library = params?.library;
 
-  const [items, setItems] = useState([]);
-  const [nextToken, setNextToken] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [error, setError] = useState(null);
+  // Get items state and actions from context
+  const { itemsByLibrary, fetchItems, loadMoreItems, deleteItem } = useLibraries();
+  const itemsState = itemsByLibrary[library?.id];
+  const items = itemsState?.items || [];
+  const nextToken = itemsState?.nextToken || null;
+  const isLoading = itemsState?.isLoading || false;
+  const error = itemsState?.error || null;
+  const hasLoaded = !!itemsState; // Track if we've ever fetched this library
+
+  // Local UI state for actions sheet
   const [selectedItem, setSelectedItem] = useState(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
 
@@ -81,55 +88,19 @@ const LibraryContent = () => {
     });
   }, [setOptions, library, navigate]);
 
-  // Fetch items (initial or refresh)
-  const fetchItems = useCallback(async (refresh = false) => {
-    if (!library) return;
-
-    if (refresh) {
-      setIsLoading(true);
-      setError(null);
-    }
-
-    try {
-      const data = await librariesApi.getItems(library.id, { limit: 20 });
-      setItems(data.items || []);
-      setNextToken(data.nextToken || null);
-    } catch (err) {
-      setError(err.message || 'Failed to load items');
-      if (refresh) setItems([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [library]);
-
-  // Load more items (infinite scroll)
-  const loadMore = useCallback(async () => {
-    if (!library || !nextToken || isLoadingMore) return;
-
-    setIsLoadingMore(true);
-    try {
-      const data = await librariesApi.getItems(library.id, { limit: 20, nextToken });
-      setItems((prev) => [...prev, ...(data.items || [])]);
-      setNextToken(data.nextToken || null);
-    } catch (err) {
-      // Silent fail for load more, user can retry by scrolling
-      console.error('Failed to load more:', err);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [library, nextToken, isLoadingMore]);
-
-  // Initial fetch
+  // Fetch items on mount if not already loaded for this library
   useEffect(() => {
-    fetchItems(true);
-  }, [fetchItems]);
+    if (library?.id && !hasLoaded && !isLoading) {
+      fetchItems(library.id, true);
+    }
+  }, [library?.id, hasLoaded, isLoading, fetchItems]);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && nextToken && !isLoadingMore) {
-          loadMore();
+        if (entries[0].isIntersecting && nextToken && !isLoading) {
+          loadMoreItems(library.id);
         }
       },
       { threshold: 0.1 }
@@ -140,12 +111,14 @@ const LibraryContent = () => {
     }
 
     return () => observer.disconnect();
-  }, [nextToken, isLoadingMore, loadMore]);
+  }, [nextToken, isLoading, loadMoreItems, library?.id]);
 
   // Pull to refresh handler
   const handleRefresh = useCallback(async () => {
-    await fetchItems(true);
-  }, [fetchItems]);
+    if (library?.id) {
+      await fetchItems(library.id, true);
+    }
+  }, [library?.id, fetchItems]);
 
   // Long press on item -> show actions sheet
   const handleItemLongPress = useCallback((item) => {
@@ -169,15 +142,19 @@ const LibraryContent = () => {
         // TODO: navigate to lend item page
         break;
       case 'return':
-        // TODO: call return API and refresh list
+        // TODO: call return API
         break;
       case 'delete':
-        // TODO: call delete API and refresh list
+        try {
+          await deleteItem(library.id, item.id);
+        } catch (err) {
+          console.error('Failed to delete item:', err);
+        }
         break;
       default:
         break;
     }
-  }, []);
+  }, [library?.id, deleteItem]);
 
   if (!library) {
     return (
@@ -263,7 +240,7 @@ const LibraryContent = () => {
           <div ref={loadMoreRef} className="h-4" />
 
           {/* Loading more indicator */}
-          {isLoadingMore && (
+          {isLoading && items.length > 0 && (
             <div className="flex justify-center py-4">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>

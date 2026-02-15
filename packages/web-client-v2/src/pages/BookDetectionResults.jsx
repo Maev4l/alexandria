@@ -1,16 +1,18 @@
 // Edited by Claude.
 // Book detection results page - shows books found from ISBN lookup
-// User selects a book → creates it directly via API
+// User selects a book → creates it directly via context
 import { useEffect, useState, useCallback } from 'react';
 import { Loader2, AlertCircle, BookOpen, Check } from 'lucide-react';
 import { useNavigation } from '@/navigation';
-import { detectionApi, librariesApi } from '@/api';
+import { detectionApi } from '@/api';
+import { useLibraries } from '@/state';
 import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/utils';
 
 const BookDetectionResults = () => {
   const { setOptions, params, navigate, goBack } = useNavigation();
   const { showToast } = useToast();
+  const { createItem } = useLibraries();
   const library = params?.library;
   const isbn = params?.isbn;
 
@@ -59,7 +61,7 @@ const BookDetectionResults = () => {
 
     setIsCreating(true);
     try {
-      await librariesApi.createBook(library.id, {
+      await createItem(library.id, {
         title: selected.title || '',
         summary: selected.summary || '',
         authors: selected.authors || [],
@@ -73,7 +75,7 @@ const BookDetectionResults = () => {
       showToast(err.message || 'Failed to add book', 'error');
       setIsCreating(false);
     }
-  }, [selectedIndex, results, library, isbn, goBack, showToast, isCreating]);
+  }, [selectedIndex, results, library, isbn, goBack, showToast, isCreating, createItem]);
 
   // Set up header with Add button
   useEffect(() => {

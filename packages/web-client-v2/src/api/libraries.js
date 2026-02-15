@@ -30,4 +30,10 @@ export const librariesApi = {
 
   // Create a book in a library
   createBook: (libraryId, data) => api.post(`/libraries/${libraryId}/books`, data),
+
+  // Update a book in a library
+  updateBook: (libraryId, bookId, data) => api.put(`/libraries/${libraryId}/books/${bookId}`, data),
+
+  // Delete an item from a library
+  deleteItem: (libraryId, itemId) => api.delete(`/libraries/${libraryId}/items/${itemId}`),
 };
