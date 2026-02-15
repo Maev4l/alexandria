@@ -2,7 +2,7 @@
 // Library detail page - shows list of books with infinite scroll
 // Groups items by collection, sorted alphabetically
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Loader2, BookOpen, AlertCircle } from 'lucide-react';
+import { Loader2, BookOpen, AlertCircle, Plus } from 'lucide-react';
 import { useNavigation } from '@/navigation';
 import { librariesApi } from '@/api';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -40,7 +40,7 @@ const buildSortedList = (items) => {
 };
 
 const LibraryContent = () => {
-  const { setOptions, params, registerScrollToTop } = useNavigation();
+  const { setOptions, params, registerScrollToTop, navigate } = useNavigation();
   const library = params?.library;
 
   const [items, setItems] = useState([]);
@@ -65,16 +65,21 @@ const LibraryContent = () => {
   // Build sorted list with collections grouped
   const sortedList = useMemo(() => buildSortedList(items), [items]);
 
-  // Set up header with library name
+  // Set up header with library name and add button
   useEffect(() => {
     setOptions({
       title: library?.name || 'Library',
       headerRight: (
-        // Placeholder for future actions
-        <div className="w-9 h-9" />
+        <button
+          onClick={() => navigate('addBook', { push: true, params: { library } })}
+          className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
+          aria-label="Add book"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
       ),
     });
-  }, [setOptions, library]);
+  }, [setOptions, library, navigate]);
 
   // Fetch items (initial or refresh)
   const fetchItems = useCallback(async (refresh = false) => {

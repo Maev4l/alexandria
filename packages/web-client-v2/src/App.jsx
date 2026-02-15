@@ -12,6 +12,9 @@ import EditLibrary from '@/pages/EditLibrary';
 import ShareLibrary from '@/pages/ShareLibrary';
 import UnshareLibrary from '@/pages/UnshareLibrary';
 import LibraryContent from '@/pages/LibraryContent';
+import AddBook from '@/pages/AddBook';
+import BookDetectionResults from '@/pages/BookDetectionResults';
+import NewBook from '@/pages/NewBook';
 import Search from '@/pages/Search';
 import Settings from '@/pages/Settings';
 
@@ -66,6 +69,21 @@ const stackScreens = [
     name: 'libraryContent',
     component: LibraryContent,
     options: { title: 'Library', showTabs: true },
+  },
+  {
+    name: 'addBook',
+    component: AddBook,
+    options: { title: 'Add Book' },
+  },
+  {
+    name: 'bookDetectionResults',
+    component: BookDetectionResults,
+    options: { title: 'Select Book' },
+  },
+  {
+    name: 'newBook',
+    component: NewBook,
+    options: { title: 'New Book' },
   },
 ];
 

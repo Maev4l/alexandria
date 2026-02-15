@@ -34,6 +34,8 @@
 | lucide-react | 0.469.0 |
 | aws-amplify | 6.16.2 |
 | react-router-dom | 7.13.0 |
+| @zxing/browser | 0.1.5 |
+| @zxing/library | 0.21.3 |
 
 ## Project structure
 
@@ -66,7 +68,8 @@ packages/web-client-v2/
     ├── api/                # API client layer
     │   ├── index.js        # Module exports
     │   ├── client.js       # Base fetch with auth token injection
-    │   └── libraries.js    # Library API endpoints
+    │   ├── libraries.js    # Library API endpoints
+    │   └── detection.js    # ISBN detection API (book lookup)
     ├── state/              # Shared state (React Context, no Redux)
     │   ├── index.js        # Module exports
     │   └── LibrariesContext.jsx  # Libraries state + actions
@@ -78,6 +81,9 @@ packages/web-client-v2/
     │   ├── ShareLibrary.jsx # Share library form
     │   ├── UnshareLibrary.jsx # Unshare library - user selection
     │   ├── LibraryContent.jsx # Library items: unified list (standalone + collections), alphabetically sorted
+    │   ├── AddBook.jsx     # Add book: camera scan, manual ISBN, or full manual entry
+    │   ├── BookDetectionResults.jsx # ISBN lookup results - select and create book directly
+    │   ├── NewBook.jsx     # Manual book entry form (when detection fails)
     │   ├── Search.jsx      # Search tab (placeholder)
     │   └── Settings.jsx    # Settings tab (placeholder)
     ├── components/
@@ -125,5 +131,132 @@ packages/web-client-v2/
 - [x] Collection grouping: items with same collection grouped in collapsible cards, sorted by order
 - [x] Tap AppBar title to scroll content to top (iOS convention)
 - [x] Long press on item → action sheet (Edit, Lend, Delete)
+- [x] Add book flow: "+" button → AddBook (3 options: scan, manual ISBN, manual entry)
+- [x] ISBN detection: manual ISBN input → API lookup → select result → create book directly
+- [x] Detection fallback: no results found → link to NewBook for manual entry
+- [x] Scan ISBN: camera barcode scanning (@zxing/browser, EAN-13/EAN-8)
 - [ ] Search page implementation
 - [ ] Settings page implementation
+
+## UI Revamp
+
+Two design directions for future visual enhancements.
+
+### Option A: Literary Editorial
+
+Magazine-inspired aesthetic treating the book collection as a curated editorial experience.
+
+**Typography**
+- Display: Playfair Display or Cormorant Garamond (serif, literary)
+- Body: Source Sans 3 or DM Sans (readable, modern contrast)
+- Large, confident typography for library names and headers
+- Uppercase, letterspaced titles for books
+
+**Color Palette**
+```css
+--bg-cream: #FAF8F5;        /* Warm paper-like background */
+--text-ink: #1C1917;        /* Deep ink black */
+--accent-burgundy: #7C2D12; /* Library/leather accent */
+--muted-sage: #A3A592;      /* Soft muted green */
+--highlight-gold: #CA8A04;  /* Lent/special status */
+```
+
+**Book Card Style**
+```
+┌─────────────────────────────────┐
+│  ┌──────┐                       │
+│  │      │  HARRY POTTER         │  ← Uppercase, letterspaced
+│  │ 📖  │  and the Philosopher's │
+│  │      │  Stone                │
+│  │      │                       │
+│  │      │  J.K. Rowling         │  ← Muted, elegant
+│  └──────┘  ─────────────────    │
+│            Collection: 1 of 7   │  ← Subtle metadata
+└─────────────────────────────────┘
+```
+
+**Collection Display - Stacked Spines**
+```
+┌─────────────────────────────────┐
+│ Harry Potter                    │
+│ ┌──┬──┬──┬──┬──┬──┬──┐         │
+│ │1 │2 │3 │4 │5 │6 │7 │  → Tap  │  ← Visual spine view
+│ └──┴──┴──┴──┴──┴──┴──┘         │
+└─────────────────────────────────┘
+```
+
+**Micro-interactions**
+- Book cards tilt slightly on press (3D perspective)
+- Pull-to-refresh: book page flip animation
+- Long-press: haptic pulse + scale down
+
+---
+
+### Option B: Modern Bookshelf
+
+Visual browsing focus with book covers as primary UI element.
+
+**Typography**
+- Display: DM Serif Display or Fraunces
+- Body: Inter or DM Sans
+- Clean, minimal text - let covers speak
+
+**Color Palette**
+```css
+--bg-warm: #F5F3EF;         /* Warm off-white */
+--bg-shelf: #E8E4DC;        /* Shelf/card background */
+--text-primary: #292524;    /* Stone 800 */
+--text-muted: #78716C;      /* Stone 500 */
+--accent-wood: #A16207;     /* Warm wood tone */
+--lent-overlay: rgba(0,0,0,0.5); /* Dimmed lent books */
+```
+
+**Library Grid Layout**
+```
+┌────────────────────────────────┐
+│ My Libraries                   │
+├────────────────────────────────┤
+│ ┌────────┐ ┌────────┐         │
+│ │████████│ │████████│         │
+│ │  Sci-  │ │ Litt.  │         │
+│ │  Fi    │ │ FR     │  Grid   │
+│ │  (42)  │ │  (18)  │  view   │
+│ └────────┘ └────────┘         │
+└────────────────────────────────┘
+```
+
+**Horizontal Scrolling Collections**
+```
+┌────────────────────────────────┐
+│ Cryptonomicon           See all│
+│ ┌────┐ ┌────┐ ┌────┐          │
+│ │ 1  │ │ 2  │ │ 3  │  →       │  ← Horizontal scroll
+│ └────┘ └────┘ └────┘          │
+├────────────────────────────────┤
+│ Standalone                     │
+│ ┌────┐ ┌────┐ ┌────┐ ┌────┐  │
+│ │    │ │    │ │    │ │    │  │  ← Vertical grid
+│ └────┘ └────┘ └────┘ └────┘  │
+└────────────────────────────────┘
+```
+
+**Lent Indicator - Visual Overlay**
+```
+┌────────┐
+│░░░░░░░░│ ← Dimmed cover
+│░░LENT░░│ ← Overlay badge
+│░░░░░░░░│
+└────────┘
+```
+
+---
+
+### Quick Wins (Either Style)
+
+1. Subtle shadows on book cards for depth
+2. Realistic book cover corners: `border-radius: 2px 6px 6px 2px`
+3. Warm background tint instead of pure white/black
+4. Staggered animation on list load (50ms delay per card)
+5. Empty state: sketch of empty bookshelf
+6. "Lent to" as colored dot/ribbon, not just text
+

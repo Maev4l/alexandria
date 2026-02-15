@@ -17,21 +17,22 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
   // Navigate to a route, optionally pushing to stack for back navigation
   const navigate = useCallback((route, options = {}) => {
     if (options.push) {
-      setNavigationStack((prev) => [...prev, currentRoute]);
+      // Store both route and params in the stack for proper restoration
+      setNavigationStack((prev) => [...prev, { route: currentRoute, params: routeParams }]);
     }
     setCurrentRoute(route);
     setRouteParams(options.params || null);
     // Reset screen options when navigating
     setScreenOptions({});
-  }, [currentRoute]);
+  }, [currentRoute, routeParams]);
 
   // Go back to previous screen in stack
   const goBack = useCallback(() => {
     if (navigationStack.length > 0) {
-      const prevRoute = navigationStack[navigationStack.length - 1];
+      const prevEntry = navigationStack[navigationStack.length - 1];
       setNavigationStack((prev) => prev.slice(0, -1));
-      setCurrentRoute(prevRoute);
-      setRouteParams(null);
+      setCurrentRoute(prevEntry.route);
+      setRouteParams(prevEntry.params || null);
       return true;
     }
     return false;

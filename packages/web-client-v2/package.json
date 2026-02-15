@@ -11,6 +11,8 @@
     "output-functions-stack": "aws cloudformation describe-stacks --stack-name alexandria-functions-dev --query 'Stacks[0].Outputs' | jq 'map({(.ExportName): .OutputValue}) | add' > ./output.json"
   },
   "dependencies": {
+    "@zxing/browser": "0.1.5",
+    "@zxing/library": "0.21.3",
     "aws-amplify": "6.16.2",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
