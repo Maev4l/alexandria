@@ -26,6 +26,8 @@ const TabContent = ({ screens, stackScreens = [] }) => {
   const Component = currentScreen.component;
   const title = screenOptions.title ?? currentScreen.options?.title ?? currentScreen.label;
   const isStackScreen = !!stackScreen;
+  // Show tabs for tab screens, or stack screens with showTabs: true
+  const shouldShowTabs = !isStackScreen || stackScreen?.options?.showTabs;
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -36,13 +38,13 @@ const TabContent = ({ screens, stackScreens = [] }) => {
         showBackButton={isStackScreen ? true : (screenOptions.showBackButton ?? canGoBack)}
       />
 
-      {/* Main content area: fills space between header and footer */}
-      <main className="flex-1 overflow-auto">
+      {/* Main content area - relative for absolute positioned children */}
+      <main className="flex-1 overflow-hidden relative">
         <Component />
       </main>
 
-      {/* Only show tabs for tab screens */}
-      {!isStackScreen && (
+      {/* Show tabs for tab screens or stack screens with showTabs option */}
+      {shouldShowTabs && (
         <BottomTabs
           tabs={screens.map((s) => ({
             name: s.name,

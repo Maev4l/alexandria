@@ -11,6 +11,7 @@ import NewLibrary from '@/pages/NewLibrary';
 import EditLibrary from '@/pages/EditLibrary';
 import ShareLibrary from '@/pages/ShareLibrary';
 import UnshareLibrary from '@/pages/UnshareLibrary';
+import LibraryContent from '@/pages/LibraryContent';
 import Search from '@/pages/Search';
 import Settings from '@/pages/Settings';
 
@@ -60,6 +61,11 @@ const stackScreens = [
     name: 'unshareLibrary',
     component: UnshareLibrary,
     options: { title: 'Unshare Library' },
+  },
+  {
+    name: 'libraryContent',
+    component: LibraryContent,
+    options: { title: 'Library', showTabs: true },
   },
 ];
 

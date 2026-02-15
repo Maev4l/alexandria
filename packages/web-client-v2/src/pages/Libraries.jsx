@@ -41,8 +41,7 @@ const Libraries = () => {
   }, [fetchLibraries]);
 
   const handleLibraryClick = (library) => {
-    // TODO: Navigate to library detail
-    console.log('Library clicked:', library);
+    navigate('libraryContent', { push: true, params: { library } });
   };
 
   const handleLongPress = useCallback((library) => {

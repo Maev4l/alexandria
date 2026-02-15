@@ -1,0 +1,280 @@
+// Edited by Claude.
+// Library detail page - shows list of books with infinite scroll
+// Groups items by collection, sorted alphabetically
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Loader2, BookOpen, AlertCircle } from 'lucide-react';
+import { useNavigation } from '@/navigation';
+import { librariesApi } from '@/api';
+import PullToRefresh from '@/components/PullToRefresh';
+import BookCard from '@/components/BookCard';
+import CollectionCard from '@/components/CollectionCard';
+import ItemActionsSheet from '@/components/ItemActionsSheet';
+
+// Build unified sorted list: standalone items + collections, alphabetically
+const buildSortedList = (items) => {
+  const collections = {};
+  const standalone = [];
+
+  items.forEach((item) => {
+    if (item.collection) {
+      if (!collections[item.collection]) {
+        collections[item.collection] = [];
+      }
+      collections[item.collection].push(item);
+    } else {
+      standalone.push({ type: 'item', data: item, sortKey: item.title?.toLowerCase() || '' });
+    }
+  });
+
+  // Convert collections to list entries, sort items by order within each
+  const collectionEntries = Object.entries(collections).map(([name, collectionItems]) => ({
+    type: 'collection',
+    name,
+    items: collectionItems.sort((a, b) => (a.order || 0) - (b.order || 0)),
+    sortKey: name.toLowerCase(),
+  }));
+
+  // Merge and sort alphabetically by sortKey
+  return [...standalone, ...collectionEntries]
+    .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+};
+
+const LibraryContent = () => {
+  const { setOptions, params, registerScrollToTop } = useNavigation();
+  const library = params?.library;
+
+  const [items, setItems] = useState([]);
+  const [nextToken, setNextToken] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+
+  const loadMoreRef = useRef(null);
+  const pullToRefreshRef = useRef(null);
+
+  // Register scroll-to-top handler for AppBar title tap
+  useEffect(() => {
+    const unregister = registerScrollToTop(() => {
+      pullToRefreshRef.current?.scrollToTop();
+    });
+    return unregister;
+  }, [registerScrollToTop]);
+
+  // Build sorted list with collections grouped
+  const sortedList = useMemo(() => buildSortedList(items), [items]);
+
+  // Set up header with library name
+  useEffect(() => {
+    setOptions({
+      title: library?.name || 'Library',
+      headerRight: (
+        // Placeholder for future actions
+        <div className="w-9 h-9" />
+      ),
+    });
+  }, [setOptions, library]);
+
+  // Fetch items (initial or refresh)
+  const fetchItems = useCallback(async (refresh = false) => {
+    if (!library) return;
+
+    if (refresh) {
+      setIsLoading(true);
+      setError(null);
+    }
+
+    try {
+      const data = await librariesApi.getItems(library.id, { limit: 20 });
+      setItems(data.items || []);
+      setNextToken(data.nextToken || null);
+    } catch (err) {
+      setError(err.message || 'Failed to load items');
+      if (refresh) setItems([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [library]);
+
+  // Load more items (infinite scroll)
+  const loadMore = useCallback(async () => {
+    if (!library || !nextToken || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    try {
+      const data = await librariesApi.getItems(library.id, { limit: 20, nextToken });
+      setItems((prev) => [...prev, ...(data.items || [])]);
+      setNextToken(data.nextToken || null);
+    } catch (err) {
+      // Silent fail for load more, user can retry by scrolling
+      console.error('Failed to load more:', err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [library, nextToken, isLoadingMore]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchItems(true);
+  }, [fetchItems]);
+
+  // Intersection observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && nextToken && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [nextToken, isLoadingMore, loadMore]);
+
+  // Pull to refresh handler
+  const handleRefresh = useCallback(async () => {
+    await fetchItems(true);
+  }, [fetchItems]);
+
+  // Long press on item -> show actions sheet
+  const handleItemLongPress = useCallback((item) => {
+    setSelectedItem(item);
+    setIsActionsOpen(true);
+  }, []);
+
+  // Close actions sheet
+  const handleCloseActions = useCallback(() => {
+    setIsActionsOpen(false);
+    setSelectedItem(null);
+  }, []);
+
+  // Handle action from sheet
+  const handleAction = useCallback(async (action, item) => {
+    switch (action) {
+      case 'edit':
+        // TODO: navigate to edit item page
+        break;
+      case 'lend':
+        // TODO: navigate to lend item page
+        break;
+      case 'return':
+        // TODO: call return API and refresh list
+        break;
+      case 'delete':
+        // TODO: call delete API and refresh list
+        break;
+      default:
+        break;
+    }
+  }, []);
+
+  if (!library) {
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <p className="text-muted-foreground">Library not found</p>
+      </div>
+    );
+  }
+
+  // Initial loading state
+  if (isLoading && items.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Error state (no data)
+  if (error && items.length === 0) {
+    return (
+      <PullToRefresh onRefresh={handleRefresh} className="h-full">
+        <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+          <AlertCircle className="h-8 w-8 text-destructive" />
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-xs text-muted-foreground">Pull down to retry</p>
+        </div>
+      </PullToRefresh>
+    );
+  }
+
+  // Empty state
+  if (items.length === 0) {
+    return (
+      <PullToRefresh onRefresh={handleRefresh} className="h-full">
+        <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+          <BookOpen className="h-12 w-12 text-muted-foreground/50" />
+          <p className="text-lg font-medium">No books yet</p>
+          <p className="text-sm text-muted-foreground">
+            Add books to this library to see them here.
+          </p>
+        </div>
+      </PullToRefresh>
+    );
+  }
+
+  // Items list (unified: standalone + collections, alphabetically sorted)
+  return (
+    <>
+      <PullToRefresh
+        ref={pullToRefreshRef}
+        onRefresh={handleRefresh}
+        className="h-full"
+      >
+        <div className="p-4 space-y-2">
+          {sortedList.map((entry) => {
+            if (entry.type === 'collection') {
+              return (
+                <CollectionCard
+                  key={`collection-${entry.name}`}
+                  name={entry.name}
+                  items={entry.items}
+                  onItemClick={(book) => {
+                    // TODO: navigate to book detail
+                  }}
+                  onItemLongPress={handleItemLongPress}
+                />
+              );
+            }
+            return (
+              <BookCard
+                key={entry.data.id}
+                book={entry.data}
+                onClick={(book) => {
+                  // TODO: navigate to book detail
+                }}
+                onLongPress={handleItemLongPress}
+              />
+            );
+          })}
+
+          {/* Load more trigger */}
+          <div ref={loadMoreRef} className="h-4" />
+
+          {/* Loading more indicator */}
+          {isLoadingMore && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
+      </PullToRefresh>
+
+      {/* Item actions sheet */}
+      <ItemActionsSheet
+        item={selectedItem}
+        isOpen={isActionsOpen}
+        onClose={handleCloseActions}
+        onAction={handleAction}
+      />
+    </>
+  );
+};
+
+export default LibraryContent;

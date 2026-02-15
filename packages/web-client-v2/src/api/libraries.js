@@ -20,4 +20,11 @@ export const librariesApi = {
 
   // Unshare a library from one or more users
   unshare: (libraryId, userNames) => api.post(`/libraries/${libraryId}/unshare`, { userNames }),
+
+  // Get items in a library with cursor-based pagination
+  getItems: (libraryId, { limit = 20, nextToken } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (nextToken) params.append('nextToken', nextToken);
+    return api.get(`/libraries/${libraryId}/items?${params}`);
+  },
 };

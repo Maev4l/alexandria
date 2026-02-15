@@ -9,7 +9,7 @@ const BottomTabs = ({ tabs, className }) => {
   return (
     <nav
       className={cn(
-        'sticky bottom-0 z-50 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60',
+        'sticky bottom-0 z-50 border-t border-border bg-background',
         className
       )}
     >

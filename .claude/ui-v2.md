@@ -59,8 +59,8 @@ packages/web-client-v2/
     │   └── AuthContext.jsx # AuthProvider, useAuth hook (Cognito)
     ├── navigation/         # Declarative navigation system (React Navigation-inspired)
     │   ├── index.js        # Module exports
-    │   ├── NavigationContext.jsx  # Navigation state + params, useNavigation hook
-    │   ├── AppBar.jsx      # Sticky header: centered title, back button, right slot
+    │   ├── NavigationContext.jsx  # Navigation state + params + scroll-to-top registration
+    │   ├── AppBar.jsx      # Sticky header: centered title (tap to scroll top), back button, right slot
     │   ├── BottomTabs.jsx  # Sticky footer with tab buttons
     │   └── TabNavigator.jsx # Tab screens + stack screens support
     ├── api/                # API client layer
@@ -77,12 +77,16 @@ packages/web-client-v2/
     │   ├── EditLibrary.jsx # Edit library form
     │   ├── ShareLibrary.jsx # Share library form
     │   ├── UnshareLibrary.jsx # Unshare library - user selection
+    │   ├── LibraryContent.jsx # Library items: unified list (standalone + collections), alphabetically sorted
     │   ├── Search.jsx      # Search tab (placeholder)
     │   └── Settings.jsx    # Settings tab (placeholder)
     ├── components/
     │   ├── LibraryCard.jsx # Compact card with long press support
+    │   ├── BookCard.jsx    # Book item card with cover image + optional order number
+    │   ├── CollectionCard.jsx # Collapsible card for grouped books in a collection
     │   ├── LibraryActionsSheet.jsx  # Actions: Edit, Share, Unshare, Delete
-    │   ├── PullToRefresh.jsx  # Pull-to-refresh wrapper
+    │   ├── ItemActionsSheet.jsx  # Actions: Edit, Lend, Delete (for books)
+    │   ├── PullToRefresh.jsx  # Pull-to-refresh (transform-based, with ref for scroll control)
     │   ├── BottomSheet.jsx # Reusable bottom sheet
     │   ├── Toast.jsx       # Toast notification system
     │   └── ui/             # shadcn/ui components
@@ -117,6 +121,9 @@ packages/web-client-v2/
 - [x] Share library: dedicated page with email input
 - [x] Unshare library: dedicated page with user list + selection
 - [x] Delete library with two-step confirmation in action sheet
-- [ ] Library detail page (items list)
+- [x] Library content page with infinite scroll + pull-to-refresh
+- [x] Collection grouping: items with same collection grouped in collapsible cards, sorted by order
+- [x] Tap AppBar title to scroll content to top (iOS convention)
+- [x] Long press on item → action sheet (Edit, Lend, Delete)
 - [ ] Search page implementation
 - [ ] Settings page implementation
