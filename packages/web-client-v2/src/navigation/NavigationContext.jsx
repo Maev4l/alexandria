@@ -33,6 +33,8 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
       setNavigationStack((prev) => prev.slice(0, -1));
       setCurrentRoute(prevEntry.route);
       setRouteParams(prevEntry.params || null);
+      // Reset screen options so previous screen can set its own
+      setScreenOptions({});
       return true;
     }
     return false;
