@@ -14,6 +14,10 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
   // Ref for scroll-to-top callback (pages can register their scroll handler)
   const scrollToTopRef = useRef(null);
 
+  // Ref to track latest stack for synchronous multiple goBack calls
+  const stackRef = useRef(navigationStack);
+  stackRef.current = navigationStack;
+
   // Navigate to a route, optionally pushing to stack for back navigation
   const navigate = useCallback((route, options = {}) => {
     if (options.push) {
@@ -27,10 +31,15 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
   }, [currentRoute, routeParams]);
 
   // Go back to previous screen in stack
+  // Uses ref to support multiple synchronous goBack() calls
   const goBack = useCallback(() => {
-    if (navigationStack.length > 0) {
-      const prevEntry = navigationStack[navigationStack.length - 1];
-      setNavigationStack((prev) => prev.slice(0, -1));
+    const stack = stackRef.current;
+    if (stack.length > 0) {
+      const prevEntry = stack[stack.length - 1];
+      const newStack = stack.slice(0, -1);
+      // Update ref immediately for subsequent synchronous calls
+      stackRef.current = newStack;
+      setNavigationStack(newStack);
       setCurrentRoute(prevEntry.route);
       setRouteParams(prevEntry.params || null);
       // Reset screen options so previous screen can set its own
@@ -38,7 +47,7 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
       return true;
     }
     return false;
-  }, [navigationStack]);
+  }, []);
 
   // Check if we can go back
   const canGoBack = navigationStack.length > 0;
