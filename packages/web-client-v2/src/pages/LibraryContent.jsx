@@ -141,7 +141,7 @@ const LibraryContent = () => {
   const handleAction = useCallback(async (action, item) => {
     switch (action) {
       case 'edit':
-        // TODO: navigate to edit item page
+        navigate('editBook', { push: true, params: { library, book: item } });
         break;
       case 'lend':
         // TODO: navigate to lend item page
@@ -159,7 +159,7 @@ const LibraryContent = () => {
       default:
         break;
     }
-  }, [library?.id, deleteItem]);
+  }, [library, navigate, deleteItem]);
 
   if (!library) {
     return (

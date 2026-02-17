@@ -84,6 +84,7 @@ packages/web-client-v2/
     │   ├── AddBook.jsx     # Add book: camera scan, manual ISBN, or full manual entry
     │   ├── BookDetectionResults.jsx # ISBN lookup results - select and create book directly
     │   ├── NewBook.jsx     # Manual book entry form (when detection fails)
+    │   ├── EditBook.jsx    # Edit book form (pre-filled from item)
     │   ├── Search.jsx      # Search tab (placeholder)
     │   └── Settings.jsx    # Settings tab (placeholder)
     ├── components/
@@ -174,7 +175,7 @@ packages/web-client-v2/
 │       ▼                                                                     │
 │  ┌─────────────────────┐                                                    │
 │  │  ItemActionsSheet   │                                                    │
-│  │  - Edit ──────────────► (TODO: EditBook)                                 │
+│  │  - Edit ──────────────► EditBook (form with pre-filled data)             │
 │  │  - Lend/Return ───────► (TODO: LendBook)                                 │
 │  │  - Delete ────────────► (deletes via API, list refreshed)                │
 │  └─────────────────────┘                                                    │
@@ -209,6 +210,8 @@ packages/web-client-v2/
 - [x] ISBN detection: manual ISBN input → API lookup → select result → create book directly
 - [x] Detection fallback: no results found → link to NewBook for manual entry
 - [x] Scan ISBN: camera barcode scanning (@zxing/browser, EAN-13/EAN-8)
+- [x] Edit book: form with pre-filled data, updates via context
+- [ ] Lend/Return functionality
 - [ ] Search page implementation
 - [ ] Settings page implementation
 
