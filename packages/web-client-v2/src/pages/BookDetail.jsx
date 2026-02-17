@@ -4,23 +4,30 @@
 import { useEffect } from 'react';
 import { BookOpen, Pencil } from 'lucide-react';
 import { useNavigation } from '@/navigation';
+import { useLibraries } from '@/state';
 
 const BookDetail = () => {
   const { setOptions, params, navigate } = useNavigation();
+  const { getItemsState } = useLibraries();
+
   const library = params?.library;
   const book = params?.book;
 
-  const hasImage = book?.pictureUrl || book?.picture;
-  const authors = book?.authors?.join(', ') || '';
-  const isLent = !!book?.lentTo;
+  // Get the current item state from context (may be updated after lend/return)
+  const itemsState = getItemsState(library?.id);
+  const currentBook = itemsState.items.find((item) => item.id === book?.id) || book;
+
+  const hasImage = currentBook?.pictureUrl || currentBook?.picture;
+  const authors = currentBook?.authors?.join(', ') || '';
+  const isLent = !!currentBook?.lentTo;
 
   // Set up header with Edit button
   useEffect(() => {
     setOptions({
-      title: book?.title || 'Book',
+      title: currentBook?.title || 'Book',
       headerRight: (
         <button
-          onClick={() => navigate('editBook', { push: true, params: { library, book } })}
+          onClick={() => navigate('editBook', { push: true, params: { library, book: currentBook } })}
           className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
           aria-label="Edit book"
         >
@@ -28,9 +35,9 @@ const BookDetail = () => {
         </button>
       ),
     });
-  }, [setOptions, book, library, navigate]);
+  }, [setOptions, currentBook, library, navigate]);
 
-  if (!book) {
+  if (!currentBook) {
     return (
       <div className="flex h-full items-center justify-center p-4">
         <p className="text-muted-foreground">Book not found</p>
@@ -46,8 +53,8 @@ const BookDetail = () => {
           <div className="w-40 h-56 rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border shadow-md">
             {hasImage ? (
               <img
-                src={book.pictureUrl || `data:image/webp;base64,${book.picture}`}
-                alt={book.title}
+                src={currentBook.pictureUrl || `data:image/webp;base64,${currentBook.picture}`}
+                alt={currentBook.title}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -58,7 +65,7 @@ const BookDetail = () => {
 
         {/* Title and authors */}
         <div className="text-center space-y-1">
-          <h1 className="text-xl font-semibold">{book.title}</h1>
+          <h1 className="text-xl font-semibold">{currentBook.title}</h1>
           {authors && (
             <p className="text-muted-foreground">{authors}</p>
           )}
@@ -68,7 +75,7 @@ const BookDetail = () => {
         {isLent && (
           <div className="flex justify-center">
             <span className="px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-sm font-medium">
-              Lent to {book.lentTo}
+              Lent to {currentBook.lentTo}
             </span>
           </div>
         )}
@@ -76,29 +83,29 @@ const BookDetail = () => {
         {/* Details section */}
         <div className="space-y-4">
           {/* ISBN */}
-          {book.isbn && (
+          {currentBook.isbn && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">ISBN</p>
-              <p className="text-sm">{book.isbn}</p>
+              <p className="text-sm">{currentBook.isbn}</p>
             </div>
           )}
 
           {/* Collection */}
-          {book.collection && (
+          {currentBook.collection && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Collection</p>
               <p className="text-sm">
-                {book.collection}
-                {book.order != null && ` (#${book.order})`}
+                {currentBook.collection}
+                {currentBook.order != null && ` (#${currentBook.order})`}
               </p>
             </div>
           )}
 
           {/* Summary */}
-          {book.summary && (
+          {currentBook.summary && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Summary</p>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{book.summary}</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{currentBook.summary}</p>
             </div>
           )}
         </div>

@@ -36,4 +36,9 @@ export const librariesApi = {
 
   // Delete an item from a library
   deleteItem: (libraryId, itemId) => api.delete(`/libraries/${libraryId}/items/${itemId}`),
+
+  // Create an item event (lend/return)
+  // type: 'LENT' or 'RETURNED', event: person name
+  createItemEvent: (libraryId, itemId, { type, event }) =>
+    api.post(`/libraries/${libraryId}/items/${itemId}/events`, { type, event }),
 };

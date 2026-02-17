@@ -1,22 +1,35 @@
 // Edited by Claude.
 // Action sheet for library actions (Edit, Share, Unshare, Delete)
-// Includes two-step delete confirmation
-import { useState, useEffect } from 'react';
-import { Pencil, Share2, UserMinus, Trash2, AlertTriangle } from 'lucide-react';
+// Includes inline share form and two-step delete confirmation
+import { useState, useEffect, useRef } from 'react';
+import { Pencil, Share2, UserMinus, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const LibraryActionsSheet = ({ library, isOpen, onClose, onAction }) => {
-  // Track whether we're showing the delete confirmation
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = false }) => {
+  // Track current view mode: 'actions' | 'share' | 'delete'
+  const [mode, setMode] = useState('actions');
+  const [email, setEmail] = useState('');
+  const inputRef = useRef(null);
 
   const isShared = library?.sharedTo?.length > 0;
 
-  // Reset confirmation state when sheet closes or library changes
+  // Basic email validation
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+
+  // Reset state when sheet closes
   useEffect(() => {
     if (!isOpen) {
-      setShowDeleteConfirm(false);
+      setMode('actions');
+      setEmail('');
     }
   }, [isOpen]);
+
+  // Focus input when entering share mode
+  useEffect(() => {
+    if (mode === 'share' && inputRef.current) {
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [mode]);
 
   // Prevent body scroll when sheet is open
   useEffect(() => {
@@ -32,31 +45,126 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction }) => {
 
   if (!library || !isOpen) return null;
 
-  const handleAction = (action) => {
-    onClose();
-    onAction?.(action, library);
+  const handleAction = (action, data) => {
+    onAction?.(action, library, data);
+  };
+
+  const handleClose = () => {
+    if (!isLoading) {
+      onClose();
+    }
+  };
+
+  const handleShareClick = () => {
+    setMode('share');
+  };
+
+  const handleShareSubmit = (e) => {
+    e.preventDefault();
+    if (!isValidEmail || isLoading) return;
+    handleAction('share', { email: email.trim() });
   };
 
   const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
+    setMode('delete');
   };
 
-  const handleCancelDelete = () => {
-    setShowDeleteConfirm(false);
+  const handleBack = () => {
+    if (!isLoading) {
+      setMode('actions');
+      setEmail('');
+    }
   };
 
-  const handleConfirmDelete = () => {
-    handleAction('delete');
-  };
-
-  // Delete confirmation view
-  if (showDeleteConfirm) {
+  // Share form view
+  if (mode === 'share') {
     return (
       <div className="fixed inset-0 z-50 flex flex-col justify-end">
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/50"
-          onClick={handleCancelDelete}
+          onClick={handleBack}
+        />
+
+        {/* Share form sheet */}
+        <div className="relative bg-background rounded-t-xl">
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-border text-center">
+            <p className="text-sm text-muted-foreground">Share</p>
+            <p className="font-medium truncate">{library.name}</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleShareSubmit} className="p-4 space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="shareEmail" className="text-sm font-medium">
+                User email
+              </label>
+              <input
+                ref={inputRef}
+                id="shareEmail"
+                type="email"
+                placeholder="user@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect="off"
+                disabled={isLoading}
+                className={cn(
+                  'w-full px-3 py-2 rounded-lg border border-input bg-background',
+                  'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                They will have read-only access.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="submit"
+                disabled={!isValidEmail || isLoading}
+                className={cn(
+                  'w-full py-3 rounded-lg font-medium transition-colors',
+                  'bg-primary text-primary-foreground',
+                  'hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed',
+                  'flex items-center justify-center gap-2'
+                )}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Sharing...
+                  </>
+                ) : (
+                  'Share'
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={isLoading}
+                className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+              >
+                Back
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Delete confirmation view
+  if (mode === 'delete') {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col justify-end">
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={handleBack}
         />
 
         {/* Confirmation sheet */}
@@ -79,14 +187,27 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction }) => {
           {/* Action buttons */}
           <div className="p-4 pt-0 space-y-2">
             <button
-              onClick={handleConfirmDelete}
-              className="w-full py-3 rounded-lg bg-destructive text-destructive-foreground font-medium hover:bg-destructive/90 transition-colors"
+              onClick={() => handleAction('delete')}
+              disabled={isLoading}
+              className={cn(
+                'w-full py-3 rounded-lg bg-destructive text-destructive-foreground font-medium',
+                'hover:bg-destructive/90 transition-colors disabled:opacity-50',
+                'flex items-center justify-center gap-2'
+              )}
             >
-              Delete
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </button>
             <button
-              onClick={handleCancelDelete}
-              className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+              onClick={handleBack}
+              disabled={isLoading}
+              className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -102,7 +223,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction }) => {
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 animate-in fade-in duration-200"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       {/* Sheet */}
@@ -128,7 +249,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction }) => {
           </button>
 
           <button
-            onClick={() => handleAction('share')}
+            onClick={handleShareClick}
             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent transition-colors"
           >
             <Share2 className="h-5 w-5 text-muted-foreground" />
@@ -157,7 +278,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction }) => {
         {/* Cancel button */}
         <div className="p-4 pt-2 border-t border-border">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
           >
             Cancel

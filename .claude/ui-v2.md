@@ -78,7 +78,6 @@ packages/web-client-v2/
     │   ├── Libraries.jsx   # Libraries list with pull-to-refresh + actions
     │   ├── NewLibrary.jsx  # Create library form
     │   ├── EditLibrary.jsx # Edit library form
-    │   ├── ShareLibrary.jsx # Share library form
     │   ├── UnshareLibrary.jsx # Unshare library - user selection
     │   ├── LibraryContent.jsx # Library items: unified list (standalone + collections), alphabetically sorted
     │   ├── AddBook.jsx     # Add book: camera scan, manual ISBN, or full manual entry
@@ -92,7 +91,7 @@ packages/web-client-v2/
     │   ├── LibraryCard.jsx # Compact card with long press support
     │   ├── BookCard.jsx    # Book item card with cover image + optional order number
     │   ├── CollectionCard.jsx # Collapsible card for grouped books in a collection
-    │   ├── LibraryActionsSheet.jsx  # Actions: Edit, Share, Unshare, Delete
+    │   ├── LibraryActionsSheet.jsx  # Actions: Edit, Share (inline), Unshare, Delete
     │   ├── ItemActionsSheet.jsx  # Actions: Edit, Lend, Delete (for books)
     │   ├── PullToRefresh.jsx  # Pull-to-refresh (transform-based, with ref for scroll control)
     │   ├── BottomSheet.jsx # Reusable bottom sheet
@@ -140,7 +139,7 @@ packages/web-client-v2/
        │                              └─────────────────────┘
        │                                      │
        │ tap "+"                              ├── Edit ──────► EditLibrary
-       ▼                                      ├── Share ─────► ShareLibrary
+       ▼                                      ├── Share ─────► (inline form in sheet)
 ┌──────────────────┐                          ├── Unshare ───► UnshareLibrary
 │     AddBook      │                          └── Delete ────► (confirm in sheet)
 │ ┌──────────────┐ │
@@ -177,7 +176,8 @@ packages/web-client-v2/
 │  ┌─────────────────────┐                                                    │
 │  │  ItemActionsSheet   │                                                    │
 │  │  - Edit ──────────────► EditBook (form with pre-filled data)             │
-│  │  - Lend/Return ───────► (TODO: LendBook)                                 │
+│  │  - Lend ─────────────────► (inline form in sheet, enter name)            │
+│  │  - Return ───────────────► (API call, clears lentTo)                     │
 │  │  - Delete ────────────► (deletes via API, list refreshed)                │
 │  └─────────────────────┘                                                    │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -200,7 +200,7 @@ packages/web-client-v2/
 - [x] Edit library: dedicated page with pre-filled form
 - [x] Long press on library card → action sheet (Edit, Share, Unshare, Delete)
 - [x] Toast notification system for errors
-- [x] Share library: dedicated page with email input
+- [x] Share library: inline form in LibraryActionsSheet (email input)
 - [x] Unshare library: dedicated page with user list + selection
 - [x] Delete library with two-step confirmation in action sheet
 - [x] Library content page with infinite scroll + pull-to-refresh
@@ -213,7 +213,7 @@ packages/web-client-v2/
 - [x] Scan ISBN: camera barcode scanning (@zxing/browser, EAN-13/EAN-8)
 - [x] Edit book: form with pre-filled data, updates via context
 - [x] Book detail page: tap book → full info view with Edit button
-- [ ] Lend/Return functionality
+- [x] Lend/Return: inline form in ItemActionsSheet (lend), direct API call (return)
 - [ ] Search page implementation
 - [ ] Settings page implementation
 

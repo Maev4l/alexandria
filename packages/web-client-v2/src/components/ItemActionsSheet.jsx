@@ -1,23 +1,34 @@
 // Edited by Claude.
 // Action sheet for item actions (Edit, Lend/Return, Delete)
-// Includes two-step delete confirmation
-import { useState, useEffect } from 'react';
-import { Pencil, ArrowRightFromLine, Undo2, Trash2, AlertTriangle } from 'lucide-react';
+// Includes inline lend form and two-step delete confirmation
+import { useState, useEffect, useRef } from 'react';
+import { Pencil, ArrowRightFromLine, Undo2, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const ItemActionsSheet = ({ item, isOpen, onClose, onAction }) => {
-  // Track whether we're showing the delete confirmation
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }) => {
+  // Track current view mode: 'actions' | 'lend' | 'delete'
+  const [mode, setMode] = useState('actions');
+  const [personName, setPersonName] = useState('');
+  const inputRef = useRef(null);
 
   // Check if item is currently lent out
   const isLent = !!item?.lentTo;
 
-  // Reset confirmation state when sheet closes or item changes
+  // Reset state when sheet closes
   useEffect(() => {
     if (!isOpen) {
-      setShowDeleteConfirm(false);
+      setMode('actions');
+      setPersonName('');
     }
   }, [isOpen]);
+
+  // Focus input when entering lend mode
+  useEffect(() => {
+    if (mode === 'lend' && inputRef.current) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [mode]);
 
   // Prevent body scroll when sheet is open
   useEffect(() => {
@@ -33,31 +44,126 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction }) => {
 
   if (!item || !isOpen) return null;
 
-  const handleAction = (action) => {
-    onClose();
-    onAction?.(action, item);
+  const handleAction = (action, data) => {
+    onAction?.(action, item, data);
+  };
+
+  const handleClose = () => {
+    if (!isLoading) {
+      onClose();
+    }
+  };
+
+  const handleLendClick = () => {
+    setMode('lend');
+  };
+
+  const handleLendSubmit = (e) => {
+    e.preventDefault();
+    const trimmedName = personName.trim();
+    if (!trimmedName || isLoading) return;
+    handleAction('lend', { personName: trimmedName });
+  };
+
+  const handleReturnClick = () => {
+    handleAction('return');
   };
 
   const handleDeleteClick = () => {
-    setShowDeleteConfirm(true);
+    setMode('delete');
   };
 
-  const handleCancelDelete = () => {
-    setShowDeleteConfirm(false);
+  const handleBack = () => {
+    if (!isLoading) {
+      setMode('actions');
+      setPersonName('');
+    }
   };
 
-  const handleConfirmDelete = () => {
-    handleAction('delete');
-  };
-
-  // Delete confirmation view
-  if (showDeleteConfirm) {
+  // Lend form view
+  if (mode === 'lend') {
     return (
       <div className="fixed inset-0 z-50 flex flex-col justify-end">
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/50"
-          onClick={handleCancelDelete}
+          onClick={handleBack}
+        />
+
+        {/* Lend form sheet */}
+        <div className="relative bg-background rounded-t-xl">
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-border text-center">
+            <p className="text-sm text-muted-foreground">Lending</p>
+            <p className="font-medium truncate">{item.title}</p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleLendSubmit} className="p-4 space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="personName" className="text-sm font-medium">
+                Borrower's name
+              </label>
+              <input
+                ref={inputRef}
+                id="personName"
+                type="text"
+                placeholder="Enter name"
+                value={personName}
+                onChange={(e) => setPersonName(e.target.value)}
+                maxLength={50}
+                disabled={isLoading}
+                className={cn(
+                  'w-full px-3 py-2 rounded-lg border border-input bg-background',
+                  'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="submit"
+                disabled={!personName.trim() || isLoading}
+                className={cn(
+                  'w-full py-3 rounded-lg font-medium transition-colors',
+                  'bg-primary text-primary-foreground',
+                  'hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed',
+                  'flex items-center justify-center gap-2'
+                )}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Lending...
+                  </>
+                ) : (
+                  'Confirm'
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={isLoading}
+                className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+              >
+                Back
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // Delete confirmation view
+  if (mode === 'delete') {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col justify-end">
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={handleBack}
         />
 
         {/* Confirmation sheet */}
@@ -80,14 +186,27 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction }) => {
           {/* Action buttons */}
           <div className="p-4 pt-0 space-y-2">
             <button
-              onClick={handleConfirmDelete}
-              className="w-full py-3 rounded-lg bg-destructive text-destructive-foreground font-medium hover:bg-destructive/90 transition-colors"
+              onClick={() => handleAction('delete')}
+              disabled={isLoading}
+              className={cn(
+                'w-full py-3 rounded-lg bg-destructive text-destructive-foreground font-medium',
+                'hover:bg-destructive/90 transition-colors disabled:opacity-50',
+                'flex items-center justify-center gap-2'
+              )}
             >
-              Delete
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </button>
             <button
-              onClick={handleCancelDelete}
-              className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
+              onClick={handleBack}
+              disabled={isLoading}
+              className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
@@ -103,7 +222,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction }) => {
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 animate-in fade-in duration-200"
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       {/* Sheet */}
@@ -128,22 +247,31 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction }) => {
             <span>Edit</span>
           </button>
 
-          <button
-            onClick={() => handleAction(isLent ? 'return' : 'lend')}
-            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent transition-colors"
-          >
-            {isLent ? (
-              <>
+          {isLent ? (
+            <button
+              onClick={handleReturnClick}
+              disabled={isLoading}
+              className={cn(
+                'w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent transition-colors',
+                isLoading && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+              ) : (
                 <Undo2 className="h-5 w-5 text-muted-foreground" />
-                <span>Return</span>
-              </>
-            ) : (
-              <>
-                <ArrowRightFromLine className="h-5 w-5 text-muted-foreground" />
-                <span>Lend</span>
-              </>
-            )}
-          </button>
+              )}
+              <span>{isLoading ? 'Returning...' : 'Return'}</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleLendClick}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent transition-colors"
+            >
+              <ArrowRightFromLine className="h-5 w-5 text-muted-foreground" />
+              <span>Lend</span>
+            </button>
+          )}
 
           <button
             onClick={handleDeleteClick}
@@ -157,7 +285,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction }) => {
         {/* Cancel button */}
         <div className="p-4 pt-2 border-t border-border">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
           >
             Cancel

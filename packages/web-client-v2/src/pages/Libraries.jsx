@@ -10,11 +10,12 @@ import LibraryActionsSheet from '@/components/LibraryActionsSheet';
 import { useToast } from '@/components/Toast';
 
 const Libraries = () => {
-  const { ownedLibraries, sharedLibraries, isLoading, error, hasLoaded, fetchLibraries, deleteLibrary } = useLibraries();
+  const { ownedLibraries, sharedLibraries, isLoading, error, hasLoaded, fetchLibraries, deleteLibrary, shareLibrary } = useLibraries();
   const { setOptions, navigate } = useNavigation();
   const toast = useToast();
   const [selectedLibrary, setSelectedLibrary] = useState(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const fetchingRef = useRef(false); // Guard against React Strict Mode double-call
 
   // Set up header "+" button
@@ -58,30 +59,45 @@ const Libraries = () => {
   const handleCloseActions = useCallback(() => {
     setIsActionsOpen(false);
     setSelectedLibrary(null);
+    setIsActionLoading(false);
   }, []);
 
-  const handleAction = useCallback(async (action, library) => {
+  // Handle action from sheet
+  // data parameter contains extra info like { email } for share action
+  const handleAction = useCallback(async (action, library, data) => {
     switch (action) {
       case 'edit':
+        handleCloseActions();
         navigate('editLibrary', { push: true, params: { library } });
         break;
       case 'share':
-        navigate('shareLibrary', { push: true, params: { library } });
+        setIsActionLoading(true);
+        try {
+          await shareLibrary(library.id, data.email);
+          handleCloseActions();
+        } catch (err) {
+          toast.error(err.message || 'Failed to share library');
+          setIsActionLoading(false);
+        }
         break;
       case 'unshare':
+        handleCloseActions();
         navigate('unshareLibrary', { push: true, params: { library } });
         break;
       case 'delete':
+        setIsActionLoading(true);
         try {
           await deleteLibrary(library.id);
+          handleCloseActions();
         } catch (err) {
           toast.error(err.message || 'Failed to delete library');
+          setIsActionLoading(false);
         }
         break;
       default:
         break;
     }
-  }, [navigate, deleteLibrary, toast]);
+  }, [navigate, deleteLibrary, shareLibrary, toast, handleCloseActions]);
 
   // Determine content based on state
   const hasData = ownedLibraries.length > 0 || sharedLibraries.length > 0;
@@ -177,6 +193,7 @@ const Libraries = () => {
         isOpen={isActionsOpen}
         onClose={handleCloseActions}
         onAction={handleAction}
+        isLoading={isActionLoading}
       />
     </>
   );

@@ -254,6 +254,44 @@ export const LibrariesProvider = ({ children }) => {
     );
   }, []);
 
+  // Lend an item to a person
+  const lendItem = useCallback(async (libraryId, itemId, personName) => {
+    await librariesApi.createItemEvent(libraryId, itemId, { type: 'LENT', event: personName });
+    // Update local state to reflect lent status
+    setItemsByLibrary((prev) => {
+      const current = prev[libraryId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [libraryId]: {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === itemId ? { ...item, lentTo: personName } : item
+          ),
+        },
+      };
+    });
+  }, []);
+
+  // Return a lent item
+  const returnItem = useCallback(async (libraryId, itemId, personName) => {
+    await librariesApi.createItemEvent(libraryId, itemId, { type: 'RETURNED', event: personName });
+    // Update local state to clear lent status
+    setItemsByLibrary((prev) => {
+      const current = prev[libraryId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [libraryId]: {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === itemId ? { ...item, lentTo: null } : item
+          ),
+        },
+      };
+    });
+  }, []);
+
   // =====================
   // DERIVED STATE
   // =====================
@@ -302,6 +340,8 @@ export const LibrariesProvider = ({ children }) => {
     createBook,
     updateBook,
     deleteItem,
+    lendItem,
+    returnItem,
   }), [
     libraries,
     ownedLibraries,
@@ -323,6 +363,8 @@ export const LibrariesProvider = ({ children }) => {
     createBook,
     updateBook,
     deleteItem,
+    lendItem,
+    returnItem,
   ]);
 
   return (

@@ -47,7 +47,7 @@ const LibraryContent = () => {
   const library = params?.library;
 
   // Get items state and actions from context
-  const { itemsByLibrary, fetchItems, loadMoreItems, deleteItem } = useLibraries();
+  const { itemsByLibrary, fetchItems, loadMoreItems, deleteItem, lendItem, returnItem } = useLibraries();
   const toast = useToast();
   const itemsState = itemsByLibrary[library?.id];
   const items = itemsState?.items || [];
@@ -59,6 +59,7 @@ const LibraryContent = () => {
   // Local UI state for actions sheet
   const [selectedItem, setSelectedItem] = useState(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   const loadMoreRef = useRef(null);
   const pullToRefreshRef = useRef(null);
@@ -145,31 +146,51 @@ const LibraryContent = () => {
   const handleCloseActions = useCallback(() => {
     setIsActionsOpen(false);
     setSelectedItem(null);
+    setIsActionLoading(false);
   }, []);
 
   // Handle action from sheet
-  const handleAction = useCallback(async (action, item) => {
+  // data parameter contains extra info like { personName } for lend action
+  const handleAction = useCallback(async (action, item, data) => {
     switch (action) {
       case 'edit':
+        handleCloseActions();
         navigate('editBook', { push: true, params: { library, book: item } });
         break;
       case 'lend':
-        // TODO: navigate to lend item page
+        setIsActionLoading(true);
+        try {
+          await lendItem(library.id, item.id, data.personName);
+          handleCloseActions();
+        } catch (err) {
+          toast.error(err.message || 'Failed to lend item');
+          setIsActionLoading(false);
+        }
         break;
       case 'return':
-        // TODO: call return API
+        setIsActionLoading(true);
+        try {
+          await returnItem(library.id, item.id, item.lentTo);
+          handleCloseActions();
+        } catch (err) {
+          toast.error(err.message || 'Failed to return item');
+          setIsActionLoading(false);
+        }
         break;
       case 'delete':
+        setIsActionLoading(true);
         try {
           await deleteItem(library.id, item.id);
+          handleCloseActions();
         } catch (err) {
           toast.error(err.message || 'Failed to delete item');
+          setIsActionLoading(false);
         }
         break;
       default:
         break;
     }
-  }, [library, navigate, deleteItem, toast]);
+  }, [library, navigate, deleteItem, lendItem, returnItem, toast, handleCloseActions]);
 
   if (!library) {
     return (
@@ -269,6 +290,7 @@ const LibraryContent = () => {
         isOpen={isActionsOpen}
         onClose={handleCloseActions}
         onAction={handleAction}
+        isLoading={isActionLoading}
       />
     </>
   );
