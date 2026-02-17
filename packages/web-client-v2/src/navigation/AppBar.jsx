@@ -36,15 +36,16 @@ const AppBar = ({ title, subtitle, headerLeft, headerRight, showBackButton = 'au
         </div>
 
         {/* Center: title + optional subtitle (tap to scroll to top) */}
+        {/* min-w-0 allows flex child to shrink below content size for truncation */}
         <button
           type="button"
           onClick={triggerScrollToTop}
-          className="flex-1 flex flex-col items-center justify-center bg-transparent border-none cursor-pointer active:opacity-70"
+          className="flex-1 min-w-0 flex flex-col items-center justify-center bg-transparent border-none cursor-pointer active:opacity-70"
           aria-label="Scroll to top"
         >
-          <span className="text-lg font-semibold truncate max-w-full">{title}</span>
+          <span className="text-lg font-semibold truncate w-full text-center">{title}</span>
           {subtitle && (
-            <span className="text-xs text-muted-foreground truncate max-w-full">{subtitle}</span>
+            <span className="text-xs text-muted-foreground truncate w-full text-center">{subtitle}</span>
           )}
         </button>
 
