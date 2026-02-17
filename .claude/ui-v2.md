@@ -84,7 +84,8 @@ packages/web-client-v2/
     │   ├── BookDetectionResults.jsx # ISBN lookup results - select and create book directly
     │   ├── NewBook.jsx     # Manual book entry form (when detection fails)
     │   ├── EditBook.jsx    # Edit book form (pre-filled from item)
-    │   ├── BookDetail.jsx  # Book detail view (cover, info, summary)
+    │   ├── BookDetail.jsx  # Book detail view (cover, info, summary, history button)
+    │   ├── ItemHistory.jsx # Item lending/return history (paginated list)
     │   ├── Search.jsx      # Search tab (placeholder)
     │   └── Settings.jsx    # Settings tab (placeholder)
     ├── components/
@@ -101,7 +102,8 @@ packages/web-client-v2/
     │       ├── Card.jsx
     │       ├── Input.jsx
     │       ├── Label.jsx
-    │       └── Textarea.jsx
+    │       ├── Textarea.jsx
+    │       └── Timeline.jsx  # Reusable timeline (compound: Timeline + Timeline.Item)
     ├── lib/
     │   ├── utils.js        # cn() utility (clsx + tailwind-merge)
     │   └── splash.js       # hideSplash() utility
@@ -181,6 +183,19 @@ packages/web-client-v2/
 │  │  - Delete ────────────► (deletes via API, list refreshed)                │
 │  └─────────────────────┘                                                    │
 └─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           BOOK DETAIL (tap on book)                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  LibraryContent                                                             │
+│       │                                                                     │
+│       │ tap on BookCard                                                     │
+│       ▼                                                                     │
+│  ┌─────────────────────┐                                                    │
+│  │  BookDetail         │  (read-only: cover, title, authors, summary, etc.) │
+│  │  [History button]   │──────────────► ItemHistory (paginated events list) │
+│  └─────────────────────┘                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Progress
@@ -212,8 +227,9 @@ packages/web-client-v2/
 - [x] Detection fallback: no results found → link to NewBook for manual entry
 - [x] Scan ISBN: camera barcode scanning (@zxing/browser, EAN-13/EAN-8)
 - [x] Edit book: form with pre-filled data, updates via context
-- [x] Book detail page: tap book → full info view with Edit button
+- [x] Book detail page: tap book → full info view (read-only) with history button
 - [x] Lend/Return: inline form in ItemActionsSheet (lend), direct API call (return)
+- [x] Item history page: paginated lending/return events accessed from BookDetail
 - [ ] Search page implementation
 - [ ] Settings page implementation
 

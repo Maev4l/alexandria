@@ -41,4 +41,11 @@ export const librariesApi = {
   // type: 'LENT' or 'RETURNED', event: person name
   createItemEvent: (libraryId, itemId, { type, event }) =>
     api.post(`/libraries/${libraryId}/items/${itemId}/events`, { type, event }),
+
+  // Get item events (lending history) with pagination
+  getItemEvents: (libraryId, itemId, { limit = 20, nextToken } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (nextToken) params.append('nextToken', nextToken);
+    return api.get(`/libraries/${libraryId}/items/${itemId}/events?${params}`);
+  },
 };

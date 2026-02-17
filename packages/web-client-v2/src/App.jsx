@@ -16,6 +16,7 @@ import BookDetectionResults from '@/pages/BookDetectionResults';
 import NewBook from '@/pages/NewBook';
 import EditBook from '@/pages/EditBook';
 import BookDetail from '@/pages/BookDetail';
+import ItemHistory from '@/pages/ItemHistory';
 import Search from '@/pages/Search';
 import Settings from '@/pages/Settings';
 
@@ -90,6 +91,11 @@ const stackScreens = [
     name: 'bookDetail',
     component: BookDetail,
     options: { title: 'Book' },
+  },
+  {
+    name: 'itemHistory',
+    component: ItemHistory,
+    options: { title: 'History' },
   },
 ];
 

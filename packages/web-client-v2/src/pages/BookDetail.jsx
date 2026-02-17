@@ -2,12 +2,12 @@
 // Book detail page - displays full book information (read-only)
 // Shows cover, title, authors, summary, ISBN, collection, lent status
 import { useEffect } from 'react';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, History } from 'lucide-react';
 import { useNavigation } from '@/navigation';
 import { useLibraries } from '@/state';
 
 const BookDetail = () => {
-  const { setOptions, params } = useNavigation();
+  const { setOptions, params, navigate } = useNavigation();
   const { getItemsState } = useLibraries();
 
   const library = params?.library;
@@ -21,13 +21,21 @@ const BookDetail = () => {
   const authors = currentBook?.authors?.join(', ') || '';
   const isLent = !!currentBook?.lentTo;
 
-  // Set up header title (no actions - page is read-only)
+  // Set up header with History button
   useEffect(() => {
     setOptions({
       title: currentBook?.title || 'Book',
-      headerRight: null,
+      headerRight: (
+        <button
+          onClick={() => navigate('itemHistory', { push: true, params: { library, book: currentBook } })}
+          className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
+          aria-label="View history"
+        >
+          <History className="h-5 w-5" />
+        </button>
+      ),
     });
-  }, [setOptions, currentBook?.title]);
+  }, [setOptions, currentBook, library, navigate]);
 
   if (!currentBook) {
     return (
