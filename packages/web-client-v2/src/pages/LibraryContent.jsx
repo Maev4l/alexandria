@@ -3,7 +3,8 @@
 // Groups items by collection, sorted alphabetically
 // Uses LibrariesContext for state management
 import { useEffect, useCallback, useRef, useMemo } from 'react';
-import { Loader2, BookOpen, AlertCircle, Plus } from 'lucide-react';
+import { Loader2, AlertCircle, Plus } from 'lucide-react';
+import EmptyBookshelf from '@/components/EmptyBookshelf';
 import { useNavigation } from '@/navigation';
 import { useLibraries } from '@/state';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -237,18 +238,20 @@ const LibraryContent = () => {
     );
   }
 
-  // Empty state
+  // Empty state with bookshelf illustration
   if (items.length === 0) {
     return (
       <PullToRefresh onRefresh={handleRefresh} className="h-full">
-        <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
-          <BookOpen className="h-12 w-12 text-muted-foreground/50" />
-          <p className="text-lg font-medium">No books yet</p>
-          <p className="text-sm text-muted-foreground">
-            {isSharedLibrary
-              ? 'This library is empty.'
-              : 'Add books to this library to see them here.'}
-          </p>
+        <div className="flex h-full flex-col items-center justify-center gap-4 p-4 text-center">
+          <EmptyBookshelf className="w-32 h-28 text-muted-foreground" />
+          <div className="space-y-1">
+            <p className="text-lg font-medium">No books yet</p>
+            <p className="text-sm text-muted-foreground">
+              {isSharedLibrary
+                ? 'This library is empty.'
+                : 'Add books to this library to see them here.'}
+            </p>
+          </div>
         </div>
       </PullToRefresh>
     );
@@ -263,7 +266,7 @@ const LibraryContent = () => {
         className="h-full"
       >
         <div className="p-4 space-y-2">
-          {sortedList.map((entry) => {
+          {sortedList.map((entry, idx) => {
             if (entry.type === 'collection') {
               return (
                 <CollectionCard
@@ -275,6 +278,7 @@ const LibraryContent = () => {
                   }}
                   onItemLongPress={isSharedLibrary ? undefined : handleItemLongPress}
                   isSharedLibrary={isSharedLibrary}
+                  index={idx}
                 />
               );
             }
@@ -287,6 +291,7 @@ const LibraryContent = () => {
                 }}
                 onLongPress={isSharedLibrary ? undefined : handleItemLongPress}
                 isSharedLibrary={isSharedLibrary}
+                index={idx}
               />
             );
           })}

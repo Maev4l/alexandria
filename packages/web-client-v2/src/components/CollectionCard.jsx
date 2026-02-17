@@ -5,16 +5,28 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import BookCard from './BookCard';
 
-const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLibrary = false }) => {
+const STAGGER_DELAY = 50; // ms per item for staggered animation
+
+const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLibrary = false, index }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const itemCount = items.length;
 
+  // Staggered animation style
+  const animationStyle = index != null
+    ? { animationDelay: `${index * STAGGER_DELAY}ms` }
+    : undefined;
+
   return (
-    <div className={cn(
-      'rounded-lg border border-border bg-card overflow-hidden',
-      'shadow-[var(--card-shadow)] transition-shadow duration-200',
-      isExpanded && 'ring-1 ring-accent shadow-[var(--card-shadow-hover)]'
-    )}>
+    <div
+      style={animationStyle}
+      className={cn(
+        'rounded-lg border border-border bg-card overflow-hidden',
+        'shadow-[var(--card-shadow)] transition-shadow duration-200',
+        isExpanded && 'ring-1 ring-accent shadow-[var(--card-shadow-hover)]',
+        // Staggered fade-in animation
+        index != null && 'animate-fade-in-up'
+      )}
+    >
       {/* Collection header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}

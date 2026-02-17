@@ -9,6 +9,8 @@ import { useLibraries } from '@/state';
 import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/utils';
 
+const STAGGER_DELAY = 50; // ms per item for staggered animation
+
 const BookDetectionResults = () => {
   const { setOptions, params, navigate, goBack } = useNavigation();
   const toast = useToast();
@@ -164,8 +166,10 @@ const BookDetectionResults = () => {
               key={book.id || `result-${index}`}
               onClick={() => !hasError && setSelectedIndex(index)}
               disabled={hasError || isCreating}
+              style={{ animationDelay: `${index * STAGGER_DELAY}ms` }}
               className={cn(
                 'w-full flex gap-3 p-3 rounded-lg border text-left transition-colors',
+                'animate-fade-in-up',
                 hasError
                   ? 'opacity-50 cursor-not-allowed border-border bg-muted/30'
                   : isSelected

@@ -6,8 +6,10 @@ import { searchApi } from '@/api';
 import { useNavigation } from '@/navigation';
 import { useAuth } from '@/auth/AuthContext';
 import { Input } from '@/components/ui/Input';
+import { cn } from '@/lib/utils';
 
 const RECENT_SEARCHES_KEY = 'alexandria_recent_searches';
+const STAGGER_DELAY = 50; // ms per item for staggered animation
 const MAX_RECENT_SEARCHES = 5;
 const MIN_SEARCH_LENGTH = 3;
 const DEBOUNCE_MS = 300;
@@ -44,14 +46,19 @@ const clearRecentSearches = () => {
 };
 
 // Search result card with library name - custom layout to avoid overlap
-const SearchResultCard = ({ book, onClick, isShared }) => {
+const SearchResultCard = ({ book, onClick, isShared, index }) => {
   const hasImage = book.pictureUrl || book.picture;
   const authors = book.authors?.join(', ') || '';
 
   return (
     <button
       onClick={() => onClick(book)}
-      className="w-full flex gap-3 p-2 rounded-md bg-muted/30 text-left transition-colors hover:bg-accent/50 active:bg-accent select-none"
+      style={{ animationDelay: `${index * STAGGER_DELAY}ms` }}
+      className={cn(
+        'w-full flex gap-3 p-2 rounded-md bg-muted/30 text-left transition-colors',
+        'hover:bg-accent/50 active:bg-accent select-none',
+        'animate-fade-in-up'
+      )}
     >
       {/* Book cover - asymmetric radius mimics real book */}
       <div className="shrink-0 w-10 h-14 rounded-[2px_6px_6px_2px] bg-muted flex items-center justify-center overflow-hidden">
@@ -258,7 +265,8 @@ const Search = () => {
                 <button
                   key={index}
                   onClick={() => handleRecentClick(term)}
-                  className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left"
+                  style={{ animationDelay: `${index * STAGGER_DELAY}ms` }}
+                  className="flex items-center gap-2 w-full p-2 rounded-md hover:bg-accent text-left animate-fade-in-up"
                 >
                   <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="text-sm truncate">{term}</span>
@@ -297,12 +305,13 @@ const Search = () => {
               {results.length} {results.length === 1 ? 'result' : 'results'}
             </p>
             <div className="space-y-2">
-              {results.map((book) => (
+              {results.map((book, idx) => (
                 <SearchResultCard
                   key={book.id}
                   book={book}
                   onClick={handleBookClick}
                   isShared={isSharedBook(book)}
+                  index={idx}
                 />
               ))}
             </div>
