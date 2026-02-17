@@ -107,6 +107,80 @@ packages/web-client-v2/
     └── assets/
 ```
 
+## Screen flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              UNAUTHENTICATED                                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                     │
+                                     ▼
+                              ┌────────────┐
+                              │   Login    │
+                              └────────────┘
+                                     │ login success
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         AUTHENTICATED (Tab Navigator)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  [Libraries]              [Search]                [Settings]                │
+│      ▼                       ▼                        ▼                     │
+│  Libraries.jsx           Search.jsx              Settings.jsx               │
+│  (list + PTR)            (placeholder)           (placeholder)              │
+└─────────────────────────────────────────────────────────────────────────────┘
+       │
+       │ tap card
+       ▼
+┌──────────────────┐    long press    ┌─────────────────────┐
+│  LibraryContent  │ ───────────────► │ LibraryActionsSheet │
+│  (items + PTR)   │                  │ Edit/Share/Unshare/ │
+└──────────────────┘                  │ Delete              │
+       │                              └─────────────────────┘
+       │                                      │
+       │ tap "+"                              ├── Edit ──────► EditLibrary
+       ▼                                      ├── Share ─────► ShareLibrary
+┌──────────────────┐                          ├── Unshare ───► UnshareLibrary
+│     AddBook      │                          └── Delete ────► (confirm in sheet)
+│ ┌──────────────┐ │
+│ │ Camera scan  │ │ scan success
+│ └──────────────┘ ├─────────────────────┐
+│ ┌──────────────┐ │                     │
+│ │ Manual ISBN  │ │ submit              │
+│ └──────────────┘ ├─────────────────────┤
+│ ┌──────────────┐ │                     ▼
+│ │ Manual entry │ │         ┌─────────────────────┐
+│ └──────────────┘ │         │ BookDetectionResults│
+└────────┬─────────┘         │ (select from list)  │
+         │                   └─────────────────────┘
+         │ tap "manual"              │
+         ▼                           │ tap "Add"
+┌──────────────────┐                 │ (creates book via API)
+│     NewBook      │                 │
+│  (form + Done)   │                 │
+└──────────────────┘                 │
+         │                           │
+         │ tap "Done"                │ no results → tap "manual"
+         │ (creates book via API)    │
+         │                           ▼
+         └───────────────────────────┴───► back to LibraryContent
+                                           (items refreshed)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           ITEM ACTIONS (long press)                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  LibraryContent                                                             │
+│       │                                                                     │
+│       │ long press on BookCard                                              │
+│       ▼                                                                     │
+│  ┌─────────────────────┐                                                    │
+│  │  ItemActionsSheet   │                                                    │
+│  │  - Edit ──────────────► (TODO: EditBook)                                 │
+│  │  - Lend/Return ───────► (TODO: LendBook)                                 │
+│  │  - Delete ────────────► (deletes via API, list refreshed)                │
+│  └─────────────────────┘                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
 ## Progress
 
 - [x] Scaffold: Vite + React + PWA + Tailwind CSS + shadcn/ui foundation
