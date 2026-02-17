@@ -10,6 +10,7 @@ import PullToRefresh from '@/components/PullToRefresh';
 import BookCard from '@/components/BookCard';
 import CollectionCard from '@/components/CollectionCard';
 import ItemActionsSheet from '@/components/ItemActionsSheet';
+import { useToast } from '@/components/Toast';
 import { useState } from 'react';
 
 // Build unified sorted list: standalone items + collections, alphabetically
@@ -47,6 +48,7 @@ const LibraryContent = () => {
 
   // Get items state and actions from context
   const { itemsByLibrary, fetchItems, loadMoreItems, deleteItem } = useLibraries();
+  const toast = useToast();
   const itemsState = itemsByLibrary[library?.id];
   const items = itemsState?.items || [];
   const nextToken = itemsState?.nextToken || null;
@@ -153,13 +155,13 @@ const LibraryContent = () => {
         try {
           await deleteItem(library.id, item.id);
         } catch (err) {
-          console.error('Failed to delete item:', err);
+          toast.error(err.message || 'Failed to delete item');
         }
         break;
       default:
         break;
     }
-  }, [library, navigate, deleteItem]);
+  }, [library, navigate, deleteItem, toast]);
 
   if (!library) {
     return (
