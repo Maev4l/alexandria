@@ -1,11 +1,14 @@
 // Edited by Claude.
 // Item history page - displays lending/return events for a book
+// Includes clear history functionality with confirmation
 import { useEffect, useCallback, useState, useRef } from 'react';
-import { Loader2, History } from 'lucide-react';
+import { Loader2, History, Trash2, AlertTriangle } from 'lucide-react';
 import { useNavigation } from '@/navigation';
 import { librariesApi } from '@/api';
+import { useToast } from '@/components/Toast';
 import PullToRefresh from '@/components/PullToRefresh';
 import { Timeline } from '@/components/ui/Timeline';
+import { cn } from '@/lib/utils';
 
 // Format date for display
 const formatDate = (dateString) => {
@@ -19,7 +22,8 @@ const formatDate = (dateString) => {
 };
 
 const ItemHistory = () => {
-  const { setOptions, params } = useNavigation();
+  const { setOptions, params, goBack } = useNavigation();
+  const toast = useToast();
   const library = params?.library;
   const book = params?.book;
 
@@ -29,16 +33,52 @@ const ItemHistory = () => {
   const [error, setError] = useState(null);
   const [hasLoaded, setHasLoaded] = useState(false);
 
+  // Clear confirmation state
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+
   const loadMoreRef = useRef(null);
   const fetchingRef = useRef(false);
 
-  // Set up header
+  // Handle clear history
+  const handleClearHistory = useCallback(async () => {
+    if (!library?.id || !book?.id || isClearing) return;
+
+    setIsClearing(true);
+    try {
+      await librariesApi.deleteItemEvents(library.id, book.id);
+      setEvents([]);
+      setNextToken(null);
+      setShowClearConfirm(false);
+    } catch (err) {
+      // Close sheet first, then show error toast
+      setShowClearConfirm(false);
+      setIsClearing(false);
+      toast.error(err.message || 'Failed to clear history');
+      return;
+    }
+    setIsClearing(false);
+  }, [library?.id, book?.id, isClearing, toast]);
+
+  // Check if book is currently lent
+  const isLent = !!book?.lentTo;
+
+  // Set up header with clear button (only shown when there are events and book is not lent)
   useEffect(() => {
+    const showClearButton = events.length > 0 && !isLent;
     setOptions({
       title: 'History',
-      headerRight: null,
+      headerRight: showClearButton ? (
+        <button
+          onClick={() => setShowClearConfirm(true)}
+          className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
+          aria-label="Clear history"
+        >
+          <Trash2 className="h-5 w-5" />
+        </button>
+      ) : null,
     });
-  }, [setOptions]);
+  }, [setOptions, events.length, isLent]);
 
   // Fetch events
   const fetchEvents = useCallback(async (refresh = false) => {
@@ -111,6 +151,18 @@ const ItemHistory = () => {
     await fetchEvents(true);
   }, [fetchEvents]);
 
+  // Prevent body scroll when confirmation is open
+  useEffect(() => {
+    if (showClearConfirm) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showClearConfirm]);
+
   if (!library || !book) {
     return (
       <div className="flex h-full items-center justify-center p-4">
@@ -157,44 +209,104 @@ const ItemHistory = () => {
 
   // Events timeline
   return (
-    <PullToRefresh onRefresh={handleRefresh} className="h-full">
-      <div className="p-4">
-        <Timeline>
-          {events.map((event, index) => {
-            const isLent = event.type === 'LENT';
-            const isLast = index === events.length - 1;
+    <>
+      <PullToRefresh onRefresh={handleRefresh} className="h-full">
+        <div className="p-4">
+          <Timeline>
+            {events.map((event, index) => {
+              const isLent = event.type === 'LENT';
+              const isLast = index === events.length - 1;
 
-            return (
-              <Timeline.Item
-                key={`${event.date}-${index}`}
-                dotColor={isLent ? 'orange' : 'green'}
-                isLast={isLast}
+              return (
+                <Timeline.Item
+                  key={`${event.date}-${index}`}
+                  dotColor={isLent ? 'orange' : 'green'}
+                  isLast={isLast}
+                >
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(event.date)}
+                  </p>
+                  <p className="font-medium">
+                    {isLent ? 'Lent to' : 'Returned from'}{' '}
+                    <span className={isLent ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}>
+                      {event.event}
+                    </span>
+                  </p>
+                </Timeline.Item>
+              );
+            })}
+          </Timeline>
+
+          {/* Load more trigger */}
+          <div ref={loadMoreRef} className="h-4" />
+
+          {/* Loading more indicator */}
+          {isLoading && events.length > 0 && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
+      </PullToRefresh>
+
+      {/* Clear confirmation sheet */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => !isClearing && setShowClearConfirm(false)}
+          />
+
+          {/* Confirmation sheet */}
+          <div className="relative bg-background rounded-t-xl">
+            {/* Warning content */}
+            <div className="p-6 text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-destructive" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold">Clear History?</h3>
+                <p className="text-sm text-muted-foreground">
+                  This will permanently delete all lending history for this book. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="p-4 pt-0 space-y-2">
+              <button
+                onClick={handleClearHistory}
+                disabled={isClearing}
+                className={cn(
+                  'w-full py-3 rounded-lg bg-destructive text-destructive-foreground font-medium',
+                  'hover:bg-destructive/90 transition-colors disabled:opacity-50',
+                  'flex items-center justify-center gap-2'
+                )}
               >
-                <p className="text-xs text-muted-foreground">
-                  {formatDate(event.date)}
-                </p>
-                <p className="font-medium">
-                  {isLent ? 'Lent to' : 'Returned from'}{' '}
-                  <span className={isLent ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}>
-                    {event.event}
-                  </span>
-                </p>
-              </Timeline.Item>
-            );
-          })}
-        </Timeline>
-
-        {/* Load more trigger */}
-        <div ref={loadMoreRef} className="h-4" />
-
-        {/* Loading more indicator */}
-        {isLoading && events.length > 0 && (
-          <div className="flex justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                {isClearing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Clearing...
+                  </>
+                ) : (
+                  'Clear History'
+                )}
+              </button>
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                disabled={isClearing}
+                className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-    </PullToRefresh>
+        </div>
+      )}
+    </>
   );
 };
 

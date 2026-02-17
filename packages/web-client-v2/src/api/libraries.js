@@ -48,4 +48,8 @@ export const librariesApi = {
     if (nextToken) params.append('nextToken', nextToken);
     return api.get(`/libraries/${libraryId}/items/${itemId}/events?${params}`);
   },
+
+  // Delete all item events (clear history)
+  deleteItemEvents: (libraryId, itemId) =>
+    api.delete(`/libraries/${libraryId}/items/${itemId}/events`),
 };
