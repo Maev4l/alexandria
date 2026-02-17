@@ -97,7 +97,7 @@ const SearchResultCard = ({ book, onClick, isShared, index }) => {
 };
 
 const Search = () => {
-  const { navigate } = useNavigation();
+  const { navigate, setOptions } = useNavigation();
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -107,6 +107,11 @@ const Search = () => {
   const [recentSearches, setRecentSearches] = useState(getRecentSearches);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
+
+  // Clear header right button (prevent stale "+" from Libraries tab)
+  useEffect(() => {
+    setOptions({ headerRight: null });
+  }, [setOptions]);
 
   // Auto-focus input on mount
   useEffect(() => {

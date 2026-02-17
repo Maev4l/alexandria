@@ -1,12 +1,18 @@
 // Edited by Claude.
 // Settings tab: account info, about, and sign out
+import { useEffect } from 'react';
 import { User, Info, LogOut, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { useNavigation } from '@/navigation';
 
 const Settings = () => {
   const { signOut } = useAuth();
-  const { navigate } = useNavigation();
+  const { navigate, setOptions } = useNavigation();
+
+  // Clear header right button (prevent stale "+" from Libraries tab)
+  useEffect(() => {
+    setOptions({ headerRight: null });
+  }, [setOptions]);
 
   return (
     <div className="absolute inset-0 overflow-y-auto">
