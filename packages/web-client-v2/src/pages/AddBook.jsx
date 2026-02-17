@@ -41,6 +41,7 @@ const AddBook = () => {
   // Scanner state
   const [scannerStatus, setScannerStatus] = useState('initializing'); // initializing, scanning, error, permission-denied
   const [scannerError, setScannerError] = useState('');
+  const [scanSuccess, setScanSuccess] = useState(false); // Flash on successful scan
   const videoRef = useRef(null);
   const readerRef = useRef(null);
   const controlsRef = useRef(null);
@@ -76,6 +77,13 @@ const AddBook = () => {
         return;
       }
       lastDetectedRef.current = detectedIsbn;
+      // Show success flash then navigate
+      setScanSuccess(true);
+      setTimeout(() => {
+        stopCamera();
+        navigate('bookDetectionResults', { push: true, params: { library, isbn: detectedIsbn } });
+      }, 500);
+      return;
     }
 
     stopCamera();
@@ -242,7 +250,10 @@ const AddBook = () => {
         />
         {/* Scanning overlay with target area */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-3/4 h-16 border-2 border-white/70 rounded-lg" />
+          <div className={cn(
+            'w-3/4 h-16 border-2 rounded-lg transition-colors',
+            scanSuccess ? 'border-green-500 bg-green-500/30' : 'border-white/70'
+          )} />
         </div>
         {scannerStatus === 'initializing' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
