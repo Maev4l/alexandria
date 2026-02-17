@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 const BookDetectionResults = () => {
   const { setOptions, params, navigate, goBack } = useNavigation();
   const { showToast } = useToast();
-  const { createItem } = useLibraries();
+  const { createBook } = useLibraries();
   const library = params?.library;
   const isbn = params?.isbn;
 
@@ -61,7 +61,7 @@ const BookDetectionResults = () => {
 
     setIsCreating(true);
     try {
-      await createItem(library.id, {
+      await createBook(library.id, {
         title: selected.title || '',
         summary: selected.summary || '',
         authors: selected.authors || [],
@@ -75,7 +75,7 @@ const BookDetectionResults = () => {
       showToast(err.message || 'Failed to add book', 'error');
       setIsCreating(false);
     }
-  }, [selectedIndex, results, library, isbn, goBack, showToast, isCreating, createItem]);
+  }, [selectedIndex, results, library, isbn, goBack, showToast, isCreating, createBook]);
 
   // Set up header with Add button
   useEffect(() => {

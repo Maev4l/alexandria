@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 
 const NewBook = () => {
   const { setOptions, params, goBack } = useNavigation();
-  const { createItem } = useLibraries();
+  const { createBook } = useLibraries();
   const { showToast } = useToast();
   const library = params?.library;
 
@@ -41,7 +41,7 @@ const NewBook = () => {
     setIsSubmitting(true);
     try {
       const authorsArray = authors.split(',').map((a) => a.trim()).filter(Boolean);
-      await createItem(library.id, {
+      await createBook(library.id, {
         title: title.trim(),
         summary: summary.trim() || null,
         authors: authorsArray,
@@ -57,7 +57,7 @@ const NewBook = () => {
       showToast(err.message || 'Failed to create book', 'error');
       setIsSubmitting(false);
     }
-  }, [canSubmit, library?.id, title, summary, authors, isbn, cover, collection, order, createItem, goBack, showToast]);
+  }, [canSubmit, library?.id, title, summary, authors, isbn, cover, collection, order, createBook, goBack, showToast]);
 
   // Set up header with Done button
   useEffect(() => {

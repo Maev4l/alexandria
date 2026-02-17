@@ -193,7 +193,7 @@ export const LibrariesProvider = ({ children }) => {
   }, []);
 
   // Create an item in a library
-  const createItem = useCallback(async (libraryId, data) => {
+  const createBook = useCallback(async (libraryId, data) => {
     const result = await librariesApi.createBook(libraryId, data);
     // Invalidate to refetch with new item
     invalidateItems(libraryId);
@@ -209,7 +209,7 @@ export const LibrariesProvider = ({ children }) => {
   }, [invalidateItems]);
 
   // Update an item in a library
-  const updateItem = useCallback(async (libraryId, itemId, data) => {
+  const updateBook = useCallback(async (libraryId, itemId, data) => {
     await librariesApi.updateBook(libraryId, itemId, data);
     // Update local state
     setItemsByLibrary((prev) => {
@@ -296,8 +296,8 @@ export const LibrariesProvider = ({ children }) => {
     fetchItems,
     loadMoreItems,
     invalidateItems,
-    createItem,
-    updateItem,
+    createBook,
+    updateBook,
     deleteItem,
   }), [
     libraries,
@@ -316,8 +316,8 @@ export const LibrariesProvider = ({ children }) => {
     fetchItems,
     loadMoreItems,
     invalidateItems,
-    createItem,
-    updateItem,
+    createBook,
+    updateBook,
     deleteItem,
   ]);
 
