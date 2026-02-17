@@ -1,26 +1,29 @@
 // Edited by Claude.
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Library, Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { LibrariesProvider } from '@/state';
 import { TabNavigator } from '@/navigation';
 import { ToastProvider } from '@/components/Toast';
-import Login from '@/pages/Login';
-import Libraries from '@/pages/Libraries';
-import NewLibrary from '@/pages/NewLibrary';
-import EditLibrary from '@/pages/EditLibrary';
-import UnshareLibrary from '@/pages/UnshareLibrary';
-import LibraryContent from '@/pages/LibraryContent';
-import AddBook from '@/pages/AddBook';
-import BookDetectionResults from '@/pages/BookDetectionResults';
-import NewBook from '@/pages/NewBook';
-import EditBook from '@/pages/EditBook';
-import BookDetail from '@/pages/BookDetail';
-import ItemHistory from '@/pages/ItemHistory';
-import Search from '@/pages/Search';
-import Settings from '@/pages/Settings';
-import Account from '@/pages/Account';
-import About from '@/pages/About';
+
+// Lazy-loaded pages for code splitting
+const Login = lazy(() => import('@/pages/Login'));
+const Libraries = lazy(() => import('@/pages/Libraries'));
+const NewLibrary = lazy(() => import('@/pages/NewLibrary'));
+const EditLibrary = lazy(() => import('@/pages/EditLibrary'));
+const UnshareLibrary = lazy(() => import('@/pages/UnshareLibrary'));
+const LibraryContent = lazy(() => import('@/pages/LibraryContent'));
+const AddBook = lazy(() => import('@/pages/AddBook'));
+const BookDetectionResults = lazy(() => import('@/pages/BookDetectionResults'));
+const NewBook = lazy(() => import('@/pages/NewBook'));
+const EditBook = lazy(() => import('@/pages/EditBook'));
+const BookDetail = lazy(() => import('@/pages/BookDetail'));
+const ItemHistory = lazy(() => import('@/pages/ItemHistory'));
+const Search = lazy(() => import('@/pages/Search'));
+const Settings = lazy(() => import('@/pages/Settings'));
+const Account = lazy(() => import('@/pages/Account'));
+const About = lazy(() => import('@/pages/About'));
 
 // Tab screens (shown with bottom tabs)
 const screens = [
@@ -137,7 +140,9 @@ const App = () => (
           path="/login"
           element={
             <PublicRoute>
-              <Login />
+              <Suspense fallback={null}>
+                <Login />
+              </Suspense>
             </PublicRoute>
           }
         />

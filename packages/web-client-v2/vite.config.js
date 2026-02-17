@@ -69,4 +69,19 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split large vendor libraries into separate chunks
+        manualChunks: {
+          // AWS Amplify is large, isolate it
+          amplify: ["aws-amplify"],
+          // Barcode scanning library (only needed for AddBook)
+          zxing: ["@zxing/browser", "@zxing/library"],
+          // React core (cached across deploys)
+          react: ["react", "react-dom", "react-router-dom"],
+        },
+      },
+    },
+  },
 });

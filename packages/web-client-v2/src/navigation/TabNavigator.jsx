@@ -2,7 +2,7 @@
 // TabNavigator: declarative tab-based navigation container
 // Supports both tab screens (with bottom tabs) and stack screens (pushed on top)
 // Keeps stacked screens mounted to preserve scroll position and state
-import { useMemo } from 'react';
+import { useMemo, Suspense } from 'react';
 import { NavigationProvider, useNavigation, ScreenParamsProvider } from './NavigationContext';
 import AppBar from './AppBar';
 import BottomTabs from './BottomTabs';
@@ -92,7 +92,9 @@ const TabContent = ({ screens, stackScreens = [] }) => {
               style={{ display: isActive ? 'block' : 'none' }}
             >
               <ScreenParamsProvider params={screenParams}>
-                <Component />
+                <Suspense fallback={null}>
+                  <Component />
+                </Suspense>
               </ScreenParamsProvider>
             </div>
           );
