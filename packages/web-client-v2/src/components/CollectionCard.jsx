@@ -12,7 +12,8 @@ const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLib
   return (
     <div className={cn(
       'rounded-lg border border-border bg-card overflow-hidden',
-      isExpanded && 'ring-1 ring-accent'
+      'shadow-[var(--card-shadow)] transition-shadow duration-200',
+      isExpanded && 'ring-1 ring-accent shadow-[var(--card-shadow-hover)]'
     )}>
       {/* Collection header */}
       <button

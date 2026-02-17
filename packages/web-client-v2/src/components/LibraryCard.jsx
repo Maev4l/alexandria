@@ -52,11 +52,12 @@ const LibraryCard = ({ library, onClick, onLongPress }) => {
         }
       }}
       className={cn(
-        'w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-colors select-none',
+        'w-full flex items-center gap-3 p-3 rounded-lg border text-left select-none',
+        'transition-[background-color,box-shadow] duration-200',
         'hover:bg-accent/50 active:bg-accent',
         isSharedFromOther
-          ? 'border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30'
-          : 'border-border bg-card'
+          ? 'border-blue-200 bg-blue-50/50 dark:border-blue-900 dark:bg-blue-950/30 shadow-[var(--card-shadow)]'
+          : 'border-border bg-card shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)]'
       )}
     >
       {/* Content */}

@@ -83,9 +83,9 @@ const NewBook = () => {
   return (
     <div className="absolute inset-0 overflow-y-auto">
     <div className="p-4 space-y-4 pb-8">
-      {/* Cover preview */}
+      {/* Cover preview - asymmetric radius mimics real book */}
       <div className="flex justify-center">
-        <div className="w-32 h-44 rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
+        <div className="w-32 h-44 rounded-[2px_6px_6px_2px] bg-muted flex items-center justify-center overflow-hidden border border-border shadow-[var(--card-shadow)]">
           {cover && !coverError ? (
             <img
               src={cover}

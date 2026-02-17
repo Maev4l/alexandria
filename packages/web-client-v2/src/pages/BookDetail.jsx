@@ -50,9 +50,9 @@ const BookDetail = () => {
   return (
     <div className="absolute inset-0 overflow-y-auto">
       <div className="p-4 space-y-6 pb-8">
-        {/* Cover image */}
+        {/* Cover image - asymmetric radius mimics real book (spine left, pages right) */}
         <div className="flex justify-center">
-          <div className="w-40 h-56 rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border shadow-md">
+          <div className="w-40 h-56 rounded-[3px_8px_8px_3px] bg-muted flex items-center justify-center overflow-hidden border border-border shadow-[var(--card-shadow-hover)]">
             {hasImage ? (
               <img
                 src={currentBook.pictureUrl || `data:image/webp;base64,${currentBook.picture}`}

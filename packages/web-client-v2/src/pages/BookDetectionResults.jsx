@@ -174,8 +174,8 @@ const BookDetectionResults = () => {
                 isCreating && 'pointer-events-none'
               )}
             >
-              {/* Cover image */}
-              <div className="w-16 h-22 flex-shrink-0 rounded bg-muted overflow-hidden">
+              {/* Cover image - asymmetric radius mimics real book */}
+              <div className="w-16 h-22 flex-shrink-0 rounded-[2px_6px_6px_2px] bg-muted overflow-hidden">
                 {book.pictureUrl ? (
                   <img
                     src={book.pictureUrl}

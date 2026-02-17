@@ -53,8 +53,8 @@ const SearchResultCard = ({ book, onClick, isShared }) => {
       onClick={() => onClick(book)}
       className="w-full flex gap-3 p-2 rounded-md bg-muted/30 text-left transition-colors hover:bg-accent/50 active:bg-accent select-none"
     >
-      {/* Book cover */}
-      <div className="shrink-0 w-10 h-14 rounded bg-muted flex items-center justify-center overflow-hidden">
+      {/* Book cover - asymmetric radius mimics real book */}
+      <div className="shrink-0 w-10 h-14 rounded-[2px_6px_6px_2px] bg-muted flex items-center justify-center overflow-hidden">
         {hasImage ? (
           <img
             src={book.pictureUrl || `data:image/webp;base64,${book.picture}`}

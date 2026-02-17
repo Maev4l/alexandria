@@ -52,11 +52,12 @@ const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = fal
         }
       }}
       className={cn(
-        'w-full flex gap-3 text-left transition-colors select-none',
+        'w-full flex gap-3 text-left select-none',
+        'transition-[background-color,box-shadow] duration-200',
         'hover:bg-accent/50 active:bg-accent',
         compact
           ? 'p-2 rounded-md bg-muted/30'
-          : 'p-3 rounded-lg border border-border bg-card'
+          : 'p-3 rounded-lg border border-border bg-card shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)]'
       )}
     >
       {/* Order number badge (for collection items) */}
@@ -68,10 +69,12 @@ const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = fal
         </div>
       )}
 
-      {/* Book cover or placeholder */}
+      {/* Book cover or placeholder - asymmetric radius mimics real book (spine left, pages right) */}
       <div
         className={cn(
-          'shrink-0 rounded bg-muted flex items-center justify-center overflow-hidden',
+          'shrink-0 bg-muted flex items-center justify-center overflow-hidden',
+          // Realistic book corners: 2px spine (left), 6px pages (right)
+          'rounded-[2px_6px_6px_2px]',
           compact ? 'w-10 h-14' : 'w-12 h-16'
         )}
       >

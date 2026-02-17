@@ -363,10 +363,10 @@ Visual browsing focus with book covers as primary UI element.
 
 ### Quick Wins (Either Style)
 
-1. Subtle shadows on book cards for depth
-2. Realistic book cover corners: `border-radius: 2px 6px 6px 2px`
-3. Warm background tint instead of pure white/black
-4. Staggered animation on list load (50ms delay per card)
-5. Empty state: sketch of empty bookshelf
-6. "Lent to" as colored dot/ribbon, not just text
+1. [x] Subtle shadows on book cards for depth
+2. [x] Realistic book cover corners: `border-radius: 2px 6px 6px 2px`
+3. [x] Warm background tint instead of pure white/black
+4. [ ] Staggered animation on list load (50ms delay per card)
+5. [ ] Empty state: sketch of empty bookshelf
+6. [ ] "Lent to" as colored dot/ribbon, not just text
 
