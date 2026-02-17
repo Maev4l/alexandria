@@ -5,7 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNavigation } from './NavigationContext';
 
-const AppBar = ({ title, headerLeft, headerRight, showBackButton = 'auto', className }) => {
+const AppBar = ({ title, subtitle, headerLeft, headerRight, showBackButton = 'auto', className }) => {
   const { canGoBack, goBack, triggerScrollToTop } = useNavigation();
 
   // Determine if back button should show: 'auto' uses canGoBack, or explicit boolean
@@ -14,7 +14,8 @@ const AppBar = ({ title, headerLeft, headerRight, showBackButton = 'auto', class
   return (
     <header
       className={cn(
-        'sticky top-0 z-50 h-14 border-b border-border bg-background',
+        'sticky top-0 z-50 border-b border-border bg-background',
+        subtitle ? 'h-16' : 'h-14',
         className
       )}
     >
@@ -34,14 +35,17 @@ const AppBar = ({ title, headerLeft, headerRight, showBackButton = 'auto', class
           )}
         </div>
 
-        {/* Center: title (tap to scroll to top) */}
+        {/* Center: title + optional subtitle (tap to scroll to top) */}
         <button
           type="button"
           onClick={triggerScrollToTop}
-          className="flex-1 text-center text-lg font-semibold truncate bg-transparent border-none cursor-pointer active:opacity-70"
+          className="flex-1 flex flex-col items-center justify-center bg-transparent border-none cursor-pointer active:opacity-70"
           aria-label="Scroll to top"
         >
-          {title}
+          <span className="text-lg font-semibold truncate max-w-full">{title}</span>
+          {subtitle && (
+            <span className="text-xs text-muted-foreground truncate max-w-full">{subtitle}</span>
+          )}
         </button>
 
         {/* Right slot: reserved for future actions */}

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 const LONG_PRESS_DURATION = 500;
 
-const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = false }) => {
+const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = false, isSharedLibrary = false }) => {
   const hasImage = book.pictureUrl || book.picture;
   const authors = book.authors?.join(', ') || '';
   const isLent = !!book.lentTo;
@@ -104,7 +104,7 @@ const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = fal
         )}
         {isLent && (
           <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-            Lent to {book.lentTo}
+            {isSharedLibrary ? 'Lent' : `Lent to ${book.lentTo}`}
           </p>
         )}
       </div>

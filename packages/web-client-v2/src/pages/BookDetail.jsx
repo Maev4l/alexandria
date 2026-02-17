@@ -20,12 +20,14 @@ const BookDetail = () => {
   const hasImage = currentBook?.pictureUrl || currentBook?.picture;
   const authors = currentBook?.authors?.join(', ') || '';
   const isLent = !!currentBook?.lentTo;
+  const isSharedLibrary = !!library?.sharedFrom;
 
-  // Set up header with History button
+  // Set up header with History button (hidden for shared libraries)
   useEffect(() => {
     setOptions({
       title: currentBook?.title || 'Book',
-      headerRight: (
+      // Only show history button for owned libraries
+      headerRight: isSharedLibrary ? null : (
         <button
           onClick={() => navigate('itemHistory', { push: true, params: { library, book: currentBook } })}
           className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
@@ -35,7 +37,7 @@ const BookDetail = () => {
         </button>
       ),
     });
-  }, [setOptions, currentBook, library, navigate]);
+  }, [setOptions, currentBook, library, navigate, isSharedLibrary]);
 
   if (!currentBook) {
     return (
@@ -75,7 +77,7 @@ const BookDetail = () => {
         {isLent && (
           <div className="flex justify-center">
             <span className="px-3 py-1 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-sm font-medium">
-              Lent to {currentBook.lentTo}
+              {isSharedLibrary ? 'Lent' : `Lent to ${currentBook.lentTo}`}
             </span>
           </div>
         )}

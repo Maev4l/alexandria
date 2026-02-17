@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import BookCard from './BookCard';
 
-const CollectionCard = ({ name, items, onItemClick, onItemLongPress }) => {
+const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLibrary = false }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const itemCount = items.length;
 
@@ -51,6 +51,7 @@ const CollectionCard = ({ name, items, onItemClick, onItemLongPress }) => {
               onLongPress={onItemLongPress}
               showOrder
               compact
+              isSharedLibrary={isSharedLibrary}
             />
           ))}
         </div>

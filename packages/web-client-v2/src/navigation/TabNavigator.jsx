@@ -71,6 +71,7 @@ const TabContent = ({ screens, stackScreens = [] }) => {
     <div className="flex min-h-svh flex-col">
       <AppBar
         title={title}
+        subtitle={screenOptions.subtitle}
         headerLeft={screenOptions.headerLeft}
         headerRight={screenOptions.headerRight}
         showBackButton={isStackScreen ? true : (screenOptions.showBackButton ?? canGoBack)}

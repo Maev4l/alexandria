@@ -76,11 +76,24 @@ const LibraryContent = () => {
   // Build sorted list with collections grouped
   const sortedList = useMemo(() => buildSortedList(items), [items]);
 
-  // Set up header with library name and add button
+  // Check if library is shared (read-only, no add button)
+  const isSharedLibrary = !!library?.sharedFrom;
+
+  // Set up header with library name, optional subtitle for shared libraries, and add button (if owned)
   useEffect(() => {
-    setOptions({
+    const options = {
       title: library?.name || 'Library',
-      headerRight: (
+      // Explicitly set headerRight to ensure we override any stale value from previous screens
+      headerRight: null,
+      subtitle: null,
+    };
+
+    // Show who shared the library as subtitle (read-only, no add button)
+    if (isSharedLibrary) {
+      options.subtitle = `Shared by ${library.sharedFrom}`;
+    } else {
+      // Only show add button for owned libraries
+      options.headerRight = (
         <button
           onClick={() => navigate('addBook', { push: true, params: { library } })}
           className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
@@ -88,9 +101,11 @@ const LibraryContent = () => {
         >
           <Plus className="h-5 w-5" />
         </button>
-      ),
-    });
-  }, [setOptions, library, navigate]);
+      );
+    }
+
+    setOptions(options);
+  }, [setOptions, library, navigate, isSharedLibrary]);
 
   // Reset fetch guard when items are invalidated (e.g., after creating/deleting a book)
   // This allows refetching when the screen becomes visible again
@@ -230,7 +245,9 @@ const LibraryContent = () => {
           <BookOpen className="h-12 w-12 text-muted-foreground/50" />
           <p className="text-lg font-medium">No books yet</p>
           <p className="text-sm text-muted-foreground">
-            Add books to this library to see them here.
+            {isSharedLibrary
+              ? 'This library is empty.'
+              : 'Add books to this library to see them here.'}
           </p>
         </div>
       </PullToRefresh>
@@ -256,7 +273,8 @@ const LibraryContent = () => {
                   onItemClick={(book) => {
                     navigate('bookDetail', { push: true, params: { library, book } });
                   }}
-                  onItemLongPress={handleItemLongPress}
+                  onItemLongPress={isSharedLibrary ? undefined : handleItemLongPress}
+                  isSharedLibrary={isSharedLibrary}
                 />
               );
             }
@@ -267,7 +285,8 @@ const LibraryContent = () => {
                 onClick={(book) => {
                   navigate('bookDetail', { push: true, params: { library, book } });
                 }}
-                onLongPress={handleItemLongPress}
+                onLongPress={isSharedLibrary ? undefined : handleItemLongPress}
+                isSharedLibrary={isSharedLibrary}
               />
             );
           })}

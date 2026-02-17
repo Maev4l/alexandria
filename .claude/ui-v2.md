@@ -69,7 +69,8 @@ packages/web-client-v2/
     │   ├── index.js        # Module exports
     │   ├── client.js       # Base fetch with auth token injection
     │   ├── libraries.js    # Library API endpoints
-    │   └── detection.js    # ISBN detection API (book lookup)
+    │   ├── detection.js    # ISBN detection API (book lookup)
+    │   └── search.js       # Search API (fuzzy book search)
     ├── state/              # Shared state (React Context, no Redux)
     │   ├── index.js        # Module exports
     │   └── LibrariesContext.jsx  # Libraries state + actions
@@ -86,7 +87,7 @@ packages/web-client-v2/
     │   ├── EditBook.jsx    # Edit book form (pre-filled from item)
     │   ├── BookDetail.jsx  # Book detail view (cover, info, summary, history button)
     │   ├── ItemHistory.jsx # Item lending/return history (paginated list)
-    │   ├── Search.jsx      # Search tab (placeholder)
+    │   ├── Search.jsx      # Search tab: fuzzy search, recent searches, results list
     │   └── Settings.jsx    # Settings tab (placeholder)
     ├── components/
     │   ├── LibraryCard.jsx # Compact card with long press support
@@ -230,7 +231,8 @@ packages/web-client-v2/
 - [x] Book detail page: tap book → full info view (read-only) with history button
 - [x] Lend/Return: inline form in ItemActionsSheet (lend), direct API call (return)
 - [x] Item history page: paginated lending/return events accessed from BookDetail
-- [ ] Search page implementation
+- [x] Shared library read-only mode: header shows sharer, no add button, no item actions
+- [x] Search page: fuzzy search with debounce (3+ chars), recent searches (localStorage), navigate to BookDetail
 - [ ] Settings page implementation
 
 ## UI Revamp
