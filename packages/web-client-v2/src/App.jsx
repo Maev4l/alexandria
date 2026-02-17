@@ -19,6 +19,8 @@ import BookDetail from '@/pages/BookDetail';
 import ItemHistory from '@/pages/ItemHistory';
 import Search from '@/pages/Search';
 import Settings from '@/pages/Settings';
+import Account from '@/pages/Account';
+import About from '@/pages/About';
 
 // Tab screens (shown with bottom tabs)
 const screens = [
@@ -96,6 +98,16 @@ const stackScreens = [
     name: 'itemHistory',
     component: ItemHistory,
     options: { title: 'History' },
+  },
+  {
+    name: 'account',
+    component: Account,
+    options: { title: 'Account' },
+  },
+  {
+    name: 'about',
+    component: About,
+    options: { title: 'About' },
   },
 ];
 

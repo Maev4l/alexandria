@@ -1,6 +1,6 @@
 // Edited by Claude.
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { signIn as cognitoSignIn, signOut as cognitoSignOut, fetchAuthSession } from 'aws-amplify/auth';
+import { signIn as cognitoSignIn, signOut as cognitoSignOut, fetchAuthSession, updatePassword, getCurrentUser } from 'aws-amplify/auth';
 import { hideSplash } from '@/lib/splash';
 
 const AuthContext = createContext(null);
@@ -22,9 +22,11 @@ export const AuthProvider = ({ children }) => {
       try {
         const session = await fetchAuthSession();
         if (session?.tokens) {
+          const currentUser = await getCurrentUser();
           setUser({
             id: extractUserId(session.tokens.idToken),
             token: session.tokens.idToken.toString(),
+            username: currentUser.username,
           });
         }
       } catch {
@@ -50,10 +52,16 @@ export const AuthProvider = ({ children }) => {
       if (err.name !== 'UserAlreadyAuthenticatedException') throw err;
     }
     const session = await fetchAuthSession();
+    const currentUser = await getCurrentUser();
     setUser({
-            id: extractUserId(session.tokens.idToken),
-            token: session.tokens.idToken.toString(),
-          });
+      id: extractUserId(session.tokens.idToken),
+      token: session.tokens.idToken.toString(),
+      username: currentUser.username,
+    });
+  }, []);
+
+  const changePassword = useCallback(async (oldPassword, newPassword) => {
+    await updatePassword({ oldPassword, newPassword });
   }, []);
 
   const signOut = useCallback(async () => {
@@ -69,6 +77,7 @@ export const AuthProvider = ({ children }) => {
         isLoading,
         signIn,
         signOut,
+        changePassword,
       }}
     >
       {children}

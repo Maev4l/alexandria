@@ -88,7 +88,9 @@ packages/web-client-v2/
     │   ├── BookDetail.jsx  # Book detail view (cover, info, summary, history button)
     │   ├── ItemHistory.jsx # Item lending/return history (paginated list)
     │   ├── Search.jsx      # Search tab: fuzzy search, recent searches, results list
-    │   └── Settings.jsx    # Settings tab (placeholder)
+    │   ├── Settings.jsx    # Settings tab: list with Account, About, Sign out
+    │   ├── Account.jsx     # Account page: avatar, username (copy), password change
+    │   └── About.jsx       # About page: app info and version
     ├── components/
     │   ├── LibraryCard.jsx # Compact card with long press support
     │   ├── BookCard.jsx    # Book item card with cover image + optional order number
@@ -130,7 +132,7 @@ packages/web-client-v2/
 │  [Libraries]              [Search]                [Settings]                │
 │      ▼                       ▼                        ▼                     │
 │  Libraries.jsx           Search.jsx              Settings.jsx               │
-│  (list + PTR)            (placeholder)           (placeholder)              │
+│  (list + PTR)            (fuzzy search)          (Account/About/SignOut)    │
 └─────────────────────────────────────────────────────────────────────────────┘
        │
        │ tap card
@@ -197,6 +199,16 @@ packages/web-client-v2/
 │  │  [History button]   │──────────────► ItemHistory (paginated events list) │
 │  └─────────────────────┘                                                    │
 └─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           SETTINGS (tab)                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Settings.jsx                                                               │
+│       │                                                                     │
+│       ├── Account ──────────► Account.jsx (avatar, username copy, password) │
+│       ├── About ────────────► About.jsx (app info, version)                 │
+│       └── Sign out ─────────► (signs out, redirects to Login)               │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Progress
@@ -233,7 +245,8 @@ packages/web-client-v2/
 - [x] Item history page: paginated lending/return events accessed from BookDetail
 - [x] Shared library read-only mode: header shows sharer, no add button, no item actions
 - [x] Search page: fuzzy search with debounce (3+ chars), recent searches (localStorage), navigate to BookDetail
-- [ ] Settings page implementation
+- [x] Settings page: Account, About (app info), Sign out
+- [x] Account page: avatar with initials, username (copy), password change with complexity validation
 
 ## UI Revamp
 
