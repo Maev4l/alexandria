@@ -5,6 +5,19 @@ import { createContext, useContext, useState, useMemo, useCallback, useRef } fro
 
 const NavigationContext = createContext(null);
 
+// Separate context for screen-specific params (allows stacked screens to keep their own params)
+// Uses undefined as default to distinguish "no provider" from "provider with null params"
+const ScreenParamsContext = createContext(undefined);
+
+// Provider that overrides params for a specific screen
+export const ScreenParamsProvider = ({ params, children }) => {
+  return (
+    <ScreenParamsContext.Provider value={params}>
+      {children}
+    </ScreenParamsContext.Provider>
+  );
+};
+
 export const NavigationProvider = ({ children, initialRoute = null }) => {
   const [currentRoute, setCurrentRoute] = useState(initialRoute);
   const [navigationStack, setNavigationStack] = useState([]);
@@ -74,6 +87,7 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
   const value = useMemo(() => ({
     currentRoute,
     params: routeParams,
+    navigationStack,
     navigate,
     goBack,
     canGoBack,
@@ -81,7 +95,7 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
     setOptions,
     registerScrollToTop,
     triggerScrollToTop,
-  }), [currentRoute, routeParams, navigate, goBack, canGoBack, screenOptions, setOptions, registerScrollToTop, triggerScrollToTop]);
+  }), [currentRoute, routeParams, navigationStack, navigate, goBack, canGoBack, screenOptions, setOptions, registerScrollToTop, triggerScrollToTop]);
 
   return (
     <NavigationContext.Provider value={value}>
@@ -92,8 +106,13 @@ export const NavigationProvider = ({ children, initialRoute = null }) => {
 
 export const useNavigation = () => {
   const context = useContext(NavigationContext);
+  const screenParams = useContext(ScreenParamsContext);
   if (!context) {
     throw new Error('useNavigation must be used within a NavigationProvider');
   }
-  return context;
+  // Use screen-specific params if provider exists (for stacked screens), otherwise use current route params
+  return {
+    ...context,
+    params: screenParams !== undefined ? screenParams : context.params,
+  };
 };

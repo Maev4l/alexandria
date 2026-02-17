@@ -85,6 +85,7 @@ packages/web-client-v2/
     │   ├── BookDetectionResults.jsx # ISBN lookup results - select and create book directly
     │   ├── NewBook.jsx     # Manual book entry form (when detection fails)
     │   ├── EditBook.jsx    # Edit book form (pre-filled from item)
+    │   ├── BookDetail.jsx  # Book detail view (cover, info, summary)
     │   ├── Search.jsx      # Search tab (placeholder)
     │   └── Settings.jsx    # Settings tab (placeholder)
     ├── components/
@@ -211,6 +212,7 @@ packages/web-client-v2/
 - [x] Detection fallback: no results found → link to NewBook for manual entry
 - [x] Scan ISBN: camera barcode scanning (@zxing/browser, EAN-13/EAN-8)
 - [x] Edit book: form with pre-filled data, updates via context
+- [x] Book detail page: tap book → full info view with Edit button
 - [ ] Lend/Return functionality
 - [ ] Search page implementation
 - [ ] Settings page implementation

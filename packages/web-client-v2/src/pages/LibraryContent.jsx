@@ -91,6 +91,14 @@ const LibraryContent = () => {
     });
   }, [setOptions, library, navigate]);
 
+  // Reset fetch guard when items are invalidated (e.g., after creating/deleting a book)
+  // This allows refetching when the screen becomes visible again
+  useEffect(() => {
+    if (!itemsState) {
+      fetchingLibraryRef.current = null;
+    }
+  }, [itemsState]);
+
   // Fetch items on mount if not already loaded for this library
   // - hasLoaded: prevents refetch when returning to cached screen
   // - fetchingLibraryRef: guards against React Strict Mode double-call
@@ -225,7 +233,7 @@ const LibraryContent = () => {
                   name={entry.name}
                   items={entry.items}
                   onItemClick={(book) => {
-                    // TODO: navigate to book detail
+                    navigate('bookDetail', { push: true, params: { library, book } });
                   }}
                   onItemLongPress={handleItemLongPress}
                 />
@@ -236,7 +244,7 @@ const LibraryContent = () => {
                 key={entry.data.id}
                 book={entry.data}
                 onClick={(book) => {
-                  // TODO: navigate to book detail
+                  navigate('bookDetail', { push: true, params: { library, book } });
                 }}
                 onLongPress={handleItemLongPress}
               />

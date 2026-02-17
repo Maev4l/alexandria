@@ -16,6 +16,7 @@ import AddBook from '@/pages/AddBook';
 import BookDetectionResults from '@/pages/BookDetectionResults';
 import NewBook from '@/pages/NewBook';
 import EditBook from '@/pages/EditBook';
+import BookDetail from '@/pages/BookDetail';
 import Search from '@/pages/Search';
 import Settings from '@/pages/Settings';
 
@@ -90,6 +91,11 @@ const stackScreens = [
     name: 'editBook',
     component: EditBook,
     options: { title: 'Edit Book' },
+  },
+  {
+    name: 'bookDetail',
+    component: BookDetail,
+    options: { title: 'Book' },
   },
 ];
 
