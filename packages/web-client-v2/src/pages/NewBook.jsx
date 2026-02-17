@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 const NewBook = () => {
   const { setOptions, params, goBack } = useNavigation();
   const { createBook } = useLibraries();
-  const { showToast } = useToast();
+  const toast = useToast();
   const library = params?.library;
 
   const [cover, setCover] = useState('');
@@ -54,10 +54,10 @@ const NewBook = () => {
       goBack();
       goBack();
     } catch (err) {
-      showToast(err.message || 'Failed to create book', 'error');
+      toast.error(err.message || 'Failed to create book');
       setIsSubmitting(false);
     }
-  }, [canSubmit, library?.id, title, summary, authors, isbn, cover, collection, order, createBook, goBack, showToast]);
+  }, [canSubmit, library?.id, title, summary, authors, isbn, cover, collection, order, createBook, goBack, toast]);
 
   // Set up header with Done button
   useEffect(() => {

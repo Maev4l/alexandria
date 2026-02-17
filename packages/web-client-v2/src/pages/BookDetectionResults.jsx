@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 
 const BookDetectionResults = () => {
   const { setOptions, params, navigate, goBack } = useNavigation();
-  const { showToast } = useToast();
+  const toast = useToast();
   const { createBook } = useLibraries();
   const library = params?.library;
   const isbn = params?.isbn;
@@ -72,10 +72,10 @@ const BookDetectionResults = () => {
       goBack();
       goBack();
     } catch (err) {
-      showToast(err.message || 'Failed to add book', 'error');
+      toast.error(err.message || 'Failed to add book');
       setIsCreating(false);
     }
-  }, [selectedIndex, results, library, isbn, goBack, showToast, isCreating, createBook]);
+  }, [selectedIndex, results, library, isbn, goBack, toast, isCreating, createBook]);
 
   // Set up header with Add button
   useEffect(() => {

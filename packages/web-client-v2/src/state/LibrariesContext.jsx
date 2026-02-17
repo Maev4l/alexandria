@@ -18,6 +18,7 @@ export const LibrariesProvider = ({ children }) => {
   const [libraries, setLibraries] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [hasLoaded, setHasLoaded] = useState(false); // Track if initial fetch done
 
   // Items state per library: { [libraryId]: { items, nextToken, isLoading, error } }
   const [itemsByLibrary, setItemsByLibrary] = useState({});
@@ -38,6 +39,7 @@ export const LibrariesProvider = ({ children }) => {
       setLibraries([]);
     } finally {
       setIsLoading(false);
+      setHasLoaded(true);
     }
   }, []);
 
@@ -282,6 +284,7 @@ export const LibrariesProvider = ({ children }) => {
     sharedLibraries,
     isLoading,
     error,
+    hasLoaded,
     // Libraries actions
     fetchLibraries,
     createLibrary,
@@ -305,6 +308,7 @@ export const LibrariesProvider = ({ children }) => {
     sharedLibraries,
     isLoading,
     error,
+    hasLoaded,
     fetchLibraries,
     createLibrary,
     updateLibrary,

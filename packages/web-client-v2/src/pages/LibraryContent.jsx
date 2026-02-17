@@ -60,6 +60,7 @@ const LibraryContent = () => {
 
   const loadMoreRef = useRef(null);
   const pullToRefreshRef = useRef(null);
+  const fetchingLibraryRef = useRef(null); // Track which library is being fetched
 
   // Register scroll-to-top handler for AppBar title tap
   useEffect(() => {
@@ -89,11 +90,15 @@ const LibraryContent = () => {
   }, [setOptions, library, navigate]);
 
   // Fetch items on mount if not already loaded for this library
+  // - hasLoaded: prevents refetch when returning to cached screen
+  // - fetchingLibraryRef: guards against React Strict Mode double-call
   useEffect(() => {
-    if (library?.id && !hasLoaded && !isLoading) {
-      fetchItems(library.id, true);
+    const libraryId = library?.id;
+    if (libraryId && !hasLoaded && fetchingLibraryRef.current !== libraryId) {
+      fetchingLibraryRef.current = libraryId;
+      fetchItems(libraryId, true);
     }
-  }, [library?.id, hasLoaded, isLoading, fetchItems]);
+  }, [library?.id, hasLoaded, fetchItems]);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
