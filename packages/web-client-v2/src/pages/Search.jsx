@@ -83,12 +83,12 @@ const SearchResultCard = ({ book, onClick, isShared, index }) => {
         {book.libraryName && (
           <p className="text-xs text-muted-foreground/70 truncate mt-0.5 flex items-center gap-1">
             {isShared ? (
-              <Users className="h-3 w-3 shrink-0 text-blue-500" />
+              <Users className="h-3 w-3 shrink-0 text-green-600 dark:text-green-400" />
             ) : (
               <Library className="h-3 w-3 shrink-0" />
             )}
             {book.libraryName}
-            {isShared && <span className="text-blue-500">(shared)</span>}
+            {isShared && <span className="text-green-600 dark:text-green-400">(shared)</span>}
           </p>
         )}
       </div>

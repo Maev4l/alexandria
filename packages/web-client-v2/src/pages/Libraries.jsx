@@ -143,7 +143,7 @@ const Libraries = () => {
       );
     }
 
-    // Libraries list
+    // Libraries grid
     return (
       <PullToRefresh onRefresh={handleRefresh} className="h-full">
         <div className="p-4 space-y-6">
@@ -153,7 +153,7 @@ const Libraries = () => {
               <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 My Libraries
               </h2>
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
                 {ownedLibraries.map((library, idx) => (
                   <LibraryCard
                     key={library.id}
@@ -173,7 +173,7 @@ const Libraries = () => {
               <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">
                 Shared with me
               </h2>
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
                 {sharedLibraries.map((library, idx) => (
                   <LibraryCard
                     key={library.id}

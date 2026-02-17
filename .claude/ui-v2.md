@@ -370,3 +370,8 @@ Visual browsing focus with book covers as primary UI element.
 5. [x] Empty state: sketch of empty bookshelf
 6. [x] "Lent to" as colored dot/ribbon, not just text
 
+### Phase 3 - Layout Evolution
+
+1. [x] Grid layout for libraries (2-column grid with card icons)
+2. [ ] Horizontal scroll collections
+
