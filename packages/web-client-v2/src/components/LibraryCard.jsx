@@ -4,7 +4,7 @@
 // Supports long press for actions on owned libraries
 import { useRef, useCallback } from 'react';
 import { Users, UserCheck } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils'; // Used for conditional animation class
 
 const LONG_PRESS_DURATION = 500;
 const STAGGER_DELAY = 50; // ms per item for staggered animation
@@ -68,23 +68,16 @@ const LibraryCard = ({ library, onClick, onLongPress, index }) => {
         'aspect-[4/3] min-h-[120px]',
         'transition-[background-color,box-shadow,transform] duration-200',
         'hover:bg-accent/50 active:bg-accent active:scale-[0.98]',
-        isSharedFromOther
-          ? 'border-green-300 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30 shadow-[var(--card-shadow)]'
-          : 'border-border bg-card shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)]',
+        'border-border bg-card shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)]',
         // Staggered fade-in animation
         index != null && 'animate-fade-in-up'
       )}
     >
       {/* Shared indicator badge - top right corner */}
       {(isSharedFromOther || isSharedToOthers) && (
-        <div className={cn(
-          'absolute top-2 right-2 p-1 rounded-full',
-          isSharedFromOther
-            ? 'bg-green-100 dark:bg-green-900/50'
-            : 'bg-muted'
-        )}>
+        <div className="absolute top-2 right-2 p-1 rounded-full bg-muted">
           {isSharedFromOther ? (
-            <UserCheck className="h-3.5 w-3.5 text-green-700 dark:text-green-400" />
+            <UserCheck className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
             <Users className="h-3.5 w-3.5 text-muted-foreground" />
           )}
@@ -92,12 +85,7 @@ const LibraryCard = ({ library, onClick, onLongPress, index }) => {
       )}
 
       {/* Library initial avatar */}
-      <div className={cn(
-        'mb-2 w-11 h-11 rounded-full flex items-center justify-center text-lg font-semibold',
-        isSharedFromOther
-          ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400'
-          : 'bg-primary/10 text-primary'
-      )}>
+      <div className="mb-2 w-11 h-11 rounded-full flex items-center justify-center text-lg font-semibold bg-primary/10 text-primary">
         {getInitial(library.name)}
       </div>
 
