@@ -3,8 +3,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Amplify } from 'aws-amplify';
 import { config } from './config.js';
+import { showBuildOnSplash } from './lib/splash.js';
 import App from './App.jsx';
 import './index.css';
+
+// Show build number on splash screen immediately
+showBuildOnSplash();
 
 // Configure Amplify with Cognito before rendering
 Amplify.configure({

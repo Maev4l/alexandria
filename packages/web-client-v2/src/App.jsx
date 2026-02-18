@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { LibrariesProvider } from '@/state';
 import { TabNavigator } from '@/navigation';
 import { ToastProvider } from '@/components/Toast';
+import PWAUpdatePrompt from '@/components/PWAUpdatePrompt';
 
 // Lazy-loaded pages for code splitting
 const Login = lazy(() => import('@/pages/Login'));
@@ -135,6 +136,7 @@ const PublicRoute = ({ children }) => {
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
+      <PWAUpdatePrompt />
       <Routes>
         <Route
           path="/login"
