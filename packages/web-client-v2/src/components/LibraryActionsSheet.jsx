@@ -1,9 +1,12 @@
 // Edited by Claude.
 // Action sheet for library actions (Edit, Share, Unshare, Delete)
 // Includes inline share form and two-step delete confirmation
+// Supports enter/exit fade animations
 import { useState, useEffect, useRef } from 'react';
 import { Pencil, Share2, UserMinus, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const ANIMATION_DURATION = 200; // ms
 
 const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = false }) => {
   // Track current view mode: 'actions' | 'share' | 'delete'
@@ -11,18 +14,41 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
   const [email, setEmail] = useState('');
   const inputRef = useRef(null);
 
-  const isShared = library?.sharedTo?.length > 0;
+  // Animation state
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // Cache library when sheet opens (so we have data during exit animation)
+  const cachedLibraryRef = useRef(null);
+  if (isOpen && library) {
+    cachedLibraryRef.current = library;
+  }
+
+  // Use cached library for display (survives parent clearing the prop)
+  const displayLibrary = cachedLibraryRef.current;
+
+  const isShared = displayLibrary?.sharedTo?.length > 0;
 
   // Basic email validation
   const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
-  // Reset state when sheet closes
+  // Handle open/close with animation
   useEffect(() => {
-    if (!isOpen) {
-      setMode('actions');
-      setEmail('');
+    if (isOpen) {
+      setIsVisible(true);
+      requestAnimationFrame(() => setIsAnimating(true));
+    } else if (isVisible) {
+      setIsAnimating(false);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        // Reset state after close animation
+        setMode('actions');
+        setEmail('');
+        cachedLibraryRef.current = null;
+      }, ANIMATION_DURATION);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, isVisible]);
 
   // Focus input when entering share mode
   useEffect(() => {
@@ -33,7 +59,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
 
   // Prevent body scroll when sheet is open
   useEffect(() => {
-    if (isOpen) {
+    if (isVisible) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -41,12 +67,13 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isVisible]);
 
-  if (!library || !isOpen) return null;
+  // Don't render until visible, or if no library data available
+  if (!isVisible || !displayLibrary) return null;
 
   const handleAction = (action, data) => {
-    onAction?.(action, library, data);
+    onAction?.(action, displayLibrary, data);
   };
 
   const handleClose = () => {
@@ -76,22 +103,29 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
     }
   };
 
+  // Shared animation classes
+  const backdropClasses = cn(
+    'absolute inset-0 bg-black/50 transition-opacity',
+    isAnimating ? 'opacity-100' : 'opacity-0'
+  );
+
+  const sheetClasses = cn(
+    'relative bg-background rounded-t-xl transition-all',
+    isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+  );
+
+  const transitionStyle = { transitionDuration: `${ANIMATION_DURATION}ms` };
+
   // Share form view
   if (mode === 'share') {
     return (
       <div className="fixed inset-0 z-50 flex flex-col justify-end">
-        {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/50"
-          onClick={handleBack}
-        />
-
-        {/* Share form sheet */}
-        <div className="relative bg-background rounded-t-xl">
+        <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
+        <div className={sheetClasses} style={transitionStyle}>
           {/* Header */}
           <div className="px-4 py-3 border-b border-border text-center">
             <p className="text-sm text-muted-foreground">Share</p>
-            <p className="font-medium truncate">{library.name}</p>
+            <p className="font-medium truncate">{displayLibrary.name}</p>
           </div>
 
           {/* Form */}
@@ -161,14 +195,8 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
   if (mode === 'delete') {
     return (
       <div className="fixed inset-0 z-50 flex flex-col justify-end">
-        {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/50"
-          onClick={handleBack}
-        />
-
-        {/* Confirmation sheet */}
-        <div className="relative bg-background rounded-t-xl">
+        <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
+        <div className={sheetClasses} style={transitionStyle}>
           {/* Warning content */}
           <div className="p-6 text-center space-y-4">
             <div className="flex justify-center">
@@ -179,7 +207,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Delete Library?</h3>
               <p className="text-sm text-muted-foreground">
-                This will permanently delete <span className="font-medium text-foreground">{library.name}</span> and all its books. This action cannot be undone.
+                This will permanently delete <span className="font-medium text-foreground">{displayLibrary.name}</span> and all its books. This action cannot be undone.
               </p>
             </div>
           </div>
@@ -220,22 +248,11 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
   // Default actions view
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 animate-in fade-in duration-200"
-        onClick={handleClose}
-      />
-
-      {/* Sheet */}
-      <div
-        className={cn(
-          'relative bg-background rounded-t-xl',
-          'animate-in slide-in-from-bottom duration-300'
-        )}
-      >
+      <div className={backdropClasses} style={transitionStyle} onClick={handleClose} />
+      <div className={sheetClasses} style={transitionStyle}>
         {/* Library name header */}
         <div className="px-4 py-3 border-b border-border text-center">
-          <p className="font-medium truncate">{library.name}</p>
+          <p className="font-medium truncate">{displayLibrary.name}</p>
         </div>
 
         {/* Actions */}

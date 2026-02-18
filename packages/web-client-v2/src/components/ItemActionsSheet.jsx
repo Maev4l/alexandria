@@ -1,9 +1,12 @@
 // Edited by Claude.
 // Action sheet for item actions (Edit, Lend/Return, Delete)
 // Includes inline lend form and two-step delete confirmation
+// Supports enter/exit fade animations
 import { useState, useEffect, useRef } from 'react';
 import { Pencil, ArrowRightFromLine, Undo2, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const ANIMATION_DURATION = 200; // ms
 
 const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }) => {
   // Track current view mode: 'actions' | 'lend' | 'delete'
@@ -11,16 +14,39 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
   const [personName, setPersonName] = useState('');
   const inputRef = useRef(null);
 
-  // Check if item is currently lent out
-  const isLent = !!item?.lentTo;
+  // Animation state
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  // Reset state when sheet closes
+  // Cache item when sheet opens (so we have data during exit animation)
+  const cachedItemRef = useRef(null);
+  if (isOpen && item) {
+    cachedItemRef.current = item;
+  }
+
+  // Use cached item for display (survives parent clearing the prop)
+  const displayItem = cachedItemRef.current;
+
+  // Check if item is currently lent out
+  const isLent = !!displayItem?.lentTo;
+
+  // Handle open/close with animation
   useEffect(() => {
-    if (!isOpen) {
-      setMode('actions');
-      setPersonName('');
+    if (isOpen) {
+      setIsVisible(true);
+      requestAnimationFrame(() => setIsAnimating(true));
+    } else if (isVisible) {
+      setIsAnimating(false);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        // Reset state after close animation
+        setMode('actions');
+        setPersonName('');
+        cachedItemRef.current = null;
+      }, ANIMATION_DURATION);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, isVisible]);
 
   // Focus input when entering lend mode
   useEffect(() => {
@@ -32,7 +58,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
 
   // Prevent body scroll when sheet is open
   useEffect(() => {
-    if (isOpen) {
+    if (isVisible) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -40,12 +66,13 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isVisible]);
 
-  if (!item || !isOpen) return null;
+  // Don't render until visible, or if no item data available
+  if (!isVisible || !displayItem) return null;
 
   const handleAction = (action, data) => {
-    onAction?.(action, item, data);
+    onAction?.(action, displayItem, data);
   };
 
   const handleClose = () => {
@@ -80,22 +107,29 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
     }
   };
 
+  // Shared animation classes
+  const backdropClasses = cn(
+    'absolute inset-0 bg-black/50 transition-opacity',
+    isAnimating ? 'opacity-100' : 'opacity-0'
+  );
+
+  const sheetClasses = cn(
+    'relative bg-background rounded-t-xl transition-all',
+    isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+  );
+
+  const transitionStyle = { transitionDuration: `${ANIMATION_DURATION}ms` };
+
   // Lend form view
   if (mode === 'lend') {
     return (
       <div className="fixed inset-0 z-50 flex flex-col justify-end">
-        {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/50"
-          onClick={handleBack}
-        />
-
-        {/* Lend form sheet */}
-        <div className="relative bg-background rounded-t-xl">
+        <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
+        <div className={sheetClasses} style={transitionStyle}>
           {/* Header */}
           <div className="px-4 py-3 border-b border-border text-center">
             <p className="text-sm text-muted-foreground">Lending</p>
-            <p className="font-medium truncate">{item.title}</p>
+            <p className="font-medium truncate">{displayItem.title}</p>
           </div>
 
           {/* Form */}
@@ -160,14 +194,8 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
   if (mode === 'delete') {
     return (
       <div className="fixed inset-0 z-50 flex flex-col justify-end">
-        {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/50"
-          onClick={handleBack}
-        />
-
-        {/* Confirmation sheet */}
-        <div className="relative bg-background rounded-t-xl">
+        <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
+        <div className={sheetClasses} style={transitionStyle}>
           {/* Warning content */}
           <div className="p-6 text-center space-y-4">
             <div className="flex justify-center">
@@ -219,19 +247,8 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
   // Default actions view
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 animate-in fade-in duration-200"
-        onClick={handleClose}
-      />
-
-      {/* Sheet */}
-      <div
-        className={cn(
-          'relative bg-background rounded-t-xl',
-          'animate-in slide-in-from-bottom duration-300'
-        )}
-      >
+      <div className={backdropClasses} style={transitionStyle} onClick={handleClose} />
+      <div className={sheetClasses} style={transitionStyle}>
         {/* Item title header */}
         <div className="px-4 py-3 border-b border-border text-center">
           <p className="font-medium truncate">{item.title}</p>

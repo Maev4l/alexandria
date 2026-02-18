@@ -57,10 +57,11 @@ const Libraries = () => {
     setIsActionsOpen(true);
   }, []);
 
+  // Close actions sheet (don't clear selectedLibrary - let sheet keep it during exit animation)
   const handleCloseActions = useCallback(() => {
     setIsActionsOpen(false);
-    setSelectedLibrary(null);
     setIsActionLoading(false);
+    // Note: selectedLibrary is intentionally NOT cleared here to allow exit animation
   }, []);
 
   // Handle action from sheet

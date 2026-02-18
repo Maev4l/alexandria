@@ -158,11 +158,12 @@ const LibraryContent = () => {
     setIsActionsOpen(true);
   }, []);
 
-  // Close actions sheet
+  // Close actions sheet (don't clear selectedItem - let sheet keep it during exit animation)
   const handleCloseActions = useCallback(() => {
     setIsActionsOpen(false);
-    setSelectedItem(null);
     setIsActionLoading(false);
+    // Note: selectedItem is intentionally NOT cleared here to allow exit animation
+    // The sheet caches the item internally and will work with stale data during animation
   }, []);
 
   // Handle action from sheet
