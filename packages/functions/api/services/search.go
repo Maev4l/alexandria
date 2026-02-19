@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -13,102 +12,76 @@ import (
 )
 
 func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.LibraryItem, error) {
+	// Get pre-built Bluge index from S3
+	indexDir, cleanup, err := s.storage.GetBlugeIndex()
+	if err != nil {
+		return nil, err
+	}
+	if indexDir == "" {
+		// No index exists yet
+		return []*domain.LibraryItem{}, nil
+	}
+	defer cleanup()
 
-	buf, err := s.storage.GetIndexes()
+	// Get shared libraries for access filtering
+	sharedLibraries, err := s.storage.GetSharedLibraries()
 	if err != nil {
 		return nil, err
 	}
 
-	var db domain.IndexDatabase
-	err = json.Unmarshal(buf, &db)
+	// Open Bluge reader
+	cfg := bluge.DefaultConfig(indexDir)
+	reader, err := bluge.OpenReader(cfg)
 	if err != nil {
-		log.Error().Msgf("Failed to load index database: %s", err.Error())
-		return nil, err
-	}
-
-	// Create indexer instance
-	config := bluge.InMemoryOnlyConfig()
-	writer, err := bluge.OpenWriter(config)
-	if err != nil {
-		msg := fmt.Sprintf("Failed to create index writer: %s", err.Error())
+		msg := fmt.Sprintf("Failed to open index reader: %s", err.Error())
 		log.Error().Msg(msg)
 		return nil, errors.New(msg)
 	}
-	defer func() { _ = writer.Close() }()
-
-	batch := bluge.NewBatch()
-
-	// collect all items belonging to the owned libraries
-	ownedLibraries, ok := db.Libraries[ownerId]
-	if ok {
-		// Collect all owned indexed items
-		for _, il := range ownedLibraries {
-			for _, ii := range il.Items {
-				docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ownerId, ii.LibraryId, ii.Id)
-				doc := bluge.NewDocument(docId)
-				doc.AddField(bluge.NewTextField("title", ii.Title))
-				doc.AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " ")))
-				if ii.Collection != nil {
-					doc.AddField(bluge.NewTextField("collection", *ii.Collection))
-				}
-
-				batch.Insert(doc)
-			}
-		}
-		_ = writer.Batch(batch)
-		batch.Reset()
-	}
-
-	// check if there are some shared libraries with the current users
-	sls, ok := db.UsersToSharedLibraries[ownerId]
-	// If there are some shared libraries collect shared indexed items
-	if ok {
-		// Iterate through all shared libraries
-		for _, sl := range sls {
-			// Go to pick the shared libray content
-			o, ok := db.Libraries[sl.OwnerId]
-			if ok {
-				l, ok := o[sl.LibraryId]
-				if ok {
-					for _, ii := range l.Items {
-						docId := fmt.Sprintf("owner#%s|library#%s#item#%s", ii.OwnerId, ii.LibraryId, ii.Id)
-						doc := bluge.NewDocument(docId)
-						doc.AddField(bluge.NewTextField("title", ii.Title))
-						doc.AddField(bluge.NewTextField("authors", strings.Join(ii.Authors, " ")))
-						if ii.Collection != nil {
-							doc.AddField(bluge.NewTextField("collection", *ii.Collection))
-						}
-
-						batch.Insert(doc)
-					}
-					_ = writer.Batch(batch)
-					batch.Reset()
-				}
-			}
-		}
-	}
-
-	reader, err := writer.Reader()
-	if err != nil {
-		msg := fmt.Sprintf("Failed to create index reader: %s", err.Error())
-		log.Error().Msg(msg)
-		return nil, errors.New(msg)
-	}
-
 	defer func() { _ = reader.Close() }()
 
-	qTitle := bluge.NewFuzzyQuery(terms[0]).SetField("title")
-	qAuthors := bluge.NewFuzzyQuery(terms[0]).SetField("authors")
-	qCollection := bluge.NewFuzzyQuery(terms[0]).SetField("collection")
-	bq := bluge.NewBooleanQuery()
-	bq.AddShould(qTitle)
-	bq.AddShould(qAuthors)
-	bq.AddShould(qCollection)
+	// Build text query with prefix matching (wildcard) and fuzzy fallback
+	textQuery := bluge.NewBooleanQuery()
+	for _, term := range terms {
+		termLower := strings.ToLower(term)
+		termQuery := bluge.NewBooleanQuery()
 
-	// req := bluge.NewTopNSearch(10, bq)
-	req := bluge.NewAllMatches(bq)
-	// Sort by score and title
-	//req.SortBy([]string{"-_score"})
+		// Prefix matching (e.g., "drag" matches "dragons")
+		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("title"))
+		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("authors"))
+		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("collection"))
+
+		// Fuzzy matching for typos (e.g., "dragns" matches "dragons")
+		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("title"))
+		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("authors"))
+		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("collection"))
+
+		textQuery.AddMust(termQuery)
+	}
+
+	// Build access filter: ownerId = currentUser OR (ownerId, libraryId) in sharedLibraries
+	accessQuery := bluge.NewBooleanQuery()
+
+	// User's own items
+	accessQuery.AddShould(bluge.NewTermQuery(ownerId).SetField("ownerId"))
+
+	// Libraries shared with user
+	if entries, ok := sharedLibraries[ownerId]; ok {
+		for _, entry := range entries {
+			// Match both ownerId AND libraryId for shared library
+			sharedQuery := bluge.NewBooleanQuery()
+			sharedQuery.AddMust(bluge.NewTermQuery(entry.OwnerId).SetField("ownerId"))
+			sharedQuery.AddMust(bluge.NewTermQuery(entry.LibraryId).SetField("libraryId"))
+			accessQuery.AddShould(sharedQuery)
+		}
+	}
+
+	// Combine: (text match) AND (access filter)
+	finalQuery := bluge.NewBooleanQuery()
+	finalQuery.AddMust(textQuery)
+	finalQuery.AddMust(accessQuery)
+
+	// Execute search
+	req := bluge.NewAllMatches(finalQuery)
 	dmi, err := reader.Search(context.TODO(), req)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to execute search: %s", err.Error())
@@ -116,37 +89,42 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		return nil, errors.New(msg)
 	}
 
+	// Collect matched items
 	matchedItemsId := []domain.IndexItem{}
 	next, err := dmi.Next()
 	for err == nil && next != nil {
 		_ = next.VisitStoredFields(func(field string, value []byte) bool {
 			if field == "_id" {
-				// log.Info().Msgf("Matched document id: %s - score: %f", string(value), next.Score)
-				i := strings.Split(string(value), "|")
-				pk := i[0]
-				sk := i[1]
-				matchedItemsId = append(matchedItemsId, domain.IndexItem{
-					PK: pk,
-					SK: sk,
-				})
+				// Document ID format: "PK|SK"
+				parts := strings.Split(string(value), "|")
+				if len(parts) == 2 {
+					matchedItemsId = append(matchedItemsId, domain.IndexItem{
+						PK: parts[0],
+						SK: parts[1],
+					})
+				}
 			}
 			return true
 		})
 		next, err = dmi.Next()
 	}
 
+	// Fetch full items from DynamoDB
 	result, err := s.db.GetMatchedItems(matchedItemsId)
+	if err != nil {
+		return nil, err
+	}
 
+	// Load pictures
 	for _, i := range result {
 		if i.PictureUrl != nil && *i.PictureUrl != "" {
 			pic, err := s.storage.GetPicture(i.OwnerId, i.LibraryId, i.Id)
 			if err != nil {
 				return nil, err
 			}
-
 			i.Picture = pic
 		}
 	}
 
-	return result, err
+	return result, nil
 }

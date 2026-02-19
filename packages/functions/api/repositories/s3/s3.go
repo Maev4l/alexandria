@@ -1,14 +1,18 @@
 package storage
 
 import (
+	"archive/tar"
 	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-
 	"os"
+	"path/filepath"
 
+	"alexandria.isnan.eu/functions/api/ports"
 	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -34,28 +38,118 @@ func NewObjectStorage(region string) *objectstorage {
 	}
 }
 
-func (o *objectstorage) GetIndexes() ([]byte, error) {
+// untarDirectory extracts a tar.gz archive to a directory
+func untarDirectory(archive []byte, destDir string) error {
+	gzReader, err := gzip.NewReader(bytes.NewReader(archive))
+	if err != nil {
+		return err
+	}
+	defer gzReader.Close()
+
+	tarReader := tar.NewReader(gzReader)
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		targetPath := filepath.Join(destDir, header.Name)
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(targetPath, 0755); err != nil {
+				return err
+			}
+		case tar.TypeReg:
+			if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+				return err
+			}
+
+			file, err := os.Create(targetPath)
+			if err != nil {
+				return err
+			}
+
+			if _, err := io.Copy(file, tarReader); err != nil {
+				file.Close()
+				return err
+			}
+			file.Close()
+		}
+	}
+
+	return nil
+}
+
+func (o *objectstorage) GetBlugeIndex() (string, func(), error) {
 	downloader := manager.NewDownloader(o.client)
 	buf := manager.NewWriteAtBuffer([]byte{})
 
 	_, err := downloader.Download(context.TODO(), buf, &s3.GetObjectInput{
 		Bucket: aws.String(os.Getenv("S3_INDEX_BUCKET")),
-		Key:    aws.String(os.Getenv("INDEX_FILE_NAME")),
+		Key:    aws.String("indexes/global-index.tar.gz"),
 	})
 
 	if err != nil {
 		var nsk *types.NoSuchKey
 		if !errors.As(err, &nsk) {
-			log.Error().Msgf("Unable to fetch index database: %s", err.Error())
-			// Return an error so the messages are not deleted
-			return nil, err
+			log.Error().Msgf("Unable to fetch Bluge index: %s", err.Error())
+			return "", nil, err
 		}
-		// indexes database has not been created yet
-		return nil, nil
+		// Index doesn't exist yet
+		return "", nil, nil
 	}
 
-	return buf.Bytes(), nil
+	// Create temp directory and extract
+	indexDir, err := os.MkdirTemp("", "bluge-search-*")
+	if err != nil {
+		log.Error().Msgf("Failed to create temp directory: %s", err.Error())
+		return "", nil, err
+	}
 
+	cleanup := func() {
+		os.RemoveAll(indexDir)
+	}
+
+	if err := untarDirectory(buf.Bytes(), indexDir); err != nil {
+		cleanup()
+		log.Error().Msgf("Failed to extract index: %s", err.Error())
+		return "", nil, err
+	}
+
+	return indexDir, cleanup, nil
+}
+
+func (o *objectstorage) GetSharedLibraries() (map[string][]ports.SharedLibraryEntry, error) {
+	downloader := manager.NewDownloader(o.client)
+	buf := manager.NewWriteAtBuffer([]byte{})
+
+	_, err := downloader.Download(context.TODO(), buf, &s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv("S3_INDEX_BUCKET")),
+		Key:    aws.String("indexes/shared-libraries.json"),
+	})
+
+	if err != nil {
+		var nsk *types.NoSuchKey
+		if !errors.As(err, &nsk) {
+			log.Error().Msgf("Unable to fetch shared libraries: %s", err.Error())
+			return nil, err
+		}
+		// File doesn't exist yet, return empty map
+		return map[string][]ports.SharedLibraryEntry{}, nil
+	}
+
+	var sharedLibraries map[string][]ports.SharedLibraryEntry
+	if err := json.Unmarshal(buf.Bytes(), &sharedLibraries); err != nil {
+		log.Error().Msgf("Failed to parse shared libraries: %s", err.Error())
+		return nil, err
+	}
+
+	return sharedLibraries, nil
 }
 
 func (o *objectstorage) DeletePictures(ownerId string, libraryId string) error {

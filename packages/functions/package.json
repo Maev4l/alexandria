@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "deploy": "make package && sls deploy",
+    "resync-index": "aws lambda invoke --function-name alexandria-index-items --payload '{\"action\":\"fullResync\"}' --cli-binary-format raw-in-base64-out /dev/stdout",
     "create-ecr": "aws ecr create-repository --repository-name alexandria/images-processing --tags Key=application,Value=alexandria",
     "create-ecr-policy": "aws ecr put-lifecycle-policy --repository-name  alexandria/images-processing --lifecycle-policy-text file://images-processing/ecr-lifecycle-policy.json",
     "build-images-processing": "docker buildx build --platform linux/arm64 -t alexandria/images-processing -f ./images-processing/Dockerfile ./images-processing && docker tag alexandria/images-processing 671123374425.dkr.ecr.eu-central-1.amazonaws.com/alexandria/images-processing && docker image prune --force",

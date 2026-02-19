@@ -67,8 +67,8 @@ type LibraryItem struct {
 	PictureUrl  *string    `dynamodbav:"PictureUrl,omitempty"`
 	LentTo      *string    `dynamodbav:"LentTo,omitempty"`
 	EntityType  EntityType `dynamodbav:"EntityType"`
-	Collection  *string    `json:"Collection,omitempty"`
-	Order       *int       `json:"Order,omitempty"`
+	Collection  *string    `dynamodbav:"Collection,omitempty"`
+	Order       *int       `dynamodbav:"Order,omitempty"`
 }
 
 func MakeLibraryItemPK(ownerId string) string {

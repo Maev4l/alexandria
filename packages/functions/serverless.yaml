@@ -56,7 +56,7 @@ functions:
     name: alexandria-api
     role: ApiRole
     package:
-      artifact: api/dist/bootstrap.zip
+      artifact: api/dist/api.zip
     runtime: provided.al2023
     environment:
       DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
@@ -107,7 +107,7 @@ functions:
     name: alexandria-index-items
     role: IndexItemsRole
     package:
-      artifact: index-items/dist/bootstrap.zip
+      artifact: index-items/dist/indexer.zip
     memorySize: 256
     runtime: provided.al2023
     reservedConcurrency: 1 # Only 1 function instance can run at a given time (no need lock the index file)
@@ -115,6 +115,7 @@ functions:
       REGION: ${self:provider.region}
       S3_INDEX_BUCKET: ${self:custom.picturesBucketName}
       INDEX_FILE_NAME: ${self:custom.indexFileName}
+      DYNAMODB_TABLE_NAME: ${self:custom.dynamoDbTableName}
     events:
       - stream:
           type: dynamodb
@@ -152,7 +153,7 @@ functions:
     name: alexandria-consistency-manager
     role: ConsistencyManagerRole
     package:
-      artifact: consistency-manager/dist/bootstrap.zip
+      artifact: consistency-manager/dist/consistency-mgr.zip
     memorySize: 256
     runtime: provided.al2023
     environment:
@@ -197,7 +198,7 @@ functions:
     name: alexandria-pre-signup
     role: PreSignupRole
     package:
-      artifact: pre-signup/dist/bootstrap.zip
+      artifact: pre-signup/dist/presignup.zip
     runtime: provided.al2023
     environment:
       SNS_TOPIC_ARN: ${self:custom.snsTopicArn}
@@ -400,6 +401,11 @@ resources:
                     - dynamodb:ListStreams
                   Resource:
                     - !GetAtt DynamoTable.StreamArn
+                - Effect: Allow
+                  Action:
+                    - dynamodb:Scan
+                  Resource:
+                    - !GetAtt DynamoTable.Arn
                 - Effect: Allow
                   Action:
                     - s3:PutObject

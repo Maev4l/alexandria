@@ -19,6 +19,8 @@ In addition, it exposes a search endpoint that allows a fuzzy search. This searc
 
 It is written in Golang.
 
+Related to the search feature: @search.md
+
 ### Pre-signup
 Source code: @../packages/functions/pre-signup
 
@@ -48,6 +50,5 @@ The indexes are in a format easily consumable by a search engine (used by the se
 
 It is written in Golang.
 
-
-
+Related to the search feature: @search.md.
 
