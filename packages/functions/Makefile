@@ -16,32 +16,32 @@ build-api:
 
 # Build Indexer for Lambda
 build-indexer:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o index-items/$(BIN_DIR)/bootstrap ./api/cmd
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o index-items/$(BIN_DIR)/bootstrap ./index-items/cmd
 
 build-consistency-manager:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o consistency-manager/$(BIN_DIR)/bootstrap ./api/cmd
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o consistency-manager/$(BIN_DIR)/bootstrap ./consistency-manager/cmd
 
 build-presignup:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o pre-signup/$(BIN_DIR)/bootstrap ./api/cmd
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o pre-signup/$(BIN_DIR)/bootstrap ./pre-signup/cmd
 
 # Build all Lambda binaries
 build: build-api build-indexer build-consistency-manager build-presignup
 
 package-api: build-api
 	mkdir -p api/$(PACKAGE_DIR)
-	cd api/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/bootstrap.zip bootstrap
+	cd api/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/api.zip bootstrap
 
 package-indexer: build-indexer
 	mkdir -p index-items/$(PACKAGE_DIR)
-	cd index-items/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/bootstrap.zip bootstrap
+	cd index-items/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/indexer.zip bootstrap
 
 package-consistency-manager: build-consistency-manager
 	mkdir -p consistency-manager/$(PACKAGE_DIR)
-	cd consistency-manager/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/bootstrap.zip bootstrap
+	cd consistency-manager/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/consistency-mgr.zip bootstrap
 
 package-presignup: build-presignup
 	mkdir -p pre-signup/$(PACKAGE_DIR)
-	cd pre-signup/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/bootstrap.zip bootstrap
+	cd pre-signup/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/presignup.zip bootstrap
 
 # Package all Lambdas
 package: package-api package-indexer package-consistency-manager package-presignup
