@@ -9,6 +9,10 @@ const AuthContext = createContext(null);
 const extractUserId = (idToken) =>
   idToken.payload.sub.replaceAll('-', '').toUpperCase();
 
+// Extract custom:DisplayName from ID token (may be undefined)
+const extractDisplayName = (idToken) =>
+  idToken.payload['custom:DisplayName'] || null;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +31,7 @@ export const AuthProvider = ({ children }) => {
             id: extractUserId(session.tokens.idToken),
             token: session.tokens.idToken.toString(),
             username: currentUser.username,
+            displayName: extractDisplayName(session.tokens.idToken),
           });
         }
       } catch {
@@ -57,6 +62,7 @@ export const AuthProvider = ({ children }) => {
       id: extractUserId(session.tokens.idToken),
       token: session.tokens.idToken.toString(),
       username: currentUser.username,
+      displayName: extractDisplayName(session.tokens.idToken),
     });
   }, []);
 

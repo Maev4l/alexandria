@@ -9,10 +9,22 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 
-// Extract initials from username (email) for avatar display
-const getInitials = (username) => {
-  if (!username) return '?';
-  // If email, use first letter of local part
+// Extract initials for avatar display
+// Prefer displayName, fall back to username (email)
+const getInitials = (displayName, username) => {
+  const name = displayName || username;
+  if (!name) return '?';
+
+  if (displayName) {
+    // For display name, use first letter of each word (max 2)
+    const words = displayName.trim().split(/\s+/);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return displayName.substring(0, 2).toUpperCase();
+  }
+
+  // For email, use first 2 letters of local part
   const localPart = username.split('@')[0];
   return localPart.substring(0, 2).toUpperCase();
 };
@@ -97,7 +109,7 @@ const Account = () => {
         {/* Avatar and username section */}
         <div className="flex flex-col items-center gap-3 py-4">
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-semibold">
-            {getInitials(user?.username)}
+            {getInitials(user?.displayName, user?.username)}
           </div>
           <button
             type="button"
