@@ -1,6 +1,6 @@
 // Edited by Claude.
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { signIn as cognitoSignIn, signOut as cognitoSignOut, fetchAuthSession, updatePassword, getCurrentUser } from 'aws-amplify/auth';
+import { signIn as cognitoSignIn, signOut as cognitoSignOut, signUp as cognitoSignUp, fetchAuthSession, updatePassword, getCurrentUser } from 'aws-amplify/auth';
 import { hideSplash } from '@/lib/splash';
 
 const AuthContext = createContext(null);
@@ -64,6 +64,21 @@ export const AuthProvider = ({ children }) => {
     await updatePassword({ oldPassword, newPassword });
   }, []);
 
+  // Sign up new user - returns without setting user state (pending admin approval)
+  const signUp = useCallback(async (email, password, displayName) => {
+    const userAttributes = {};
+    if (displayName) {
+      userAttributes['custom:DisplayName'] = displayName;
+    }
+    await cognitoSignUp({
+      username: email,
+      password,
+      options: {
+        userAttributes,
+      },
+    });
+  }, []);
+
   const signOut = useCallback(async () => {
     await cognitoSignOut();
     setUser(null);
@@ -76,6 +91,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!user,
         isLoading,
         signIn,
+        signUp,
         signOut,
         changePassword,
       }}

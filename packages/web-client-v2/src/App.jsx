@@ -10,6 +10,7 @@ import PWAUpdatePrompt from '@/components/PWAUpdatePrompt';
 
 // Lazy-loaded pages for code splitting
 const Login = lazy(() => import('@/pages/Login'));
+const SignUp = lazy(() => import('@/pages/SignUp'));
 const Libraries = lazy(() => import('@/pages/Libraries'));
 const NewLibrary = lazy(() => import('@/pages/NewLibrary'));
 const EditLibrary = lazy(() => import('@/pages/EditLibrary'));
@@ -144,6 +145,16 @@ const App = () => (
             <PublicRoute>
               <Suspense fallback={null}>
                 <Login />
+              </Suspense>
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/signup"
+          element={
+            <PublicRoute>
+              <Suspense fallback={null}>
+                <SignUp />
               </Suspense>
             </PublicRoute>
           }

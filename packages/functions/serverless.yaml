@@ -178,7 +178,7 @@ functions:
    name: alexandria-onboard-users
    role: OnboardUsersRole
    package:
-     artifact: onboard-users/dist/presignup.zip
+     artifact: onboard-users/dist/onboard-users.zip
    runtime: provided.al2023
    environment:
      SNS_TOPIC_ARN: ${self:custom.snsTopicArn}
@@ -432,6 +432,13 @@ resources:
                   Action:
                     - sns:Publish
                   Resource: ${self:custom.snsTopicArn}
+                - Effect: Allow # Check if user exists before sending notification
+                  Action:
+                    - cognito-idp:AdminGetUser
+                  Resource:
+                    # Wildcard used to break circular dependency:
+                    # UserPool -> Lambda (PreSignUp trigger) -> Role -> UserPool
+                    - Fn::Sub: "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*"
     ImagesProcessorRole:
       Type: AWS::IAM::Role
       Properties:
