@@ -21,10 +21,11 @@ It is written in Golang.
 
 Related to the search feature: @search.md
 
-### Pre-signup
-Source code: @../packages/functions/pre-signup
+### Onboarding users
+Source code: @../packages/functions/onboard-users
 
-This function is hooked with a new user signup in Cognito, so it sends an SNS notification
+New users that want to signup must be approved by an application admin. The admins are aware of the pending approval via Slack notifications.
+This function is wired with a new user signup event in Cognito, so it sends an SNS notification, that is relayed by an external system (not depicted in this project) to a Slack channel.
 
 It is written in Golang.
 

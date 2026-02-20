@@ -39,7 +39,7 @@ func handler(event events.CognitoEventUserPoolsPreSignup) (events.CognitoEventUs
 	}
 
 	message := Message{
-		Source:            "alexandria-pre-signup",
+		Source:            "alexandria-onboard-users",
 		SourceDescription: "Alexandria user sign up (pre)",
 		Target:            "slack",
 		Content:           fmt.Sprintf("Awaiting registration for %s", event.UserName),
