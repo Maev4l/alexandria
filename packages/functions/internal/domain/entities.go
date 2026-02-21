@@ -9,12 +9,15 @@ type ItemType int
 
 const (
 	ItemBook ItemType = iota
+	ItemVideo
 )
 
 func (e ItemType) String() string {
 	switch e {
 	case ItemBook:
 		return "Book"
+	case ItemVideo:
+		return "Video"
 	default:
 		return fmt.Sprintf("%d", int(e))
 	}
@@ -46,6 +49,21 @@ type ResolvedBook struct {
 	PictureUrl *string
 	Source     string
 	Error      *string
+}
+
+// ResolvedVideo represents a video resolved from TMDB
+type ResolvedVideo struct {
+	Id          string
+	Title       string
+	Summary     string
+	PictureUrl  *string
+	Directors   []string
+	Cast        []string
+	ReleaseYear int
+	Duration    int
+	TmdbId      string
+	Source      string
+	Error       *string
 }
 
 type Library struct {
@@ -103,4 +121,10 @@ type LibraryItem struct {
 	LentTo      *string
 	Collection  *string
 	Order       *int
+	// Video-specific fields
+	Directors   []string
+	Cast        []string
+	ReleaseYear *int
+	Duration    *int
+	TmdbId      *string
 }

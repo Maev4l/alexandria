@@ -1,10 +1,11 @@
 // Edited by Claude.
 // Add book page - 3 ways to add: camera scan, manual ISBN, or full manual entry
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/browser';
 import { DecodeHintType } from '@zxing/library';
 import { Camera, Search, PenLine, VideoOff } from 'lucide-react';
-import { useNavigation } from '@/navigation';
+import { AppBar } from '@/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -31,8 +32,8 @@ const isValidIsbn = (value) => {
 const cleanIsbn = (value) => value.replace(/[-\s]/g, '').toUpperCase();
 
 const AddBook = () => {
-  const { setOptions, params, navigate } = useNavigation();
-  const library = params?.library;
+  const { libraryId } = useParams();
+  const navigate = useNavigate();
 
   const [isbn, setIsbn] = useState('');
   const [isbnError, setIsbnError] = useState('');
@@ -47,13 +48,6 @@ const AddBook = () => {
   const controlsRef = useRef(null);
   const lastDetectedRef = useRef(null); // Prevent duplicate detection
   const cooldownRef = useRef(false); // Prevent re-detection after returning from results
-
-  useEffect(() => {
-    setOptions({
-      title: 'Add Book',
-      headerRight: null,
-    });
-  }, [setOptions]);
 
   // Stop camera and release all media tracks
   const stopCamera = useCallback(() => {
@@ -81,14 +75,14 @@ const AddBook = () => {
       setScanSuccess(true);
       setTimeout(() => {
         stopCamera();
-        navigate('bookDetectionResults', { push: true, params: { library, isbn: detectedIsbn } });
+        navigate(`/libraries/${libraryId}/book-results`, { state: { isbn: detectedIsbn } });
       }, 500);
       return;
     }
 
     stopCamera();
-    navigate('bookDetectionResults', { push: true, params: { library, isbn: detectedIsbn } });
-  }, [navigate, library, stopCamera]);
+    navigate(`/libraries/${libraryId}/book-results`, { state: { isbn: detectedIsbn } });
+  }, [navigate, libraryId, stopCamera]);
 
   // Ref to hold latest handleIsbnDetected to avoid useEffect dependency
   const handleIsbnDetectedRef = useRef(handleIsbnDetected);
@@ -216,7 +210,7 @@ const AddBook = () => {
   // Go to full manual entry form
   const handleManualEntry = () => {
     stopCamera();
-    navigate('newBook', { push: true, params: { library } });
+    navigate(`/libraries/${libraryId}/books/new`);
   };
 
   // Render scanner area based on status
@@ -266,6 +260,7 @@ const AddBook = () => {
 
   return (
     <div className="flex flex-col h-full">
+      <AppBar title="Add Book" />
       {/* 1. Camera scanner area */}
       <div className="flex-1 flex flex-col items-center justify-center p-4 text-center gap-3">
         {renderScannerArea()}

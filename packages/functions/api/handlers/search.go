@@ -33,29 +33,44 @@ func (h *HTTPHandler) Search(c *gin.Context) {
 	itemsResponse := []GetItemResponse{}
 
 	for _, i := range items {
-		if i.Type == domain.ItemBook {
-			b := GetBookResponse{
-				GetItemResponseBase: GetItemResponseBase{
-					Id:         i.Id,
-					Type:       domain.ItemBook,
-					Title:      i.Title,
-					LibraryId:  &i.LibraryId,
-					LibrayName: &i.LibraryName,
-					LentTo:     i.LentTo,
-					OwnerId:    i.OwnerId,
-					PictureUrl: i.PictureUrl,
-					Collection: i.Collection,
-					Order:      i.Order,
-				},
-				Authors: i.Authors,
-				Summary: i.Summary,
-				Isbn:    i.Isbn,
-			}
-			if i.Picture != nil {
-				encodedPicture := base64.StdEncoding.EncodeToString(i.Picture)
-				b.Picture = &encodedPicture
-			}
-			itemsResponse = append(itemsResponse, b)
+		var encodedPicture *string
+		if i.Picture != nil {
+			encoded := base64.StdEncoding.EncodeToString(i.Picture)
+			encodedPicture = &encoded
+		}
+
+		baseResponse := GetItemResponseBase{
+			Id:         i.Id,
+			Type:       i.Type,
+			Title:      i.Title,
+			Picture:    encodedPicture,
+			LibraryId:  &i.LibraryId,
+			LibrayName: &i.LibraryName,
+			LentTo:     i.LentTo,
+			OwnerId:    i.OwnerId,
+			PictureUrl: i.PictureUrl,
+			Collection: i.Collection,
+			Order:      i.Order,
+		}
+
+		switch i.Type {
+		case domain.ItemBook:
+			itemsResponse = append(itemsResponse, GetBookResponse{
+				GetItemResponseBase: baseResponse,
+				Authors:             i.Authors,
+				Summary:             i.Summary,
+				Isbn:                i.Isbn,
+			})
+		case domain.ItemVideo:
+			itemsResponse = append(itemsResponse, GetVideoResponse{
+				GetItemResponseBase: baseResponse,
+				Directors:           i.Directors,
+				Cast:                i.Cast,
+				Summary:             i.Summary,
+				ReleaseYear:         i.ReleaseYear,
+				Duration:            i.Duration,
+				TmdbId:              i.TmdbId,
+			})
 		}
 	}
 

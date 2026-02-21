@@ -1,10 +1,9 @@
 // Edited by Claude.
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Library, Search as SearchIcon, SlidersHorizontal } from 'lucide-react';
 import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { LibrariesProvider } from '@/state';
-import { TabNavigator } from '@/navigation';
+import { Layout } from '@/navigation';
 import { ToastProvider } from '@/components/Toast';
 import PWAUpdatePrompt from '@/components/PWAUpdatePrompt';
 
@@ -21,100 +20,16 @@ const BookDetectionResults = lazy(() => import('@/pages/BookDetectionResults'));
 const NewBook = lazy(() => import('@/pages/NewBook'));
 const EditBook = lazy(() => import('@/pages/EditBook'));
 const BookDetail = lazy(() => import('@/pages/BookDetail'));
+const AddVideo = lazy(() => import('@/pages/AddVideo'));
+const VideoDetectionResults = lazy(() => import('@/pages/VideoDetectionResults'));
+const NewVideo = lazy(() => import('@/pages/NewVideo'));
+const EditVideo = lazy(() => import('@/pages/EditVideo'));
+const VideoDetail = lazy(() => import('@/pages/VideoDetail'));
 const ItemHistory = lazy(() => import('@/pages/ItemHistory'));
 const Search = lazy(() => import('@/pages/Search'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Account = lazy(() => import('@/pages/Account'));
 const About = lazy(() => import('@/pages/About'));
-
-// Tab screens (shown with bottom tabs)
-const screens = [
-  {
-    name: 'libraries',
-    label: 'Libraries',
-    icon: Library,
-    component: Libraries,
-    options: { title: 'My Libraries' },
-  },
-  {
-    name: 'search',
-    label: 'Search',
-    icon: SearchIcon,
-    component: Search,
-    options: { title: 'Search' },
-  },
-  {
-    name: 'settings',
-    label: 'Settings',
-    icon: SlidersHorizontal,
-    component: Settings,
-    options: { title: 'Settings' },
-  },
-];
-
-// Stack screens (pushed on top, no bottom tabs)
-const stackScreens = [
-  {
-    name: 'newLibrary',
-    component: NewLibrary,
-    options: { title: 'New Library' },
-  },
-  {
-    name: 'editLibrary',
-    component: EditLibrary,
-    options: { title: 'Edit Library' },
-  },
-  {
-    name: 'unshareLibrary',
-    component: UnshareLibrary,
-    options: { title: 'Unshare Library' },
-  },
-  {
-    name: 'libraryContent',
-    component: LibraryContent,
-    options: { title: 'Library', showTabs: true },
-  },
-  {
-    name: 'addBook',
-    component: AddBook,
-    options: { title: 'Add Book' },
-  },
-  {
-    name: 'bookDetectionResults',
-    component: BookDetectionResults,
-    options: { title: 'Select Book' },
-  },
-  {
-    name: 'newBook',
-    component: NewBook,
-    options: { title: 'New Book' },
-  },
-  {
-    name: 'editBook',
-    component: EditBook,
-    options: { title: 'Edit Book' },
-  },
-  {
-    name: 'bookDetail',
-    component: BookDetail,
-    options: { title: 'Book' },
-  },
-  {
-    name: 'itemHistory',
-    component: ItemHistory,
-    options: { title: 'History' },
-  },
-  {
-    name: 'account',
-    component: Account,
-    options: { title: 'Account' },
-  },
-  {
-    name: 'about',
-    component: About,
-    options: { title: 'About' },
-  },
-];
 
 // Redirects unauthenticated users to /login
 const ProtectedRoute = ({ children }) => {
@@ -130,7 +45,7 @@ const PublicRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) return null;
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  if (isAuthenticated) return <Navigate to="/libraries" replace />;
   return children;
 };
 
@@ -139,6 +54,7 @@ const App = () => (
     <AuthProvider>
       <PWAUpdatePrompt />
       <Routes>
+        {/* Public routes */}
         <Route
           path="/login"
           element={
@@ -159,18 +75,57 @@ const App = () => (
             </PublicRoute>
           }
         />
+
+        {/* Protected routes - wrapped in Layout */}
         <Route
-          path="/"
           element={
             <ProtectedRoute>
               <ToastProvider>
                 <LibrariesProvider>
-                  <TabNavigator screens={screens} stackScreens={stackScreens} initialRoute="libraries" />
+                  <Layout />
                 </LibrariesProvider>
               </ToastProvider>
             </ProtectedRoute>
           }
-        />
+        >
+          {/* Tab screens */}
+          <Route path="/libraries" element={<Libraries />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/settings" element={<Settings />} />
+
+          {/* Settings stack */}
+          <Route path="/settings/account" element={<Account />} />
+          <Route path="/settings/about" element={<About />} />
+
+          {/* Library management */}
+          <Route path="/libraries/new" element={<NewLibrary />} />
+          <Route path="/libraries/:libraryId" element={<LibraryContent />} />
+          <Route path="/libraries/:libraryId/edit" element={<EditLibrary />} />
+          <Route path="/libraries/:libraryId/unshare" element={<UnshareLibrary />} />
+
+          {/* Book routes */}
+          <Route path="/libraries/:libraryId/add-book" element={<AddBook />} />
+          <Route path="/libraries/:libraryId/book-results" element={<BookDetectionResults />} />
+          <Route path="/libraries/:libraryId/books/new" element={<NewBook />} />
+          <Route path="/libraries/:libraryId/books/:itemId" element={<BookDetail />} />
+          <Route path="/libraries/:libraryId/books/:itemId/edit" element={<EditBook />} />
+
+          {/* Video routes */}
+          <Route path="/libraries/:libraryId/add-video" element={<AddVideo />} />
+          <Route path="/libraries/:libraryId/video-results" element={<VideoDetectionResults />} />
+          <Route path="/libraries/:libraryId/videos/new" element={<NewVideo />} />
+          <Route path="/libraries/:libraryId/videos/:itemId" element={<VideoDetail />} />
+          <Route path="/libraries/:libraryId/videos/:itemId/edit" element={<EditVideo />} />
+
+          {/* Item history (shared by books and videos) */}
+          <Route path="/libraries/:libraryId/items/:itemId/history" element={<ItemHistory />} />
+
+          {/* Default redirect */}
+          <Route index element={<Navigate to="/libraries" replace />} />
+        </Route>
+
+        {/* Catch-all redirect */}
+        <Route path="*" element={<Navigate to="/libraries" replace />} />
       </Routes>
     </AuthProvider>
   </BrowserRouter>

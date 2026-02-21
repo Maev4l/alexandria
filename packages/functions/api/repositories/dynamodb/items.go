@@ -267,9 +267,17 @@ func (d *dynamo) GetLibraryItem(ownerId string, libraryId string, itemId string)
 			Summary:     record.Summary,
 			Authors:     record.Authors,
 			Isbn:        record.Isbn,
-			Type:        domain.ItemBook,
+			Type:        domain.ItemType(record.Type),
 			PictureUrl:  record.PictureUrl,
 			LentTo:      record.LentTo,
+			Collection:  record.Collection,
+			Order:       record.Order,
+			// Video-specific fields
+			Directors:   record.Directors,
+			Cast:        record.Cast,
+			ReleaseYear: record.ReleaseYear,
+			Duration:    record.Duration,
+			TmdbId:      record.TmdbId,
 		},
 		nil
 
@@ -323,6 +331,12 @@ func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.Libr
 					LentTo:      record.LentTo,
 					Collection:  record.Collection,
 					Order:       record.Order,
+					// Video-specific fields
+					Directors:   record.Directors,
+					Cast:        record.Cast,
+					ReleaseYear: record.ReleaseYear,
+					Duration:    record.Duration,
+					TmdbId:      record.TmdbId,
 				})
 			}
 
@@ -453,7 +467,13 @@ func (d *dynamo) UpdateLibraryItem(i *domain.LibraryItem) error {
 		Set(expression.Name("GSI2SK"), expression.Value(persistence.MakeLibraryItemGSI2SK(i.Title))).
 		Set(expression.Name("PictureUrl"), expression.Value(i.PictureUrl)).
 		Set(expression.Name("Collection"), expression.Value(i.Collection)).
-		Set(expression.Name("Order"), expression.Value(i.Order))
+		Set(expression.Name("Order"), expression.Value(i.Order)).
+		// Video-specific fields
+		Set(expression.Name("Directors"), expression.Value(i.Directors)).
+		Set(expression.Name("Cast"), expression.Value(i.Cast)).
+		Set(expression.Name("ReleaseYear"), expression.Value(i.ReleaseYear)).
+		Set(expression.Name("Duration"), expression.Value(i.Duration)).
+		Set(expression.Name("TmdbId"), expression.Value(i.TmdbId))
 
 	expr, _ := expression.NewBuilder().WithUpdate(upd).Build()
 
@@ -478,6 +498,12 @@ func (d *dynamo) UpdateLibraryItem(i *domain.LibraryItem) error {
 }
 
 func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
+	// Determine entity type based on item type
+	entityType := persistence.TypeBook
+	if i.Type == domain.ItemVideo {
+		entityType = persistence.TypeVideo
+	}
+
 	record := persistence.LibraryItem{
 		PK:          persistence.MakeLibraryItemPK(i.OwnerId),
 		SK:          persistence.MakeLibraryItemSK(i.LibraryId, i.Id),
@@ -497,9 +523,15 @@ func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
 		Isbn:        i.Isbn,
 		Type:        int(i.Type),
 		PictureUrl:  i.PictureUrl,
-		EntityType:  persistence.TypeBook,
+		EntityType:  entityType,
 		Collection:  i.Collection,
 		Order:       i.Order,
+		// Video-specific fields
+		Directors:   i.Directors,
+		Cast:        i.Cast,
+		ReleaseYear: i.ReleaseYear,
+		Duration:    i.Duration,
+		TmdbId:      i.TmdbId,
 	}
 
 	item, err := attributevalue.MarshalMap(record)
@@ -604,6 +636,12 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 			LentTo:      record.LentTo,
 			Collection:  record.Collection,
 			Order:       record.Order,
+			// Video-specific fields
+			Directors:   record.Directors,
+			Cast:        record.Cast,
+			ReleaseYear: record.ReleaseYear,
+			Duration:    record.Duration,
+			TmdbId:      record.TmdbId,
 		})
 	}
 

@@ -15,11 +15,22 @@ Source code: @../packages/functions/api
 OpenAPI spec: @../packages/functions/api/openapi.yaml
 
 This function exposes the core HTTP APIS behind and AWS API Gateway.
-In addition, it exposes a search endpoint that allows a fuzzy search. This search functionality is based on the "bluge" library.
+
+Features:
+- **Book detection**: ISBN-based lookup using Google Books, Babelio, and GoodReads resolvers
+- **Video detection**: OCR-based title extraction (AWS Rekognition) + TMDB metadata lookup
+- **Search**: Fuzzy search powered by Bluge library (see @search.md)
+- **CRUD**: Libraries, Books, Videos, lending history
+
+#### Video Detection Flow
+1. Client sends base64 image or manual title
+2. If image provided: Rekognition `DetectText` extracts title
+3. TMDB API search by title returns movie candidates
+4. Each candidate includes: title, summary, director, cast (top 5), year, duration, poster
+
+**Configuration**: TMDB access token via SSM parameter `alexandria.tmdb.access.token`
 
 It is written in Golang.
-
-Related to the search feature: @search.md
 
 ### Onboarding users
 Source code: @../packages/functions/onboard-users
@@ -46,8 +57,10 @@ It is written in Golang.
 ### Indexer
 Source code: @../packages/functions/index-items
 
-This function consumes the CRUD events from a DynamoDB stream, then indexes the data (books and library) and put the index into a S3 bucket.
+This function consumes the CRUD events from a DynamoDB stream, then indexes the data (books, videos, and libraries) and puts the index into a S3 bucket.
 The indexes are in a format easily consumable by a search engine (used by the search endpoint).
+
+Triggers on EntityType: `LIBRARY`, `BOOK`, `VIDEO`, `SHARED_LIBRARY`
 
 It is written in Golang.
 

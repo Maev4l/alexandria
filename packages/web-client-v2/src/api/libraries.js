@@ -34,7 +34,13 @@ export const librariesApi = {
   // Update a book in a library
   updateBook: (libraryId, bookId, data) => api.put(`/libraries/${libraryId}/books/${bookId}`, data),
 
-  // Delete an item from a library
+  // Create a video in a library
+  createVideo: (libraryId, data) => api.post(`/libraries/${libraryId}/videos`, data),
+
+  // Update a video in a library
+  updateVideo: (libraryId, videoId, data) => api.put(`/libraries/${libraryId}/videos/${videoId}`, data),
+
+  // Delete an item from a library (works for both books and videos)
   deleteItem: (libraryId, itemId) => api.delete(`/libraries/${libraryId}/items/${itemId}`),
 
   // Create an item event (lend/return)

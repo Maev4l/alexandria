@@ -1,11 +1,13 @@
 // Edited by Claude.
-// Collapsible card for displaying a collection of books
+// Collapsible card for displaying a collection of items (books + videos)
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import BookCard from './BookCard';
+import VideoCard from './VideoCard';
 
 const STAGGER_DELAY = 50; // ms per item for staggered animation
+const ITEM_TYPE_VIDEO = 1;
 
 const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLibrary = false, index }) => {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -48,25 +50,39 @@ const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLib
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <p className="font-medium truncate">{name}</p>
           <p className="text-sm text-muted-foreground">
-            {itemCount} {itemCount === 1 ? 'book' : 'books'}
+            {itemCount} {itemCount === 1 ? 'item' : 'items'}
           </p>
         </div>
       </button>
 
-      {/* Expanded content - nested items */}
+      {/* Expanded content - nested items (books + videos) */}
       {isExpanded && (
         <div className="border-t border-border bg-muted/20 p-2 space-y-1">
-          {items.map((item) => (
-            <BookCard
-              key={item.id}
-              book={item}
-              onClick={onItemClick}
-              onLongPress={onItemLongPress}
-              showOrder
-              compact
-              isSharedLibrary={isSharedLibrary}
-            />
-          ))}
+          {items.map((item) => {
+            if (item.type === ITEM_TYPE_VIDEO) {
+              return (
+                <VideoCard
+                  key={item.id}
+                  video={item}
+                  onClick={onItemClick}
+                  onLongPress={onItemLongPress}
+                  showOrder
+                  isSharedLibrary={isSharedLibrary}
+                />
+              );
+            }
+            return (
+              <BookCard
+                key={item.id}
+                book={item}
+                onClick={onItemClick}
+                onLongPress={onItemLongPress}
+                showOrder
+                compact
+                isSharedLibrary={isSharedLibrary}
+              />
+            );
+          })}
         </div>
       )}
     </div>

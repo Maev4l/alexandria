@@ -11,8 +11,8 @@ const BottomSheet = ({
   onClose,
   onDone,
   title,
-  cancelLabel = 'Cancel',
-  doneLabel = 'Done',
+  cancelLabel,
+  doneLabel,
   doneDisabled = false,
   children,
 }) => {
@@ -74,23 +74,31 @@ const BottomSheet = ({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <button
-            onClick={onClose}
-            className="text-sm text-primary font-medium min-w-[60px] text-left"
-          >
-            {cancelLabel}
-          </button>
+          {cancelLabel ? (
+            <button
+              onClick={onClose}
+              className="text-sm text-primary font-medium min-w-[60px] text-left"
+            >
+              {cancelLabel}
+            </button>
+          ) : (
+            <div className="min-w-[60px]" />
+          )}
           <h2 className="text-base font-semibold">{title}</h2>
-          <button
-            onClick={onDone}
-            disabled={doneDisabled}
-            className={cn(
-              'text-sm font-medium min-w-[60px] text-right',
-              doneDisabled ? 'text-muted-foreground' : 'text-primary'
-            )}
-          >
-            {doneLabel}
-          </button>
+          {doneLabel ? (
+            <button
+              onClick={onDone}
+              disabled={doneDisabled}
+              className={cn(
+                'text-sm font-medium min-w-[60px] text-right',
+                doneDisabled ? 'text-muted-foreground' : 'text-primary'
+              )}
+            >
+              {doneLabel}
+            </button>
+          ) : (
+            <div className="min-w-[60px]" />
+          )}
         </div>
 
         {/* Content */}

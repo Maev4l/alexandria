@@ -7,6 +7,7 @@ import (
 	"alexandria.isnan.eu/functions/api/handlers"
 	"alexandria.isnan.eu/functions/api/repositories/cognito"
 	"alexandria.isnan.eu/functions/api/repositories/dynamodb"
+	"alexandria.isnan.eu/functions/api/repositories/rekognition"
 	storage "alexandria.isnan.eu/functions/api/repositories/s3"
 	"alexandria.isnan.eu/functions/api/services"
 	"github.com/aws/aws-lambda-go/events"
@@ -36,7 +37,8 @@ func init() {
 	db := dynamodb.NewDynamoDB(region)
 	storage := storage.NewObjectStorage(region)
 	idp := cognito.NewIdp(region)
-	s := services.NewServices(db, storage, idp)
+	ocr := rekognition.NewOCR(region)
+	s := services.NewServices(db, storage, idp, ocr)
 	h := handlers.NewHTTPHandler(s)
 
 	g := router.Group("/v1")
@@ -50,8 +52,10 @@ func init() {
 	g.DELETE("/libraries/:libraryId", h.DeleteLibrary)
 	g.GET("/libraries/:libraryId/items", h.ListLibraryItems)
 	g.POST("/libraries/:libraryId/books", h.CreateBook)
-	g.DELETE("/libraries/:libraryId/items/:itemId", h.DeleteItem)
 	g.PUT("/libraries/:libraryId/books/:bookId", h.UpdateBook)
+	g.POST("/libraries/:libraryId/videos", h.CreateVideo)
+	g.PUT("/libraries/:libraryId/videos/:videoId", h.UpdateVideo)
+	g.DELETE("/libraries/:libraryId/items/:itemId", h.DeleteItem)
 	g.POST("/libraries/:libraryId/share", h.ShareLibrary)
 	g.POST("/libraries/:libraryId/unshare", h.UnshareLibrary)
 	g.POST("/libraries/:libraryId/items/:itemId/events", h.CreateItemHistoryEvent)

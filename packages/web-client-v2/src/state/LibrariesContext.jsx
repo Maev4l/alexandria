@@ -210,9 +210,44 @@ export const LibrariesProvider = ({ children }) => {
     return result;
   }, [invalidateItems]);
 
-  // Update an item in a library
+  // Update a book in a library
   const updateBook = useCallback(async (libraryId, itemId, data) => {
     await librariesApi.updateBook(libraryId, itemId, data);
+    // Update local state
+    setItemsByLibrary((prev) => {
+      const current = prev[libraryId];
+      if (!current) return prev;
+      return {
+        ...prev,
+        [libraryId]: {
+          ...current,
+          items: current.items.map((item) =>
+            item.id === itemId ? { ...item, ...data } : item
+          ),
+        },
+      };
+    });
+  }, []);
+
+  // Create a video in a library
+  const createVideo = useCallback(async (libraryId, data) => {
+    const result = await librariesApi.createVideo(libraryId, data);
+    // Invalidate to refetch with new item
+    invalidateItems(libraryId);
+    // Update library totalItems
+    setLibraries((prev) =>
+      prev.map((lib) =>
+        lib.id === libraryId
+          ? { ...lib, totalItems: (lib.totalItems || 0) + 1 }
+          : lib
+      )
+    );
+    return result;
+  }, [invalidateItems]);
+
+  // Update a video in a library
+  const updateVideo = useCallback(async (libraryId, itemId, data) => {
+    await librariesApi.updateVideo(libraryId, itemId, data);
     // Update local state
     setItemsByLibrary((prev) => {
       const current = prev[libraryId];
@@ -339,6 +374,8 @@ export const LibrariesProvider = ({ children }) => {
     invalidateItems,
     createBook,
     updateBook,
+    createVideo,
+    updateVideo,
     deleteItem,
     lendItem,
     returnItem,
@@ -362,6 +399,8 @@ export const LibrariesProvider = ({ children }) => {
     invalidateItems,
     createBook,
     updateBook,
+    createVideo,
+    updateVideo,
     deleteItem,
     lendItem,
     returnItem,

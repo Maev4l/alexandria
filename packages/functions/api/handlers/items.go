@@ -15,35 +15,52 @@ import (
 )
 
 func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
-	if item.Type == domain.ItemBook {
-		if len(item.Title) == 0 {
-			return errors.New("invalid request - item title is mandatory")
+	// Common validation for all item types
+	if len(item.Title) == 0 {
+		return errors.New("invalid request - item title is mandatory")
+	}
+
+	if len(item.Title) > 100 {
+		return errors.New("invalid request - title too long (max. 100 chars)")
+	}
+
+	if len(item.Summary) > 4000 {
+		return errors.New("invalid request - summary too long (max. 4000 chars)")
+	}
+
+	// Collection validation (applies to all item types)
+	if item.Collection == nil && item.Order != nil {
+		return errors.New("invalid request - collection name must be specified")
+	}
+
+	if item.Collection != nil {
+		if len(*item.Collection) == 0 || len(*item.Collection) > 100 {
+			return fmt.Errorf("invalid request - invalid collection name (1-100 chars): %d chars", len(*item.Collection))
 		}
 
-		if len(item.Title) > 100 {
-			return errors.New("invalid request - title too long (max. 100 chars)")
+		if item.Order == nil {
+			return errors.New("invalid request - collection order must be specified")
 		}
 
-		if len(item.Summary) > 4000 {
-			return errors.New("invalid request - summary too long (max. 4000 chars)")
+		if *item.Order < 0 || *item.Order > 1000 {
+			return errors.New("invalid request - invalid collection order (must be between 1 and 1000)")
 		}
+	}
 
-		if item.Collection == nil && item.Order != nil {
-			return errors.New("invalid request - collection name must be specified")
-		}
-
-		if item.Collection != nil {
-			if len(*item.Collection) == 0 || len(*item.Collection) > 100 {
-				return fmt.Errorf("invalid request - invalid collection name (1-100 chars): %d chars", len(*item.Collection))
+	// Video-specific validation
+	if item.Type == domain.ItemVideo {
+		for _, d := range item.Directors {
+			if len(d) > 100 {
+				return errors.New("invalid request - director name too long (max. 100 chars)")
 			}
+		}
 
-			if item.Order == nil {
-				return errors.New("invalid request - collection order must be specified")
-			}
+		if item.ReleaseYear != nil && (*item.ReleaseYear < 1800 || *item.ReleaseYear > 2100) {
+			return errors.New("invalid request - invalid release year")
+		}
 
-			if *item.Order < 0 || *item.Order > 1000 {
-				return errors.New("invalid request - invalid collection order (must be between 1 and 1000)")
-			}
+		if item.Duration != nil && (*item.Duration < 0 || *item.Duration > 1000) {
+			return errors.New("invalid request - invalid duration (must be between 0 and 1000 minutes)")
 		}
 	}
 
@@ -323,6 +340,150 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 
 }
 
+// CreateVideo handles video creation
+func (h *HTTPHandler) CreateVideo(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+
+	var request CreateVideoRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		log.Error().Msgf("Invalid request: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	t := h.getTokenInfo(c)
+
+	// Order = 0 means no order has been set
+	if request.Order != nil && *request.Order == 0 {
+		request.Order = nil
+	}
+
+	// Empty collection name means no collection has been set
+	if request.Collection != nil && *request.Collection == "" {
+		request.Collection = nil
+	}
+
+	item := domain.LibraryItem{
+		Title:       strings.TrimSpace(request.Title),
+		Summary:     strings.TrimSpace(request.Summary),
+		LibraryId:   libraryId,
+		OwnerId:     t.userId,
+		OwnerName:   t.displayName,
+		Type:        domain.ItemVideo,
+		PictureUrl:  request.PictureUrl,
+		Collection:  request.Collection,
+		Order:       request.Order,
+		Directors:   slices.Map(request.Directors, func(d string) string { return strings.TrimSpace(d) }),
+		Cast:        slices.Map(request.Cast, func(c string) string { return strings.TrimSpace(c) }),
+		ReleaseYear: request.ReleaseYear,
+		Duration:    request.Duration,
+		TmdbId:      request.TmdbId,
+	}
+
+	// Trim collection if provided
+	if request.Collection != nil {
+		collectionStr := strings.TrimSpace(*request.Collection)
+		item.Collection = &collectionStr
+	}
+
+	err = h.validateItemPayload(&item)
+	if err != nil {
+		log.Error().Msg(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	result, err := h.s.CreateItem(&item)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to create video",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, &CreateVideoResponse{
+		Id:        result.Id,
+		UpdatedAt: result.UpdatedAt,
+	})
+}
+
+// UpdateVideo handles video updates
+func (h *HTTPHandler) UpdateVideo(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+	videoId := c.Param("videoId")
+
+	var request UpdateVideoRequest
+	err := c.BindJSON(&request)
+	if err != nil {
+		log.Error().Msgf("Invalid request: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request.",
+		})
+		return
+	}
+
+	t := h.getTokenInfo(c)
+
+	// Order = 0 means no order has been set
+	if request.Order != nil && *request.Order == 0 {
+		request.Order = nil
+	}
+
+	// Empty collection name means no collection has been set
+	if request.Collection != nil && *request.Collection == "" {
+		request.Collection = nil
+	}
+
+	item := domain.LibraryItem{
+		Id:          videoId,
+		Title:       strings.TrimSpace(request.Title),
+		LibraryId:   libraryId,
+		OwnerId:     t.userId,
+		OwnerName:   t.userName,
+		Summary:     strings.TrimSpace(request.Summary),
+		Type:        domain.ItemVideo,
+		PictureUrl:  request.PictureUrl,
+		Collection:  request.Collection,
+		Order:       request.Order,
+		Directors:   slices.Map(request.Directors, func(d string) string { return strings.TrimSpace(d) }),
+		Cast:        slices.Map(request.Cast, func(c string) string { return strings.TrimSpace(c) }),
+		ReleaseYear: request.ReleaseYear,
+		Duration:    request.Duration,
+		TmdbId:      request.TmdbId,
+	}
+
+	// Trim collection if provided
+	if request.Collection != nil {
+		collectionStr := strings.TrimSpace(*request.Collection)
+		item.Collection = &collectionStr
+	}
+
+	err = h.validateItemPayload(&item)
+	if err != nil {
+		log.Error().Msg(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+
+	fetchPicture := request.UpdatePicture != nil && *request.UpdatePicture
+
+	err = h.s.UpdateItem(&item, fetchPicture)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to update video",
+		})
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
 func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 
 	libraryId := c.Param("libraryId")
@@ -350,29 +511,44 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 	itemsResponse := []GetItemResponse{}
 
 	for _, i := range items.Items {
-		if i.Type == domain.ItemBook {
-			b := GetBookResponse{
-				GetItemResponseBase: GetItemResponseBase{
-					Id:         i.Id,
-					Type:       domain.ItemBook,
-					Title:      i.Title,
-					LibraryId:  &i.LibraryId,
-					LibrayName: &i.LibraryName,
-					LentTo:     i.LentTo,
-					OwnerId:    i.OwnerId,
-					Collection: i.Collection,
-					Order:      i.Order,
-					PictureUrl: i.PictureUrl,
-				},
-				Authors: i.Authors,
-				Summary: i.Summary,
-				Isbn:    i.Isbn,
-			}
-			if i.Picture != nil {
-				encodedPicture := base64.StdEncoding.EncodeToString(i.Picture)
-				b.Picture = &encodedPicture
-			}
-			itemsResponse = append(itemsResponse, b)
+		var encodedPicture *string
+		if i.Picture != nil {
+			encoded := base64.StdEncoding.EncodeToString(i.Picture)
+			encodedPicture = &encoded
+		}
+
+		baseResponse := GetItemResponseBase{
+			Id:         i.Id,
+			Type:       i.Type,
+			Title:      i.Title,
+			Picture:    encodedPicture,
+			LibraryId:  &i.LibraryId,
+			LibrayName: &i.LibraryName,
+			LentTo:     i.LentTo,
+			OwnerId:    i.OwnerId,
+			Collection: i.Collection,
+			Order:      i.Order,
+			PictureUrl: i.PictureUrl,
+		}
+
+		switch i.Type {
+		case domain.ItemBook:
+			itemsResponse = append(itemsResponse, GetBookResponse{
+				GetItemResponseBase: baseResponse,
+				Authors:             i.Authors,
+				Summary:             i.Summary,
+				Isbn:                i.Isbn,
+			})
+		case domain.ItemVideo:
+			itemsResponse = append(itemsResponse, GetVideoResponse{
+				GetItemResponseBase: baseResponse,
+				Directors:           i.Directors,
+				Cast:                i.Cast,
+				Summary:             i.Summary,
+				ReleaseYear:         i.ReleaseYear,
+				Duration:            i.Duration,
+				TmdbId:              i.TmdbId,
+			})
 		}
 	}
 

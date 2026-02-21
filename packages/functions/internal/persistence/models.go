@@ -11,6 +11,7 @@ const (
 	TypeLibrary      EntityType = "LIBRARY"
 	TypSharedLibrary EntityType = "SHARED_LIBRARY"
 	TypeBook         EntityType = "BOOK"
+	TypeVideo        EntityType = "VIDEO"
 	TypeEvent        EntityType = "EVENT"
 )
 
@@ -69,6 +70,12 @@ type LibraryItem struct {
 	EntityType  EntityType `dynamodbav:"EntityType"`
 	Collection  *string    `dynamodbav:"Collection,omitempty"`
 	Order       *int       `dynamodbav:"Order,omitempty"`
+	// Video-specific fields
+	Directors   []string `dynamodbav:"Directors,omitempty"`
+	Cast        []string `dynamodbav:"Cast,omitempty"`
+	ReleaseYear *int     `dynamodbav:"ReleaseYear,omitempty"`
+	Duration    *int     `dynamodbav:"Duration,omitempty"`
+	TmdbId      *string  `dynamodbav:"TmdbId,omitempty"`
 }
 
 func MakeLibraryItemPK(ownerId string) string {

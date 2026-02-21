@@ -66,6 +66,7 @@ functions:
       USER_POOL_ID: !Ref CognitoUserPoolAlexandriaUserPool
       INDEX_FILE_NAME: ${self:custom.indexFileName}
       LEK_SECRET_KEY: ${ssm:alexandria.lastevaluatedkey.secret}
+      TMDB_ACCESS_TOKEN: ${ssm:alexandria.tmdb.access.token}
     events:
       - http:
           authorizer:
@@ -131,6 +132,7 @@ functions:
                     S:
                       - LIBRARY
                       - BOOK
+                      - VIDEO
                       - SHARED_LIBRARY
             - eventName:
                 - MODIFY
@@ -139,6 +141,7 @@ functions:
                   EntityType:
                     S:
                       - BOOK
+                      - VIDEO
             - eventName:
                 - REMOVE
               dynamodb:
@@ -147,6 +150,7 @@ functions:
                     S:
                       - LIBRARY
                       - BOOK
+                      - VIDEO
                       - SHARED_LIBRARY
   consistency-manager:
     handler: consistency-manager/cmd/main.go
@@ -282,6 +286,11 @@ resources:
                     - cognito-idp:ListUsers
                   Resource:
                     - !GetAtt CognitoUserPoolAlexandriaUserPool.Arn
+                # Rekognition for video OCR
+                - Effect: Allow
+                  Action:
+                    - rekognition:DetectText
+                  Resource: '*'
     ConsistencyManagerRole:
       Type: AWS::IAM::Role
       Properties:

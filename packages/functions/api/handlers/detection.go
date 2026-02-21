@@ -1,9 +1,11 @@
+// Edited by Claude.
 package handlers
 
 import (
 	"fmt"
 	"net/http"
 	"slices"
+	"strings"
 
 	"alexandria.isnan.eu/functions/internal/domain"
 	"github.com/gin-gonic/gin"
@@ -14,9 +16,17 @@ import (
 /*
 payload:
 
+	For books:
 	{
-		type: <book, movie>,
+		type: 0,
 		code: <isbn>
+	}
+
+	For videos:
+	{
+		type: 1,
+		image: <base64 encoded image>, // optional: for OCR detection
+		title: <string>                // optional: for manual title search
 	}
 */
 func (h *HTTPHandler) RequestDetection(c *gin.Context) {
@@ -31,7 +41,7 @@ func (h *HTTPHandler) RequestDetection(c *gin.Context) {
 		return
 	}
 
-	validTypes := []domain.ItemType{domain.ItemBook}
+	validTypes := []domain.ItemType{domain.ItemBook, domain.ItemVideo}
 
 	if !slices.Contains(validTypes, domain.ItemType(request.Type)) {
 		msg := fmt.Sprintf("Invalid request - Incorrect detection type : %d", request.Type)
@@ -42,8 +52,23 @@ func (h *HTTPHandler) RequestDetection(c *gin.Context) {
 		return
 	}
 
+	// Handle book detection (ISBN-based)
+	if domain.ItemType(request.Type) == domain.ItemBook {
+		h.handleBookDetection(c, request)
+		return
+	}
+
+	// Handle video detection (image OCR or manual title)
+	if domain.ItemType(request.Type) == domain.ItemVideo {
+		h.handleVideoDetection(c, request)
+		return
+	}
+}
+
+// handleBookDetection handles book detection via ISBN
+func (h *HTTPHandler) handleBookDetection(c *gin.Context, request DetectRequest) {
 	codeLength := len(request.Code)
-	if domain.ItemType(request.Type) == domain.ItemBook && (codeLength != 13 && codeLength != 10) {
+	if codeLength != 13 && codeLength != 10 {
 		msg := fmt.Sprintf("Invalid request - Incorrect code : %s (Type: %d)", request.Code, request.Type)
 		log.Error().Msg(msg)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -94,5 +119,67 @@ func (h *HTTPHandler) RequestDetection(c *gin.Context) {
 
 	c.JSON(http.StatusOK, DetectResponse{
 		DetectedBooks: detectedBooks,
+	})
+}
+
+// handleVideoDetection handles video detection via OCR or manual title search
+func (h *HTTPHandler) handleVideoDetection(c *gin.Context, request DetectRequest) {
+	var searchTitle string
+	var extractedTitle *string
+
+	// Priority: manual title > OCR from image
+	if request.Title != nil && strings.TrimSpace(*request.Title) != "" {
+		searchTitle = strings.TrimSpace(*request.Title)
+	} else if request.Image != nil && *request.Image != "" {
+		// Extract title from image using OCR
+		extracted, err := h.s.ExtractTextFromImage(*request.Image)
+		if err != nil {
+			log.Error().Msgf("Failed to extract text from image: %s", err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "Failed to extract text from image",
+			})
+			return
+		}
+
+		if extracted == "" {
+			log.Info().Msg("No text could be extracted from the image")
+			c.JSON(http.StatusOK, DetectResponse{
+				DetectedVideos: []DetectedVideoResponse{},
+			})
+			return
+		}
+
+		searchTitle = extracted
+		extractedTitle = &extracted
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Video detection requires either 'image' (base64) or 'title' field",
+		})
+		return
+	}
+
+	// Search for videos using the title
+	resolvedVideos := h.s.ResolveVideo(searchTitle)
+
+	detectedVideos := make([]DetectedVideoResponse, 0)
+	for _, v := range resolvedVideos {
+		detectedVideos = append(detectedVideos, DetectedVideoResponse{
+			Id:          v.Id,
+			Title:       v.Title,
+			Summary:     v.Summary,
+			PictureUrl:  v.PictureUrl,
+			Directors:   v.Directors,
+			Cast:        v.Cast,
+			ReleaseYear: v.ReleaseYear,
+			Duration:    v.Duration,
+			TmdbId:      v.TmdbId,
+			Source:      v.Source,
+			Error:       v.Error,
+		})
+	}
+
+	c.JSON(http.StatusOK, DetectResponse{
+		DetectedVideos: detectedVideos,
+		ExtractedTitle: extractedTitle,
 	})
 }

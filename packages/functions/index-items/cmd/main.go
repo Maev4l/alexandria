@@ -48,21 +48,32 @@ type SharedLibraryEntry struct {
 	LibraryId string `json:"libraryId"`
 }
 
-// createBlugeDocument creates a Bluge document from a book
-func createBlugeDocument(book *persistence.LibraryItem) *bluge.Document {
-	docId := book.PK + "|" + book.SK
+// createBlugeDocument creates a Bluge document from a library item (book or video)
+func createBlugeDocument(item *persistence.LibraryItem) *bluge.Document {
+	docId := item.PK + "|" + item.SK
 	doc := bluge.NewDocument(docId)
 
 	// Text fields for fuzzy search
-	doc.AddField(bluge.NewTextField("title", book.Title).StoreValue())
-	doc.AddField(bluge.NewTextField("authors", strings.Join(book.Authors, " ")).StoreValue())
-	if book.Collection != nil && *book.Collection != "" {
-		doc.AddField(bluge.NewTextField("collection", *book.Collection).StoreValue())
+	doc.AddField(bluge.NewTextField("title", item.Title).StoreValue())
+
+	// Authors field for books, directors and cast for videos
+	if len(item.Authors) > 0 {
+		doc.AddField(bluge.NewTextField("authors", strings.Join(item.Authors, " ")).StoreValue())
+	}
+	if len(item.Directors) > 0 {
+		doc.AddField(bluge.NewTextField("directors", strings.Join(item.Directors, " ")).StoreValue())
+	}
+	if len(item.Cast) > 0 {
+		doc.AddField(bluge.NewTextField("cast", strings.Join(item.Cast, " ")).StoreValue())
+	}
+
+	if item.Collection != nil && *item.Collection != "" {
+		doc.AddField(bluge.NewTextField("collection", *item.Collection).StoreValue())
 	}
 
 	// Keyword fields for access filtering
-	doc.AddField(bluge.NewKeywordField("ownerId", book.OwnerId).StoreValue())
-	doc.AddField(bluge.NewKeywordField("libraryId", book.LibraryId).StoreValue())
+	doc.AddField(bluge.NewKeywordField("ownerId", item.OwnerId).StoreValue())
+	doc.AddField(bluge.NewKeywordField("libraryId", item.LibraryId).StoreValue())
 
 	return doc
 }
@@ -236,17 +247,17 @@ func fullResync() error {
 			entityType := persistence.EntityType(entityTypeStr.Value)
 
 			switch entityType {
-			case persistence.TypeBook:
-				var book persistence.LibraryItem
-				if err := attributevalue.UnmarshalMap(item, &book); err != nil {
-					log.Warn().Msgf("Failed to unmarshal book: %s", err.Error())
+			case persistence.TypeBook, persistence.TypeVideo:
+				var libraryItem persistence.LibraryItem
+				if err := attributevalue.UnmarshalMap(item, &libraryItem); err != nil {
+					log.Warn().Msgf("Failed to unmarshal item: %s", err.Error())
 					continue
 				}
 
-				doc := createBlugeDocument(&book)
+				doc := createBlugeDocument(&libraryItem)
 				batch.Insert(doc)
 				batchSize++
-				totalBooks++
+				totalBooks++ // Counts both books and videos
 
 				// Flush batch periodically
 				if batchSize >= maxBatchSize {
@@ -409,68 +420,72 @@ func streamHandler(event events.DynamoDBEvent) error {
 		}
 
 		switch entityType {
-		case persistence.TypeBook:
+		case persistence.TypeBook, persistence.TypeVideo:
 			switch record.EventName {
 			case "INSERT":
-				var book persistence.LibraryItem
+				var item persistence.LibraryItem
 				atv := ddbconversions.AttributeValueMapFrom(record.Change.NewImage)
-				if err := attributevalue.UnmarshalMap(atv, &book); err != nil {
-					log.Warn().Msgf("Failed to unmarshal book: %s", err.Error())
+				if err := attributevalue.UnmarshalMap(atv, &item); err != nil {
+					log.Warn().Msgf("Failed to unmarshal item: %s", err.Error())
 					continue
 				}
-				doc := createBlugeDocument(&book)
+				doc := createBlugeDocument(&item)
 				if err := writer.Insert(doc); err != nil {
 					log.Warn().Msgf("Failed to insert document: %s", err.Error())
 					continue
 				}
 				indexModified = true
-				log.Info().Str("itemId", book.Id).Msg("Book indexed")
+				log.Info().Str("itemId", item.Id).Str("type", string(entityType)).Msg("Item indexed")
 
 			case "MODIFY":
-				var bookOld, bookNew persistence.LibraryItem
+				var itemOld, itemNew persistence.LibraryItem
 				atvOld := ddbconversions.AttributeValueMapFrom(record.Change.OldImage)
 				atvNew := ddbconversions.AttributeValueMapFrom(record.Change.NewImage)
-				_ = attributevalue.UnmarshalMap(atvOld, &bookOld)
-				if err := attributevalue.UnmarshalMap(atvNew, &bookNew); err != nil {
-					log.Warn().Msgf("Failed to unmarshal book: %s", err.Error())
+				_ = attributevalue.UnmarshalMap(atvOld, &itemOld)
+				if err := attributevalue.UnmarshalMap(atvNew, &itemNew); err != nil {
+					log.Warn().Msgf("Failed to unmarshal item: %s", err.Error())
 					continue
 				}
 
 				// Only reindex if searchable fields changed
-				if bookNew.Title == bookOld.Title &&
-					strings.Join(bookNew.Authors, " ") == strings.Join(bookOld.Authors, " ") &&
-					((bookNew.Collection == nil && bookOld.Collection == nil) ||
-						(bookNew.Collection != nil && bookOld.Collection != nil && *bookNew.Collection == *bookOld.Collection)) {
+				// For books: title, authors, collection
+				// For videos: title, directors, cast, collection
+				if itemNew.Title == itemOld.Title &&
+					strings.Join(itemNew.Authors, " ") == strings.Join(itemOld.Authors, " ") &&
+					strings.Join(itemNew.Directors, " ") == strings.Join(itemOld.Directors, " ") &&
+					strings.Join(itemNew.Cast, " ") == strings.Join(itemOld.Cast, " ") &&
+					((itemNew.Collection == nil && itemOld.Collection == nil) ||
+						(itemNew.Collection != nil && itemOld.Collection != nil && *itemNew.Collection == *itemOld.Collection)) {
 					continue
 				}
 
 				// Delete old and insert new
-				docId := bookOld.PK + "|" + bookOld.SK
+				docId := itemOld.PK + "|" + itemOld.SK
 				if err := writer.Delete(bluge.Identifier(docId)); err != nil {
 					log.Warn().Msgf("Failed to delete old document: %s", err.Error())
 				}
-				doc := createBlugeDocument(&bookNew)
+				doc := createBlugeDocument(&itemNew)
 				if err := writer.Insert(doc); err != nil {
 					log.Warn().Msgf("Failed to insert updated document: %s", err.Error())
 					continue
 				}
 				indexModified = true
-				log.Info().Str("itemId", bookNew.Id).Msg("Book reindexed")
+				log.Info().Str("itemId", itemNew.Id).Str("type", string(entityType)).Msg("Item reindexed")
 
 			case "REMOVE":
-				var book persistence.LibraryItem
+				var item persistence.LibraryItem
 				atv := ddbconversions.AttributeValueMapFrom(record.Change.OldImage)
-				if err := attributevalue.UnmarshalMap(atv, &book); err != nil {
-					log.Warn().Msgf("Failed to unmarshal book: %s", err.Error())
+				if err := attributevalue.UnmarshalMap(atv, &item); err != nil {
+					log.Warn().Msgf("Failed to unmarshal item: %s", err.Error())
 					continue
 				}
-				docId := book.PK + "|" + book.SK
+				docId := item.PK + "|" + item.SK
 				if err := writer.Delete(bluge.Identifier(docId)); err != nil {
 					log.Warn().Msgf("Failed to delete document: %s", err.Error())
 					continue
 				}
 				indexModified = true
-				log.Info().Str("itemId", book.Id).Msg("Book removed from index")
+				log.Info().Str("itemId", item.Id).Str("type", string(entityType)).Msg("Item removed from index")
 			}
 
 		case persistence.TypSharedLibrary:

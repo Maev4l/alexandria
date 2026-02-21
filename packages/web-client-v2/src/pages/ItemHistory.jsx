@@ -1,9 +1,11 @@
 // Edited by Claude.
-// Item history page - displays lending/return events for a book
+// Item history page - displays lending/return events for an item
 // Includes clear history functionality with confirmation
 import { useEffect, useCallback, useState, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { Loader2, History, Trash2, AlertTriangle } from 'lucide-react';
-import { useNavigation } from '@/navigation';
+import { AppBar } from '@/navigation';
+import { useItemData } from '@/hooks';
 import { librariesApi } from '@/api';
 import { useToast } from '@/components/Toast';
 import PullToRefresh from '@/components/PullToRefresh';
@@ -22,10 +24,9 @@ const formatDate = (dateString) => {
 };
 
 const ItemHistory = () => {
-  const { setOptions, params, goBack } = useNavigation();
+  const { libraryId, itemId } = useParams();
+  const { item, library } = useItemData(libraryId, itemId);
   const toast = useToast();
-  const library = params?.library;
-  const book = params?.book;
 
   const [events, setEvents] = useState([]);
   const [nextToken, setNextToken] = useState(null);
@@ -38,15 +39,14 @@ const ItemHistory = () => {
   const [isClearing, setIsClearing] = useState(false);
 
   const loadMoreRef = useRef(null);
-  const fetchingRef = useRef(false);
 
   // Handle clear history
   const handleClearHistory = useCallback(async () => {
-    if (!library?.id || !book?.id || isClearing) return;
+    if (!libraryId || !itemId || isClearing) return;
 
     setIsClearing(true);
     try {
-      await librariesApi.deleteItemEvents(library.id, book.id);
+      await librariesApi.deleteItemEvents(libraryId, itemId);
       setEvents([]);
       setNextToken(null);
       setShowClearConfirm(false);
@@ -58,37 +58,41 @@ const ItemHistory = () => {
       return;
     }
     setIsClearing(false);
-  }, [library?.id, book?.id, isClearing, toast]);
+  }, [libraryId, itemId, isClearing, toast]);
 
-  // Check if book is currently lent
-  const isLent = !!book?.lentTo;
+  // Check if item is currently lent
+  const isLent = !!item?.lentTo;
 
-  // Set up header with clear button (only shown when there are events and book is not lent)
-  useEffect(() => {
-    const showClearButton = events.length > 0 && !isLent;
-    setOptions({
-      title: 'History',
-      headerRight: showClearButton ? (
-        <button
-          onClick={() => setShowClearConfirm(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
-          aria-label="Clear history"
-        >
-          <Trash2 className="h-5 w-5" />
-        </button>
-      ) : null,
-    });
-  }, [setOptions, events.length, isLent]);
+  // Show clear button when there are events and item is not lent
+  const showClearButton = events.length > 0 && !isLent;
+
+  // Render AppBar
+  const renderAppBar = () => (
+    <AppBar
+      title="History"
+      headerRight={
+        showClearButton ? (
+          <button
+            onClick={() => setShowClearConfirm(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
+            aria-label="Clear history"
+          >
+            <Trash2 className="h-5 w-5" />
+          </button>
+        ) : undefined
+      }
+    />
+  );
 
   // Fetch events
   const fetchEvents = useCallback(async (refresh = false) => {
-    if (!library?.id || !book?.id) return;
+    if (!libraryId || !itemId) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await librariesApi.getItemEvents(library.id, book.id, { limit: 20 });
+      const data = await librariesApi.getItemEvents(libraryId, itemId, { limit: 20 });
       setEvents(data.events || []);
       setNextToken(data.nextToken || null);
       setHasLoaded(true);
@@ -97,15 +101,15 @@ const ItemHistory = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [library?.id, book?.id]);
+  }, [libraryId, itemId]);
 
   // Load more events
   const loadMore = useCallback(async () => {
-    if (!library?.id || !book?.id || !nextToken || isLoading) return;
+    if (!libraryId || !itemId || !nextToken || isLoading) return;
 
     setIsLoading(true);
     try {
-      const data = await librariesApi.getItemEvents(library.id, book.id, {
+      const data = await librariesApi.getItemEvents(libraryId, itemId, {
         limit: 20,
         nextToken,
       });
@@ -116,12 +120,11 @@ const ItemHistory = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [library?.id, book?.id, nextToken, isLoading]);
+  }, [libraryId, itemId, nextToken, isLoading]);
 
   // Initial fetch
   useEffect(() => {
-    if (!hasLoaded && !fetchingRef.current) {
-      fetchingRef.current = true;
+    if (!hasLoaded) {
       fetchEvents();
     }
   }, [hasLoaded, fetchEvents]);
@@ -146,7 +149,6 @@ const ItemHistory = () => {
 
   // Pull to refresh
   const handleRefresh = useCallback(async () => {
-    fetchingRef.current = false;
     setHasLoaded(false);
     await fetchEvents(true);
   }, [fetchEvents]);
@@ -163,10 +165,13 @@ const ItemHistory = () => {
     };
   }, [showClearConfirm]);
 
-  if (!library || !book) {
+  if (!library || !item) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <p className="text-muted-foreground">Book not found</p>
+      <div className="flex flex-col h-full">
+        {renderAppBar()}
+        <div className="flex flex-1 items-center justify-center p-4">
+          <p className="text-muted-foreground">Item not found</p>
+        </div>
       </div>
     );
   }
@@ -174,8 +179,11 @@ const ItemHistory = () => {
   // Initial loading
   if (isLoading && events.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col h-full">
+        {renderAppBar()}
+        <div className="flex flex-1 items-center justify-center p-4">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </div>
     );
   }
@@ -183,52 +191,59 @@ const ItemHistory = () => {
   // Error state
   if (error && events.length === 0) {
     return (
-      <PullToRefresh onRefresh={handleRefresh} className="h-full">
-        <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
-          <p className="text-sm text-muted-foreground">{error}</p>
-          <p className="text-xs text-muted-foreground">Pull down to retry</p>
-        </div>
-      </PullToRefresh>
+      <div className="flex flex-col h-full">
+        {renderAppBar()}
+        <PullToRefresh onRefresh={handleRefresh} className="flex-1">
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-xs text-muted-foreground">Pull down to retry</p>
+          </div>
+        </PullToRefresh>
+      </div>
     );
   }
 
   // Empty state
   if (events.length === 0) {
     return (
-      <PullToRefresh onRefresh={handleRefresh} className="h-full">
-        <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
-          <History className="h-12 w-12 text-muted-foreground/50" />
-          <p className="text-lg font-medium">No history yet</p>
-          <p className="text-sm text-muted-foreground">
-            Lending and return events will appear here.
-          </p>
-        </div>
-      </PullToRefresh>
+      <div className="flex flex-col h-full">
+        {renderAppBar()}
+        <PullToRefresh onRefresh={handleRefresh} className="flex-1">
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+            <History className="h-12 w-12 text-muted-foreground/50" />
+            <p className="text-lg font-medium">No history yet</p>
+            <p className="text-sm text-muted-foreground">
+              Lending and return events will appear here.
+            </p>
+          </div>
+        </PullToRefresh>
+      </div>
     );
   }
 
   // Events timeline
   return (
-    <>
-      <PullToRefresh onRefresh={handleRefresh} className="h-full">
+    <div className="flex flex-col h-full">
+      {renderAppBar()}
+      <PullToRefresh onRefresh={handleRefresh} className="flex-1">
         <div className="p-4">
           <Timeline>
             {events.map((event, index) => {
-              const isLent = event.type === 'LENT';
+              const isLentEvent = event.type === 'LENT';
               const isLast = index === events.length - 1;
 
               return (
                 <Timeline.Item
                   key={`${event.date}-${index}`}
-                  dotColor={isLent ? 'orange' : 'green'}
+                  dotColor={isLentEvent ? 'orange' : 'green'}
                   isLast={isLast}
                 >
                   <p className="text-xs text-muted-foreground">
                     {formatDate(event.date)}
                   </p>
                   <p className="font-medium">
-                    {isLent ? 'Lent to' : 'Returned from'}{' '}
-                    <span className={isLent ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}>
+                    {isLentEvent ? 'Lent to' : 'Returned from'}{' '}
+                    <span className={isLentEvent ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}>
                       {event.event}
                     </span>
                   </p>
@@ -270,7 +285,7 @@ const ItemHistory = () => {
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold">Clear History?</h3>
                 <p className="text-sm text-muted-foreground">
-                  This will permanently delete all lending history for this book. This action cannot be undone.
+                  This will permanently delete all lending history for this item. This action cannot be undone.
                 </p>
               </div>
             </div>
@@ -306,7 +321,7 @@ const ItemHistory = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

@@ -22,20 +22,21 @@
 
 ## Tech stack
 
-| Lib | Version |
-|---|---|
-| React | 19.1.0 |
-| Vite | 6.3.5 |
-| Tailwind CSS | 4.1.18 |
-| vite-plugin-pwa | 1.2.0 |
-| class-variance-authority | 0.7.1 |
-| clsx | 2.1.1 |
-| tailwind-merge | 2.6.0 |
-| lucide-react | 0.469.0 |
-| aws-amplify | 6.16.2 |
-| react-router-dom | 7.13.0 |
-| @zxing/browser | 0.1.5 |
-| @zxing/library | 0.21.3 |
+| Lib                      | Version |
+|--------------------------|---------|
+| React                    | 19.1.0  |
+| Vite                     | 6.3.5   |
+| Tailwind CSS             | 4.1.18  |
+| vite-plugin-pwa          | 1.2.0   |
+| class-variance-authority | 0.7.1   |
+| clsx                     | 2.1.1   |
+| tailwind-merge           | 2.6.0   |
+| lucide-react             | 0.469.0 |
+| aws-amplify              | 6.16.2  |
+| react-router-dom         | 7.13.0  |
+| @zxing/browser           | 0.1.5   |
+| @zxing/library           | 0.21.3  |
+| react-webcam             | 7.2.0   |
 
 ## Project structure
 
@@ -59,18 +60,21 @@ packages/web-client-v2/
     ├── index.css           # Tailwind + shadcn/ui CSS variables (light/dark)
     ├── auth/
     │   └── AuthContext.jsx # AuthProvider, useAuth hook (Cognito)
-    ├── navigation/         # Declarative navigation system (React Navigation-inspired)
+    ├── navigation/         # react-router-dom based navigation
+    │   ├── index.js        # Exports: AppBar, Layout
+    │   ├── AppBar.jsx      # Props-based header (title, headerLeft, headerRight) - rendered by each page
+    │   ├── BottomTabs.jsx  # Sticky footer with NavLink-based tab buttons (internal)
+    │   └── Layout.jsx      # Authenticated layout: Outlet + BottomTabs
+    ├── hooks/              # Navigation helper hooks (bridge URL params to context)
     │   ├── index.js        # Module exports
-    │   ├── NavigationContext.jsx  # Navigation state + params + scroll-to-top registration
-    │   ├── AppBar.jsx      # Sticky header: centered title (tap to scroll top), back button, right slot
-    │   ├── BottomTabs.jsx  # Sticky footer with tab buttons
-    │   └── TabNavigator.jsx # Tab screens + stack screens support
+    │   ├── useLibraryData.js  # useLibraryData(libraryId) → { library, isSharedLibrary, isLoading }
+    │   └── useItemData.js  # useItemData(libraryId, itemId) → { item, library, isSharedLibrary, isLoading }
     ├── api/                # API client layer
     │   ├── index.js        # Module exports
     │   ├── client.js       # Base fetch with auth token injection
     │   ├── libraries.js    # Library API endpoints
-    │   ├── detection.js    # ISBN detection API (book lookup)
-    │   └── search.js       # Search API (fuzzy book search)
+    │   ├── detection.js    # Detection API (ISBN lookup + video OCR/title search)
+    │   └── search.js       # Search API (fuzzy search for books + videos)
     ├── state/              # Shared state (React Context, no Redux)
     │   ├── index.js        # Module exports
     │   └── LibrariesContext.jsx  # Libraries state + actions
@@ -80,23 +84,30 @@ packages/web-client-v2/
     │   ├── NewLibrary.jsx  # Create library form
     │   ├── EditLibrary.jsx # Edit library form
     │   ├── UnshareLibrary.jsx # Unshare library - user selection
-    │   ├── LibraryContent.jsx # Library items: unified list (standalone + collections), alphabetically sorted
-    │   ├── AddBook.jsx     # Add book: camera scan, manual ISBN, or full manual entry
-    │   ├── BookDetectionResults.jsx # ISBN lookup results - select and create book directly
-    │   ├── NewBook.jsx     # Manual book entry form (when detection fails)
+    │   ├── LibraryContent.jsx # Library items: unified list (books + videos, collections), alphabetically sorted
+    │   ├── AddBook.jsx     # Add book: camera scan or manual ISBN entry
+    │   ├── BookDetectionResults.jsx # ISBN lookup results - select and create, or link to NewBook
+    │   ├── NewBook.jsx     # Manual book entry form (Cancel goes to LibraryContent)
     │   ├── EditBook.jsx    # Edit book form (pre-filled from item)
     │   ├── BookDetail.jsx  # Book detail view (cover, info, summary, history button)
+    │   ├── AddVideo.jsx    # Add video: camera OCR or manual title search
+    │   ├── VideoDetectionResults.jsx # TMDB lookup results - select and create video
+    │   ├── NewVideo.jsx    # Manual video entry form (Cancel goes to LibraryContent)
+    │   ├── EditVideo.jsx   # Edit video form (pre-filled from item)
+    │   ├── VideoDetail.jsx # Video detail view (poster, info, cast, summary, history button)
     │   ├── ItemHistory.jsx # Item lending/return history (paginated list)
-    │   ├── Search.jsx      # Search tab: fuzzy search, recent searches, results list
+    │   ├── Search.jsx      # Search tab: fuzzy search for books + videos, recent searches
     │   ├── Settings.jsx    # Settings tab: list with Account, About, Sign out
     │   ├── Account.jsx     # Account page: avatar, username (copy), password change
     │   └── About.jsx       # About page: app info and version
     ├── components/
     │   ├── LibraryCard.jsx # Compact card with long press support
     │   ├── BookCard.jsx    # Book item card with cover image + optional order number
-    │   ├── CollectionCard.jsx # Collapsible card for grouped books in a collection
+    │   ├── VideoCard.jsx   # Video item card with poster image + optional order number
+    │   ├── CollectionCard.jsx # Collapsible card for grouped items (books + videos) in a collection
+    │   ├── AddItemSheet.jsx    # Action sheet for choosing item type (Book/Video)
     │   ├── LibraryActionsSheet.jsx  # Actions: Edit, Share (inline), Unshare, Delete
-    │   ├── ItemActionsSheet.jsx  # Actions: Edit, Lend, Delete (for books)
+    │   ├── ItemActionsSheet.jsx  # Actions: Edit, Lend, Delete (for items)
     │   ├── PullToRefresh.jsx  # Pull-to-refresh (transform-based, with ref for scroll control)
     │   ├── BottomSheet.jsx # Reusable bottom sheet
     │   ├── Toast.jsx       # Toast notification system
@@ -113,74 +124,109 @@ packages/web-client-v2/
     └── assets/
 ```
 
+## URL Structure
+
+| Route | URL | Notes |
+|-------|-----|-------|
+| Login | `/login` | Public |
+| Libraries | `/libraries` | Tab: Libraries |
+| Search | `/search` | Tab: Search |
+| Settings | `/settings` | Tab: Settings |
+| Account | `/settings/account` | Stack |
+| About | `/settings/about` | Stack |
+| NewLibrary | `/libraries/new` | Stack |
+| EditLibrary | `/libraries/:libraryId/edit` | Stack |
+| UnshareLibrary | `/libraries/:libraryId/unshare` | Stack |
+| LibraryContent | `/libraries/:libraryId` | Stack |
+| AddBook | `/libraries/:libraryId/add-book` | Stack |
+| BookDetectionResults | `/libraries/:libraryId/book-results` | Stack, state via location.state |
+| NewBook | `/libraries/:libraryId/books/new` | Stack |
+| EditBook | `/libraries/:libraryId/books/:itemId/edit` | Stack |
+| BookDetail | `/libraries/:libraryId/books/:itemId` | Stack |
+| AddVideo | `/libraries/:libraryId/add-video` | Stack |
+| VideoDetectionResults | `/libraries/:libraryId/video-results` | Stack, state via location.state |
+| NewVideo | `/libraries/:libraryId/videos/new` | Stack |
+| EditVideo | `/libraries/:libraryId/videos/:itemId/edit` | Stack |
+| VideoDetail | `/libraries/:libraryId/videos/:itemId` | Stack |
+| ItemHistory | `/libraries/:libraryId/items/:itemId/history` | Stack |
+
 ## Screen flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              UNAUTHENTICATED                                │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                     │
-                                     ▼
-                              ┌────────────┐
-                              │   Login    │
-                              └────────────┘
-                                     │ login success
-                                     ▼
+                                      │
+                                      ▼
+                               ┌────────────┐
+                               │   Login    │
+                               └────────────┘
+                                      │ login success
+                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                         AUTHENTICATED (Tab Navigator)                       │
+│                     AUTHENTICATED (react-router-dom Layout)                 │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  [Libraries]              [Search]                [Settings]                │
-│      ▼                       ▼                        ▼                     │
-│  Libraries.jsx           Search.jsx              Settings.jsx               │
-│  (list + PTR)            (fuzzy search)          (Account/About/SignOut)    │
+│  [Libraries]               [Search]                [Settings]               │
+│       ▼                        ▼                        ▼                   │
+│  Libraries.jsx            Search.jsx              Settings.jsx              │
+│  (list + PTR)             (fuzzy search)          (Account/About/SignOut)   │
 └─────────────────────────────────────────────────────────────────────────────┘
-       │
-       │ tap card
-       ▼
-┌──────────────────┐    long press    ┌─────────────────────┐
-│  LibraryContent  │ ───────────────► │ LibraryActionsSheet │
-│  (items + PTR)   │                  │ Edit/Share/Unshare/ │
-└──────────────────┘                  │ Delete              │
-       │                              └─────────────────────┘
-       │                                      │
-       │ tap "+"                              ├── Edit ──────► EditLibrary
-       ▼                                      ├── Share ─────► (inline form in sheet)
-┌──────────────────┐                          ├── Unshare ───► UnshareLibrary
-│     AddBook      │                          └── Delete ────► (confirm in sheet)
-│ ┌──────────────┐ │
-│ │ Camera scan  │ │ scan success
-│ └──────────────┘ ├─────────────────────┐
-│ ┌──────────────┐ │                     │
-│ │ Manual ISBN  │ │ submit              │
-│ └──────────────┘ ├─────────────────────┤
-│ ┌──────────────┐ │                     ▼
-│ │ Manual entry │ │         ┌─────────────────────┐
-│ └──────────────┘ │         │ BookDetectionResults│
-└────────┬─────────┘         │ (select from list)  │
-         │                   └─────────────────────┘
-         │ tap "manual"              │
-         ▼                           │ tap "Add"
-┌──────────────────┐                 │ (creates book via API)
-│     NewBook      │                 │
-│  (form + Done)   │                 │
-└──────────────────┘                 │
-         │                           │
-         │ tap "Done"                │ no results → tap "manual"
-         │ (creates book via API)    │
-         │                           ▼
-         └───────────────────────────┴───► back to LibraryContent
-                                           (items refreshed)
+        │
+        │ tap card
+        ▼
+┌───────────────────┐   long press   ┌─────────────────────┐
+│  LibraryContent   │───────────────►│ LibraryActionsSheet │
+│  (items + PTR)    │                │ Edit/Share/Unshare/ │
+└───────────────────┘                │ Delete              │
+        │                            └─────────────────────┘
+        │                                     │
+        │ tap "+"                             ├── Edit ──────► EditLibrary
+        ▼                                     ├── Share ─────► (inline form)
+┌───────────────────┐                         ├── Unshare ───► UnshareLibrary
+│  AddItemSheet     │                         └── Delete ────► (confirm)
+│  - Add Book ──────┼─────────────────────────────────────────┐
+│  - Add Video ─────┼─────────────────────────────────────────┼────┐
+└───────────────────┘                                         │    │
+                                                              ▼    │
+┌─────────────────────────────────────────────────────────────┐    │
+│  AddBook                                                    │    │
+│  ┌──────────────┐  scan success   ┌─────────────────────┐   │    │
+│  │ Camera scan  │────────────────►│ BookDetectionResults│   │    │
+│  └──────────────┘                 │ (Cancel → Library)  │   │    │
+│  ┌──────────────┐  submit         └──────────┬──────────┘   │    │
+│  │ Manual ISBN  │────────────────────────────┤              │    │
+│  └──────────────┘                            │              │    │
+│  ┌──────────────┐  tap "manual"              │ no results   │    │
+│  │ Manual entry │────────────────►┌──────────▼──────────┐   │    │
+│  └──────────────┘                 │ NewBook             │   │    │
+│                                   │ (Cancel → Library)  │   │    │
+└───────────────────────────────────┴─────────────────────┘   │    │
+                                                              │    │
+                                                              │    ▼
+┌─────────────────────────────────────────────────────────────┼────────┐
+│  AddVideo                                                   │        │
+│  ┌──────────────┐  capture success  ┌──────────────────────┐│        │
+│  │ Camera OCR   │──────────────────►│ VideoDetectionResults││        │
+│  │ (capture)    │                   │ (Cancel → Library)   ││        │
+│  └──────────────┘                   └──────────────────────┘│        │
+│  ┌──────────────┐  submit                    ▲              │        │
+│  │ Title search │────────────────────────────┘              │        │
+│  └──────────────┘                                           │        │
+└─────────────────────────────────────────────────────────────┘        │
+                                                                       │
+                  ◄────────────────────────────────────────────────────┘
+                                 (back to LibraryContent)
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           ITEM ACTIONS (long press)                         │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  LibraryContent                                                             │
 │       │                                                                     │
-│       │ long press on BookCard                                              │
+│       │ long press on BookCard or VideoCard                                 │
 │       ▼                                                                     │
 │  ┌─────────────────────┐                                                    │
 │  │  ItemActionsSheet   │                                                    │
-│  │  - Edit ──────────────► EditBook (form with pre-filled data)             │
+│  │  - Edit ──────────────► EditBook or EditVideo (based on item type)       │
 │  │  - Lend ─────────────────► (inline form in sheet, enter name)            │
 │  │  - Return ───────────────► (API call, clears lentTo)                     │
 │  │  - Delete ────────────► (deletes via API, list refreshed)                │
@@ -188,16 +234,19 @@ packages/web-client-v2/
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           BOOK DETAIL (tap on book)                         │
+│                           ITEM DETAIL (tap on item)                         │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  LibraryContent                                                             │
 │       │                                                                     │
-│       │ tap on BookCard                                                     │
-│       ▼                                                                     │
-│  ┌─────────────────────┐                                                    │
-│  │  BookDetail         │  (read-only: cover, title, authors, summary, etc.) │
-│  │  [History button]   │──────────────► ItemHistory (paginated events list) │
-│  └─────────────────────┘                                                    │
+│       │ tap on BookCard           │ tap on VideoCard                        │
+│       ▼                           ▼                                         │
+│  ┌─────────────────────┐    ┌─────────────────────┐                         │
+│  │  BookDetail         │    │  VideoDetail        │                         │
+│  │  (cover, authors,   │    │  (poster, directors,│                         │
+│  │   summary, ISBN)    │    │   cast, duration)   │                         │
+│  │  [History button]   │    │  [History button]   │                         │
+│  └──────────┬──────────┘    └──────────┬──────────┘                         │
+│             └───────────────────────────┴──► ItemHistory (shared)           │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -235,9 +284,9 @@ packages/web-client-v2/
 - [x] Collection grouping: items with same collection grouped in collapsible cards, sorted by order
 - [x] Tap AppBar title to scroll content to top (iOS convention)
 - [x] Long press on item → action sheet (Edit, Lend, Delete)
-- [x] Add book flow: "+" button → AddBook (3 options: scan, manual ISBN, manual entry)
+- [x] Add book flow: "+" button → AddBook (scan or manual ISBN)
 - [x] ISBN detection: manual ISBN input → API lookup → select result → create book directly
-- [x] Detection fallback: no results found → link to NewBook for manual entry
+- [x] Detection fallback: no results found → link to NewBook (Cancel → LibraryContent)
 - [x] Scan ISBN: camera barcode scanning (@zxing/browser, EAN-13/EAN-8)
 - [x] Edit book: form with pre-filled data, updates via context
 - [x] Book detail page: tap book → full info view (read-only) with history button
@@ -247,6 +296,16 @@ packages/web-client-v2/
 - [x] Search page: fuzzy search with debounce (3+ chars), recent searches (localStorage), navigate to BookDetail
 - [x] Settings page: Account, About (app info), Sign out
 - [x] Account page: avatar with initials, username (copy), password change with complexity validation
+- [x] Video support: item type selection sheet (Book/Video) when adding items
+- [x] Add video flow: camera OCR (manual capture) or title search
+- [x] Video detection: TMDB lookup → select result → create video (Cancel → LibraryContent)
+- [x] VideoCard component: displays video in library list with directors/year
+- [x] Edit video: form with pre-filled data (directors, cast, year, duration)
+- [x] Video detail page: poster, directors, cast (top 5), duration, summary
+- [x] CollectionCard: renders VideoCard for video items within collections
+- [x] Search: unified results for books and videos, navigates to appropriate detail page
+
+
 
 ## UI Revamp
 

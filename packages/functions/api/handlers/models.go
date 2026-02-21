@@ -7,8 +7,10 @@ import (
 )
 
 type DetectRequest struct {
-	Type int    `json:"type"`
-	Code string `json:"code"`
+	Type  int     `json:"type"`
+	Code  string  `json:"code"`            // ISBN for books
+	Image *string `json:"image,omitempty"` // Base64 image for video OCR
+	Title *string `json:"title,omitempty"` // Manual title input for video search
 }
 
 type DetectedBookResponse struct {
@@ -22,8 +24,25 @@ type DetectedBookResponse struct {
 	Error      *string  `json:"error,omitempty"`
 }
 
+// DetectedVideoResponse represents a detected video from TMDB
+type DetectedVideoResponse struct {
+	Id          string   `json:"id"`
+	Title       string   `json:"title"`
+	Summary     string   `json:"summary"`
+	PictureUrl  *string  `json:"pictureUrl,omitempty"`
+	Directors   []string `json:"directors"`
+	Cast        []string `json:"cast"`
+	ReleaseYear int      `json:"releaseYear"`
+	Duration    int      `json:"duration"`
+	TmdbId      string   `json:"tmdbId"`
+	Source      string   `json:"source"`
+	Error       *string  `json:"error,omitempty"`
+}
+
 type DetectResponse struct {
-	DetectedBooks []DetectedBookResponse `json:"detectedBooks"`
+	DetectedBooks  []DetectedBookResponse  `json:"detectedBooks,omitempty"`
+	DetectedVideos []DetectedVideoResponse `json:"detectedVideos,omitempty"`
+	ExtractedTitle *string                 `json:"extractedTitle,omitempty"` // Title extracted via OCR
 }
 
 type CreateLibraryRequest struct {
@@ -116,6 +135,52 @@ type UpdateBookRequest struct {
 	Order         *int     `json:"order,omitempty"`
 	UpdatePicture *bool    `json:"updatePicture,omitempty"`
 }
+
+// Video request/response models
+type CreateVideoRequest struct {
+	Title       string   `json:"title"`
+	Summary     string   `json:"summary"`
+	Directors   []string `json:"directors"`
+	Cast        []string `json:"cast"`
+	ReleaseYear *int     `json:"releaseYear,omitempty"`
+	Duration    *int     `json:"duration,omitempty"`
+	TmdbId      *string  `json:"tmdbId,omitempty"`
+	PictureUrl  *string  `json:"pictureUrl,omitempty"`
+	Collection  *string  `json:"collection,omitempty"`
+	Order       *int     `json:"order,omitempty"`
+}
+
+type CreateVideoResponse struct {
+	Id        string     `json:"id"`
+	UpdatedAt *time.Time `json:"updatedAt"`
+}
+
+type UpdateVideoRequest struct {
+	Title         string   `json:"title"`
+	Summary       string   `json:"summary"`
+	Directors     []string `json:"directors"`
+	Cast          []string `json:"cast"`
+	ReleaseYear   *int     `json:"releaseYear,omitempty"`
+	Duration      *int     `json:"duration,omitempty"`
+	TmdbId        *string  `json:"tmdbId,omitempty"`
+	PictureUrl    *string  `json:"pictureUrl,omitempty"`
+	Collection    *string  `json:"collection,omitempty"`
+	Order         *int     `json:"order,omitempty"`
+	UpdatePicture *bool    `json:"updatePicture,omitempty"`
+}
+
+// GetVideoResponse for video items
+type GetVideoResponse struct {
+	GetItemResponseBase
+	Directors   []string `json:"directors"`
+	Cast        []string `json:"cast"`
+	Summary     string   `json:"summary"`
+	ReleaseYear *int     `json:"releaseYear,omitempty"`
+	Duration    *int     `json:"duration,omitempty"`
+	TmdbId      *string  `json:"tmdbId,omitempty"`
+}
+
+func (g GetVideoResponse) getType() string { return domain.ItemVideo.String() }
 
 type ShareRequest struct {
 	UserName string `json:"userName"`

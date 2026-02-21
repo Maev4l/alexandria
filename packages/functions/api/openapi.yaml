@@ -37,14 +37,19 @@ components:
       properties:
         type:
           type: integer
-          description: "Item type (0 = Book)"
-          enum: [0]
+          description: "Item type (0 = Book, 1 = Video)"
+          enum: [0, 1]
         code:
           type: string
-          description: "ISBN code (10 or 13 digits)"
+          description: "ISBN code (10 or 13 digits) - required for books"
+        image:
+          type: string
+          description: "Base64 encoded image for video OCR detection"
+        title:
+          type: string
+          description: "Manual title for video search"
       required:
         - type
-        - code
 
     DetectedBookResponse:
       type: object
@@ -70,6 +75,39 @@ components:
           type: string
           nullable: true
 
+    DetectedVideoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        pictureUrl:
+          type: string
+          nullable: true
+        directors:
+          type: array
+          items:
+            type: string
+        cast:
+          type: array
+          items:
+            type: string
+        releaseYear:
+          type: integer
+        duration:
+          type: integer
+          description: "Duration in minutes"
+        tmdbId:
+          type: string
+        source:
+          type: string
+        error:
+          type: string
+          nullable: true
+
     DetectResponse:
       type: object
       properties:
@@ -77,6 +115,14 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DetectedBookResponse"
+        detectedVideos:
+          type: array
+          items:
+            $ref: "#/components/schemas/DetectedVideoResponse"
+        extractedTitle:
+          type: string
+          nullable: true
+          description: "Title extracted via OCR from image"
 
     # Library
     CreateLibraryRequest:
@@ -177,8 +223,8 @@ components:
     # Items
     ItemType:
       type: integer
-      enum: [0]
-      description: "Item type (0 = Book)"
+      enum: [0, 1]
+      description: "Item type (0 = Book, 1 = Video)"
 
     GetItemResponseBase:
       type: object
@@ -230,6 +276,30 @@ components:
               type: string
             isbn:
               type: string
+
+    GetVideoResponse:
+      allOf:
+        - $ref: "#/components/schemas/GetItemResponseBase"
+        - type: object
+          properties:
+            directors:
+              type: array
+              items:
+                type: string
+            cast:
+              type: array
+              items:
+                type: string
+            releaseYear:
+              type: integer
+              nullable: true
+            duration:
+              type: integer
+              nullable: true
+              description: "Duration in minutes"
+            tmdbId:
+              type: string
+              nullable: true
 
     GetLibrariesContentResponse:
       type: object
@@ -316,6 +386,114 @@ components:
       required:
         - title
 
+    CreateVideoRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 100
+        summary:
+          type: string
+          maxLength: 4000
+        directors:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+        cast:
+          type: array
+          items:
+            type: string
+        releaseYear:
+          type: integer
+          nullable: true
+          minimum: 1800
+          maximum: 2100
+        duration:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 1000
+          description: "Duration in minutes"
+        tmdbId:
+          type: string
+          nullable: true
+        pictureUrl:
+          type: string
+          nullable: true
+        collection:
+          type: string
+          nullable: true
+          maxLength: 100
+        order:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 1000
+      required:
+        - title
+
+    CreateVideoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    UpdateVideoRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 100
+        summary:
+          type: string
+          maxLength: 4000
+        directors:
+          type: array
+          items:
+            type: string
+            maxLength: 100
+        cast:
+          type: array
+          items:
+            type: string
+        releaseYear:
+          type: integer
+          nullable: true
+          minimum: 1800
+          maximum: 2100
+        duration:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 1000
+          description: "Duration in minutes"
+        tmdbId:
+          type: string
+          nullable: true
+        pictureUrl:
+          type: string
+          nullable: true
+        collection:
+          type: string
+          nullable: true
+          maxLength: 100
+        order:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 1000
+        updatePicture:
+          type: boolean
+          nullable: true
+          description: "If true, fetch and update the picture from pictureUrl"
+      required:
+        - title
+
     # Item History
     ItemEventType:
       type: string
@@ -382,8 +560,11 @@ components:
 paths:
   /detections:
     post:
-      summary: Detect book by ISBN
-      description: Resolve book information from ISBN code using external sources
+      summary: Detect item by code or image
+      description: |
+        Resolve item information from external sources.
+        - For books (type=0): provide ISBN code
+        - For videos (type=1): provide either base64 image (OCR) or manual title
       operationId: requestDetection
       tags:
         - Detection
@@ -621,6 +802,87 @@ paths:
       responses:
         "200":
           description: Book updated
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /libraries/{libraryId}/videos:
+    parameters:
+      - name: libraryId
+        in: path
+        required: true
+        schema:
+          type: string
+
+    post:
+      summary: Create video
+      description: Add a new video (DVD/Bluray) to a library
+      operationId: createVideo
+      tags:
+        - Items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVideoRequest"
+      responses:
+        "200":
+          description: Video created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateVideoResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /libraries/{libraryId}/videos/{videoId}:
+    parameters:
+      - name: libraryId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: videoId
+        in: path
+        required: true
+        schema:
+          type: string
+
+    put:
+      summary: Update video
+      description: Update video details
+      operationId: updateVideo
+      tags:
+        - Items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVideoRequest"
+      responses:
+        "200":
+          description: Video updated
         "400":
           description: Invalid request
           content:

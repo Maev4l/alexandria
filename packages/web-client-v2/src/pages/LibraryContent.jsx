@@ -1,18 +1,25 @@
 // Edited by Claude.
-// Library detail page - shows list of books with infinite scroll
+// Library detail page - shows list of items (books + videos) with infinite scroll
 // Groups items by collection, sorted alphabetically
 // Uses LibrariesContext for state management
-import { useEffect, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useCallback, useRef, useMemo, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, Plus } from 'lucide-react';
 import EmptyBookshelf from '@/components/EmptyBookshelf';
-import { useNavigation } from '@/navigation';
+import { AppBar } from '@/navigation';
 import { useLibraries } from '@/state';
+import { useLibraryData } from '@/hooks';
 import PullToRefresh from '@/components/PullToRefresh';
 import BookCard from '@/components/BookCard';
+import VideoCard from '@/components/VideoCard';
 import CollectionCard from '@/components/CollectionCard';
 import ItemActionsSheet from '@/components/ItemActionsSheet';
+import AddItemSheet from '@/components/AddItemSheet';
 import { useToast } from '@/components/Toast';
-import { useState } from 'react';
+
+// Item type constants
+const ITEM_TYPE_BOOK = 0;
+const ITEM_TYPE_VIDEO = 1;
 
 // Build unified sorted list: standalone items + collections, alphabetically
 const buildSortedList = (items) => {
@@ -44,13 +51,14 @@ const buildSortedList = (items) => {
 };
 
 const LibraryContent = () => {
-  const { setOptions, params, registerScrollToTop, navigate } = useNavigation();
-  const library = params?.library;
+  const { libraryId } = useParams();
+  const navigate = useNavigate();
+  const { library, isSharedLibrary } = useLibraryData(libraryId);
 
   // Get items state and actions from context
   const { itemsByLibrary, fetchItems, loadMoreItems, deleteItem, lendItem, returnItem } = useLibraries();
   const toast = useToast();
-  const itemsState = itemsByLibrary[library?.id];
+  const itemsState = itemsByLibrary[libraryId];
   const items = itemsState?.items || [];
   const nextToken = itemsState?.nextToken || null;
   const isLoading = itemsState?.isLoading || false;
@@ -62,77 +70,33 @@ const LibraryContent = () => {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
+  // State for add item sheet
+  const [isAddItemOpen, setIsAddItemOpen] = useState(false);
+
   const loadMoreRef = useRef(null);
   const pullToRefreshRef = useRef(null);
-  const fetchingLibraryRef = useRef(null); // Track which library is being fetched
-
-  // Register scroll-to-top handler for AppBar title tap
-  useEffect(() => {
-    const unregister = registerScrollToTop(() => {
-      pullToRefreshRef.current?.scrollToTop();
-    });
-    return unregister;
-  }, [registerScrollToTop]);
 
   // Build sorted list with collections grouped
   const sortedList = useMemo(() => buildSortedList(items), [items]);
 
-  // Check if library is shared (read-only, no add button)
-  const isSharedLibrary = !!library?.sharedFrom;
-
-  // Set up header with library name, optional subtitle for shared libraries, and add button (if owned)
-  useEffect(() => {
-    const options = {
-      title: library?.name || 'Library',
-      // Explicitly set headerRight to ensure we override any stale value from previous screens
-      headerRight: null,
-      subtitle: null,
-    };
-
-    // Show who shared the library as subtitle (read-only, no add button)
-    if (isSharedLibrary) {
-      options.subtitle = `Shared by ${library.sharedFrom}`;
-    } else {
-      // Only show add button for owned libraries
-      options.headerRight = (
-        <button
-          onClick={() => navigate('addBook', { push: true, params: { library } })}
-          className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
-          aria-label="Add book"
-        >
-          <Plus className="h-5 w-5" />
-        </button>
-      );
-    }
-
-    setOptions(options);
-  }, [setOptions, library, navigate, isSharedLibrary]);
-
-  // Reset fetch guard when items are invalidated (e.g., after creating/deleting a book)
-  // This allows refetching when the screen becomes visible again
-  useEffect(() => {
-    if (!itemsState) {
-      fetchingLibraryRef.current = null;
-    }
-  }, [itemsState]);
+  // Scroll to top handler for AppBar title tap
+  const handleScrollToTop = useCallback(() => {
+    pullToRefreshRef.current?.scrollToTop();
+  }, []);
 
   // Fetch items on mount if not already loaded for this library
-  // - hasLoaded: prevents refetch when returning to cached screen
-  // - fetchingLibraryRef: guards against React Strict Mode double-call
   useEffect(() => {
-    const libraryId = library?.id;
-    if (libraryId && !hasLoaded && fetchingLibraryRef.current !== libraryId) {
-      fetchingLibraryRef.current = libraryId;
+    if (libraryId && !hasLoaded) {
       fetchItems(libraryId, true);
     }
-  }, [library?.id, hasLoaded, fetchItems]);
+  }, [libraryId, hasLoaded, fetchItems]);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && nextToken && !isLoading) {
-          loadMoreItems(library.id);
+          loadMoreItems(libraryId);
         }
       },
       { threshold: 0.1 }
@@ -143,14 +107,14 @@ const LibraryContent = () => {
     }
 
     return () => observer.disconnect();
-  }, [nextToken, isLoading, loadMoreItems, library?.id]);
+  }, [nextToken, isLoading, loadMoreItems, libraryId]);
 
   // Pull to refresh handler
   const handleRefresh = useCallback(async () => {
-    if (library?.id) {
-      await fetchItems(library.id, true);
+    if (libraryId) {
+      await fetchItems(libraryId, true);
     }
-  }, [library?.id, fetchItems]);
+  }, [libraryId, fetchItems]);
 
   // Long press on item -> show actions sheet
   const handleItemLongPress = useCallback((item) => {
@@ -172,12 +136,17 @@ const LibraryContent = () => {
     switch (action) {
       case 'edit':
         handleCloseActions();
-        navigate('editBook', { push: true, params: { library, book: item } });
+        // Route to correct edit page based on item type
+        if (item.type === ITEM_TYPE_VIDEO) {
+          navigate(`/libraries/${libraryId}/videos/${item.id}/edit`);
+        } else {
+          navigate(`/libraries/${libraryId}/books/${item.id}/edit`);
+        }
         break;
       case 'lend':
         setIsActionLoading(true);
         try {
-          await lendItem(library.id, item.id, data.personName);
+          await lendItem(libraryId, item.id, data.personName);
           handleCloseActions();
         } catch (err) {
           toast.error(err.message || 'Failed to lend item');
@@ -187,7 +156,7 @@ const LibraryContent = () => {
       case 'return':
         setIsActionLoading(true);
         try {
-          await returnItem(library.id, item.id, item.lentTo);
+          await returnItem(libraryId, item.id, item.lentTo);
           handleCloseActions();
         } catch (err) {
           toast.error(err.message || 'Failed to return item');
@@ -197,7 +166,7 @@ const LibraryContent = () => {
       case 'delete':
         setIsActionLoading(true);
         try {
-          await deleteItem(library.id, item.id);
+          await deleteItem(libraryId, item.id);
           handleCloseActions();
         } catch (err) {
           toast.error(err.message || 'Failed to delete item');
@@ -207,12 +176,35 @@ const LibraryContent = () => {
       default:
         break;
     }
-  }, [library, navigate, deleteItem, lendItem, returnItem, toast, handleCloseActions]);
+  }, [libraryId, navigate, deleteItem, lendItem, returnItem, toast, handleCloseActions]);
+
+  // Render AppBar with appropriate configuration
+  const renderAppBar = () => (
+    <AppBar
+      title={library?.name || 'Library'}
+      subtitle={isSharedLibrary ? `Shared by ${library?.sharedFrom}` : undefined}
+      onTitleClick={handleScrollToTop}
+      headerRight={
+        !isSharedLibrary ? (
+          <button
+            onClick={() => setIsAddItemOpen(true)}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
+            aria-label="Add item"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        ) : undefined
+      }
+    />
+  );
 
   if (!library) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <p className="text-muted-foreground">Library not found</p>
+      <div className="flex flex-col h-full">
+        {renderAppBar()}
+        <div className="flex flex-1 items-center justify-center p-4">
+          <p className="text-muted-foreground">Library not found</p>
+        </div>
       </div>
     );
   }
@@ -220,8 +212,11 @@ const LibraryContent = () => {
   // Initial loading state
   if (isLoading && items.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center p-4">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col h-full">
+        {renderAppBar()}
+        <div className="flex flex-1 items-center justify-center p-4">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
       </div>
     );
   }
@@ -229,42 +224,49 @@ const LibraryContent = () => {
   // Error state (no data)
   if (error && items.length === 0) {
     return (
-      <PullToRefresh onRefresh={handleRefresh} className="h-full">
-        <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
-          <AlertCircle className="h-8 w-8 text-destructive" />
-          <p className="text-sm text-muted-foreground">{error}</p>
-          <p className="text-xs text-muted-foreground">Pull down to retry</p>
-        </div>
-      </PullToRefresh>
+      <div className="flex flex-col h-full">
+        {renderAppBar()}
+        <PullToRefresh onRefresh={handleRefresh} className="flex-1">
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+            <AlertCircle className="h-8 w-8 text-destructive" />
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-xs text-muted-foreground">Pull down to retry</p>
+          </div>
+        </PullToRefresh>
+      </div>
     );
   }
 
   // Empty state with bookshelf illustration
   if (items.length === 0) {
     return (
-      <PullToRefresh onRefresh={handleRefresh} className="h-full">
-        <div className="flex h-full flex-col items-center justify-center gap-4 p-4 text-center">
-          <EmptyBookshelf className="w-32 h-28 text-muted-foreground" />
-          <div className="space-y-1">
-            <p className="text-lg font-medium">No books yet</p>
-            <p className="text-sm text-muted-foreground">
-              {isSharedLibrary
-                ? 'This library is empty.'
-                : 'Add books to this library to see them here.'}
-            </p>
+      <div className="flex flex-col h-full">
+        {renderAppBar()}
+        <PullToRefresh onRefresh={handleRefresh} className="flex-1">
+          <div className="flex h-full flex-col items-center justify-center gap-4 p-4 text-center">
+            <EmptyBookshelf className="w-32 h-28 text-muted-foreground" />
+            <div className="space-y-1">
+              <p className="text-lg font-medium">No books yet</p>
+              <p className="text-sm text-muted-foreground">
+                {isSharedLibrary
+                  ? 'This library is empty.'
+                  : 'Add books to this library to see them here.'}
+              </p>
+            </div>
           </div>
-        </div>
-      </PullToRefresh>
+        </PullToRefresh>
+      </div>
     );
   }
 
   // Items list (unified: standalone + collections, alphabetically sorted)
   return (
-    <>
+    <div className="flex flex-col h-full">
+      {renderAppBar()}
       <PullToRefresh
         ref={pullToRefreshRef}
         onRefresh={handleRefresh}
-        className="h-full"
+        className="flex-1"
       >
         <div className="p-4 space-y-2">
           {sortedList.map((entry, idx) => {
@@ -274,8 +276,13 @@ const LibraryContent = () => {
                   key={`collection-${entry.name}`}
                   name={entry.name}
                   items={entry.items}
-                  onItemClick={(book) => {
-                    navigate('bookDetail', { push: true, params: { library, book } });
+                  onItemClick={(item) => {
+                    // Route to correct detail page based on item type
+                    if (item.type === ITEM_TYPE_VIDEO) {
+                      navigate(`/libraries/${libraryId}/videos/${item.id}`);
+                    } else {
+                      navigate(`/libraries/${libraryId}/books/${item.id}`);
+                    }
                   }}
                   onItemLongPress={isSharedLibrary ? undefined : handleItemLongPress}
                   isSharedLibrary={isSharedLibrary}
@@ -283,12 +290,28 @@ const LibraryContent = () => {
                 />
               );
             }
+            // Render VideoCard for videos, BookCard for books
+            const item = entry.data;
+            if (item.type === ITEM_TYPE_VIDEO) {
+              return (
+                <VideoCard
+                  key={item.id}
+                  video={item}
+                  onClick={(video) => {
+                    navigate(`/libraries/${libraryId}/videos/${video.id}`);
+                  }}
+                  onLongPress={isSharedLibrary ? undefined : handleItemLongPress}
+                  isSharedLibrary={isSharedLibrary}
+                  index={idx}
+                />
+              );
+            }
             return (
               <BookCard
-                key={entry.data.id}
-                book={entry.data}
+                key={item.id}
+                book={item}
                 onClick={(book) => {
-                  navigate('bookDetail', { push: true, params: { library, book } });
+                  navigate(`/libraries/${libraryId}/books/${book.id}`);
                 }}
                 onLongPress={isSharedLibrary ? undefined : handleItemLongPress}
                 isSharedLibrary={isSharedLibrary}
@@ -317,7 +340,15 @@ const LibraryContent = () => {
         onAction={handleAction}
         isLoading={isActionLoading}
       />
-    </>
+
+      {/* Add item type selector */}
+      <AddItemSheet
+        isOpen={isAddItemOpen}
+        onClose={() => setIsAddItemOpen(false)}
+        onSelectBook={() => navigate(`/libraries/${libraryId}/add-book`)}
+        onSelectVideo={() => navigate(`/libraries/${libraryId}/add-video`)}
+      />
+    </div>
   );
 };
 

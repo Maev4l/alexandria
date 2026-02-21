@@ -9,8 +9,19 @@ type BookResolver interface {
 	Name() string
 }
 
+// VideoResolver resolves video metadata from external sources
+type VideoResolver interface {
+	// ResolveByTitle searches for videos by title
+	ResolveByTitle(title string, ch chan []domain.ResolvedVideo)
+	Name() string
+}
+
 type Services interface {
 	ResolveBook(code string) []domain.ResolvedBook
+	// ResolveVideo resolves video metadata from title (extracted via OCR or manual input)
+	ResolveVideo(title string) []domain.ResolvedVideo
+	// ExtractTextFromImage extracts text from an image using OCR
+	ExtractTextFromImage(imageBase64 string) (string, error)
 	CreateLibrary(l *domain.Library) (*domain.Library, error)
 	UpdateLibrary(l *domain.Library) error
 	DeleteLibrary(l *domain.Library) error

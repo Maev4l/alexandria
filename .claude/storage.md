@@ -6,8 +6,9 @@ The data are stored in a DynamoDB table, with a single table design with 2 Globa
 
 | Entity | EntityType | Description |
 |--------|------------|-------------|
-| LIBRARY | `LIBRARY` | User's book collection |
+| LIBRARY | `LIBRARY` | User's media collection |
 | BOOK | `BOOK` | Book item within a library |
+| VIDEO | `VIDEO` | Video item (DVD/Bluray) within a library |
 | EVENT | `EVENT` | Lending/return history entry |
 | SHARED_LIBRARY | `SHARED_LIBRARY` | Pointer to a library shared with another user |
 
@@ -19,12 +20,13 @@ The data are stored in a DynamoDB table, with a single table design with 2 Globa
 |--------|-----|-----|
 | LIBRARY | `owner#<OwnerId>` | `library#<LibraryId>` |
 | BOOK | `owner#<OwnerId>` | `library#<LibraryId>#item#<ItemId>` |
+| VIDEO | `owner#<OwnerId>` | `library#<LibraryId>#item#<ItemId>` |
 | EVENT | `owner#<OwnerId>` | `library#<LibraryId>#item#<ItemId>#event#<timestamp>` |
 | SHARED_LIBRARY | `owner#<SharedToId>` | `shared-library#<LibraryId>` |
 
 **Access patterns:**
 - Get all libraries for user: `PK = owner#<userId>` + `SK begins_with library#`
-- Get all items in library: `PK = owner#<userId>` + `SK begins_with library#<libId>#item#`
+- Get all items in library: `PK = owner#<userId>` + `SK begins_with library#<libId>#item#` (returns both BOOKs and VIDEOs)
 - Get all events for item: `PK = owner#<userId>` + `SK begins_with library#<libId>#item#<itemId>#event#`
 - Get shared libraries: `PK = owner#<userId>` + `SK begins_with shared-library#`
 
@@ -37,6 +39,8 @@ The data are stored in a DynamoDB table, with a single table design with 2 Globa
 | LIBRARY | `owner#<OwnerId>` | `library#<LibraryName>` |
 | BOOK (in collection) | `owner#<OwnerId>#library#<LibraryId>` | `item#<Collection>#<Order 5-digits>#<Title>` |
 | BOOK (standalone) | `owner#<OwnerId>#library#<LibraryId>` | `item#<Title>` |
+| VIDEO (in collection) | `owner#<OwnerId>#library#<LibraryId>` | `item#<Collection>#<Order 5-digits>#<Title>` |
+| VIDEO (standalone) | `owner#<OwnerId>#library#<LibraryId>` | `item#<Title>` |
 | EVENT | `owner#<OwnerId>#library#<LibraryId>#item#<ItemId>` | `event#<timestamp>` |
 
 **GSI1SK Examples:**
@@ -56,14 +60,15 @@ item#Effondrement                                ← standalone
 
 ### GSI2: Cross-Library Title Search
 
-**Purpose**: Search/sort all books across ALL user's libraries by title
+**Purpose**: Search/sort all items across ALL user's libraries by title
 
 | Entity | GSI2PK | GSI2SK |
 |--------|--------|--------|
 | BOOK | `owner#<OwnerId>` | `item#<Title>` |
+| VIDEO | `owner#<OwnerId>` | `item#<Title>` |
 
 **Access patterns:**
-- `GSI2PK = owner#X` → all books across all libraries, sorted by title
+- `GSI2PK = owner#X` → all items (books + videos) across all libraries, sorted by title
 - Used by fuzzy search feature
 
 ### Entity Attributes
@@ -93,6 +98,27 @@ item#Effondrement                                ← standalone
 | Collection | Optional collection name |
 | Order | Position in collection (1-1000, stored as 5-digit padded in GSI1SK) |
 | Type | Item type (0 = Book) |
+| LentTo | Name of borrower (null if not lent) |
+| LibraryName | Denormalized for display |
+| OwnerName | Denormalized for display |
+
+#### VIDEO
+| Attribute | Description |
+|-----------|-------------|
+| OwnerId | User ID |
+| LibraryId | Parent library UUID |
+| ItemId | UUID |
+| Title | Video title |
+| Summary | Video plot/description |
+| Directors | Array of director names |
+| Cast | Array of actor names (top 5) |
+| ReleaseYear | Year of release |
+| Duration | Runtime in minutes |
+| TmdbId | TMDB movie ID (for future lookups) |
+| PictureUrl | Poster image URL |
+| Collection | Optional collection name |
+| Order | Position in collection (1-1000, stored as 5-digit padded in GSI1SK) |
+| Type | Item type (1 = Video) |
 | LentTo | Name of borrower (null if not lent) |
 | LibraryName | Denormalized for display |
 | OwnerName | Denormalized for display |

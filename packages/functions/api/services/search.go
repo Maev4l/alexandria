@@ -40,6 +40,7 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 	defer func() { _ = reader.Close() }()
 
 	// Build text query with prefix matching (wildcard) and fuzzy fallback
+	// Searches: title, authors (books), directors (videos), cast (videos), collection
 	textQuery := bluge.NewBooleanQuery()
 	for _, term := range terms {
 		termLower := strings.ToLower(term)
@@ -48,11 +49,15 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		// Prefix matching (e.g., "drag" matches "dragons")
 		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("title"))
 		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("authors"))
+		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("directors"))
+		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("cast"))
 		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("collection"))
 
 		// Fuzzy matching for typos (e.g., "dragns" matches "dragons")
 		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("title"))
 		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("authors"))
+		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("directors"))
+		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("cast"))
 		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("collection"))
 
 		textQuery.AddMust(termQuery)
