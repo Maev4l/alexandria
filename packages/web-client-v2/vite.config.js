@@ -24,7 +24,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "logo144.png"],
+      includeAssets: ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "logo144.png", "logo180.png", "logo192.png", "logo512.png"],
       manifest: {
         name: "Alexandria",
         short_name: "Alexandria",
@@ -32,6 +32,7 @@ export default defineConfig({
         theme_color: "#1a1a2e",
         background_color: "#1a1a2e",
         display: "standalone",
+        orientation: "portrait",
         scope: "/",
         start_url: "/",
         icons: [
@@ -41,20 +42,25 @@ export default defineConfig({
             type: "image/png",
           },
           {
-            src: "logo192.svg",
+            src: "logo180.png",
+            sizes: "180x180",
+            type: "image/png",
+          },
+          {
+            src: "logo192.png",
             sizes: "192x192",
-            type: "image/svg+xml",
+            type: "image/png",
           },
           {
-            src: "logo512.svg",
+            src: "logo512.png",
             sizes: "512x512",
-            type: "image/svg+xml",
+            type: "image/png",
           },
           {
-            src: "logo512.svg",
+            src: "logo512.png",
             sizes: "512x512",
-            type: "image/svg+xml",
-            purpose: "any maskable",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
