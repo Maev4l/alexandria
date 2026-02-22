@@ -268,7 +268,7 @@ func fullResync() error {
 					batchSize = 0
 				}
 
-			case persistence.TypSharedLibrary:
+			case persistence.TypeSharedLibrary:
 				var shared persistence.SharedLibrary
 				if err := attributevalue.UnmarshalMap(item, &shared); err != nil {
 					log.Warn().Msgf("Failed to unmarshal shared library: %s", err.Error())
@@ -488,7 +488,7 @@ func streamHandler(event events.DynamoDBEvent) error {
 				log.Info().Str("itemId", item.Id).Str("type", string(entityType)).Msg("Item removed from index")
 			}
 
-		case persistence.TypSharedLibrary:
+		case persistence.TypeSharedLibrary:
 			switch record.EventName {
 			case "INSERT":
 				var shared persistence.SharedLibrary

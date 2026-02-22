@@ -81,17 +81,17 @@ type GetItemResponse interface {
 }
 
 type GetItemResponseBase struct {
-	Id         string          `json:"id"`
-	Type       domain.ItemType `json:"type"`
-	Title      string          `json:"title"`
-	Picture    *string         `json:"picture,omitempty"`
-	PictureUrl *string         `json:"pictureUrl,omitempty"`
-	LibraryId  *string         `json:"libraryId,omitempty"`
-	LibrayName *string         `json:"libraryName,omitempty"`
-	OwnerId    string          `json:"ownerId"`
-	LentTo     *string         `json:"lentTo,omitempty"`
-	Collection *string         `json:"collection,omitempty"`
-	Order      *int            `json:"order,omitempty"`
+	Id          string          `json:"id"`
+	Type        domain.ItemType `json:"type"`
+	Title       string          `json:"title"`
+	Picture     *string         `json:"picture,omitempty"`
+	PictureUrl  *string         `json:"pictureUrl,omitempty"`
+	LibraryId   *string         `json:"libraryId,omitempty"`
+	LibraryName *string         `json:"libraryName,omitempty"`
+	OwnerId     string          `json:"ownerId"`
+	LentTo      *string         `json:"lentTo,omitempty"`
+	Collection  *string         `json:"collection,omitempty"`
+	Order       *int            `json:"order,omitempty"`
 }
 
 func (g GetItemResponseBase) getType() string { return "" }

@@ -66,3 +66,312 @@ It is written in Golang.
 
 Related to the search feature: @search.md.
 
+## Infrastructure Split: Terraform / Serverless
+
+The backend infrastructure is split between Terraform (base resources) and Serverless Framework v4 (Lambda functions + API Gateway).
+
+**Deployment order**: Terraform first → Serverless second
+
+### Terraform (deploy first)
+
+Source: `infrastructure/` folder
+
+| Resource | Notes |
+|----------|-------|
+| DynamoDB Table + Stream | Outputs: table ARN, stream ARN |
+| S3 Bucket (pictures) | Output: bucket ARN |
+| Cognito User Pool | NO Lambda trigger (Serverless adds it via `existing: true`) |
+| Cognito User Pool Client | - |
+| IAM Roles (all 5) | Use known resource names for ARNs |
+| API Gateway Domain Name | Regional endpoint for `api-alexandria.isnan.eu` |
+| Route53 Records | A/AAAA alias to regional domain |
+
+### Serverless (deploy second)
+
+Source: `packages/functions/serverless.yaml`
+
+| Resource | Reason |
+|----------|--------|
+| Lambda functions | Core of Serverless Framework |
+| API Gateway REST API | Implicit, created by `http` events |
+| API Gateway Authorizer | Needs implicit `RestApiId` |
+| Base Path Mapping | Needs implicit `RestApiId` (connects domain → API) |
+| Cognito trigger (PreSignUp) | Via `existing: true`, attaches to TF-created pool |
+| Event Source Mappings | DynamoDB stream triggers, S3 triggers |
+
+### Traffic Flow (Custom Domain)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TERRAFORM                                                                   │
+│                                                                             │
+│  api-alexandria.isnan.eu                                                    │
+│         │                                                                   │
+│         ▼                                                                   │
+│  ┌─────────────────┐         ┌─────────────────────┐                       │
+│  │ Route53 A/AAAA  │────────►│ API GW Domain Name  │                       │
+│  │ (alias)         │         │ (REGIONAL endpoint) │                       │
+│  └─────────────────┘         └─────────────────────┘                       │
+│                                        │                                    │
+└────────────────────────────────────────┼────────────────────────────────────┘
+                                         │ domain exists, needs routing
+                                         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ SERVERLESS                                                                  │
+│                                                                             │
+│  ┌─────────────────┐         ┌─────────────────────┐                       │
+│  │ Base Path       │────────►│ API Gateway REST    │                       │
+│  │ Mapping         │         │ API (implicit)      │                       │
+│  │ (/ → dev stage) │         └──────────┬──────────┘                       │
+│  └─────────────────┘                    │                                   │
+│                                         ▼                                   │
+│                              ┌─────────────────────┐                       │
+│                              │ Lambda functions    │                       │
+│                              └─────────────────────┘                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why This Split?
+
+**Cannot move to Terraform** (single phase):
+- **API Gateway REST API**: Implicitly created by Serverless `http` events
+- **API Gateway Authorizer**: Requires `RestApiId` from implicit REST API
+- **Base Path Mapping**: Requires `RestApiId` to connect domain → API
+- **Event Source Mappings**: Need Lambda ARNs (created by Serverless)
+
+**Serverless references Terraform outputs** (v4 syntax):
+```yaml
+custom:
+  dynamoDbStreamArn: ${terraform:outputs.dynamodb_stream_arn}
+  cognitoUserPoolArn: ${terraform:outputs.cognito_user_pool_arn}
+```
+
+### Migration Procedure
+
+When migrating from Serverless-managed resources to Terraform, follow this procedure to preserve data.
+
+#### 1. Backup DynamoDB Data
+
+```bash
+# Create on-demand backup
+aws dynamodb create-backup \
+  --table-name alexandria \
+  --backup-name alexandria-pre-terraform-$(date +%Y%m%d) \
+  --region eu-central-1
+
+# Note the BackupArn from the output
+```
+
+#### 2. Backup S3 Data (pictures + index)
+
+```bash
+# Sync to local backup
+aws s3 sync s3://alexandria-pictures ./backup-pictures --region eu-central-1
+
+# Or copy to another bucket
+aws s3 sync s3://alexandria-pictures s3://alexandria-backup-$(date +%Y%m%d) --region eu-central-1
+```
+
+#### 3. Export Cognito Users (if needed)
+
+```bash
+# List users (for reference, users stay in pool)
+aws cognito-idp list-users \
+  --user-pool-id <user-pool-id> \
+  --region eu-central-1 > cognito-users-backup.json
+```
+
+#### 4. Remove Resources from Serverless Stack
+
+```bash
+cd packages/functions
+serverless remove
+```
+
+#### 5. Deploy Terraform Infrastructure
+
+```bash
+cd infrastructure
+terraform init
+terraform apply
+```
+
+#### 6. Restore DynamoDB Data
+
+```bash
+# Delete the empty table created by Terraform
+aws dynamodb delete-table --table-name alexandria --region eu-central-1
+
+# Wait for deletion
+aws dynamodb wait table-not-exists --table-name alexandria --region eu-central-1
+
+# Restore from backup
+aws dynamodb restore-table-from-backup \
+  --target-table-name alexandria \
+  --backup-arn <backup-arn-from-step-1> \
+  --region eu-central-1
+
+# Wait for restore
+aws dynamodb wait table-exists --table-name alexandria --region eu-central-1
+
+# Import into Terraform state
+cd infrastructure
+terraform import aws_dynamodb_table.alexandria alexandria
+```
+
+#### 7. Restore S3 Data
+
+```bash
+# Sync back from backup
+aws s3 sync ./backup-pictures s3://alexandria-pictures --region eu-central-1
+```
+
+#### 8. Deploy Serverless (Lambdas only)
+
+```bash
+cd packages/functions
+serverless deploy
+```
+
+#### Verification Checklist
+
+- [ ] DynamoDB table has data (check item count)
+- [ ] DynamoDB stream is enabled
+- [ ] S3 bucket has pictures + index
+- [ ] Cognito User Pool exists with users
+- [ ] API Gateway responds at `api-alexandria.isnan.eu`
+- [ ] Lambda functions are deployed and connected to triggers
+
+## Code Improvements Backlog
+
+### Critical Issues
+
+| Issue | Location | Impact |
+|-------|----------|--------|
+| **Typo: `LibrayName`** | `api/handlers/models.go:90` | API contract inconsistency with frontend |
+| **Global mutable state** | `api/services/lookup_book.go:12`, `lookup_video.go:13` | Thread safety, untestable resolvers |
+| **Silent errors in unmarshal** | `api/repositories/dynamodb/items.go:135,619` | Data corruption risk - logs warning but uses uninitialized record |
+| **`context.TODO()` everywhere** | All DynamoDB/S3 calls | No timeout propagation, requests can hang indefinitely |
+| **Generic error messages** | All handlers | Same message for all failures makes debugging hard |
+
+### Code Duplication (~200 lines recoverable)
+
+| Pattern | Locations | Fix |
+|---------|-----------|-----|
+| Request binding (6 lines each) | 10 handlers in `items.go`, `libraries.go`, `detection.go`, `search.go` | Extract `bindJSON[T]()` middleware |
+| Item response building | `items.go:520-553`, `search.go:42-75` | Extract `buildItemResponse()` helper |
+| Collection/Order normalization | `items.go:197-205`, `288-296`, `359-367`, `432-440` | Extract `normalizeCollectionOrder()` |
+| DynamoDB record → domain mapping | `items.go:253-282`, `313-340`, `616-645` | Extract `mapPersistenceItemToDomain()` |
+| Resolver orchestration | `lookup_book.go`, `lookup_video.go` (80% identical) | Generic `ResolveParallel[T]()` using Go generics |
+
+### Go Best Practices
+
+| Issue | Locations | Recommendation |
+|-------|-----------|----------------|
+| Magic numbers | `items.go:45-46` (order 1-1000), `items.go:150` (page size 20), `index-items/main.go:222` (batch 100) | Define constants: `MinCollectionOrder`, `MaxCollectionOrder`, `MaxPageSize`, `IndexBatchSize` |
+| Deferred close ignores errors | Multiple `defer func() { _ = reader.Close() }()` | Log close errors: `if err := reader.Close(); err != nil { log.Error()... }` |
+| Missing nil checks | Inconsistent across handlers | Apply consistently before pointer dereference |
+| Error wrapping loses context | `services/libraries.go:14-17` | Use `fmt.Errorf("getting library: %w", err)` |
+| Missing tests | No unit tests found | Add test infrastructure with mocks for ports |
+
+### API Consistency Issues
+
+| Issue | Details |
+|-------|---------|
+| Mixed null/optional handling | `Picture` (base64) vs `PictureUrl` represent same concept differently |
+| Collection/Order invariant | Both required if either set, but validation only at handler level |
+| Inconsistent pagination token | Internal `continuationToken` vs API `nextToken` |
+| Video field optionality | `ReleaseYear`/`Duration` non-optional in models but optional in domain |
+
+### Prioritized Action Items
+
+**Week 1 (Critical):**
+- [ ] Fix `LibrayName` → `LibraryName` typo (coordinate with frontend)
+- [ ] Refactor resolvers to inject via DI instead of global `init()`
+- [ ] Extract request binding middleware
+- [ ] Propagate `context.Context` through repository layer
+
+**Week 2 (Quality):**
+- [ ] Create custom error types (`NotFoundError`, `ValidationError`)
+- [ ] Extract duplicate item response building
+- [ ] Define constants for magic numbers
+- [ ] Fix silent error handling in unmarshal
+
+**Week 3 (Testing):**
+- [ ] Add mock implementations for ports
+- [ ] Unit tests for handlers (validation, error paths)
+- [ ] Unit tests for services (business logic)
+- [ ] Integration tests for sharing flow
+
+### DynamoDB Data Model
+
+#### Schema Overview
+
+Single table `alexandria` with composite primary key + 2 GSIs:
+
+```
+Table: alexandria
+├── PK (Hash)     - Partition key
+├── SK (Range)    - Sort key
+├── GSI1 (GSI1PK, GSI1SK) - Query-focused
+└── GSI2 (GSI2PK, GSI2SK) - Owner-wide searches
+```
+
+#### Entity Key Patterns
+
+| Entity | PK | SK | GSI1PK | GSI1SK |
+|--------|----|----|--------|--------|
+| LIBRARY | `owner#<ownerId>` | `library#<libraryId>` | `owner#<ownerId>` | `library#<name>` |
+| LIBRARY_ITEM | `owner#<ownerId>` | `library#<libId>#item#<itemId>` | `owner#<ownerId>#library#<libId>` | `item#<collection>#<order>#<title>` |
+| SHARED_LIBRARY | `owner#<recipientId>` | `shared-library#<libraryId>` | - | - |
+| ITEM_EVENT | `owner#<ownerId>` | `library#<libId>#item#<itemId>#event#<ISO8601>` | `owner#<ownerId>#library#<libId>#item#<itemId>` | `event#<ISO8601>` |
+
+#### GSI1SK Complexity
+
+`persistence/models.go:93-100`: Sort key format varies based on collection/order presence:
+- With collection: `item#<collection>#<order_padded_5digits>#<title>`
+- Without: `item#<title>`
+
+#### Denormalization (Intentional)
+
+| Field | Duplicated In | Updated By |
+|-------|---------------|------------|
+| `LibraryName` | Every LIBRARY_ITEM | consistency-manager stream |
+| `OwnerName`/`OwnerId` | LIBRARY, LIBRARY_ITEM, SHARED_LIBRARY | consistency-manager stream |
+| GSI1SK/GSI2SK | Computed on write | Repository layer |
+
+#### Eventual Consistency Windows
+
+| Operation | Lag | Reason |
+|-----------|-----|--------|
+| Library rename | ~100ms | consistency-manager updates items via stream |
+| New item | ~100ms | indexer updates Bluge index via stream |
+| Share/unshare | Immediate (DynamoDB), ~100ms (search) | Async S3 manifest update |
+
+#### DynamoDB Issues
+
+| Issue | Location | Impact | Fix |
+|-------|----------|--------|-----|
+| **Typo: `TypSharedLibrary`** | `persistence/models.go:12` | Inconsistent naming | Rename to `TypeSharedLibrary` |
+| ~~**Delete queries main table**~~ | `libraries.go:63` | ~~Full PK scan instead of GSI1~~ | ✅ Correct: main table is optimal (single PK, SK prefix matches all). See optimizations below. |
+| **Read-modify-write race** | `UnshareLibrary` in `libraries.go:302-350` | Concurrent unshare can lose updates | Use SET expressions directly |
+| ~~**Negative order allowed**~~ | `persistence.go:72` | ~~`*int` allows -1, breaks `%05d` padding sort~~ | ✅ Fixed: validation now enforces 1-1000 |
+| **Encrypted pagination tokens** | `items.go:33-100` | AES-GCM overhead per page | Consider plain base64 if internal-only |
+| **Manual batch chunking** | `libraries.go:114` | Unnecessary - SDK handles batching | Remove `slices.ChunkBy` |
+
+#### Recommendations
+
+**Schema:**
+- Document all key patterns in a single reference file
+- Add validation at domain level for collection/order invariant
+- Consider splitting `LIBRARY_ITEM` if video attributes diverge significantly
+
+**Performance:**
+- Measure encrypted token overhead vs security benefit
+- Consider caching owner metadata (static after creation)
+
+**DeleteLibrary optimizations** (`libraries.go:58-129`):
+- Add `ProjectionExpression: "PK, SK"` to reduce data transfer (currently fetches all attributes)
+- Handle `UnprocessedItems` in BatchWriteItem response with retry logic
+- Remove `slices.ChunkBy(records, 25)` - redundant since query already uses `Limit: 25`
+

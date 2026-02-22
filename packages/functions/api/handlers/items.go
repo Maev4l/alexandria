@@ -42,7 +42,8 @@ func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 			return errors.New("invalid request - collection order must be specified")
 		}
 
-		if *item.Order < 0 || *item.Order > 1000 {
+		// Order must be positive (1-1000) for correct GSI1SK sorting with %05d padding
+		if *item.Order < 1 || *item.Order > 1000 {
 			return errors.New("invalid request - invalid collection order (must be between 1 and 1000)")
 		}
 	}
@@ -518,17 +519,17 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 		}
 
 		baseResponse := GetItemResponseBase{
-			Id:         i.Id,
-			Type:       i.Type,
-			Title:      i.Title,
-			Picture:    encodedPicture,
-			LibraryId:  &i.LibraryId,
-			LibrayName: &i.LibraryName,
-			LentTo:     i.LentTo,
-			OwnerId:    i.OwnerId,
-			Collection: i.Collection,
-			Order:      i.Order,
-			PictureUrl: i.PictureUrl,
+			Id:          i.Id,
+			Type:        i.Type,
+			Title:       i.Title,
+			Picture:     encodedPicture,
+			LibraryId:   &i.LibraryId,
+			LibraryName: &i.LibraryName,
+			LentTo:      i.LentTo,
+			OwnerId:     i.OwnerId,
+			Collection:  i.Collection,
+			Order:       i.Order,
+			PictureUrl:  i.PictureUrl,
 		}
 
 		switch i.Type {

@@ -359,7 +359,7 @@ func (d *dynamo) ShareLibrary(s *domain.ShareLibrary) error {
 		SharedFromId:   s.SharedFromUserId,
 		SharedFromName: s.SharedFromUserName,
 		UpdatedAt:      s.UpdatedAt,
-		EntityType:     persistence.TypSharedLibrary,
+		EntityType:     persistence.TypeSharedLibrary,
 	}
 	item, err := attributevalue.MarshalMap(record)
 	if err != nil {

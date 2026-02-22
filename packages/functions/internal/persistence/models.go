@@ -8,11 +8,11 @@ import (
 type EntityType string
 
 const (
-	TypeLibrary      EntityType = "LIBRARY"
-	TypSharedLibrary EntityType = "SHARED_LIBRARY"
-	TypeBook         EntityType = "BOOK"
-	TypeVideo        EntityType = "VIDEO"
-	TypeEvent        EntityType = "EVENT"
+	TypeLibrary       EntityType = "LIBRARY"
+	TypeSharedLibrary EntityType = "SHARED_LIBRARY"
+	TypeBook          EntityType = "BOOK"
+	TypeVideo         EntityType = "VIDEO"
+	TypeEvent         EntityType = "EVENT"
 )
 
 type Library struct {
@@ -91,13 +91,14 @@ func MakeLibraryItemGSI1PK(ownerId string, libraryId string) string {
 }
 
 func MakeLibraryItemGSI1SK(itemTitle string, collection *string, order *int) string {
-	if (collection == nil || len(*collection) == 0) && (order == nil || *order < 0) {
+	// If no collection or no valid order (must be >= 1), use simple title-only format
+	if (collection == nil || len(*collection) == 0) && (order == nil || *order < 1) {
 		return fmt.Sprintf("item#%s", itemTitle)
 	}
 
+	// Order padded to 5 digits for correct lexicographic sorting (00001-01000)
 	orderStr := fmt.Sprintf("%05d", *order)
 	return fmt.Sprintf("item#%s#%s#%s", *collection, orderStr, itemTitle)
-
 }
 
 func MakeLibraryItemGSI2PK(ownerId string) string {
