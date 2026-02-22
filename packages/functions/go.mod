@@ -1,6 +1,6 @@
 module alexandria.isnan.eu/functions
 
-go 1.23
+go 1.24
 
 require (
 	github.com/aereal/go-dynamodb-attribute-conversions/v2 v2.0.24
@@ -24,14 +24,16 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lestrrat-go/jwx v1.2.28
 	github.com/microcosm-cc/bluemonday v1.0.26
+	github.com/refraction-networking/utls v1.8.2
 	github.com/rs/zerolog v1.32.0
 	github.com/skowalak/isbn v0.0.0-20240205221643-aa3ad5df03ab
-	golang.org/x/text v0.14.0
+	golang.org/x/text v0.23.0
 )
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/RoaringBitmap/roaring v1.2.3 // indirect
+	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/antchfx/htmlquery v1.2.3 // indirect
 	github.com/antchfx/xmlquery v1.2.4 // indirect
@@ -105,9 +107,9 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.7.0 // indirect
-	golang.org/x/crypto v0.21.0 // indirect
-	golang.org/x/net v0.22.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

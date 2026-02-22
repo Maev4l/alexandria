@@ -1,11 +1,16 @@
+// Edited by Claude.
 package resolvers
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"html"
 	"io"
+	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -16,15 +21,44 @@ import (
 	"alexandria.isnan.eu/functions/internal/domain"
 	"golang.org/x/text/encoding/charmap"
 
-	"github.com/corpix/uarand"
 	"github.com/gocolly/colly"
-	"github.com/gocolly/colly/extensions"
+	utls "github.com/refraction-networking/utls"
 	"github.com/rs/zerolog/log"
 )
+
+// Modern user agents (updated 2024) - desktop browsers commonly used in France
+var userAgents = []string{
+	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+	"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+	"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+}
+
+// randomUserAgent returns a random user agent from the curated list
+func randomUserAgent() string {
+	return userAgents[rand.Intn(len(userAgents))]
+}
 
 type babelioResolver struct {
 	client *http.Client
 	url    string
+}
+
+// Common browser headers to mimic real browser behavior
+var browserHeaders = map[string]string{
+	"Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+	"Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+	"Accept-Encoding": "gzip, deflate, br",
+	"Connection":      "keep-alive",
+	"Cache-Control":   "no-cache",
+}
+
+// randomDelay adds a random delay between min and max milliseconds
+// to avoid detection by rate limiters
+func randomDelay(minMs, maxMs int) {
+	delay := time.Duration(minMs+rand.Intn(maxMs-minMs)) * time.Millisecond
+	time.Sleep(delay)
 }
 
 type babelioSearchResult struct {
@@ -49,9 +83,14 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	jsonSearchPayload, _ := json.Marshal(searchRequestPayload)
 	searchRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/aj_recherche.php", r.url), bytes.NewBuffer(jsonSearchPayload))
 	searchRequest.Host = "www.babelio.com"
-	searchRequest.Header.Set("User-Agent", uarand.GetRandom())
+	searchRequest.Header.Set("User-Agent", randomUserAgent())
 	searchRequest.Header.Set("Origin", r.url)
 	searchRequest.Header.Set("Referer", fmt.Sprintf("%s/recherche.php", r.url))
+	searchRequest.Header.Set("Content-Type", "application/json")
+	// Add browser headers to blend in
+	for k, v := range browserHeaders {
+		searchRequest.Header.Set(k, v)
+	}
 
 	searchResponse, err := r.client.Do(searchRequest)
 	if err != nil {
@@ -89,8 +128,28 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	foundBook := searchResult[0]
 	foundUrl := fmt.Sprintf("https://www.babelio.com%s", foundBook.Url)
 
+	// Random delay between search and scrape to mimic human behavior (500-1500ms)
+	randomDelay(500, 1500)
+
+	// Use same browser-like transport for colly
 	c := colly.NewCollector()
-	extensions.RandomUserAgent(c)
+	c.WithTransport(createBrowserTransport())
+
+	// Share cookies from search response to maintain session
+	if cookies := searchResponse.Cookies(); len(cookies) > 0 {
+		parsedUrl, _ := url.Parse(r.url)
+		c.SetCookies(parsedUrl.String(), cookies)
+	}
+
+	// Add browser headers on each request
+	c.OnRequest(func(req *colly.Request) {
+		req.Headers.Set("User-Agent", randomUserAgent())
+		req.Headers.Set("Referer", fmt.Sprintf("%s/recherche.php", r.url))
+		for k, v := range browserHeaders {
+			req.Headers.Set(k, v)
+		}
+	})
+
 	resolvedBook := domain.ResolvedBook{
 		Id:      fmt.Sprintf("%s#%s", r.Name(), foundBook.Id),
 		Source:  r.Name(),
@@ -123,12 +182,19 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		data := url.Values{}
 		data.Set("type", matches[1])
 		data.Set("id_obj", matches[2])
+		// Small delay before fetching expanded summary
+		randomDelay(200, 500)
+
 		moreSummaryRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/aj_voir_plus_a.php", r.url), strings.NewReader(data.Encode()))
 		moreSummaryRequest.Host = "www.babelio.com"
-		moreSummaryRequest.Header.Set("User-Agent", uarand.GetRandom())
+		moreSummaryRequest.Header.Set("User-Agent", randomUserAgent())
 		moreSummaryRequest.Header.Set("Origin", r.url)
 		moreSummaryRequest.Header.Set("Referer", foundUrl)
 		moreSummaryRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+		// Add browser headers
+		for k, v := range browserHeaders {
+			moreSummaryRequest.Header.Set(k, v)
+		}
 
 		moreSummaryResponse, err := r.client.Do(moreSummaryRequest)
 		if err != nil {
@@ -189,9 +255,53 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	ch <- []domain.ResolvedBook{resolvedBook}
 }
 
+// createBrowserTransport creates an HTTP transport that mimics a real browser
+// - Uses uTLS to spoof Chrome's TLS fingerprint (JA3)
+// - Forces HTTP/1.1 to avoid HTTP/2 fingerprinting
+func createBrowserTransport() *http.Transport {
+	return &http.Transport{
+		// Force HTTP/1.1 to avoid HTTP/2 fingerprinting
+		ForceAttemptHTTP2: false,
+		// Disable HTTP/2 entirely
+		TLSNextProto: make(map[string]func(authority string, c *tls.Conn) http.RoundTripper),
+		// Use uTLS to mimic Chrome's TLS fingerprint
+		DialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			// Establish TCP connection
+			dialer := &net.Dialer{Timeout: 10 * time.Second}
+			conn, err := dialer.DialContext(ctx, network, addr)
+			if err != nil {
+				return nil, err
+			}
+
+			// Extract hostname for SNI
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				host = addr
+			}
+
+			// Create uTLS connection mimicking Chrome 120
+			tlsConfig := &utls.Config{
+				ServerName: host,
+			}
+			tlsConn := utls.UClient(conn, tlsConfig, utls.HelloChrome_120)
+
+			// Perform TLS handshake
+			if err := tlsConn.Handshake(); err != nil {
+				conn.Close()
+				return nil, err
+			}
+
+			return tlsConn, nil
+		},
+	}
+}
+
 func NewBabelioResolver() ports.BookResolver {
 	return &babelioResolver{
-		client: &http.Client{Timeout: 3 * time.Second},
-		url:    "https://www.babelio.com",
+		client: &http.Client{
+			Timeout:   5 * time.Second,
+			Transport: createBrowserTransport(),
+		},
+		url: "https://www.babelio.com",
 	}
 }
