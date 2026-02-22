@@ -2,7 +2,7 @@
 // Horizontal scrolling collection card for displaying grouped items (books + videos)
 // Items are displayed as cover thumbnails with horizontal scroll
 import { useRef, useCallback } from 'react';
-import { BookOpen, Film } from 'lucide-react';
+import { BookOpen, Film, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STAGGER_DELAY = 50; // ms per item for staggered animation
@@ -77,6 +77,13 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary }) => {
           )}
         </div>
 
+        {/* Subtle order indicator - bottom right corner */}
+        {item.order != null && (
+          <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-muted border border-border text-[10px] font-medium text-muted-foreground flex items-center justify-center">
+            {item.order}
+          </div>
+        )}
+
         {/* Lent ribbon overlay - consistent with standalone items */}
         {isLent && !isSharedLibrary && <div className="lent-ribbon" />}
       </div>
@@ -89,13 +96,18 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary }) => {
   );
 };
 
-const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLibrary = false, index }) => {
+const CollectionCard = ({ name, items, onItemClick, onItemLongPress, onAddItem, isSharedLibrary = false, index }) => {
   const itemCount = items.length;
 
   // Staggered animation style
   const animationStyle = index != null
     ? { animationDelay: `${index * STAGGER_DELAY}ms` }
     : undefined;
+
+  const handleAddClick = useCallback((e) => {
+    e.stopPropagation();
+    onAddItem?.(name);
+  }, [name, onAddItem]);
 
   return (
     <div
@@ -109,10 +121,22 @@ const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLib
     >
       {/* Collection header - muted background for contrast */}
       <div className="flex items-center justify-between px-3 py-2.5 bg-muted/50 border-b border-border/50">
-        <h3 className="font-medium">{name}</h3>
-        <span className="text-sm text-muted-foreground">
-          {itemCount} {itemCount === 1 ? 'item' : 'items'}
-        </span>
+        <div className="flex flex-col">
+          <h3 className="font-medium">{name}</h3>
+          <span className="text-xs text-muted-foreground">
+            {itemCount} {itemCount === 1 ? 'item' : 'items'}
+          </span>
+        </div>
+        {/* Add button - only for owned libraries */}
+        {onAddItem && !isSharedLibrary && (
+          <button
+            onClick={handleAddClick}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            aria-label={`Add item to ${name}`}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Horizontal scrolling items - card background */}

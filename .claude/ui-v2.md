@@ -104,7 +104,7 @@ packages/web-client-v2/
     │   ├── LibraryCard.jsx # Compact card with long press support
     │   ├── BookCard.jsx    # Book item card with cover image + optional order number
     │   ├── VideoCard.jsx   # Video item card with poster image + optional order number
-    │   ├── CollectionCard.jsx # Collapsible card for grouped items (books + videos) in a collection
+    │   ├── CollectionCard.jsx # Horizontal scroll card for grouped items (books + videos) in a collection
     │   ├── AddItemSheet.jsx    # Action sheet for choosing item type (Book/Video)
     │   ├── LibraryActionsSheet.jsx  # Actions: Edit, Share (inline), Unshare, Delete
     │   ├── ItemActionsSheet.jsx  # Actions: Edit, Lend, Delete (for items)
@@ -306,131 +306,49 @@ packages/web-client-v2/
 - [x] Search: unified results for books and videos, navigates to appropriate detail page
 
 
+## Future Enhancements
 
-## UI Revamp
+### Quick Wins (Low Effort)
 
-Two design directions for future visual enhancements.
+| # | Feature | Description |
+|---|---------|-------------|
+| 1 | Loading skeletons | Replace spinners with shimmer/skeleton placeholders matching card shapes |
+| 2 | Haptic feedback | Add `navigator.vibrate(10)` on long-press and button taps |
+| 3 | Page transitions | Slide-in for stack navigation, fade for tab switches |
+| 4 | Press states | Scale down cards on touch: `active:scale-[0.98]` |
+| 5 | Empty search illustration | Custom illustration for "no results found" |
+| 6 | Gradient headers | Subtle gradient on AppBar for depth |
 
-### Option A: Literary Editorial
+### Medium Effort
 
-Magazine-inspired aesthetic treating the book collection as a curated editorial experience.
+| # | Feature | Description |
+|---|---------|-------------|
+| 7 | Swipe actions | Swipe left on cards to reveal Edit/Delete/Lend buttons |
+| 8 | Sorting options | Sort by title, date added, author (dropdown in AppBar) |
+| 9 | Cover zoom | Tap cover image to see full-size in a modal |
+| 10 | Statistics card | Show total books/videos, lent items count on Libraries page |
+| 11 | Recently added | Horizontal scroll of last 5 items on home |
+| 12 | Custom pull-to-refresh | Book/film icon animation instead of spinner |
+| 13 | Filters | Filter by: lent, collection, type (book/video) |
 
-**Typography**
-- Display: Playfair Display or Cormorant Garamond (serif, literary)
-- Body: Source Sans 3 or DM Sans (readable, modern contrast)
-- Large, confident typography for library names and headers
-- Uppercase, letterspaced titles for books
+### Higher Effort (Impactful)
 
-**Color Palette**
-```css
---bg-cream: #FAF8F5;        /* Warm paper-like background */
---text-ink: #1C1917;        /* Deep ink black */
---accent-burgundy: #7C2D12; /* Library/leather accent */
---muted-sage: #A3A592;      /* Soft muted green */
---highlight-gold: #CA8A04;  /* Lent/special status */
-```
+| # | Feature | Description |
+|---|---------|-------------|
+| 14 | Reading/watching progress | Track "started", "finished" status with dates |
+| 15 | Drag to reorder | Reorder items within collections by dragging |
+| 16 | Bulk selection mode | Long press to enter selection mode, batch delete/lend |
+| 17 | Wishlist | Separate "want to read/watch" list |
+| 18 | Tags | Custom tags beyond collections |
+| 19 | Dashboard | Visual stats: items per month chart, genre breakdown |
+| 20 | Offline mode | Cache data for offline browsing |
 
-**Book Card Style**
-```
-┌─────────────────────────────────┐
-│  ┌──────┐                       │
-│  │      │  HARRY POTTER         │  ← Uppercase, letterspaced
-│  │ 📖  │  and the Philosopher's │
-│  │      │  Stone                │
-│  │      │                       │
-│  │      │  J.K. Rowling         │  ← Muted, elegant
-│  └──────┘  ─────────────────    │
-│            Collection: 1 of 7   │  ← Subtle metadata
-└─────────────────────────────────┘
-```
+### Visual Refinements
 
-**Collection Display - Stacked Spines**
-```
-┌─────────────────────────────────┐
-│ Harry Potter                    │
-│ ┌──┬──┬──┬──┬──┬──┬──┐         │
-│ │1 │2 │3 │4 │5 │6 │7 │  → Tap  │  ← Visual spine view
-│ └──┴──┴──┴──┴──┴──┴──┘         │
-└─────────────────────────────────┘
-```
-
-**Micro-interactions**
-- Book cards tilt slightly on press (3D perspective)
-- Pull-to-refresh: book page flip animation
-- Long-press: haptic pulse + scale down
-
----
-
-### Option B: Modern Bookshelf
-
-Visual browsing focus with book covers as primary UI element.
-
-**Typography**
-- Display: DM Serif Display or Fraunces
-- Body: Inter or DM Sans
-- Clean, minimal text - let covers speak
-
-**Color Palette**
-```css
---bg-warm: #F5F3EF;         /* Warm off-white */
---bg-shelf: #E8E4DC;        /* Shelf/card background */
---text-primary: #292524;    /* Stone 800 */
---text-muted: #78716C;      /* Stone 500 */
---accent-wood: #A16207;     /* Warm wood tone */
---lent-overlay: rgba(0,0,0,0.5); /* Dimmed lent books */
-```
-
-**Library Grid Layout**
-```
-┌────────────────────────────────┐
-│ My Libraries                   │
-├────────────────────────────────┤
-│ ┌────────┐ ┌────────┐         │
-│ │████████│ │████████│         │
-│ │  Sci-  │ │ Litt.  │         │
-│ │  Fi    │ │ FR     │  Grid   │
-│ │  (42)  │ │  (18)  │  view   │
-│ └────────┘ └────────┘         │
-└────────────────────────────────┘
-```
-
-**Horizontal Scrolling Collections**
-```
-┌────────────────────────────────┐
-│ Cryptonomicon           See all│
-│ ┌────┐ ┌────┐ ┌────┐          │
-│ │ 1  │ │ 2  │ │ 3  │  →       │  ← Horizontal scroll
-│ └────┘ └────┘ └────┘          │
-├────────────────────────────────┤
-│ Standalone                     │
-│ ┌────┐ ┌────┐ ┌────┐ ┌────┐  │
-│ │    │ │    │ │    │ │    │  │  ← Vertical grid
-│ └────┘ └────┘ └────┘ └────┘  │
-└────────────────────────────────┘
-```
-
-**Lent Indicator - Visual Overlay**
-```
-┌────────┐
-│░░░░░░░░│ ← Dimmed cover
-│░░LENT░░│ ← Overlay badge
-│░░░░░░░░│
-└────────┘
-```
-
----
-
-### Quick Wins (Either Style)
-
-1. [x] Subtle shadows on book cards for depth
-2. [x] Realistic book cover corners: `border-radius: 2px 6px 6px 2px`
-3. [x] Warm background tint instead of pure white/black
-4. [x] Staggered animation on list load (50ms delay per card)
-5. [x] Empty state: sketch of empty bookshelf
-6. [x] "Lent to" as colored dot/ribbon, not just text
-
-### Phase 3 - Layout Evolution
-
-1. [x] Grid layout for libraries (2-column grid with card icons)
-2. [ ] Horizontal scroll collections
+| # | Feature | Description |
+|---|---------|-------------|
+| 21 | Book spine view | Alternative view showing just spines (like a real shelf) |
+| 22 | Dynamic cover shadows | Shadow color based on cover image dominant color |
+| 23 | Parallax on scroll | Subtle parallax effect on cover images |
+| 24 | Confetti on add | Small celebration animation when adding an item |
 

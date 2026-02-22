@@ -19,6 +19,8 @@ const VideoDetectionResults = () => {
   const videos = location.state?.videos || [];
   const extractedTitle = location.state?.extractedTitle;
   const searchTitle = location.state?.searchTitle;
+  const prefilledCollection = location.state?.collection || null;
+  const prefilledOrder = location.state?.order || '';
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
@@ -43,6 +45,8 @@ const VideoDetectionResults = () => {
         duration: video.duration || null,
         tmdbId: video.tmdbId || null,
         pictureUrl: video.pictureUrl || null,
+        collection: prefilledCollection,
+        order: prefilledOrder ? parseInt(prefilledOrder, 10) : null,
       });
 
       toast.success('Video added');

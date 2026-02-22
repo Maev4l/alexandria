@@ -1,7 +1,7 @@
 // Edited by Claude.
 // Add book page - 3 ways to add: camera scan, manual ISBN, or full manual entry
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/browser';
 import { DecodeHintType } from '@zxing/library';
 import { Camera, Search, PenLine, VideoOff } from 'lucide-react';
@@ -34,6 +34,9 @@ const cleanIsbn = (value) => value.replace(/[-\s]/g, '').toUpperCase();
 const AddBook = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const prefilledCollection = location.state?.collection || null;
+  const prefilledOrder = location.state?.order || '';
 
   const [isbn, setIsbn] = useState('');
   const [isbnError, setIsbnError] = useState('');
@@ -75,14 +78,14 @@ const AddBook = () => {
       setScanSuccess(true);
       setTimeout(() => {
         stopCamera();
-        navigate(`/libraries/${libraryId}/book-results`, { state: { isbn: detectedIsbn } });
+        navigate(`/libraries/${libraryId}/book-results`, { state: { isbn: detectedIsbn, collection: prefilledCollection, order: prefilledOrder } });
       }, 500);
       return;
     }
 
     stopCamera();
-    navigate(`/libraries/${libraryId}/book-results`, { state: { isbn: detectedIsbn } });
-  }, [navigate, libraryId, stopCamera]);
+    navigate(`/libraries/${libraryId}/book-results`, { state: { isbn: detectedIsbn, collection: prefilledCollection, order: prefilledOrder } });
+  }, [navigate, libraryId, stopCamera, prefilledCollection, prefilledOrder]);
 
   // Ref to hold latest handleIsbnDetected to avoid useEffect dependency
   const handleIsbnDetectedRef = useRef(handleIsbnDetected);
@@ -210,7 +213,7 @@ const AddBook = () => {
   // Go to full manual entry form
   const handleManualEntry = () => {
     stopCamera();
-    navigate(`/libraries/${libraryId}/books/new`);
+    navigate(`/libraries/${libraryId}/books/new`, { state: { collection: prefilledCollection, order: prefilledOrder } });
   };
 
   // Render scanner area based on status

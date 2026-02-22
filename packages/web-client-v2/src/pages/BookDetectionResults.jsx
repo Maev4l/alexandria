@@ -19,8 +19,10 @@ const BookDetectionResults = () => {
   const toast = useToast();
   const { createBook } = useLibraries();
 
-  // Get ISBN from location state
+  // Get ISBN, collection, and order from location state
   const isbn = location.state?.isbn;
+  const prefilledCollection = location.state?.collection || null;
+  const prefilledOrder = location.state?.order || '';
 
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,6 +75,8 @@ const BookDetectionResults = () => {
         authors: selected.authors || [],
         isbn: selected.isbn || isbn,
         pictureUrl: selected.pictureUrl || null,
+        collection: prefilledCollection,
+        order: prefilledOrder ? parseInt(prefilledOrder, 10) : null,
       });
       // Go back 2 steps to library content (skip detection results + add-book)
       navigate(-2);
@@ -184,7 +188,7 @@ const BookDetectionResults = () => {
             </p>
           </div>
           <button
-            onClick={() => navigate(`/libraries/${libraryId}/books/new`)}
+            onClick={() => navigate(`/libraries/${libraryId}/books/new`, { state: { collection: prefilledCollection, order: prefilledOrder } })}
             className="text-sm text-primary hover:underline"
           >
             Enter details manually

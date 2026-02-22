@@ -72,6 +72,7 @@ const LibraryContent = () => {
 
   // State for add item sheet
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
+  const [prefilledCollection, setPrefilledCollection] = useState(null);
 
   const loadMoreRef = useRef(null);
   const pullToRefreshRef = useRef(null);
@@ -178,6 +179,18 @@ const LibraryContent = () => {
     }
   }, [libraryId, navigate, deleteItem, lendItem, returnItem, toast, handleCloseActions]);
 
+  // Handle add item from AppBar (no collection prefilled)
+  const handleAddItem = useCallback(() => {
+    setPrefilledCollection(null);
+    setIsAddItemOpen(true);
+  }, []);
+
+  // Handle add item from collection header (collection prefilled)
+  const handleAddToCollection = useCallback((collectionName) => {
+    setPrefilledCollection(collectionName);
+    setIsAddItemOpen(true);
+  }, []);
+
   // Render AppBar with appropriate configuration
   const renderAppBar = () => (
     <AppBar
@@ -187,7 +200,7 @@ const LibraryContent = () => {
       headerRight={
         !isSharedLibrary ? (
           <button
-            onClick={() => setIsAddItemOpen(true)}
+            onClick={handleAddItem}
             className="flex h-9 w-9 items-center justify-center rounded-md text-foreground hover:bg-accent"
             aria-label="Add item"
           >
@@ -289,6 +302,7 @@ const LibraryContent = () => {
                     }
                   }}
                   onItemLongPress={isSharedLibrary ? undefined : handleItemLongPress}
+                  onAddItem={isSharedLibrary ? undefined : handleAddToCollection}
                   isSharedLibrary={isSharedLibrary}
                   index={idx}
                 />
@@ -350,8 +364,8 @@ const LibraryContent = () => {
       <AddItemSheet
         isOpen={isAddItemOpen}
         onClose={() => setIsAddItemOpen(false)}
-        onSelectBook={() => navigate(`/libraries/${libraryId}/add-book`)}
-        onSelectVideo={() => navigate(`/libraries/${libraryId}/add-video`)}
+        onSelectBook={() => navigate(`/libraries/${libraryId}/add-book`, { state: { collection: prefilledCollection, order: prefilledCollection ? '1' : '' } })}
+        onSelectVideo={() => navigate(`/libraries/${libraryId}/add-video`, { state: { collection: prefilledCollection, order: prefilledCollection ? '1' : '' } })}
       />
     </div>
   );

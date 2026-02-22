@@ -2,7 +2,7 @@
 // Add video page - capture cover for OCR or search by title
 // Uses react-webcam for reliable camera lifecycle management
 import { useState, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Webcam from 'react-webcam';
 import { Camera, Search, VideoOff, Loader2 } from 'lucide-react';
 import { AppBar } from '@/navigation';
@@ -21,8 +21,11 @@ const videoConstraints = {
 const AddVideo = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   const webcamRef = useRef(null);
+  const prefilledCollection = location.state?.collection || null;
+  const prefilledOrder = location.state?.order || '';
 
   const [title, setTitle] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -72,6 +75,8 @@ const AddVideo = () => {
           state: {
             videos: result.detectedVideos,
             extractedTitle: result.extractedTitle,
+            collection: prefilledCollection,
+            order: prefilledOrder,
           },
         });
       } else {
@@ -105,6 +110,8 @@ const AddVideo = () => {
           state: {
             videos: result.detectedVideos,
             searchTitle: trimmedTitle,
+            collection: prefilledCollection,
+            order: prefilledOrder,
           },
         });
       } else {

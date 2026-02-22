@@ -210,6 +210,8 @@ const EditBook = () => {
               <Input
                 id="order"
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 min="1"
                 max="1000"
                 value={order}

@@ -1,7 +1,7 @@
 // Edited by Claude.
 // Manual video entry form
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useLibraries } from '@/state';
@@ -14,8 +14,13 @@ import { useToast } from '@/components/Toast';
 const NewVideo = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { createVideo } = useLibraries();
   const toast = useToast();
+
+  // Get prefilled collection and order from location state
+  const prefilledCollection = location.state?.collection || '';
+  const prefilledOrder = location.state?.order || '';
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -26,8 +31,8 @@ const NewVideo = () => {
     releaseYear: '',
     duration: '',
     pictureUrl: '',
-    collection: '',
-    order: '',
+    collection: prefilledCollection,
+    order: prefilledOrder,
   });
 
   const handleChange = (field) => (e) => {
@@ -176,6 +181,8 @@ const NewVideo = () => {
             <Input
               id="order"
               type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
               min="1"
               max="1000"
               value={form.order}

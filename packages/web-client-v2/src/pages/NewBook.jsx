@@ -2,7 +2,7 @@
 // New book page - manual entry form
 // Uses LibrariesContext to create items
 import { useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useLibraries } from '@/state';
@@ -15,8 +15,13 @@ import { cn } from '@/lib/utils';
 const NewBook = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { createBook } = useLibraries();
   const toast = useToast();
+
+  // Get prefilled collection and order from location state
+  const prefilledCollection = location.state?.collection || '';
+  const prefilledOrder = location.state?.order || '';
 
   // Cancel: go back to previous page
   const handleCancel = useCallback(() => {
@@ -29,8 +34,8 @@ const NewBook = () => {
   const [summary, setSummary] = useState('');
   const [authors, setAuthors] = useState('');
   const [isbn, setIsbn] = useState('');
-  const [collection, setCollection] = useState('');
-  const [order, setOrder] = useState('');
+  const [collection, setCollection] = useState(prefilledCollection);
+  const [order, setOrder] = useState(prefilledOrder);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset cover error when URL changes
@@ -184,6 +189,8 @@ const NewBook = () => {
               <Input
                 id="order"
                 type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 min="1"
                 max="1000"
                 value={order}
