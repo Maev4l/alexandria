@@ -1,16 +1,95 @@
 // Edited by Claude.
-// Collapsible card for displaying a collection of items (books + videos)
-import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+// Horizontal scrolling collection card for displaying grouped items (books + videos)
+// Items are displayed as cover thumbnails with horizontal scroll
+import { useRef, useCallback } from 'react';
+import { BookOpen, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import BookCard from './BookCard';
-import VideoCard from './VideoCard';
 
 const STAGGER_DELAY = 50; // ms per item for staggered animation
+const LONG_PRESS_DURATION = 500;
 const ITEM_TYPE_VIDEO = 1;
 
+// Compact item thumbnail for horizontal scroll
+const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary }) => {
+  const pressTimer = useRef(null);
+  const isLongPress = useRef(false);
+  const isVideo = item.type === ITEM_TYPE_VIDEO;
+  const hasImage = item.pictureUrl || item.picture;
+  const isLent = !!item.lentTo;
+
+  const handleTouchStart = useCallback(() => {
+    isLongPress.current = false;
+    pressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      onLongPress?.(item);
+    }, LONG_PRESS_DURATION);
+  }, [item, onLongPress]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  }, []);
+
+  const handleClick = useCallback(() => {
+    if (!isLongPress.current) {
+      onClick?.(item);
+    }
+  }, [item, onClick]);
+
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+    if (onLongPress) {
+      onLongPress(item);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onContextMenu={handleContextMenu}
+      className="flex flex-col items-center gap-1 shrink-0 select-none group"
+    >
+      {/* Cover/poster with order badge */}
+      <div className="relative">
+        <div
+          className={cn(
+            'w-16 h-24 bg-muted flex items-center justify-center overflow-hidden',
+            'transition-transform duration-150 group-active:scale-95',
+            // Book: asymmetric radius (spine left), Video: rounded
+            isVideo ? 'rounded-md' : 'rounded-[2px_6px_6px_2px]'
+          )}
+        >
+          {hasImage ? (
+            <img
+              src={item.pictureUrl || `data:image/webp;base64,${item.picture}`}
+              alt={item.title}
+              className="w-full h-full object-cover"
+            />
+          ) : isVideo ? (
+            <Film className="h-6 w-6 text-muted-foreground/50" />
+          ) : (
+            <BookOpen className="h-6 w-6 text-muted-foreground/50" />
+          )}
+        </div>
+
+        {/* Lent ribbon overlay - consistent with standalone items */}
+        {isLent && !isSharedLibrary && <div className="lent-ribbon" />}
+      </div>
+
+      {/* Title (truncated) */}
+      <p className="w-16 text-xs text-center truncate text-muted-foreground group-hover:text-foreground transition-colors">
+        {item.title}
+      </p>
+    </button>
+  );
+};
+
 const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLibrary = false, index }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
   const itemCount = items.length;
 
   // Staggered animation style
@@ -23,68 +102,51 @@ const CollectionCard = ({ name, items, onItemClick, onItemLongPress, isSharedLib
       style={animationStyle}
       className={cn(
         'rounded-lg border border-border bg-card overflow-hidden',
-        'shadow-[var(--card-shadow)] transition-shadow duration-200',
-        isExpanded && 'ring-1 ring-accent shadow-[var(--card-shadow-hover)]',
+        'shadow-[var(--card-shadow)]',
         // Staggered fade-in animation
         index != null && 'animate-fade-in-up'
       )}
     >
-      {/* Collection header */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className={cn(
-          'w-full flex items-center gap-3 p-3 text-left transition-colors',
-          'hover:bg-accent/50 active:bg-accent'
-        )}
-      >
-        {/* Expand/collapse icon */}
-        <div className="shrink-0 text-muted-foreground">
-          {isExpanded ? (
-            <ChevronDown className="h-5 w-5" />
-          ) : (
-            <ChevronRight className="h-5 w-5" />
+      {/* Collection header - muted background for contrast */}
+      <div className="flex items-center justify-between px-3 py-2.5 bg-muted/50 border-b border-border/50">
+        <h3 className="font-medium">{name}</h3>
+        <span className="text-sm text-muted-foreground">
+          {itemCount} {itemCount === 1 ? 'item' : 'items'}
+        </span>
+      </div>
+
+      {/* Horizontal scrolling items - card background */}
+      <div className="relative bg-card">
+        {/* Scroll container */}
+        <div
+          className={cn(
+            'flex gap-3 px-3 pt-3 pb-3 overflow-x-auto',
+            // Hide scrollbar but keep functionality
+            'scrollbar-none',
+            // Smooth scroll on iOS
+            '-webkit-overflow-scrolling-touch'
           )}
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          {items.map((item) => (
+            <ItemThumbnail
+              key={item.id}
+              item={item}
+              onClick={onItemClick}
+              onLongPress={onItemLongPress}
+              isSharedLibrary={isSharedLibrary}
+            />
+          ))}
         </div>
 
-        {/* Collection info */}
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <p className="font-medium truncate">{name}</p>
-          <p className="text-sm text-muted-foreground">
-            {itemCount} {itemCount === 1 ? 'item' : 'items'}
-          </p>
-        </div>
-      </button>
-
-      {/* Expanded content - nested items (books + videos) */}
-      {isExpanded && (
-        <div className="border-t border-border bg-muted/20 p-2 space-y-1">
-          {items.map((item) => {
-            if (item.type === ITEM_TYPE_VIDEO) {
-              return (
-                <VideoCard
-                  key={item.id}
-                  video={item}
-                  onClick={onItemClick}
-                  onLongPress={onItemLongPress}
-                  showOrder
-                  isSharedLibrary={isSharedLibrary}
-                />
-              );
-            }
-            return (
-              <BookCard
-                key={item.id}
-                book={item}
-                onClick={onItemClick}
-                onLongPress={onItemLongPress}
-                showOrder
-                compact
-                isSharedLibrary={isSharedLibrary}
-              />
-            );
-          })}
-        </div>
-      )}
+        {/* Right fade gradient to indicate more content */}
+        {itemCount > 4 && (
+          <div className="absolute right-0 top-3 bottom-3 w-8 bg-gradient-to-l from-card to-transparent pointer-events-none" />
+        )}
+      </div>
     </div>
   );
 };

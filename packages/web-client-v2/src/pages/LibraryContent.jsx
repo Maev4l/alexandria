@@ -200,7 +200,7 @@ const LibraryContent = () => {
 
   if (!library) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-1 items-center justify-center p-4">
           <p className="text-muted-foreground">Library not found</p>
@@ -212,7 +212,7 @@ const LibraryContent = () => {
   // Initial loading state
   if (isLoading && items.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-1 items-center justify-center p-4">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -224,15 +224,17 @@ const LibraryContent = () => {
   // Error state (no data)
   if (error && items.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
-        <PullToRefresh onRefresh={handleRefresh} className="flex-1">
+        <div className="flex-1 min-h-0 relative">
+          <PullToRefresh onRefresh={handleRefresh}>
           <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
             <AlertCircle className="h-8 w-8 text-destructive" />
             <p className="text-sm text-muted-foreground">{error}</p>
             <p className="text-xs text-muted-foreground">Pull down to retry</p>
           </div>
-        </PullToRefresh>
+          </PullToRefresh>
+        </div>
       </div>
     );
   }
@@ -240,9 +242,10 @@ const LibraryContent = () => {
   // Empty state with bookshelf illustration
   if (items.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
-        <PullToRefresh onRefresh={handleRefresh} className="flex-1">
+        <div className="flex-1 min-h-0 relative">
+          <PullToRefresh onRefresh={handleRefresh}>
           <div className="flex h-full flex-col items-center justify-center gap-4 p-4 text-center">
             <EmptyBookshelf className="w-32 h-28 text-muted-foreground" />
             <div className="space-y-1">
@@ -254,20 +257,21 @@ const LibraryContent = () => {
               </p>
             </div>
           </div>
-        </PullToRefresh>
+          </PullToRefresh>
+        </div>
       </div>
     );
   }
 
   // Items list (unified: standalone + collections, alphabetically sorted)
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {renderAppBar()}
-      <PullToRefresh
-        ref={pullToRefreshRef}
-        onRefresh={handleRefresh}
-        className="flex-1"
-      >
+      <div className="flex-1 min-h-0 relative">
+        <PullToRefresh
+          ref={pullToRefreshRef}
+          onRefresh={handleRefresh}
+        >
         <div className="p-4 space-y-2">
           {sortedList.map((entry, idx) => {
             if (entry.type === 'collection') {
@@ -330,7 +334,8 @@ const LibraryContent = () => {
             </div>
           )}
         </div>
-      </PullToRefresh>
+        </PullToRefresh>
+      </div>
 
       {/* Item actions sheet */}
       <ItemActionsSheet

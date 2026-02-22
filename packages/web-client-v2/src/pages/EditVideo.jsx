@@ -258,11 +258,11 @@ const EditVideo = () => {
               <Input
                 id="order"
                 type="number"
-                value={form.order}
-                onChange={handleChange('order')}
-                placeholder="#"
                 min="1"
                 max="1000"
+                value={form.order}
+                onChange={handleChange('order')}
+                placeholder="1"
               />
             </div>
           </div>

@@ -167,7 +167,7 @@ const ItemHistory = () => {
 
   if (!library || !item) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-1 items-center justify-center p-4">
           <p className="text-muted-foreground">Item not found</p>
@@ -179,7 +179,7 @@ const ItemHistory = () => {
   // Initial loading
   if (isLoading && events.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-1 items-center justify-center p-4">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -191,14 +191,16 @@ const ItemHistory = () => {
   // Error state
   if (error && events.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
-        <PullToRefresh onRefresh={handleRefresh} className="flex-1">
-          <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
-            <p className="text-sm text-muted-foreground">{error}</p>
-            <p className="text-xs text-muted-foreground">Pull down to retry</p>
-          </div>
-        </PullToRefresh>
+        <div className="flex-1 min-h-0 relative">
+          <PullToRefresh onRefresh={handleRefresh}>
+            <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+              <p className="text-sm text-muted-foreground">{error}</p>
+              <p className="text-xs text-muted-foreground">Pull down to retry</p>
+            </div>
+          </PullToRefresh>
+        </div>
       </div>
     );
   }
@@ -206,26 +208,29 @@ const ItemHistory = () => {
   // Empty state
   if (events.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
-        <PullToRefresh onRefresh={handleRefresh} className="flex-1">
-          <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
-            <History className="h-12 w-12 text-muted-foreground/50" />
-            <p className="text-lg font-medium">No history yet</p>
-            <p className="text-sm text-muted-foreground">
-              Lending and return events will appear here.
-            </p>
-          </div>
-        </PullToRefresh>
+        <div className="flex-1 min-h-0 relative">
+          <PullToRefresh onRefresh={handleRefresh}>
+            <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+              <History className="h-12 w-12 text-muted-foreground/50" />
+              <p className="text-lg font-medium">No history yet</p>
+              <p className="text-sm text-muted-foreground">
+                Lending and return events will appear here.
+              </p>
+            </div>
+          </PullToRefresh>
+        </div>
       </div>
     );
   }
 
   // Events timeline
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {renderAppBar()}
-      <PullToRefresh onRefresh={handleRefresh} className="flex-1">
+      <div className="flex-1 min-h-0 relative">
+        <PullToRefresh onRefresh={handleRefresh}>
         <div className="p-4">
           <Timeline>
             {events.map((event, index) => {
@@ -262,7 +267,8 @@ const ItemHistory = () => {
             </div>
           )}
         </div>
-      </PullToRefresh>
+        </PullToRefresh>
+      </div>
 
       {/* Clear confirmation sheet */}
       {showClearConfirm && (

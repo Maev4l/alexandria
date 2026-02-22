@@ -99,7 +99,7 @@ const Libraries = () => {
     // Error state (no data)
     if (error && !hasData) {
       return (
-        <PullToRefresh onRefresh={handleRefresh} className="h-full">
+        <PullToRefresh onRefresh={handleRefresh}>
           <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
             <AlertCircle className="h-8 w-8 text-destructive" />
             <p className="text-sm text-muted-foreground">{error}</p>
@@ -112,7 +112,7 @@ const Libraries = () => {
     // Empty state with bookshelf illustration
     if (!hasData) {
       return (
-        <PullToRefresh onRefresh={handleRefresh} className="h-full">
+        <PullToRefresh onRefresh={handleRefresh}>
           <div className="flex h-full flex-col items-center justify-center gap-4 p-4 text-center">
             <EmptyBookshelf className="w-32 h-28 text-muted-foreground" />
             <div className="space-y-1">
@@ -128,7 +128,7 @@ const Libraries = () => {
 
     // Libraries grid
     return (
-      <PullToRefresh onRefresh={handleRefresh} className="h-full">
+      <PullToRefresh onRefresh={handleRefresh}>
         <div className="p-4 space-y-6">
           {/* Owned libraries */}
           {ownedLibraries.length > 0 && (
@@ -174,7 +174,7 @@ const Libraries = () => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <AppBar
         title="My Libraries"
         headerRight={
@@ -187,7 +187,7 @@ const Libraries = () => {
           </button>
         }
       />
-      <div className="flex-1 overflow-hidden">
+      <div className="relative flex-1 min-h-0">
         {renderContent()}
       </div>
       <LibraryActionsSheet
