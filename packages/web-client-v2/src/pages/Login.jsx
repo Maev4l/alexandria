@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/Label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/Card';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
@@ -22,7 +22,7 @@ const Login = () => {
     setError(null);
     setSubmitting(true);
     try {
-      await signIn(username, password);
+      await signIn(email, password);
       navigate('/', { replace: true });
     } catch (err) {
       // Handle unconfirmed user (pending admin approval)
@@ -49,12 +49,14 @@ const Login = () => {
               <p className="text-sm text-destructive text-center">{error}</p>
             )}
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 autoCapitalize="none"
                 autoCorrect="off"
                 required

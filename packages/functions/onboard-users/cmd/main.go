@@ -45,13 +45,19 @@ func handlePreSignUp(event events.CognitoEventUserPoolsPreSignup) (events.Cognit
 	// TriggerSource for federated: "PreSignUp_ExternalProvider"
 	isNativeSignup := event.TriggerSource == "PreSignUp_SignUp"
 
-	// Only validate email format for native signups
+	log.Info().Msgf("Trigger: %s - Username: %s", event.TriggerSource, event.UserName)
+
+	// Only validate email format and auto-confirm for native signups
 	if isNativeSignup {
 		_, err := mail.ParseAddress(event.UserName)
 		if err != nil {
 			log.Error().Msgf("Invalid username (not an email format): %s", event.UserName)
 			return event, fmt.Errorf("invalid username (not an email format)")
 		}
+
+		// Auto-confirm native users (skip email verification)
+		event.Response.AutoConfirmUser = true
+		log.Info().Msgf("Auto-confirming native user: %s", event.UserName)
 	}
 
 	// Check if user already exists in the user pool
@@ -108,13 +114,17 @@ func handlePostConfirmation(event events.CognitoEventUserPoolsPostConfirmation) 
 	// Generate a new UUID for the user (without dashes, uppercase)
 	userId := identifier.NewId()
 
-	log.Info().Msgf("Setting custom attributes for user %s: custom:Id=%s, custom:Approved=false", event.UserName, userId)
+	log.Info().Msgf("Setting attributes for user %s: email=%s, custom:Id=%s, custom:Approved=false", event.UserName, event.UserName, userId)
 
-	// Set custom attributes
+	// Set email (from username) and custom attributes
 	_, err := cognitoClient.AdminUpdateUserAttributes(context.TODO(), &cognitoidentityprovider.AdminUpdateUserAttributesInput{
 		UserPoolId: aws.String(event.UserPoolID),
 		Username:   aws.String(event.UserName),
 		UserAttributes: []types.AttributeType{
+			{
+				Name:  aws.String("email"),
+				Value: aws.String(event.UserName),
+			},
 			{
 				Name:  aws.String("custom:Id"),
 				Value: aws.String(userId),
