@@ -6,5 +6,5 @@ export const config = {
   userPoolId: alexandriaUserPoolId,
   clientId: alexandriaClientId,
   region: 'eu-central-1',
-  apiBaseUrl: 'https://api-alexandria.isnan.eu',
+  apiBaseUrl: '/api',
 };

@@ -13,11 +13,10 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-var ginLambda *ginadapter.GinLambda
+var ginLambda *ginadapter.GinLambdaV2
 
 func init() {
 
@@ -26,11 +25,6 @@ func init() {
 	router := gin.New()
 	router.Use(handlers.HttpLogger())
 	router.Use(gin.Recovery())
-
-	config := cors.DefaultConfig()
-	config.AllowCredentials = true
-	config.AllowAllOrigins = true
-	router.Use(cors.New(config))
 
 	region := os.Getenv("REGION")
 
@@ -41,9 +35,10 @@ func init() {
 	s := services.NewServices(db, storage, idp, ocr)
 	h := handlers.NewHTTPHandler(s)
 
-	g := router.Group("/v1")
+	g := router.Group("/api/v1")
 	g.Use(handlers.TokenParser())
 	g.Use(handlers.IdentityLogger())
+	g.Use(handlers.ApprovalChecker())
 
 	g.POST("/detections", h.RequestDetection)
 	g.POST("/libraries", h.CreateLibrary)
@@ -69,11 +64,10 @@ func init() {
 		})
 	})
 	*/
-	ginLambda = ginadapter.New(router)
+	ginLambda = ginadapter.NewV2(router)
 }
 
-func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// If no name is provided in the HTTP request body, throw an error
+func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
 	return ginLambda.ProxyWithContext(ctx, req)
 }
 func main() {

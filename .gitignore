@@ -6,3 +6,9 @@ output.json
 
 bin/
 dist/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl

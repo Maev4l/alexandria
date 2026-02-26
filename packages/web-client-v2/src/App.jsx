@@ -30,13 +30,26 @@ const Search = lazy(() => import('@/pages/Search'));
 const Settings = lazy(() => import('@/pages/Settings'));
 const Account = lazy(() => import('@/pages/Account'));
 const About = lazy(() => import('@/pages/About'));
+const PendingApproval = lazy(() => import('@/pages/PendingApproval'));
 
-// Redirects unauthenticated users to /login
+// Redirects unauthenticated users to /login, unapproved users to /pending-approval
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) return null;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!user?.approved) return <Navigate to="/pending-approval" replace />;
+  return children;
+};
+
+// Route for authenticated but not yet approved users
+const PendingApprovalRoute = ({ children }) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  if (isLoading) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  // If approved, redirect to main app
+  if (user?.approved) return <Navigate to="/libraries" replace />;
   return children;
 };
 
@@ -73,6 +86,18 @@ const App = () => (
                 <SignUp />
               </Suspense>
             </PublicRoute>
+          }
+        />
+
+        {/* Pending approval route */}
+        <Route
+          path="/pending-approval"
+          element={
+            <PendingApprovalRoute>
+              <Suspense fallback={null}>
+                <PendingApproval />
+              </Suspense>
+            </PendingApprovalRoute>
           }
         />
 

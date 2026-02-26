@@ -3,9 +3,9 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
-	"alexandria.isnan.eu/functions/internal/identifier"
 	"github.com/gin-gonic/gin"
 	"github.com/lestrrat-go/jwx/jwt"
 
@@ -15,8 +15,9 @@ import (
 
 type tokenInfo struct {
 	userId      string
-	userName    string
+	userName    string // This is the credentials for native Cognito users
 	displayName string
+	approved    bool
 }
 
 func TokenParser() gin.HandlerFunc {
@@ -33,19 +34,28 @@ func TokenParser() gin.HandlerFunc {
 
 		// Only extract claims if token parsed successfully
 		if err == nil && token != nil {
-			id, exists := token.Get("sub")
+			// User ID from custom:Id attribute (UUID without dashes, uppercase)
+			id, exists := token.Get("custom:Id")
 			if exists {
-				info.userId = identifier.Normalize(fmt.Sprintf("%v", id))
+				info.userId = fmt.Sprintf("%v", id)
 			}
 
-			username, exists := token.Get("cognito:username")
+			// Username from email attribute
+			email, exists := token.Get("email")
 			if exists {
-				info.userName = fmt.Sprintf("%v", username)
+				info.userName = fmt.Sprintf("%v", email)
 			}
 
-			displayName, exists := token.Get("custom:DisplayName")
+			// Display name from standard "name" attribute
+			name, exists := token.Get("name")
 			if exists {
-				info.displayName = fmt.Sprintf("%v", displayName)
+				info.displayName = fmt.Sprintf("%v", name)
+			}
+
+			// Approval status from custom:Approved attribute
+			approved, exists := token.Get("custom:Approved")
+			if exists && fmt.Sprintf("%v", approved) == "true" {
+				info.approved = true
 			}
 		}
 
@@ -55,10 +65,26 @@ func TokenParser() gin.HandlerFunc {
 	}
 }
 
+// ApprovalChecker middleware ensures user is approved before accessing API
+func ApprovalChecker() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		t := c.MustGet("tokenInfo").(*tokenInfo)
+		if !t.approved {
+			c.JSON(http.StatusForbidden, gin.H{
+				"message": "Pending approval",
+			})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 func IdentityLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := c.MustGet("tokenInfo").(*tokenInfo)
-		log.Logger = log.With().Str("user", identifier.Normalize(t.userId)).Logger()
+		// userId from custom:Id is already normalized (UUID without dashes, uppercase)
+		log.Logger = log.With().Str("user", fmt.Sprintf("%s (id: %s)", t.userName, t.userId)).Logger()
 		c.Next()
 	}
 }

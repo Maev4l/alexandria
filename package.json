@@ -2,10 +2,18 @@
   "name": "alexandria",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "apply-infra": "yarn workspace @alexandria/infrastructure deploy",
+    "build-backend": "yarn workspace @alexandria/functions build",
+    "deploy-backend": "yarn build-backend && yarn apply-infra",
+    "build-frontend": "yarn workspace @alexandria/web-client-v2 build",
+    "deploy-frontend": "yarn workspace @alexandria/web-client-v2 deploy && yarn workspace @alexandria/infrastructure invalidate-frontend"
+  },
   "workspaces": [
     "packages/functions",
     "packages/web-client",
-    "packages/web-client-v2"
+    "packages/web-client-v2",
+    "packages/infrastructure"
   ],
   "devDependencies": {}
 }

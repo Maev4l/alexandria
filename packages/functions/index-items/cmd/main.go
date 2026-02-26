@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -319,7 +320,7 @@ func fullResync() error {
 	uploader := manager.NewUploader(s3Client)
 	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(os.Getenv("S3_INDEX_BUCKET")),
-		Key:    aws.String("indexes/global-index.tar.gz"),
+		Key:    aws.String(fmt.Sprintf("indexes/%s", os.Getenv("GLOBAL_INDEX_FILE_NAME"))),
 		Body:   bytes.NewReader(indexArchive.Bytes()),
 	})
 	if err != nil {
@@ -331,11 +332,11 @@ func fullResync() error {
 	sharedLibrariesJSON, _ := json.MarshalIndent(sharedLibraries, "", "  ")
 	_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(os.Getenv("S3_INDEX_BUCKET")),
-		Key:    aws.String("indexes/shared-libraries.json"),
+		Key:    aws.String(fmt.Sprintf("indexes/%s", os.Getenv("SHARE_LIBRARIES_FILE_NAME"))),
 		Body:   bytes.NewReader(sharedLibrariesJSON),
 	})
 	if err != nil {
-		log.Error().Msgf("Failed to upload shared-libraries.json: %s", err.Error())
+		log.Error().Msgf("Failed to upload %s: %s", os.Getenv("SHARE_LIBRARIES_FILE_NAME"), err.Error())
 		return err
 	}
 
@@ -360,7 +361,7 @@ func streamHandler(event events.DynamoDBEvent) error {
 	indexExists := true
 	_, err = downloader.Download(context.TODO(), indexBuf, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String("indexes/global-index.tar.gz"),
+		Key:    aws.String(fmt.Sprintf("indexes/%s", os.Getenv("GLOBAL_INDEX_FILE_NAME"))),
 	})
 	if err != nil {
 		var nsk *types.NoSuchKey
@@ -384,18 +385,18 @@ func streamHandler(event events.DynamoDBEvent) error {
 	sharedBuf := manager.NewWriteAtBuffer([]byte{})
 	_, err = downloader.Download(context.TODO(), sharedBuf, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String("indexes/shared-libraries.json"),
+		Key:    aws.String(fmt.Sprintf("indexes/%s", os.Getenv("SHARE_LIBRARIES_FILE_NAME"))),
 	})
 	if err != nil {
 		var nsk *types.NoSuchKey
 		if !errors.As(err, &nsk) {
-			log.Error().Msgf("Failed to download shared-libraries.json: %s", err.Error())
+			log.Error().Msgf("Failed to download %s: %s", os.Getenv("SHARE_LIBRARIES_FILE_NAME"), err.Error())
 			return err
 		}
 		// File doesn't exist yet, start with empty map
 	} else {
 		if err := json.Unmarshal(sharedBuf.Bytes(), &sharedLibraries); err != nil {
-			log.Warn().Msgf("Failed to parse shared-libraries.json: %s", err.Error())
+			log.Warn().Msgf("Failed to parse %s: %s", os.Getenv("SHARE_LIBRARIES_FILE_NAME"), err.Error())
 		}
 	}
 
@@ -550,7 +551,7 @@ func streamHandler(event events.DynamoDBEvent) error {
 		}
 		_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket: aws.String(bucket),
-			Key:    aws.String("indexes/global-index.tar.gz"),
+			Key:    aws.String(fmt.Sprintf("indexes/%s", os.Getenv("GLOBAL_INDEX_FILE_NAME"))),
 			Body:   bytes.NewReader(indexArchive.Bytes()),
 		})
 		if err != nil {
@@ -564,14 +565,14 @@ func streamHandler(event events.DynamoDBEvent) error {
 		sharedJSON, _ := json.MarshalIndent(sharedLibraries, "", "  ")
 		_, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket: aws.String(bucket),
-			Key:    aws.String("indexes/shared-libraries.json"),
+			Key:    aws.String(fmt.Sprintf("indexes/%s", os.Getenv("SHARE_LIBRARIES_FILE_NAME"))),
 			Body:   bytes.NewReader(sharedJSON),
 		})
 		if err != nil {
-			log.Error().Msgf("Failed to upload shared-libraries.json: %s", err.Error())
+			log.Error().Msgf("Failed to upload %s: %s", os.Getenv("SHARE_LIBRARIES_FILE_NAME"), err.Error())
 			return err
 		}
-		log.Info().Msg("shared-libraries.json uploaded")
+		log.Info().Msgf("%s uploaded", os.Getenv("SHARE_LIBRARIES_FILE_NAME"))
 	}
 
 	return nil

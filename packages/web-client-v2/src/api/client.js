@@ -40,6 +40,8 @@ export const apiClient = async (endpoint, options = {}) => {
     const error = new Error(data.message || 'API request failed');
     error.status = response.status;
     error.data = data;
+    // Flag for pending approval (403 with specific message)
+    error.isPendingApproval = response.status === 403 && data.message === 'Pending approval';
     throw error;
   }
 

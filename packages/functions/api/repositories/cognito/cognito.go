@@ -1,3 +1,4 @@
+// Edited by Claude.
 package cognito
 
 import (
@@ -6,7 +7,6 @@ import (
 	"fmt"
 	"os"
 
-	"alexandria.isnan.eu/functions/internal/identifier"
 	"alexandria.isnan.eu/functions/internal/slices"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -29,37 +29,41 @@ func NewIdp(region string) *idp {
 	}
 }
 
+// GetUserIdFromUserName retrieves the custom:Id attribute for a user by their email
 func (i *idp) GetUserIdFromUserName(userName string) (string, error) {
+	// Filter by email attribute since username is now the email
 	out, err := i.client.ListUsers(context.TODO(), &cognitoidentityprovider.ListUsersInput{
 		UserPoolId: aws.String(userPoolId),
-		Filter:     aws.String(fmt.Sprintf("username = '%s'", userName)),
+		Filter:     aws.String(fmt.Sprintf("email = '%s'", userName)),
 	})
 
 	if err != nil {
-		log.Error().Msgf("Failed to retrieved user from name %s: %s", userName, err.Error())
+		log.Error().Msgf("Failed to retrieve user from email %s: %s", userName, err.Error())
 		return "", err
 	}
 
 	if len(out.Users) == 0 {
-		msg := fmt.Sprintf("No user with name: %s", userName)
+		msg := fmt.Sprintf("No user with email: %s", userName)
 		log.Warn().Msg(msg)
 		return "", errors.New(msg)
 	}
 
 	u := out.Users[0]
+	// Look for custom:Id attribute instead of sub
 	attrs := slices.Filter(u.Attributes, func(a types.AttributeType) bool {
-		return *a.Name == "sub"
+		return *a.Name == "custom:Id"
 	})
 	if len(attrs) == 0 {
-		log.Warn().Msgf("User with name %s has no \"sub\" attribute", userName)
-		return "", nil
+		log.Warn().Msgf("User with email %s has no \"custom:Id\" attribute", userName)
+		return "", errors.New("user has no custom:Id attribute")
 	}
 
-	name := attrs[0].Value
-	if name == nil || len(*name) == 0 {
-		log.Warn().Msgf("User with name %s has no \"sub\" value", userName)
-		return "", nil
+	value := attrs[0].Value
+	if value == nil || len(*value) == 0 {
+		log.Warn().Msgf("User with email %s has no \"custom:Id\" value", userName)
+		return "", errors.New("user has no custom:Id value")
 	}
 
-	return identifier.Normalize(*name), nil
+	// custom:Id is already normalized (UUID without dashes, uppercase)
+	return *value, nil
 }

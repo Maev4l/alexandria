@@ -91,7 +91,7 @@ func (o *objectstorage) GetBlugeIndex() (string, func(), error) {
 
 	_, err := downloader.Download(context.TODO(), buf, &s3.GetObjectInput{
 		Bucket: aws.String(os.Getenv("S3_INDEX_BUCKET")),
-		Key:    aws.String("indexes/global-index.tar.gz"),
+		Key:    aws.String(fmt.Sprintf("indexes/%s", os.Getenv("GLOBAL_INDEX_FILE_NAME"))),
 	})
 
 	if err != nil {
@@ -130,7 +130,7 @@ func (o *objectstorage) GetSharedLibraries() (map[string][]ports.SharedLibraryEn
 
 	_, err := downloader.Download(context.TODO(), buf, &s3.GetObjectInput{
 		Bucket: aws.String(os.Getenv("S3_INDEX_BUCKET")),
-		Key:    aws.String("indexes/shared-libraries.json"),
+		Key:    aws.String(fmt.Sprintf("indexes/%s", os.Getenv("SHARE_LIBRARIES_FILE_NAME"))),
 	})
 
 	if err != nil {

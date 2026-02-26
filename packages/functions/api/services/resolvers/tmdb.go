@@ -2,19 +2,60 @@
 package resolvers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"alexandria.isnan.eu/functions/api/ports"
 	"alexandria.isnan.eu/functions/internal/domain"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/rs/zerolog/log"
 )
+
+// SSM parameter name for the TMDB access token
+var tmdbAccessTokenParam = os.Getenv("TMDB_ACCESS_TOKEN")
+
+// Cached TMDB access token with one-time fetch from SSM
+var (
+	tmdbAccessToken     string
+	tmdbAccessTokenOnce sync.Once
+	tmdbAccessTokenErr  error
+)
+
+// getTmdbAccessToken fetches the access token from SSM once, caching the result
+func getTmdbAccessToken() (string, error) {
+	tmdbAccessTokenOnce.Do(func() {
+		region := os.Getenv("REGION")
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+		if err != nil {
+			tmdbAccessTokenErr = err
+			return
+		}
+
+		ssmClient := ssm.NewFromConfig(cfg)
+		withDecryption := true
+		output, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
+			Name:           &tmdbAccessTokenParam,
+			WithDecryption: &withDecryption,
+		})
+		if err != nil {
+			tmdbAccessTokenErr = err
+			return
+		}
+
+		tmdbAccessToken = *output.Parameter.Value
+	})
+
+	return tmdbAccessToken, tmdbAccessTokenErr
+}
 
 const (
 	tmdbBaseURL     = "https://api.themoviedb.org/3"
@@ -25,8 +66,7 @@ const (
 )
 
 type tmdbResolver struct {
-	client      *http.Client
-	accessToken string
+	client *http.Client
 }
 
 // TMDB API response structures
@@ -81,7 +121,13 @@ func (r *tmdbResolver) Name() string {
 // ResolveByTitle searches for movies by title and returns resolved video metadata
 // Searches in both French and English to maximize results
 func (r *tmdbResolver) ResolveByTitle(title string, ch chan []domain.ResolvedVideo) {
-	if r.accessToken == "" {
+	accessToken, err := getTmdbAccessToken()
+	if err != nil {
+		log.Error().Str("source", "TMDB").Msgf("Failed to get access token from SSM: %s", err.Error())
+		ch <- nil
+		return
+	}
+	if accessToken == "" {
 		log.Warn().Str("source", "TMDB").Msg("No access token configured")
 		ch <- nil
 		return
@@ -92,7 +138,7 @@ func (r *tmdbResolver) ResolveByTitle(title string, ch chan []domain.ResolvedVid
 	var allMovies []tmdbMovie
 
 	for _, lang := range []string{tmdbLangPrimary, tmdbLangFallback} {
-		movies := r.searchMovies(title, lang)
+		movies := r.searchMovies(accessToken, title, lang)
 		for _, movie := range movies {
 			if !seenIds[movie.Id] {
 				seenIds[movie.Id] = true
@@ -119,7 +165,7 @@ func (r *tmdbResolver) ResolveByTitle(title string, ch chan []domain.ResolvedVid
 
 	var results []domain.ResolvedVideo
 	for _, movie := range allMovies[:maxResults] {
-		resolved := r.fetchMovieDetails(movie.Id)
+		resolved := r.fetchMovieDetails(accessToken, movie.Id)
 		if resolved != nil {
 			results = append(results, *resolved)
 		}
@@ -129,10 +175,10 @@ func (r *tmdbResolver) ResolveByTitle(title string, ch chan []domain.ResolvedVid
 }
 
 // searchMovies performs a search in the specified language
-func (r *tmdbResolver) searchMovies(title, language string) []tmdbMovie {
+func (r *tmdbResolver) searchMovies(accessToken, title, language string) []tmdbMovie {
 	searchURL := fmt.Sprintf("%s/search/movie?query=%s&language=%s&page=1", tmdbBaseURL, url.QueryEscape(title), language)
 	searchReq, _ := http.NewRequest(http.MethodGet, searchURL, nil)
-	searchReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.accessToken))
+	searchReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	searchReq.Header.Set("Accept", "application/json")
 
 	searchResp, err := r.client.Do(searchReq)
@@ -164,11 +210,11 @@ func (r *tmdbResolver) searchMovies(title, language string) []tmdbMovie {
 
 // fetchMovieDetails fetches detailed movie info including credits
 // Returns metadata in French (primary language)
-func (r *tmdbResolver) fetchMovieDetails(movieId int) *domain.ResolvedVideo {
+func (r *tmdbResolver) fetchMovieDetails(accessToken string, movieId int) *domain.ResolvedVideo {
 	// Fetch movie details and credits in French
 	detailsURL := fmt.Sprintf("%s/movie/%d?append_to_response=credits&language=%s", tmdbBaseURL, movieId, tmdbLangPrimary)
 	req, _ := http.NewRequest(http.MethodGet, detailsURL, nil)
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.accessToken))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := r.client.Do(req)
@@ -240,15 +286,9 @@ func (r *tmdbResolver) fetchMovieDetails(movieId int) *domain.ResolvedVideo {
 }
 
 // NewTmdbResolver creates a new TMDB resolver
-// Access token is read from TMDB_ACCESS_TOKEN environment variable
+// Access token is fetched from SSM on first use (parameter name from TMDB_ACCESS_TOKEN env var)
 func NewTmdbResolver() ports.VideoResolver {
-	accessToken := os.Getenv("TMDB_ACCESS_TOKEN")
-	if accessToken == "" {
-		log.Warn().Msg("TMDB_ACCESS_TOKEN environment variable not set")
-	}
-
 	return &tmdbResolver{
-		client:      &http.Client{Timeout: 5 * time.Second},
-		accessToken: accessToken,
+		client: &http.Client{Timeout: 5 * time.Second},
 	}
 }

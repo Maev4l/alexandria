@@ -8,15 +8,51 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"os"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 )
 
 var tableName string = os.Getenv("DYNAMODB_TABLE_NAME")
-var secretKey string = os.Getenv("LEK_SECRET_KEY")
+var secretKeyParam string = os.Getenv("LEK_SECRET_KEY")
+
+// Cached secret key with one-time fetch from SSM
+var (
+	secretKey     string
+	secretKeyOnce sync.Once
+	secretKeyErr  error
+)
+
+// getSecretKey fetches the encryption key from SSM once, caching the result
+func getSecretKey() (string, error) {
+	secretKeyOnce.Do(func() {
+		region := os.Getenv("REGION")
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+		if err != nil {
+			secretKeyErr = err
+			return
+		}
+
+		ssmClient := ssm.NewFromConfig(cfg)
+		withDecryption := true
+		output, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
+			Name:           &secretKeyParam,
+			WithDecryption: &withDecryption,
+		})
+		if err != nil {
+			secretKeyErr = err
+			return
+		}
+
+		secretKey = *output.Parameter.Value
+	})
+
+	return secretKey, secretKeyErr
+}
 
 type dynamo struct {
 	client *dynamodb.Client
@@ -41,7 +77,12 @@ func serializeLek(lek map[string]types.AttributeValue) (*string, error) {
 		return nil, err
 	}
 
-	aes, err := aes.NewCipher([]byte(secretKey))
+	key, err := getSecretKey()
+	if err != nil {
+		return nil, err
+	}
+
+	aes, err := aes.NewCipher([]byte(key))
 	if err != nil {
 		return nil, err
 	}
@@ -64,13 +105,17 @@ func serializeLek(lek map[string]types.AttributeValue) (*string, error) {
 }
 
 func deserializeLek(lek string) (map[string]types.AttributeValue, error) {
-
 	dec, err := base64.StdEncoding.DecodeString(lek)
 	if err != nil {
 		return nil, err
 	}
 
-	aes, err := aes.NewCipher([]byte(secretKey))
+	key, err := getSecretKey()
+	if err != nil {
+		return nil, err
+	}
+
+	aes, err := aes.NewCipher([]byte(key))
 	if err != nil {
 		return nil, err
 	}

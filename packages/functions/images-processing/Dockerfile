@@ -1,25 +1,16 @@
-ARG FUNCTION_DIR="/function"
-
-FROM 671123374425.dkr.ecr.eu-central-1.amazonaws.com/common/sharp-base AS sharp
-
+# Edited by Claude.
+# Build stage - install dependencies including sharp
 FROM public.ecr.aws/lambda/nodejs:22 AS build
-# Include global arg in this stage of the build
-ARG FUNCTION_DIR
-RUN mkdir -p ${FUNCTION_DIR}
 
-WORKDIR ${FUNCTION_DIR}
-COPY handler.js package.json ${FUNCTION_DIR}
+WORKDIR ${LAMBDA_TASK_ROOT}
+COPY handler.js package.json ./
 
-RUN npm install --cpu=arm64 --os=linux --omit=dev --omit=optional
+# Install sharp with platform-specific binaries for Lambda ARM64
+RUN npm install --cpu=arm64 --os=linux --omit=dev
 
+# Production stage
 FROM public.ecr.aws/lambda/nodejs:22
-# Include global arg in this stage of the build
-ARG FUNCTION_DIR
-#RUN mkdir -p ${FUNCTION_DIR}
-#WORKDIR ${FUNCTION_DIR}
 
-COPY --from=sharp ${FUNCTION_DIR} ${LAMBDA_TASK_ROOT}
-COPY --from=build ${FUNCTION_DIR} ${LAMBDA_TASK_ROOT}
+COPY --from=build ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
 
-# Pass the name of the function handler as an argument to the runtime
 CMD ["handler.handle"]

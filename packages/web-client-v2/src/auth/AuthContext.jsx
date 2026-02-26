@@ -5,13 +5,17 @@ import { hideSplash } from '@/lib/splash';
 
 const AuthContext = createContext(null);
 
-// Cognito 'sub' claim → remove dashes and uppercase
+// Extract custom:Id from ID token (already normalized: UUID without dashes, uppercase)
 const extractUserId = (idToken) =>
-  idToken.payload.sub.replaceAll('-', '').toUpperCase();
+  idToken.payload['custom:Id'] || null;
 
-// Extract custom:DisplayName from ID token (may be undefined)
+// Extract display name from standard 'name' attribute (may be undefined)
 const extractDisplayName = (idToken) =>
-  idToken.payload['custom:DisplayName'] || null;
+  idToken.payload['name'] || null;
+
+// Check if user is approved (custom:Approved attribute)
+const extractApproved = (idToken) =>
+  idToken.payload['custom:Approved'] === 'true';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -32,6 +36,7 @@ export const AuthProvider = ({ children }) => {
             token: session.tokens.idToken.toString(),
             username: currentUser.username,
             displayName: extractDisplayName(session.tokens.idToken),
+            approved: extractApproved(session.tokens.idToken),
           });
         }
       } catch {
@@ -63,6 +68,7 @@ export const AuthProvider = ({ children }) => {
       token: session.tokens.idToken.toString(),
       username: currentUser.username,
       displayName: extractDisplayName(session.tokens.idToken),
+      approved: extractApproved(session.tokens.idToken),
     });
   }, []);
 
@@ -74,7 +80,8 @@ export const AuthProvider = ({ children }) => {
   const signUp = useCallback(async (email, password, displayName) => {
     const userAttributes = {};
     if (displayName) {
-      userAttributes['custom:DisplayName'] = displayName;
+      // Use standard 'name' attribute instead of custom:DisplayName
+      userAttributes['name'] = displayName;
     }
     await cognitoSignUp({
       username: email,
