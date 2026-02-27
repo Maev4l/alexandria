@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "build-cli": "yarn workspace @alexandria/cli build",
     "apply-infra": "yarn workspace @alexandria/infrastructure deploy",
     "build-backend": "yarn workspace @alexandria/functions build",
     "deploy-backend": "yarn build-backend && yarn workspace @alexandria/functions push-images-processing && yarn apply-infra",
@@ -14,7 +15,8 @@
     "packages/functions",
     "packages/web-client",
     "packages/web-client-v2",
-    "packages/infrastructure"
+    "packages/infrastructure",
+    "packages/cli"
   ],
   "devDependencies": {}
 }
