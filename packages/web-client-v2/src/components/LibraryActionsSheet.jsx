@@ -119,7 +119,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
   // Share form view
   if (mode === 'share') {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="fixed inset-0 z-[60] flex flex-col justify-end">
         <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
         <div className={sheetClasses} style={transitionStyle}>
           {/* Header */}
@@ -156,7 +156,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
               </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 pb-[env(safe-area-inset-bottom)]">
               <button
                 type="submit"
                 disabled={!isValidEmail || isLoading}
@@ -194,7 +194,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
   // Delete confirmation view
   if (mode === 'delete') {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="fixed inset-0 z-[60] flex flex-col justify-end">
         <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
         <div className={sheetClasses} style={transitionStyle}>
           {/* Warning content */}
@@ -213,7 +213,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
           </div>
 
           {/* Action buttons */}
-          <div className="p-4 pt-0 space-y-2">
+          <div className="p-4 pt-0 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-2">
             <button
               onClick={() => handleAction('delete')}
               disabled={isLoading}
@@ -247,7 +247,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
 
   // Default actions view
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       <div className={backdropClasses} style={transitionStyle} onClick={handleClose} />
       <div className={sheetClasses} style={transitionStyle}>
         {/* Library name header */}
@@ -293,7 +293,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
         </div>
 
         {/* Cancel button */}
-        <div className="p-4 pt-2 border-t border-border">
+        <div className="p-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-border">
           <button
             onClick={handleClose}
             className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"

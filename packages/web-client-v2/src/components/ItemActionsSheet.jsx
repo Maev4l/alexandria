@@ -123,7 +123,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
   // Lend form view
   if (mode === 'lend') {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="fixed inset-0 z-[60] flex flex-col justify-end">
         <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
         <div className={sheetClasses} style={transitionStyle}>
           {/* Header */}
@@ -155,7 +155,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 pb-[env(safe-area-inset-bottom)]">
               <button
                 type="submit"
                 disabled={!personName.trim() || isLoading}
@@ -193,7 +193,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
   // Delete confirmation view
   if (mode === 'delete') {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="fixed inset-0 z-[60] flex flex-col justify-end">
         <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
         <div className={sheetClasses} style={transitionStyle}>
           {/* Warning content */}
@@ -212,7 +212,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
           </div>
 
           {/* Action buttons */}
-          <div className="p-4 pt-0 space-y-2">
+          <div className="p-4 pt-0 pb-[calc(1rem+env(safe-area-inset-bottom))] space-y-2">
             <button
               onClick={() => handleAction('delete')}
               disabled={isLoading}
@@ -246,7 +246,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
 
   // Default actions view
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       <div className={backdropClasses} style={transitionStyle} onClick={handleClose} />
       <div className={sheetClasses} style={transitionStyle}>
         {/* Item title header */}
@@ -300,7 +300,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
         </div>
 
         {/* Cancel button */}
-        <div className="p-4 pt-2 border-t border-border">
+        <div className="p-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-border">
           <button
             onClick={handleClose}
             className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"

@@ -81,17 +81,18 @@ type GetItemResponse interface {
 }
 
 type GetItemResponseBase struct {
-	Id          string          `json:"id"`
-	Type        domain.ItemType `json:"type"`
-	Title       string          `json:"title"`
-	Picture     *string         `json:"picture,omitempty"`
-	PictureUrl  *string         `json:"pictureUrl,omitempty"`
-	LibraryId   *string         `json:"libraryId,omitempty"`
-	LibraryName *string         `json:"libraryName,omitempty"`
-	OwnerId     string          `json:"ownerId"`
-	LentTo      *string         `json:"lentTo,omitempty"`
-	Collection  *string         `json:"collection,omitempty"`
-	Order       *int            `json:"order,omitempty"`
+	Id             string          `json:"id"`
+	Type           domain.ItemType `json:"type"`
+	Title          string          `json:"title"`
+	Picture        *string         `json:"picture,omitempty"`
+	PictureUrl     *string         `json:"pictureUrl,omitempty"`
+	LibraryId      *string         `json:"libraryId,omitempty"`
+	LibraryName    *string         `json:"libraryName,omitempty"`
+	OwnerId        string          `json:"ownerId"`
+	LentTo         *string         `json:"lentTo,omitempty"`
+	CollectionId   *string         `json:"collectionId,omitempty"`
+	CollectionName *string         `json:"collectionName,omitempty"`
+	Order          *int            `json:"order,omitempty"`
 }
 
 func (g GetItemResponseBase) getType() string { return "" }
@@ -111,13 +112,13 @@ type GetLibrariesContentResponse struct {
 }
 
 type CreateBookRequest struct {
-	Title      string   `json:"title"`
-	Summary    string   `json:"summary"`
-	Authors    []string `json:"authors"`
-	Isbn       string   `json:"isbn"`
-	PictureUrl *string  `json:"pictureUrl,omitempty"`
-	Collection *string  `json:"collection,omitempty"`
-	Order      *int     `json:"order,omitempty"`
+	Title        string   `json:"title"`
+	Summary      string   `json:"summary"`
+	Authors      []string `json:"authors"`
+	Isbn         string   `json:"isbn"`
+	PictureUrl   *string  `json:"pictureUrl,omitempty"`
+	CollectionId *string  `json:"collectionId,omitempty"`
+	Order        *int     `json:"order,omitempty"`
 }
 
 type CreateBookResponse struct {
@@ -131,23 +132,23 @@ type UpdateBookRequest struct {
 	Authors       []string `json:"authors"`
 	Isbn          string   `json:"isbn"`
 	PictureUrl    *string  `json:"pictureUrl,omitempty"`
-	Collection    *string  `json:"collection,omitempty"`
+	CollectionId  *string  `json:"collectionId,omitempty"`
 	Order         *int     `json:"order,omitempty"`
 	UpdatePicture *bool    `json:"updatePicture,omitempty"`
 }
 
 // Video request/response models
 type CreateVideoRequest struct {
-	Title       string   `json:"title"`
-	Summary     string   `json:"summary"`
-	Directors   []string `json:"directors"`
-	Cast        []string `json:"cast"`
-	ReleaseYear *int     `json:"releaseYear,omitempty"`
-	Duration    *int     `json:"duration,omitempty"`
-	TmdbId      *string  `json:"tmdbId,omitempty"`
-	PictureUrl  *string  `json:"pictureUrl,omitempty"`
-	Collection  *string  `json:"collection,omitempty"`
-	Order       *int     `json:"order,omitempty"`
+	Title        string   `json:"title"`
+	Summary      string   `json:"summary"`
+	Directors    []string `json:"directors"`
+	Cast         []string `json:"cast"`
+	ReleaseYear  *int     `json:"releaseYear,omitempty"`
+	Duration     *int     `json:"duration,omitempty"`
+	TmdbId       *string  `json:"tmdbId,omitempty"`
+	PictureUrl   *string  `json:"pictureUrl,omitempty"`
+	CollectionId *string  `json:"collectionId,omitempty"`
+	Order        *int     `json:"order,omitempty"`
 }
 
 type CreateVideoResponse struct {
@@ -164,7 +165,7 @@ type UpdateVideoRequest struct {
 	Duration      *int     `json:"duration,omitempty"`
 	TmdbId        *string  `json:"tmdbId,omitempty"`
 	PictureUrl    *string  `json:"pictureUrl,omitempty"`
-	Collection    *string  `json:"collection,omitempty"`
+	CollectionId  *string  `json:"collectionId,omitempty"`
 	Order         *int     `json:"order,omitempty"`
 	UpdatePicture *bool    `json:"updatePicture,omitempty"`
 }
@@ -181,6 +182,15 @@ type GetVideoResponse struct {
 }
 
 func (g GetVideoResponse) getType() string { return domain.ItemVideo.String() }
+
+// GetCollectionItemResponse for collection items (type = 2)
+// Collections are returned as items in the items list for unified sorting
+type GetCollectionItemResponse struct {
+	GetItemResponseBase
+	Description string `json:"description,omitempty"`
+}
+
+func (g GetCollectionItemResponse) getType() string { return domain.ItemCollection.String() }
 
 type ShareRequest struct {
 	UserName string `json:"userName"`

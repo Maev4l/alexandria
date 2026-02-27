@@ -15,34 +15,58 @@ import VideoCard from '@/components/VideoCard';
 import CollectionCard from '@/components/CollectionCard';
 import ItemActionsSheet from '@/components/ItemActionsSheet';
 import AddItemSheet from '@/components/AddItemSheet';
+import CollectionActionsSheet from '@/components/CollectionActionsSheet';
+import NewCollectionSheet from '@/components/NewCollectionSheet';
 import { useToast } from '@/components/Toast';
+import { librariesApi } from '@/api';
 
-// Item type constants
+// Item type constants (matches backend domain.ItemType)
 const ITEM_TYPE_BOOK = 0;
 const ITEM_TYPE_VIDEO = 1;
+const ITEM_TYPE_COLLECTION = 2;
 
 // Build unified sorted list: standalone items + collections, alphabetically
+// Handles both:
+// - Collection items (type = 2) from API as empty/standalone collections
+// - Regular items with collectionId as grouped collection members
 const buildSortedList = (items) => {
   const collections = {};
   const standalone = [];
 
   items.forEach((item) => {
-    if (item.collection) {
-      if (!collections[item.collection]) {
-        collections[item.collection] = [];
+    // Collection items from API (type = 2) - create empty collection entry
+    if (item.type === ITEM_TYPE_COLLECTION) {
+      if (!collections[item.id]) {
+        collections[item.id] = {
+          id: item.id,
+          name: item.title,
+          items: [],
+        };
       }
-      collections[item.collection].push(item);
+      return;
+    }
+
+    // Items with collectionId belong to a collection
+    if (item.collectionId && item.collectionName) {
+      if (!collections[item.collectionId]) {
+        collections[item.collectionId] = {
+          id: item.collectionId,
+          name: item.collectionName,
+          items: [],
+        };
+      }
+      collections[item.collectionId].items.push(item);
     } else {
       standalone.push({ type: 'item', data: item, sortKey: item.title?.toLowerCase() || '' });
     }
   });
 
   // Convert collections to list entries, sort items by order within each
-  const collectionEntries = Object.entries(collections).map(([name, collectionItems]) => ({
+  const collectionEntries = Object.values(collections).map((col) => ({
     type: 'collection',
-    name,
-    items: collectionItems.sort((a, b) => (a.order || 0) - (b.order || 0)),
-    sortKey: name.toLowerCase(),
+    collection: { id: col.id, name: col.name },
+    items: col.items.sort((a, b) => (a.order || 0) - (b.order || 0)),
+    sortKey: col.name.toLowerCase(),
   }));
 
   // Merge and sort alphabetically by sortKey
@@ -73,6 +97,14 @@ const LibraryContent = () => {
   // State for add item sheet
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
   const [prefilledCollection, setPrefilledCollection] = useState(null);
+
+  // State for collection actions sheet
+  const [selectedCollection, setSelectedCollection] = useState(null);
+  const [isCollectionActionsOpen, setIsCollectionActionsOpen] = useState(false);
+
+  // State for new collection sheet
+  const [isNewCollectionOpen, setIsNewCollectionOpen] = useState(false);
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
 
   const loadMoreRef = useRef(null);
   const pullToRefreshRef = useRef(null);
@@ -185,11 +217,61 @@ const LibraryContent = () => {
     setIsAddItemOpen(true);
   }, []);
 
-  // Handle add item from collection header (collection prefilled)
-  const handleAddToCollection = useCallback((collectionName) => {
-    setPrefilledCollection(collectionName);
-    setIsAddItemOpen(true);
+  // Handle "..." press on collection header
+  const handleCollectionMore = useCallback((collection) => {
+    setSelectedCollection(collection);
+    setIsCollectionActionsOpen(true);
   }, []);
+
+  // Handle adding book to selected collection
+  const handleAddBookToCollection = useCallback(() => {
+    if (!selectedCollection) return;
+    navigate(`/libraries/${libraryId}/add-book`, {
+      state: { collection: selectedCollection, order: '1' }
+    });
+  }, [selectedCollection, libraryId, navigate]);
+
+  // Handle adding video to selected collection
+  const handleAddVideoToCollection = useCallback(() => {
+    if (!selectedCollection) return;
+    navigate(`/libraries/${libraryId}/add-video`, {
+      state: { collection: selectedCollection, order: '1' }
+    });
+  }, [selectedCollection, libraryId, navigate]);
+
+  // Handle deleting collection
+  const handleDeleteCollection = useCallback(async () => {
+    if (!selectedCollection) return;
+    try {
+      await librariesApi.deleteCollection(libraryId, selectedCollection.id);
+      // Refresh items (orphaned items will no longer have collectionId)
+      await fetchItems(libraryId, true);
+      toast.success('Collection deleted');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete collection');
+    }
+  }, [selectedCollection, libraryId, fetchItems, toast]);
+
+  // Handle opening new collection sheet
+  const handleAddCollection = useCallback(() => {
+    setIsNewCollectionOpen(true);
+  }, []);
+
+  // Handle creating new collection
+  const handleCreateCollection = useCallback(async (name) => {
+    setIsCreatingCollection(true);
+    try {
+      await librariesApi.createCollection(libraryId, { name });
+      setIsNewCollectionOpen(false);
+      // Refresh items to show the new collection (collections come with items from API)
+      await fetchItems(libraryId, true);
+      toast.success('Collection created');
+    } catch (err) {
+      toast.error(err.message || 'Failed to create collection');
+    } finally {
+      setIsCreatingCollection(false);
+    }
+  }, [libraryId, fetchItems, toast]);
 
   // Render AppBar with appropriate configuration
   const renderAppBar = () => (
@@ -290,8 +372,8 @@ const LibraryContent = () => {
             if (entry.type === 'collection') {
               return (
                 <CollectionCard
-                  key={`collection-${entry.name}`}
-                  name={entry.name}
+                  key={`collection-${entry.collection.id}`}
+                  collection={entry.collection}
                   items={entry.items}
                   onItemClick={(item) => {
                     // Route to correct detail page based on item type
@@ -302,7 +384,7 @@ const LibraryContent = () => {
                     }
                   }}
                   onItemLongPress={isSharedLibrary ? undefined : handleItemLongPress}
-                  onAddItem={isSharedLibrary ? undefined : handleAddToCollection}
+                  onMorePress={isSharedLibrary ? undefined : handleCollectionMore}
                   isSharedLibrary={isSharedLibrary}
                   index={idx}
                 />
@@ -360,12 +442,31 @@ const LibraryContent = () => {
         isLoading={isActionLoading}
       />
 
-      {/* Add item type selector */}
+      {/* Add item type selector (from AppBar + button) */}
       <AddItemSheet
         isOpen={isAddItemOpen}
         onClose={() => setIsAddItemOpen(false)}
-        onSelectBook={() => navigate(`/libraries/${libraryId}/add-book`, { state: { collection: prefilledCollection, order: prefilledCollection ? '1' : '' } })}
-        onSelectVideo={() => navigate(`/libraries/${libraryId}/add-video`, { state: { collection: prefilledCollection, order: prefilledCollection ? '1' : '' } })}
+        onSelectBook={() => navigate(`/libraries/${libraryId}/add-book`)}
+        onSelectVideo={() => navigate(`/libraries/${libraryId}/add-video`)}
+        onSelectCollection={handleAddCollection}
+      />
+
+      {/* Collection actions sheet */}
+      <CollectionActionsSheet
+        isOpen={isCollectionActionsOpen}
+        onClose={() => setIsCollectionActionsOpen(false)}
+        collectionName={selectedCollection?.name}
+        onAddBook={handleAddBookToCollection}
+        onAddVideo={handleAddVideoToCollection}
+        onDelete={handleDeleteCollection}
+      />
+
+      {/* New collection sheet */}
+      <NewCollectionSheet
+        isOpen={isNewCollectionOpen}
+        onClose={() => setIsNewCollectionOpen(false)}
+        onSubmit={handleCreateCollection}
+        isLoading={isCreatingCollection}
       />
     </div>
   );

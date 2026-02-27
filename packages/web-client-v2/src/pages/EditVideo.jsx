@@ -28,11 +28,13 @@ const EditVideo = () => {
     releaseYear: '',
     duration: '',
     pictureUrl: '',
-    collection: '',
     order: '',
   });
 
   const [posterError, setPosterError] = useState(false);
+
+  // Collection is read-only from item data
+  const collection = video ? { id: video.collectionId, name: video.collectionName } : null;
 
   // Initialize form when video data loads
   useEffect(() => {
@@ -45,7 +47,6 @@ const EditVideo = () => {
         releaseYear: video.releaseYear?.toString() || '',
         duration: video.duration?.toString() || '',
         pictureUrl: video.pictureUrl || '',
-        collection: video.collection || '',
         order: video.order?.toString() || '',
       });
       setInitialized(true);
@@ -61,6 +62,7 @@ const EditVideo = () => {
   const isValid = form.title.trim().length > 0;
 
   // Check if there are changes compared to original video data
+  // Collection is not editable, so not included in change detection
   const hasChanges = initialized && (
     form.title.trim() !== (video?.title || '') ||
     form.summary.trim() !== (video?.summary || '') ||
@@ -69,7 +71,6 @@ const EditVideo = () => {
     form.releaseYear !== (video?.releaseYear?.toString() || '') ||
     form.duration !== (video?.duration?.toString() || '') ||
     form.pictureUrl.trim() !== (video?.pictureUrl || '') ||
-    form.collection.trim() !== (video?.collection || '') ||
     form.order !== (video?.order?.toString() || '')
   );
 
@@ -94,7 +95,7 @@ const EditVideo = () => {
         releaseYear: form.releaseYear ? parseInt(form.releaseYear, 10) : null,
         duration: form.duration ? parseInt(form.duration, 10) : null,
         pictureUrl: form.pictureUrl.trim() || null,
-        collection: form.collection.trim() || null,
+        collectionId: collection?.id || null,
         order: form.order ? parseInt(form.order, 10) : null,
       });
 
@@ -242,32 +243,33 @@ const EditVideo = () => {
             />
           </div>
 
-          {/* Collection and Order row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="collection">Collection</Label>
-              <Input
-                id="collection"
-                value={form.collection}
-                onChange={handleChange('collection')}
-                placeholder="e.g., Star Wars"
-              />
+          {/* Collection and Order row - only shown if item belongs to a collection */}
+          {collection?.name && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Collection</Label>
+                <Input
+                  value={collection.name}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="order">Order</Label>
+                <Input
+                  id="order"
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  min="1"
+                  max="1000"
+                  value={form.order}
+                  onChange={handleChange('order')}
+                  placeholder="1"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="order">Order</Label>
-              <Input
-                id="order"
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                min="1"
-                max="1000"
-                value={form.order}
-                onChange={handleChange('order')}
-                placeholder="1"
-              />
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

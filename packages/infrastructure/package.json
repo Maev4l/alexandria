@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "output": "terraform output -json | jq '{alexandriaUserPoolId: .cognito_user_pool_id.value, alexandriaClientId: .cognito_user_pool_client_id.value}' > ../web-client-v2/output.json",
+    "output": "terraform output -json | jq '{alexandriaUserPoolId: .cognito_user_pool_id.value, alexandriaClientId: .cognito_user_pool_client_id.value, apiEndpoint: .api_endpoint.value}' > ../web-client-v2/output.json",
     "deploy": "terraform apply -auto-approve",
     "invalidate-frontend": "aws cloudfront create-invalidation --path '/*' --distribution-id $(terraform output -raw cloudfront_distribution_id)"
   }

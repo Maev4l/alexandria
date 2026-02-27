@@ -5,9 +5,10 @@
   "scripts": {
     "apply-infra": "yarn workspace @alexandria/infrastructure deploy",
     "build-backend": "yarn workspace @alexandria/functions build",
-    "deploy-backend": "yarn build-backend && yarn apply-infra",
+    "deploy-backend": "yarn build-backend && yarn workspace @alexandria/functions push-images-processing && yarn apply-infra",
     "build-frontend": "yarn workspace @alexandria/web-client-v2 build",
-    "deploy-frontend": "yarn workspace @alexandria/web-client-v2 deploy && yarn workspace @alexandria/infrastructure invalidate-frontend"
+    "deploy-frontend": "yarn workspace @alexandria/web-client-v2 deploy && yarn workspace @alexandria/infrastructure invalidate-frontend",
+    "frontend-dev": "yarn workspace @alexandria/web-client-v2 dev"
   },
   "workspaces": [
     "packages/functions",

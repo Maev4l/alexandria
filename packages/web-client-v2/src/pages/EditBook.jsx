@@ -26,10 +26,12 @@ const EditBook = () => {
   const [summary, setSummary] = useState('');
   const [authors, setAuthors] = useState('');
   const [isbn, setIsbn] = useState('');
-  const [collection, setCollection] = useState('');
   const [order, setOrder] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialized, setInitialized] = useState(false);
+
+  // Collection is read-only from item data
+  const collection = book ? { id: book.collectionId, name: book.collectionName } : null;
 
   // Initialize form when book data loads
   useEffect(() => {
@@ -39,7 +41,6 @@ const EditBook = () => {
       setSummary(book.summary || '');
       setAuthors(book.authors?.join(', ') || '');
       setIsbn(book.isbn || '');
-      setCollection(book.collection || '');
       setOrder(book.order?.toString() || '');
       setInitialized(true);
     }
@@ -55,13 +56,13 @@ const EditBook = () => {
   const isValid = title.trim().length > 0;
 
   // Check if there are changes compared to original book data
+  // Collection is not editable, so not included in change detection
   const hasChanges = initialized && (
     cover.trim() !== (book?.pictureUrl || '') ||
     title.trim() !== (book?.title || '') ||
     summary.trim() !== (book?.summary || '') ||
     authors.trim() !== (book?.authors?.join(', ') || '') ||
     isbn.trim() !== (book?.isbn || '') ||
-    collection.trim() !== (book?.collection || '') ||
     order !== (book?.order?.toString() || '')
   );
 
@@ -79,7 +80,7 @@ const EditBook = () => {
         authors: authorsArray,
         isbn: isbn.trim() || null,
         pictureUrl: cover.trim() || null,
-        collection: collection.trim() || null,
+        collectionId: collection?.id || null,
         order: order ? parseInt(order, 10) : null,
       });
       navigate(-1);
@@ -194,32 +195,34 @@ const EditBook = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="collection">Collection</Label>
-              <Input
-                id="collection"
-                value={collection}
-                onChange={(e) => setCollection(e.target.value)}
-                placeholder="Collection name"
-              />
-            </div>
+          {/* Collection section - only shown if item belongs to a collection */}
+          {collection?.name && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Collection</Label>
+                <Input
+                  value={collection.name}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="order">Order</Label>
-              <Input
-                id="order"
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                min="1"
-                max="1000"
-                value={order}
-                onChange={(e) => setOrder(e.target.value)}
-                placeholder="1"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="order">Order</Label>
+                <Input
+                  id="order"
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  min="1"
+                  max="1000"
+                  value={order}
+                  onChange={(e) => setOrder(e.target.value)}
+                  placeholder="1"
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

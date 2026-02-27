@@ -13,6 +13,7 @@ const (
 	TypeBook          EntityType = "BOOK"
 	TypeVideo         EntityType = "VIDEO"
 	TypeEvent         EntityType = "EVENT"
+	TypeCollection    EntityType = "COLLECTION"
 )
 
 type Library struct {
@@ -48,28 +49,29 @@ func MakeLibraryGSI1SK(libraryName string) string {
 }
 
 type LibraryItem struct {
-	PK          string     `dynamodbav:"PK"`     // owner#<owner id>
-	SK          string     `dynamodbav:"SK"`     // library#<library id>#item#<item id>
-	GSI1PK      string     `dynamodbav:"GSI1PK"` // owner#<owner id>#library#<library id>
-	GSI1SK      string     `dynamodbav:"GSI1SK"` // item#<item title>
-	GSI2PK      string     `dynamodbav:"GSI2PK"` // owner#<owner id>
-	GSI2SK      string     `dynamodbav:"GSI2SK"` // item#<item title>
-	Id          string     `dynamodbav:"ItemId"`
-	Title       string     `dynamodbav:"Title"`
-	OwnerName   string     `dynamodbav:"OwnerName"`
-	OwnerId     string     `dynamodbav:"OwnerId"`
-	LibraryId   string     `dynamodbav:"LibraryId"`
-	LibraryName string     `dynamodbav:"LibraryName"`
-	UpdatedAt   *time.Time `dynamodbav:"UpdatedAt"`
-	Summary     string     `dynamodbav:"Summary"`
-	Authors     []string   `dynamodbav:"Authors"`
-	Isbn        string     `dynamodbav:"Isbn"`
-	Type        int        `dynamodbav:"Type"`
-	PictureUrl  *string    `dynamodbav:"PictureUrl,omitempty"`
-	LentTo      *string    `dynamodbav:"LentTo,omitempty"`
-	EntityType  EntityType `dynamodbav:"EntityType"`
-	Collection  *string    `dynamodbav:"Collection,omitempty"`
-	Order       *int       `dynamodbav:"Order,omitempty"`
+	PK             string     `dynamodbav:"PK"`     // owner#<owner id>
+	SK             string     `dynamodbav:"SK"`     // library#<library id>#item#<item id>
+	GSI1PK         string     `dynamodbav:"GSI1PK"` // owner#<owner id>#library#<library id>
+	GSI1SK         string     `dynamodbav:"GSI1SK"` // item#<collection name>#<order>#<item title> or item#<item title>
+	GSI2PK         string     `dynamodbav:"GSI2PK"` // owner#<owner id>
+	GSI2SK         string     `dynamodbav:"GSI2SK"` // item#<item title>
+	Id             string     `dynamodbav:"ItemId"`
+	Title          string     `dynamodbav:"Title"`
+	OwnerName      string     `dynamodbav:"OwnerName"`
+	OwnerId        string     `dynamodbav:"OwnerId"`
+	LibraryId      string     `dynamodbav:"LibraryId"`
+	LibraryName    string     `dynamodbav:"LibraryName"`
+	UpdatedAt      *time.Time `dynamodbav:"UpdatedAt"`
+	Summary        string     `dynamodbav:"Summary"`
+	Authors        []string   `dynamodbav:"Authors"`
+	Isbn           string     `dynamodbav:"Isbn"`
+	Type           int        `dynamodbav:"Type"`
+	PictureUrl     *string    `dynamodbav:"PictureUrl,omitempty"`
+	LentTo         *string    `dynamodbav:"LentTo,omitempty"`
+	EntityType     EntityType `dynamodbav:"EntityType"`
+	CollectionId   *string    `dynamodbav:"CollectionId,omitempty"`   // FK to Collection entity
+	CollectionName *string    `dynamodbav:"CollectionName,omitempty"` // Denormalized for GSI1SK sorting
+	Order          *int       `dynamodbav:"Order,omitempty"`
 	// Video-specific fields
 	Directors   []string `dynamodbav:"Directors,omitempty"`
 	Cast        []string `dynamodbav:"Cast,omitempty"`
@@ -90,15 +92,15 @@ func MakeLibraryItemGSI1PK(ownerId string, libraryId string) string {
 	return fmt.Sprintf("owner#%s#library#%s", ownerId, libraryId)
 }
 
-func MakeLibraryItemGSI1SK(itemTitle string, collection *string, order *int) string {
-	// If no collection or no valid order (must be >= 1), use simple title-only format
-	if (collection == nil || len(*collection) == 0) && (order == nil || *order < 1) {
+func MakeLibraryItemGSI1SK(itemTitle string, collectionName *string, order *int) string {
+	// If no collection name or no valid order (must be >= 1), use simple title-only format
+	if (collectionName == nil || len(*collectionName) == 0) && (order == nil || *order < 1) {
 		return fmt.Sprintf("item#%s", itemTitle)
 	}
 
 	// Order padded to 5 digits for correct lexicographic sorting (00001-01000)
 	orderStr := fmt.Sprintf("%05d", *order)
-	return fmt.Sprintf("item#%s#%s#%s", *collection, orderStr, itemTitle)
+	return fmt.Sprintf("item#%s#%s#%s", *collectionName, orderStr, itemTitle)
 }
 
 func MakeLibraryItemGSI2PK(ownerId string) string {
@@ -107,6 +109,39 @@ func MakeLibraryItemGSI2PK(ownerId string) string {
 
 func MakeLibraryItemGSI2SK(itemTitle string) string {
 	return fmt.Sprintf("item#%s", itemTitle)
+}
+
+// Collection represents a grouping of items within a library
+type Collection struct {
+	PK          string     `dynamodbav:"PK"`     // owner#<owner id>
+	SK          string     `dynamodbav:"SK"`     // library#<library id>#collection#<collection id>
+	GSI1PK      string     `dynamodbav:"GSI1PK"` // owner#<owner id>#library#<library id>
+	GSI1SK      string     `dynamodbav:"GSI1SK"` // collection#<collection name>
+	Id          string     `dynamodbav:"CollectionId"`
+	Name        string     `dynamodbav:"CollectionName"`
+	Description string     `dynamodbav:"Description"`
+	ItemCount   int        `dynamodbav:"ItemCount"`
+	OwnerId     string     `dynamodbav:"OwnerId"`
+	LibraryId   string     `dynamodbav:"LibraryId"`
+	CreatedAt   *time.Time `dynamodbav:"CreatedAt"`
+	UpdatedAt   *time.Time `dynamodbav:"UpdatedAt"`
+	EntityType  EntityType `dynamodbav:"EntityType"`
+}
+
+func MakeCollectionPK(ownerId string) string {
+	return fmt.Sprintf("owner#%s", ownerId)
+}
+
+func MakeCollectionSK(libraryId string, collectionId string) string {
+	return fmt.Sprintf("library#%s#collection#%s", libraryId, collectionId)
+}
+
+func MakeCollectionGSI1PK(ownerId string, libraryId string) string {
+	return fmt.Sprintf("owner#%s#library#%s", ownerId, libraryId)
+}
+
+func MakeCollectionGSI1SK(collectionName string) string {
+	return fmt.Sprintf("collection#%s", collectionName)
 }
 
 type SharedLibrary struct {

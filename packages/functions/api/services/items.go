@@ -90,11 +90,26 @@ func (s *services) ReturnItem(ownerId string, libraryId string, itemId string, f
 }
 
 func (s *services) DeleteItem(i *domain.LibraryItem) error {
-
-	err := s.db.DeleteLibraryItem(i)
+	// Get current item to check if it's in a collection
+	current, err := s.db.GetLibraryItem(i.OwnerId, i.LibraryId, i.Id)
 	if err != nil {
 		return err
 	}
+
+	err = s.db.DeleteLibraryItem(i)
+	if err != nil {
+		return err
+	}
+
+	// Decrement collection item count if item was in a collection
+	if current.CollectionId != nil && *current.CollectionId != "" {
+		err = s.db.IncrementCollectionItemCount(i.OwnerId, i.LibraryId, *current.CollectionId, -1)
+		if err != nil {
+			// Log but don't fail - eventual consistency via stream will fix this
+			log.Warn().Str("collectionId", *current.CollectionId).Msgf("Failed to decrement collection item count: %s", err.Error())
+		}
+	}
+
 	err = s.storage.DeletePicture(i.OwnerId, i.LibraryId, i.Id)
 	if err != nil {
 		return err
@@ -103,7 +118,6 @@ func (s *services) DeleteItem(i *domain.LibraryItem) error {
 }
 
 func (s *services) UpdateItem(i *domain.LibraryItem, fetchPic bool) error {
-
 	library, err := s.db.GetLibrary(i.OwnerId, i.LibraryId)
 	if err != nil {
 		return err
@@ -113,6 +127,12 @@ func (s *services) UpdateItem(i *domain.LibraryItem, fetchPic bool) error {
 		msg := fmt.Sprintf("Library %s does not belong to user", i.LibraryId)
 		log.Error().Msg(msg)
 		return errors.New(msg)
+	}
+
+	// Get current item to track collection changes
+	currentItem, err := s.db.GetLibraryItem(i.OwnerId, i.LibraryId, i.Id)
+	if err != nil {
+		return err
 	}
 
 	if fetchPic && i.PictureUrl != nil && *i.PictureUrl != "" {
@@ -130,12 +150,55 @@ func (s *services) UpdateItem(i *domain.LibraryItem, fetchPic bool) error {
 
 	i.LibraryName = library.Name
 
+	// If collectionId is provided, look up the collection to get the name
+	if i.CollectionId != nil && *i.CollectionId != "" {
+		collection, err := s.db.GetCollection(i.OwnerId, i.LibraryId, *i.CollectionId)
+		if err != nil {
+			return err
+		}
+		if collection == nil {
+			msg := "collection not found"
+			log.Error().Str("collectionId", *i.CollectionId).Msg(msg)
+			return errors.New(msg)
+		}
+		i.CollectionName = &collection.Name
+	} else {
+		// Clearing collection
+		i.CollectionName = nil
+	}
+
 	current := time.Now().UTC()
 	i.UpdatedAt = &current
 
 	err = s.db.UpdateLibraryItem(i)
 	if err != nil {
 		return err
+	}
+
+	// Handle collection item count changes
+	oldCollectionId := ""
+	newCollectionId := ""
+	if currentItem.CollectionId != nil {
+		oldCollectionId = *currentItem.CollectionId
+	}
+	if i.CollectionId != nil {
+		newCollectionId = *i.CollectionId
+	}
+
+	if oldCollectionId != newCollectionId {
+		// Item moved between collections
+		if oldCollectionId != "" {
+			err = s.db.IncrementCollectionItemCount(i.OwnerId, i.LibraryId, oldCollectionId, -1)
+			if err != nil {
+				log.Warn().Str("collectionId", oldCollectionId).Msgf("Failed to decrement collection item count: %s", err.Error())
+			}
+		}
+		if newCollectionId != "" {
+			err = s.db.IncrementCollectionItemCount(i.OwnerId, i.LibraryId, newCollectionId, 1)
+			if err != nil {
+				log.Warn().Str("collectionId", newCollectionId).Msgf("Failed to increment collection item count: %s", err.Error())
+			}
+		}
 	}
 
 	return nil
@@ -164,12 +227,35 @@ func (s *services) CreateItem(i *domain.LibraryItem) (*domain.LibraryItem, error
 
 	i.LibraryName = library.Name
 
+	// If collectionId is provided, look up the collection to get the name
+	if i.CollectionId != nil && *i.CollectionId != "" {
+		collection, err := s.db.GetCollection(i.OwnerId, i.LibraryId, *i.CollectionId)
+		if err != nil {
+			return nil, err
+		}
+		if collection == nil {
+			msg := "collection not found"
+			log.Error().Str("collectionId", *i.CollectionId).Msg(msg)
+			return nil, errors.New(msg)
+		}
+		i.CollectionName = &collection.Name
+	}
+
 	current := time.Now().UTC()
 	i.UpdatedAt = &current
 
 	err = s.db.PutLibraryItem(i)
 	if err != nil {
 		return nil, err
+	}
+
+	// Increment collection item count if item is in a collection
+	if i.CollectionId != nil && *i.CollectionId != "" {
+		err = s.db.IncrementCollectionItemCount(i.OwnerId, i.LibraryId, *i.CollectionId, 1)
+		if err != nil {
+			// Log but don't fail - eventual consistency via stream will fix this
+			log.Warn().Str("collectionId", *i.CollectionId).Msgf("Failed to increment collection item count: %s", err.Error())
+		}
 	}
 
 	return i, nil
@@ -204,6 +290,31 @@ func (s *services) ListItemsByLibrary(ownerId string, libraryId string, continua
 			}
 
 			i.Picture = pic
+		}
+	}
+
+	// On first page (no continuation token), include collections as items with type = ItemCollection
+	// This ensures empty collections are visible and pagination still works correctly
+	if continuationToken == "" {
+		collections, err := s.db.QueryCollectionsByLibrary(libraryOwnerId, libraryId)
+		if err != nil {
+			// Log but don't fail - collections are optional
+			log.Warn().Msgf("Failed to fetch collections: %s", err.Error())
+		} else {
+			// Prepend collections to items (they'll be sorted on the frontend)
+			collectionItems := make([]*domain.LibraryItem, 0, len(collections))
+			for _, c := range collections {
+				collectionItems = append(collectionItems, &domain.LibraryItem{
+					Id:        c.Id,
+					Title:     c.Name,
+					LibraryId: c.LibraryId,
+					OwnerId:   c.OwnerId,
+					Type:      domain.ItemCollection,
+					Summary:   c.Description,
+					UpdatedAt: c.UpdatedAt,
+				})
+			}
+			content.Items = append(collectionItems, content.Items...)
 		}
 	}
 

@@ -37,4 +37,10 @@ type Services interface {
 	ReturnItem(ownerId string, libraryId string, itemId string, from string) error
 	GetLibraryItemHistory(ownerId string, libraryId string, itemId string, continuationToken string, pageSize int) (*domain.ItemHistory, error)
 	DeleteLibraryItemHistory(ownerId string, libraryId string, itemId string) error
+	// Collection methods
+	CreateCollection(c *domain.Collection) (*domain.Collection, error)
+	UpdateCollection(c *domain.Collection) error
+	DeleteCollection(c *domain.Collection) error
+	GetCollection(ownerId string, libraryId string, collectionId string) (*domain.Collection, error)
+	ListCollectionsByLibrary(ownerId string, libraryId string) ([]domain.Collection, error)
 }

@@ -50,7 +50,7 @@ const BottomSheet = ({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       {/* Backdrop with fade */}
       <div
         className={cn(
@@ -102,7 +102,7 @@ const BottomSheet = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           {children}
         </div>
       </div>

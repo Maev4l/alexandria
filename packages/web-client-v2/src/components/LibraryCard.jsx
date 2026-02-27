@@ -100,7 +100,7 @@ const LibraryCard = ({ library, onClick, onLongPress, index }) => {
           // Show only username part of email (before @) for cleaner display
           `by ${library.sharedFrom.split('@')[0]}`
         ) : (
-          `${library.totalItems} ${library.totalItems === 1 ? 'book' : 'books'}`
+          `${library.totalItems} ${library.totalItems === 1 ? 'item' : 'items'}`
         )}
       </span>
     </button>

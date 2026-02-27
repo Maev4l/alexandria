@@ -2,7 +2,7 @@
 // Horizontal scrolling collection card for displaying grouped items (books + videos)
 // Items are displayed as cover thumbnails with horizontal scroll
 import { useRef, useCallback } from 'react';
-import { BookOpen, Film, Plus } from 'lucide-react';
+import { BookOpen, Film, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STAGGER_DELAY = 50; // ms per item for staggered animation
@@ -96,18 +96,19 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary }) => {
   );
 };
 
-const CollectionCard = ({ name, items, onItemClick, onItemLongPress, onAddItem, isSharedLibrary = false, index }) => {
+const CollectionCard = ({ collection, items, onItemClick, onItemLongPress, onMorePress, isSharedLibrary = false, index }) => {
   const itemCount = items.length;
+  const name = collection?.name || 'Unknown';
 
   // Staggered animation style
   const animationStyle = index != null
     ? { animationDelay: `${index * STAGGER_DELAY}ms` }
     : undefined;
 
-  const handleAddClick = useCallback((e) => {
+  const handleMoreClick = useCallback((e) => {
     e.stopPropagation();
-    onAddItem?.(name);
-  }, [name, onAddItem]);
+    onMorePress?.(collection);
+  }, [collection, onMorePress]);
 
   return (
     <div
@@ -127,48 +128,57 @@ const CollectionCard = ({ name, items, onItemClick, onItemLongPress, onAddItem, 
             {itemCount} {itemCount === 1 ? 'item' : 'items'}
           </span>
         </div>
-        {/* Add button - only for owned libraries */}
-        {onAddItem && !isSharedLibrary && (
+        {/* More button - only for owned libraries */}
+        {onMorePress && !isSharedLibrary && (
           <button
-            onClick={handleAddClick}
+            onClick={handleMoreClick}
             className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-            aria-label={`Add item to ${name}`}
+            aria-label={`More options for ${name}`}
           >
-            <Plus className="h-4 w-4" />
+            <MoreHorizontal className="h-4 w-4" />
           </button>
         )}
       </div>
 
       {/* Horizontal scrolling items - card background */}
       <div className="relative bg-card">
-        {/* Scroll container */}
-        <div
-          className={cn(
-            'flex gap-3 px-3 pt-3 pb-3 overflow-x-auto',
-            // Hide scrollbar but keep functionality
-            'scrollbar-none',
-            // Smooth scroll on iOS
-            '-webkit-overflow-scrolling-touch'
-          )}
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-          }}
-        >
-          {items.map((item) => (
-            <ItemThumbnail
-              key={item.id}
-              item={item}
-              onClick={onItemClick}
-              onLongPress={onItemLongPress}
-              isSharedLibrary={isSharedLibrary}
-            />
-          ))}
-        </div>
+        {itemCount === 0 ? (
+          // Empty state
+          <div className="flex items-center justify-center px-3 py-6 text-sm text-muted-foreground">
+            {isSharedLibrary ? 'No items' : 'Tap ••• to add items'}
+          </div>
+        ) : (
+          <>
+            {/* Scroll container */}
+            <div
+              className={cn(
+                'flex gap-3 px-3 pt-3 pb-3 overflow-x-auto',
+                // Hide scrollbar but keep functionality
+                'scrollbar-none',
+                // Smooth scroll on iOS
+                '-webkit-overflow-scrolling-touch'
+              )}
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              }}
+            >
+              {items.map((item) => (
+                <ItemThumbnail
+                  key={item.id}
+                  item={item}
+                  onClick={onItemClick}
+                  onLongPress={onItemLongPress}
+                  isSharedLibrary={isSharedLibrary}
+                />
+              ))}
+            </div>
 
-        {/* Right fade gradient to indicate more content */}
-        {itemCount > 4 && (
-          <div className="absolute right-0 top-3 bottom-3 w-8 bg-gradient-to-l from-card to-transparent pointer-events-none" />
+            {/* Right fade gradient to indicate more content */}
+            {itemCount > 4 && (
+              <div className="absolute right-0 top-3 bottom-3 w-8 bg-gradient-to-l from-card to-transparent pointer-events-none" />
+            )}
+          </>
         )}
       </div>
     </div>

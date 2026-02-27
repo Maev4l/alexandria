@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -29,22 +28,18 @@ func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 	}
 
 	// Collection validation (applies to all item types)
-	if item.Collection == nil && item.Order != nil {
-		return errors.New("invalid request - collection name must be specified")
+	if item.CollectionId == nil && item.Order != nil {
+		return errors.New("invalid request - collectionId must be specified when order is set")
 	}
 
-	if item.Collection != nil {
-		if len(*item.Collection) == 0 || len(*item.Collection) > 100 {
-			return fmt.Errorf("invalid request - invalid collection name (1-100 chars): %d chars", len(*item.Collection))
-		}
-
+	if item.CollectionId != nil && *item.CollectionId != "" {
 		if item.Order == nil {
-			return errors.New("invalid request - collection order must be specified")
+			return errors.New("invalid request - order must be specified when collectionId is set")
 		}
 
 		// Order must be positive (1-1000) for correct GSI1SK sorting with %05d padding
 		if *item.Order < 1 || *item.Order > 1000 {
-			return errors.New("invalid request - invalid collection order (must be between 1 and 1000)")
+			return errors.New("invalid request - invalid order (must be between 1 and 1000)")
 		}
 	}
 
@@ -200,34 +195,27 @@ func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 		request.Order = nil
 	}
 
-	// Empty collection name means no collection has been set
-	if request.Collection != nil && *request.Collection == "" {
-		request.Collection = nil
+	// Empty collectionId means no collection has been set
+	if request.CollectionId != nil && *request.CollectionId == "" {
+		request.CollectionId = nil
 	}
 
 	item := domain.LibraryItem{
-		Id:         bookId,
-		Title:      strings.TrimSpace(request.Title),
-		LibraryId:  libraryId,
-		OwnerId:    t.userId,
-		OwnerName:  t.userName,
-		Summary:    strings.TrimSpace(request.Summary),
-		Isbn:       strings.TrimSpace(request.Isbn),
-		Authors:    slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
-		Type:       domain.ItemBook,
-		PictureUrl: request.PictureUrl,
-		Collection: request.Collection,
-		Order:      request.Order,
+		Id:           bookId,
+		Title:        strings.TrimSpace(request.Title),
+		LibraryId:    libraryId,
+		OwnerId:      t.userId,
+		OwnerName:    t.userName,
+		Summary:      strings.TrimSpace(request.Summary),
+		Isbn:         strings.TrimSpace(request.Isbn),
+		Authors:      slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
+		Type:         domain.ItemBook,
+		PictureUrl:   request.PictureUrl,
+		CollectionId: request.CollectionId,
+		Order:        request.Order,
 	}
 
 	err = h.validateItemPayload(&item)
-
-	var collectionStr string
-	if request.Collection != nil {
-		collectionStr = strings.TrimSpace(*request.Collection)
-		item.Collection = &collectionStr
-	}
-
 	if err != nil {
 		log.Error().Msg(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -291,33 +279,26 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 		request.Order = nil
 	}
 
-	// Empty collection name means no collection has been set
-	if request.Collection != nil && *request.Collection == "" {
-		request.Collection = nil
+	// Empty collectionId means no collection has been set
+	if request.CollectionId != nil && *request.CollectionId == "" {
+		request.CollectionId = nil
 	}
 
 	item := domain.LibraryItem{
-		Title:      strings.TrimSpace(request.Title),
-		Summary:    strings.TrimSpace(request.Summary),
-		Isbn:       strings.TrimSpace(request.Isbn),
-		Authors:    slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
-		LibraryId:  libraryId,
-		OwnerId:    t.userId,
-		OwnerName:  t.displayName,
-		Type:       domain.ItemBook,
-		PictureUrl: request.PictureUrl,
-		Collection: request.Collection,
-		Order:      request.Order,
+		Title:        strings.TrimSpace(request.Title),
+		Summary:      strings.TrimSpace(request.Summary),
+		Isbn:         strings.TrimSpace(request.Isbn),
+		Authors:      slices.Map(request.Authors, func(a string) string { return strings.TrimSpace(a) }),
+		LibraryId:    libraryId,
+		OwnerId:      t.userId,
+		OwnerName:    t.displayName,
+		Type:         domain.ItemBook,
+		PictureUrl:   request.PictureUrl,
+		CollectionId: request.CollectionId,
+		Order:        request.Order,
 	}
 
 	err = h.validateItemPayload(&item)
-
-	var collectionStr string
-	if request.Collection != nil {
-		collectionStr = strings.TrimSpace(*request.Collection)
-		item.Collection = &collectionStr
-	}
-
 	if err != nil {
 		log.Error().Msg(err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -328,6 +309,12 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 
 	result, err := h.s.CreateItem(&item)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to create item",
 		})
@@ -338,7 +325,6 @@ func (h *HTTPHandler) CreateBook(c *gin.Context) {
 		Id:        result.Id,
 		UpdatedAt: result.UpdatedAt,
 	})
-
 }
 
 // CreateVideo handles video creation
@@ -362,32 +348,26 @@ func (h *HTTPHandler) CreateVideo(c *gin.Context) {
 		request.Order = nil
 	}
 
-	// Empty collection name means no collection has been set
-	if request.Collection != nil && *request.Collection == "" {
-		request.Collection = nil
+	// Empty collectionId means no collection has been set
+	if request.CollectionId != nil && *request.CollectionId == "" {
+		request.CollectionId = nil
 	}
 
 	item := domain.LibraryItem{
-		Title:       strings.TrimSpace(request.Title),
-		Summary:     strings.TrimSpace(request.Summary),
-		LibraryId:   libraryId,
-		OwnerId:     t.userId,
-		OwnerName:   t.displayName,
-		Type:        domain.ItemVideo,
-		PictureUrl:  request.PictureUrl,
-		Collection:  request.Collection,
-		Order:       request.Order,
-		Directors:   slices.Map(request.Directors, func(d string) string { return strings.TrimSpace(d) }),
-		Cast:        slices.Map(request.Cast, func(c string) string { return strings.TrimSpace(c) }),
-		ReleaseYear: request.ReleaseYear,
-		Duration:    request.Duration,
-		TmdbId:      request.TmdbId,
-	}
-
-	// Trim collection if provided
-	if request.Collection != nil {
-		collectionStr := strings.TrimSpace(*request.Collection)
-		item.Collection = &collectionStr
+		Title:        strings.TrimSpace(request.Title),
+		Summary:      strings.TrimSpace(request.Summary),
+		LibraryId:    libraryId,
+		OwnerId:      t.userId,
+		OwnerName:    t.displayName,
+		Type:         domain.ItemVideo,
+		PictureUrl:   request.PictureUrl,
+		CollectionId: request.CollectionId,
+		Order:        request.Order,
+		Directors:    slices.Map(request.Directors, func(d string) string { return strings.TrimSpace(d) }),
+		Cast:         slices.Map(request.Cast, func(c string) string { return strings.TrimSpace(c) }),
+		ReleaseYear:  request.ReleaseYear,
+		Duration:     request.Duration,
+		TmdbId:       request.TmdbId,
 	}
 
 	err = h.validateItemPayload(&item)
@@ -401,6 +381,12 @@ func (h *HTTPHandler) CreateVideo(c *gin.Context) {
 
 	result, err := h.s.CreateItem(&item)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to create video",
 		})
@@ -435,33 +421,27 @@ func (h *HTTPHandler) UpdateVideo(c *gin.Context) {
 		request.Order = nil
 	}
 
-	// Empty collection name means no collection has been set
-	if request.Collection != nil && *request.Collection == "" {
-		request.Collection = nil
+	// Empty collectionId means no collection has been set
+	if request.CollectionId != nil && *request.CollectionId == "" {
+		request.CollectionId = nil
 	}
 
 	item := domain.LibraryItem{
-		Id:          videoId,
-		Title:       strings.TrimSpace(request.Title),
-		LibraryId:   libraryId,
-		OwnerId:     t.userId,
-		OwnerName:   t.userName,
-		Summary:     strings.TrimSpace(request.Summary),
-		Type:        domain.ItemVideo,
-		PictureUrl:  request.PictureUrl,
-		Collection:  request.Collection,
-		Order:       request.Order,
-		Directors:   slices.Map(request.Directors, func(d string) string { return strings.TrimSpace(d) }),
-		Cast:        slices.Map(request.Cast, func(c string) string { return strings.TrimSpace(c) }),
-		ReleaseYear: request.ReleaseYear,
-		Duration:    request.Duration,
-		TmdbId:      request.TmdbId,
-	}
-
-	// Trim collection if provided
-	if request.Collection != nil {
-		collectionStr := strings.TrimSpace(*request.Collection)
-		item.Collection = &collectionStr
+		Id:           videoId,
+		Title:        strings.TrimSpace(request.Title),
+		LibraryId:    libraryId,
+		OwnerId:      t.userId,
+		OwnerName:    t.userName,
+		Summary:      strings.TrimSpace(request.Summary),
+		Type:         domain.ItemVideo,
+		PictureUrl:   request.PictureUrl,
+		CollectionId: request.CollectionId,
+		Order:        request.Order,
+		Directors:    slices.Map(request.Directors, func(d string) string { return strings.TrimSpace(d) }),
+		Cast:         slices.Map(request.Cast, func(c string) string { return strings.TrimSpace(c) }),
+		ReleaseYear:  request.ReleaseYear,
+		Duration:     request.Duration,
+		TmdbId:       request.TmdbId,
 	}
 
 	err = h.validateItemPayload(&item)
@@ -477,6 +457,12 @@ func (h *HTTPHandler) UpdateVideo(c *gin.Context) {
 
 	err = h.s.UpdateItem(&item, fetchPicture)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to update video",
 		})
@@ -519,17 +505,18 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 		}
 
 		baseResponse := GetItemResponseBase{
-			Id:          i.Id,
-			Type:        i.Type,
-			Title:       i.Title,
-			Picture:     encodedPicture,
-			LibraryId:   &i.LibraryId,
-			LibraryName: &i.LibraryName,
-			LentTo:      i.LentTo,
-			OwnerId:     i.OwnerId,
-			Collection:  i.Collection,
-			Order:       i.Order,
-			PictureUrl:  i.PictureUrl,
+			Id:             i.Id,
+			Type:           i.Type,
+			Title:          i.Title,
+			Picture:        encodedPicture,
+			LibraryId:      &i.LibraryId,
+			LibraryName:    &i.LibraryName,
+			LentTo:         i.LentTo,
+			OwnerId:        i.OwnerId,
+			CollectionId:   i.CollectionId,
+			CollectionName: i.CollectionName,
+			Order:          i.Order,
+			PictureUrl:     i.PictureUrl,
 		}
 
 		switch i.Type {
@@ -549,6 +536,11 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 				ReleaseYear:         i.ReleaseYear,
 				Duration:            i.Duration,
 				TmdbId:              i.TmdbId,
+			})
+		case domain.ItemCollection:
+			itemsResponse = append(itemsResponse, GetCollectionItemResponse{
+				GetItemResponseBase: baseResponse,
+				Description:         i.Summary,
 			})
 		}
 	}

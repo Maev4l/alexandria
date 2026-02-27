@@ -270,7 +270,8 @@ func (d *dynamo) GetLibraryItem(ownerId string, libraryId string, itemId string)
 			Type:        domain.ItemType(record.Type),
 			PictureUrl:  record.PictureUrl,
 			LentTo:      record.LentTo,
-			Collection:  record.Collection,
+			CollectionId:   record.CollectionId,
+			CollectionName: record.CollectionName,
 			Order:       record.Order,
 			// Video-specific fields
 			Directors:   record.Directors,
@@ -329,7 +330,8 @@ func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.Libr
 					Type:        domain.ItemType(record.Type),
 					PictureUrl:  record.PictureUrl,
 					LentTo:      record.LentTo,
-					Collection:  record.Collection,
+					CollectionId:   record.CollectionId,
+			CollectionName: record.CollectionName,
 					Order:       record.Order,
 					// Video-specific fields
 					Directors:   record.Directors,
@@ -463,10 +465,11 @@ func (d *dynamo) UpdateLibraryItem(i *domain.LibraryItem) error {
 		Set(expression.Name("Authors"), expression.Value(i.Authors)).
 		Set(expression.Name("Isbn"), expression.Value(i.Isbn)).
 		Set(expression.Name("UpdatedAt"), expression.Value(i.UpdatedAt)).
-		Set(expression.Name("GSI1SK"), expression.Value(persistence.MakeLibraryItemGSI1SK(i.Title, i.Collection, i.Order))).
+		Set(expression.Name("GSI1SK"), expression.Value(persistence.MakeLibraryItemGSI1SK(i.Title, i.CollectionName, i.Order))).
 		Set(expression.Name("GSI2SK"), expression.Value(persistence.MakeLibraryItemGSI2SK(i.Title))).
 		Set(expression.Name("PictureUrl"), expression.Value(i.PictureUrl)).
-		Set(expression.Name("Collection"), expression.Value(i.Collection)).
+		Set(expression.Name("CollectionId"), expression.Value(i.CollectionId)).
+		Set(expression.Name("CollectionName"), expression.Value(i.CollectionName)).
 		Set(expression.Name("Order"), expression.Value(i.Order)).
 		// Video-specific fields
 		Set(expression.Name("Directors"), expression.Value(i.Directors)).
@@ -505,27 +508,28 @@ func (d *dynamo) PutLibraryItem(i *domain.LibraryItem) error {
 	}
 
 	record := persistence.LibraryItem{
-		PK:          persistence.MakeLibraryItemPK(i.OwnerId),
-		SK:          persistence.MakeLibraryItemSK(i.LibraryId, i.Id),
-		GSI1PK:      persistence.MakeLibraryItemGSI1PK(i.OwnerId, i.LibraryId),
-		GSI1SK:      persistence.MakeLibraryItemGSI1SK(i.Title, i.Collection, i.Order),
-		GSI2PK:      persistence.MakeLibraryItemGSI2PK(i.OwnerId),
-		GSI2SK:      persistence.MakeLibraryItemGSI2SK(i.Title),
-		Id:          i.Id,
-		OwnerName:   i.OwnerName,
-		OwnerId:     i.OwnerId,
-		Title:       i.Title,
-		Summary:     i.Summary,
-		UpdatedAt:   i.UpdatedAt,
-		LibraryId:   i.LibraryId,
-		LibraryName: i.LibraryName,
-		Authors:     i.Authors,
-		Isbn:        i.Isbn,
-		Type:        int(i.Type),
-		PictureUrl:  i.PictureUrl,
-		EntityType:  entityType,
-		Collection:  i.Collection,
-		Order:       i.Order,
+		PK:             persistence.MakeLibraryItemPK(i.OwnerId),
+		SK:             persistence.MakeLibraryItemSK(i.LibraryId, i.Id),
+		GSI1PK:         persistence.MakeLibraryItemGSI1PK(i.OwnerId, i.LibraryId),
+		GSI1SK:         persistence.MakeLibraryItemGSI1SK(i.Title, i.CollectionName, i.Order),
+		GSI2PK:         persistence.MakeLibraryItemGSI2PK(i.OwnerId),
+		GSI2SK:         persistence.MakeLibraryItemGSI2SK(i.Title),
+		Id:             i.Id,
+		OwnerName:      i.OwnerName,
+		OwnerId:        i.OwnerId,
+		Title:          i.Title,
+		Summary:        i.Summary,
+		UpdatedAt:      i.UpdatedAt,
+		LibraryId:      i.LibraryId,
+		LibraryName:    i.LibraryName,
+		Authors:        i.Authors,
+		Isbn:           i.Isbn,
+		Type:           int(i.Type),
+		PictureUrl:     i.PictureUrl,
+		EntityType:     entityType,
+		CollectionId:   i.CollectionId,
+		CollectionName: i.CollectionName,
+		Order:          i.Order,
 		// Video-specific fields
 		Directors:   i.Directors,
 		Cast:        i.Cast,
@@ -634,7 +638,8 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 			Type:        domain.ItemType(record.Type),
 			PictureUrl:  record.PictureUrl,
 			LentTo:      record.LentTo,
-			Collection:  record.Collection,
+			CollectionId:   record.CollectionId,
+			CollectionName: record.CollectionName,
 			Order:       record.Order,
 			// Video-specific fields
 			Directors:   record.Directors,

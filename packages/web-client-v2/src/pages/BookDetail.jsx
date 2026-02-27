@@ -91,11 +91,11 @@ const BookDetail = () => {
             )}
 
             {/* Collection */}
-            {book.collection && (
+            {book.collectionName && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Collection</p>
                 <p className="text-sm">
-                  {book.collection}
+                  {book.collectionName}
                   {book.order != null && ` (#${book.order})`}
                 </p>
               </div>

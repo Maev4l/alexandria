@@ -23,7 +23,7 @@ Features:
 - **Book detection**: ISBN-based lookup using Google Books, Babelio, and GoodReads resolvers
 - **Video detection**: OCR-based title extraction (AWS Rekognition) + TMDB metadata lookup
 - **Search**: Fuzzy search powered by Bluge library (see @search.md)
-- **CRUD**: Libraries, Books, Videos, lending history
+- **CRUD**: Libraries, Books, Videos, Collections, lending history
 
 #### Video Detection Flow
 
@@ -57,7 +57,11 @@ It relies on the sharp library and is deployed as a Docker Container.
 
 Source code: @../packages/functions/consistency-manager
 
-This function ensures the data in the DynamoDB table are consistent by consuming the CRUD events posted in a DynamoB stream.
+This function ensures the data in the DynamoDB table are consistent by consuming the CRUD events posted in a DynamoDB stream.
+
+Triggers on:
+- MODIFY: `LIBRARY`, `COLLECTION` - propagates name changes to items
+- REMOVE: `COLLECTION` - orphans items (sets CollectionId/Name/Order to NULL)
 
 It is written in Golang.
 
@@ -157,11 +161,12 @@ Table: alexandria
 
 #### Entity Key Patterns
 
-| Entity         | PK                    | SK                                              | GSI1PK                                          | GSI1SK                              |
-| -------------- | --------------------- | ----------------------------------------------- | ----------------------------------------------- | ----------------------------------- |
-| LIBRARY        | `owner#<ownerId>`     | `library#<libraryId>`                           | `owner#<ownerId>`                               | `library#<name>`                    |
-| LIBRARY_ITEM   | `owner#<ownerId>`     | `library#<libId>#item#<itemId>`                 | `owner#<ownerId>#library#<libId>`               | `item#<collection>#<order>#<title>` |
-| SHARED_LIBRARY | `owner#<recipientId>` | `shared-library#<libraryId>`                    | -                                               | -                                   |
+| Entity         | PK                    | SK                                              | GSI1PK                            | GSI1SK                              |
+| -------------- | --------------------- | ----------------------------------------------- | --------------------------------- | ----------------------------------- |
+| LIBRARY        | `owner#<ownerId>`     | `library#<libraryId>`                           | `owner#<ownerId>`                 | `library#<name>`                    |
+| COLLECTION     | `owner#<ownerId>`     | `library#<libId>#collection#<collectionId>`     | `owner#<ownerId>#library#<libId>` | `collection#<name>`                 |
+| LIBRARY_ITEM   | `owner#<ownerId>`     | `library#<libId>#item#<itemId>`                 | `owner#<ownerId>#library#<libId>` | `item#<collection>#<order>#<title>` |
+| SHARED_LIBRARY | `owner#<recipientId>` | `shared-library#<libraryId>`                    | -                                 | -                                   |
 | ITEM_EVENT     | `owner#<ownerId>`     | `library#<libId>#item#<itemId>#event#<ISO8601>` | `owner#<ownerId>#library#<libId>#item#<itemId>` | `event#<ISO8601>`                   |
 
 #### GSI1SK Complexity
@@ -176,16 +181,19 @@ Table: alexandria
 | Field                 | Duplicated In                         | Updated By                 |
 | --------------------- | ------------------------------------- | -------------------------- |
 | `LibraryName`         | Every LIBRARY_ITEM                    | consistency-manager stream |
+| `CollectionName`      | Every LIBRARY_ITEM in collection      | consistency-manager stream |
 | `OwnerName`/`OwnerId` | LIBRARY, LIBRARY_ITEM, SHARED_LIBRARY | consistency-manager stream |
 | GSI1SK/GSI2SK         | Computed on write                     | Repository layer           |
 
 #### Eventual Consistency Windows
 
-| Operation      | Lag                                   | Reason                                       |
-| -------------- | ------------------------------------- | -------------------------------------------- |
-| Library rename | ~100ms                                | consistency-manager updates items via stream |
-| New item       | ~100ms                                | indexer updates Bluge index via stream       |
-| Share/unshare  | Immediate (DynamoDB), ~100ms (search) | Async S3 manifest update                     |
+| Operation         | Lag                                   | Reason                                       |
+| ----------------- | ------------------------------------- | -------------------------------------------- |
+| Library rename    | ~100ms                                | consistency-manager updates items via stream |
+| Collection rename | ~100ms                                | consistency-manager updates items via stream |
+| Collection delete | ~100ms                                | consistency-manager orphans items via stream |
+| New item          | ~100ms                                | indexer updates Bluge index via stream       |
+| Share/unshare     | Immediate (DynamoDB), ~100ms (search) | Async S3 manifest update                     |
 
 #### DynamoDB Issues
 
@@ -216,3 +224,29 @@ Table: alexandria
 - Add `ProjectionExpression: "PK, SK"` to reduce data transfer (currently fetches all attributes)
 - Handle `UnprocessedItems` in BatchWriteItem response with retry logic
 - Remove `slices.ChunkBy(records, 25)` - redundant since query already uses `Limit: 25`
+
+## Migrations
+
+### Collections Migration
+
+Source code: @../packages/migrations/collections
+
+CLI tool to convert legacy `Collection` string attribute on items to first-class COLLECTION entities.
+
+**What it does:**
+1. Scans all BOOK/VIDEO items with `Collection` attribute
+2. Groups by (ownerId, libraryId, collectionName)
+3. Creates COLLECTION entities with unique IDs
+4. Updates items with `CollectionId` and `CollectionName`
+
+**Usage:**
+```bash
+cd packages/migrations/collections
+make dry-run TABLE=alexandria          # Preview changes
+make run TABLE=alexandria              # Execute migration
+```
+
+**Flags:**
+- `--table`: DynamoDB table name (required)
+- `--region`: AWS region (default: eu-central-1)
+- `--dry-run`: Preview mode, no writes

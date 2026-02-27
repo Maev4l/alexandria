@@ -68,10 +68,6 @@ func createBlugeDocument(item *persistence.LibraryItem) *bluge.Document {
 		doc.AddField(bluge.NewTextField("cast", strings.Join(item.Cast, " ")).StoreValue())
 	}
 
-	if item.Collection != nil && *item.Collection != "" {
-		doc.AddField(bluge.NewTextField("collection", *item.Collection).StoreValue())
-	}
-
 	// Keyword fields for access filtering
 	doc.AddField(bluge.NewKeywordField("ownerId", item.OwnerId).StoreValue())
 	doc.AddField(bluge.NewKeywordField("libraryId", item.LibraryId).StoreValue())
@@ -449,14 +445,12 @@ func streamHandler(event events.DynamoDBEvent) error {
 				}
 
 				// Only reindex if searchable fields changed
-				// For books: title, authors, collection
-				// For videos: title, directors, cast, collection
+				// For books: title, authors
+				// For videos: title, directors, cast
 				if itemNew.Title == itemOld.Title &&
 					strings.Join(itemNew.Authors, " ") == strings.Join(itemOld.Authors, " ") &&
 					strings.Join(itemNew.Directors, " ") == strings.Join(itemOld.Directors, " ") &&
-					strings.Join(itemNew.Cast, " ") == strings.Join(itemOld.Cast, " ") &&
-					((itemNew.Collection == nil && itemOld.Collection == nil) ||
-						(itemNew.Collection != nil && itemOld.Collection != nil && *itemNew.Collection == *itemOld.Collection)) {
+					strings.Join(itemNew.Cast, " ") == strings.Join(itemOld.Cast, " ") {
 					continue
 				}
 

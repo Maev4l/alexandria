@@ -165,14 +165,24 @@ module "consistency_manager_trigger" {
   starting_position                  = "LATEST"
   maximum_batching_window_in_seconds = 10
 
-  # Filter: only MODIFY events for LIBRARY entities
+  # Filter: MODIFY events for LIBRARY and COLLECTION entities, REMOVE for COLLECTION
   filter_criteria = [
     {
       pattern = jsonencode({
         eventName = ["MODIFY"]
         dynamodb = {
           NewImage = {
-            EntityType = { S = ["LIBRARY"] }
+            EntityType = { S = ["LIBRARY", "COLLECTION"] }
+          }
+        }
+      })
+    },
+    {
+      pattern = jsonencode({
+        eventName = ["REMOVE"]
+        dynamodb = {
+          OldImage = {
+            EntityType = { S = ["COLLECTION"] }
           }
         }
       })

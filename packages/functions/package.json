@@ -2,8 +2,7 @@
   "name": "@alexandria/functions",
   "version": "1.0.0",
   "scripts": {
-    "build": "make package",
-    "deploy": "make package && sls deploy",
+    "build": "make package && yarn build-images-processing",
     "resync-index": "aws lambda invoke --function-name alexandria-index-items --payload '{\"action\":\"fullResync\"}' --cli-binary-format raw-in-base64-out /dev/stdout",
     "build-images-processing": "docker buildx build --platform linux/arm64 -t alexandria/images-processing -f ./images-processing/Dockerfile ./images-processing --provenance false && docker tag alexandria/images-processing 671123374425.dkr.ecr.eu-central-1.amazonaws.com/alexandria/images-processing && docker image prune --force",
     "push-images-processing": "aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 671123374425.dkr.ecr.eu-central-1.amazonaws.com && docker push 671123374425.dkr.ecr.eu-central-1.amazonaws.com/alexandria/images-processing"

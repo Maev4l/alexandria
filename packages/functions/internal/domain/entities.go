@@ -10,6 +10,7 @@ type ItemType int
 const (
 	ItemBook ItemType = iota
 	ItemVideo
+	ItemCollection
 )
 
 func (e ItemType) String() string {
@@ -18,6 +19,8 @@ func (e ItemType) String() string {
 		return "Book"
 	case ItemVideo:
 		return "Video"
+	case ItemCollection:
+		return "Collection"
 	default:
 		return fmt.Sprintf("%d", int(e))
 	}
@@ -105,26 +108,39 @@ type LibraryContent struct {
 }
 
 type LibraryItem struct {
-	Id          string
-	Title       string
-	Picture     []byte
-	LibraryId   string
-	LibraryName string
-	OwnerName   string
-	OwnerId     string
-	UpdatedAt   *time.Time
-	Summary     string
-	Authors     []string
-	Isbn        string
-	Type        ItemType
-	PictureUrl  *string
-	LentTo      *string
-	Collection  *string
-	Order       *int
+	Id             string
+	Title          string
+	Picture        []byte
+	LibraryId      string
+	LibraryName    string
+	OwnerName      string
+	OwnerId        string
+	UpdatedAt      *time.Time
+	Summary        string
+	Authors        []string
+	Isbn           string
+	Type           ItemType
+	PictureUrl     *string
+	LentTo         *string
+	CollectionId   *string // FK to Collection entity
+	CollectionName *string // Denormalized for display and GSI1SK sorting
+	Order          *int
 	// Video-specific fields
 	Directors   []string
 	Cast        []string
 	ReleaseYear *int
 	Duration    *int
 	TmdbId      *string
+}
+
+// Collection represents a grouping of items within a library
+type Collection struct {
+	Id          string
+	Name        string
+	Description string
+	ItemCount   int
+	OwnerId     string
+	LibraryId   string
+	CreatedAt   *time.Time
+	UpdatedAt   *time.Time
 }

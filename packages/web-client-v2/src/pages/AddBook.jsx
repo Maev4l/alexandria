@@ -35,6 +35,8 @@ const AddBook = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Collection passed from CollectionActionsSheet when adding to a specific collection
   const prefilledCollection = location.state?.collection || null;
   const prefilledOrder = location.state?.order || '';
 
@@ -78,13 +80,26 @@ const AddBook = () => {
       setScanSuccess(true);
       setTimeout(() => {
         stopCamera();
-        navigate(`/libraries/${libraryId}/book-results`, { state: { isbn: detectedIsbn, collection: prefilledCollection, order: prefilledOrder } });
+        navigate(`/libraries/${libraryId}/book-results`, {
+          state: {
+            isbn: detectedIsbn,
+            collection: prefilledCollection,
+            order: prefilledOrder,
+          }
+        });
       }, 500);
       return;
     }
 
     stopCamera();
-    navigate(`/libraries/${libraryId}/book-results`, { state: { isbn: detectedIsbn, collection: prefilledCollection, order: prefilledOrder } });
+    // Pass collection if adding to a collection
+    navigate(`/libraries/${libraryId}/book-results`, {
+      state: {
+        isbn: detectedIsbn,
+        collection: prefilledCollection,
+        order: prefilledOrder,
+      }
+    });
   }, [navigate, libraryId, stopCamera, prefilledCollection, prefilledOrder]);
 
   // Ref to hold latest handleIsbnDetected to avoid useEffect dependency
@@ -210,10 +225,16 @@ const AddBook = () => {
     handleIsbnDetected(cleanIsbn(trimmedIsbn));
   };
 
-  // Go to full manual entry form
+  // Go to full manual entry form - pass collection if adding to a collection
   const handleManualEntry = () => {
     stopCamera();
-    navigate(`/libraries/${libraryId}/books/new`, { state: { collection: prefilledCollection, order: prefilledOrder } });
+    if (prefilledCollection) {
+      navigate(`/libraries/${libraryId}/books/new`, {
+        state: { collection: prefilledCollection, order: prefilledOrder }
+      });
+    } else {
+      navigate(`/libraries/${libraryId}/books/new`);
+    }
   };
 
   // Render scanner area based on status

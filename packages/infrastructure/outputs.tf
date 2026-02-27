@@ -18,4 +18,9 @@ output "cloudfront_distribution_id" {
   value       = aws_cloudfront_distribution.main.id
 }
 
+output "api_endpoint" {
+  description = "API Gateway endpoint URL for local development proxy"
+  value       = module.api_trigger.api_endpoint
+}
+
 

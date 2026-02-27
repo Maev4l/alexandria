@@ -56,6 +56,12 @@ func init() {
 	g.POST("/libraries/:libraryId/items/:itemId/events", h.CreateItemHistoryEvent)
 	g.GET("/libraries/:libraryId/items/:itemId/events", h.GetItemHistoryEvents)
 	g.DELETE("/libraries/:libraryId/items/:itemId/events", h.DeleteItemHistoryEvents)
+	// Collection routes
+	g.GET("/libraries/:libraryId/collections", h.ListCollections)
+	g.POST("/libraries/:libraryId/collections", h.CreateCollection)
+	g.GET("/libraries/:libraryId/collections/:collectionId", h.GetCollection)
+	g.PUT("/libraries/:libraryId/collections/:collectionId", h.UpdateCollection)
+	g.DELETE("/libraries/:libraryId/collections/:collectionId", h.DeleteCollection)
 	g.POST("/search", h.Search)
 
 	/* g.GET("/hello", func(c *gin.Context) {

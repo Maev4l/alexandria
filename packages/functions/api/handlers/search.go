@@ -40,17 +40,18 @@ func (h *HTTPHandler) Search(c *gin.Context) {
 		}
 
 		baseResponse := GetItemResponseBase{
-			Id:          i.Id,
-			Type:        i.Type,
-			Title:       i.Title,
-			Picture:     encodedPicture,
-			LibraryId:   &i.LibraryId,
-			LibraryName: &i.LibraryName,
-			LentTo:      i.LentTo,
-			OwnerId:     i.OwnerId,
-			PictureUrl:  i.PictureUrl,
-			Collection:  i.Collection,
-			Order:       i.Order,
+			Id:             i.Id,
+			Type:           i.Type,
+			Title:          i.Title,
+			Picture:        encodedPicture,
+			LibraryId:      &i.LibraryId,
+			LibraryName:    &i.LibraryName,
+			LentTo:         i.LentTo,
+			OwnerId:        i.OwnerId,
+			PictureUrl:     i.PictureUrl,
+			CollectionId:   i.CollectionId,
+			CollectionName: i.CollectionName,
+			Order:          i.Order,
 		}
 
 		switch i.Type {

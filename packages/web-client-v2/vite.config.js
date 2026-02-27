@@ -15,9 +15,21 @@ const getGitCommitHash = () => {
   }
 };
 
+// Read API endpoint from output.json for local dev proxy
+import { apiEndpoint } from './output.json';
+
 export default defineConfig({
   define: {
     __BUILD_HASH__: JSON.stringify(getGitCommitHash()),
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: apiEndpoint,
+        changeOrigin: true,
+        secure: true,
+      },
+    },
   },
   plugins: [
     react(),

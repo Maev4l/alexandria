@@ -58,4 +58,14 @@ export const librariesApi = {
   // Delete all item events (clear history)
   deleteItemEvents: (libraryId, itemId) =>
     api.delete(`/libraries/${libraryId}/items/${itemId}/events`),
+
+  // Get all collections in a library
+  getCollections: (libraryId) => api.get(`/libraries/${libraryId}/collections`),
+
+  // Create a collection in a library
+  createCollection: (libraryId, data) => api.post(`/libraries/${libraryId}/collections`, data),
+
+  // Delete a collection (items are orphaned, not deleted)
+  deleteCollection: (libraryId, collectionId) =>
+    api.delete(`/libraries/${libraryId}/collections/${collectionId}`),
 };

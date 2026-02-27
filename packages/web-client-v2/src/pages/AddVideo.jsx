@@ -4,7 +4,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Webcam from 'react-webcam';
-import { Camera, Search, VideoOff, Loader2 } from 'lucide-react';
+import { Camera, Search, VideoOff, Loader2, PenLine } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { detectionApi } from '@/api';
 import { Input } from '@/components/ui/Input';
@@ -24,6 +24,8 @@ const AddVideo = () => {
   const location = useLocation();
   const toast = useToast();
   const webcamRef = useRef(null);
+
+  // Collection passed from CollectionActionsSheet when adding to a specific collection
   const prefilledCollection = location.state?.collection || null;
   const prefilledOrder = location.state?.order || '';
 
@@ -92,7 +94,7 @@ const AddVideo = () => {
       toast.error(err.message || 'Failed to detect video');
       setIsCapturing(false);
     }
-  }, [navigate, libraryId, toast, isCapturing]);
+  }, [navigate, libraryId, toast, isCapturing, prefilledCollection, prefilledOrder]);
 
   // Handle manual title search
   const handleTitleSearch = async (e) => {
@@ -122,6 +124,17 @@ const AddVideo = () => {
       console.error('Title search error:', err);
       toast.error(err.message || 'Failed to search');
       setIsSearching(false);
+    }
+  };
+
+  // Go to manual video entry form - pass collection if adding to a collection
+  const handleManualEntry = () => {
+    if (prefilledCollection) {
+      navigate(`/libraries/${libraryId}/videos/new`, {
+        state: { collection: prefilledCollection, order: prefilledOrder }
+      });
+    } else {
+      navigate(`/libraries/${libraryId}/videos/new`);
     }
   };
 
@@ -224,6 +237,17 @@ const AddVideo = () => {
             )}
           </Button>
         </form>
+      </div>
+
+      {/* 3. Manual entry fallback */}
+      <div className="p-4 border-t border-border">
+        <button
+          onClick={handleManualEntry}
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 text-sm font-medium rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors"
+        >
+          <PenLine className="h-4 w-4" />
+          <span>Enter all details manually</span>
+        </button>
       </div>
     </div>
   );

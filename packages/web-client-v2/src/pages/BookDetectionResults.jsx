@@ -19,10 +19,10 @@ const BookDetectionResults = () => {
   const toast = useToast();
   const { createBook } = useLibraries();
 
-  // Get ISBN, collection, and order from location state
+  // Get data from location state
   const isbn = location.state?.isbn;
-  const prefilledCollection = location.state?.collection || null;
-  const prefilledOrder = location.state?.order || '';
+  const collection = location.state?.collection || null;
+  const order = location.state?.order || null;
 
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,8 +75,8 @@ const BookDetectionResults = () => {
         authors: selected.authors || [],
         isbn: selected.isbn || isbn,
         pictureUrl: selected.pictureUrl || null,
-        collection: prefilledCollection,
-        order: prefilledOrder ? parseInt(prefilledOrder, 10) : null,
+        collectionId: collection?.id || null,
+        order: order ? parseInt(order, 10) : null,
       });
       // Go back 2 steps to library content (skip detection results + add-book)
       navigate(-2);
@@ -84,7 +84,7 @@ const BookDetectionResults = () => {
       toast.error(err.message || 'Failed to add book');
       setIsCreating(false);
     }
-  }, [selectedIndex, results, libraryId, isbn, navigate, toast, isCreating, createBook]);
+  }, [selectedIndex, results, libraryId, isbn, collection, order, navigate, toast, isCreating, createBook]);
 
   // Go back in history to library content
   const handleBack = useCallback(() => {
@@ -188,7 +188,7 @@ const BookDetectionResults = () => {
             </p>
           </div>
           <button
-            onClick={() => navigate(`/libraries/${libraryId}/books/new`, { state: { collection: prefilledCollection, order: prefilledOrder } })}
+            onClick={() => navigate(`/libraries/${libraryId}/books/new`)}
             className="text-sm text-primary hover:underline"
           >
             Enter details manually

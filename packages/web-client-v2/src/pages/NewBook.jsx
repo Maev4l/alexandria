@@ -20,7 +20,8 @@ const NewBook = () => {
   const toast = useToast();
 
   // Get prefilled collection and order from location state
-  const prefilledCollection = location.state?.collection || '';
+  // Collection can be { id, name } object or null
+  const prefilledCollection = location.state?.collection || null;
   const prefilledOrder = location.state?.order || '';
 
   // Cancel: go back to previous page
@@ -34,7 +35,8 @@ const NewBook = () => {
   const [summary, setSummary] = useState('');
   const [authors, setAuthors] = useState('');
   const [isbn, setIsbn] = useState('');
-  const [collection, setCollection] = useState(prefilledCollection);
+  // Collection is read-only, set from navigation state
+  const collection = prefilledCollection;
   const [order, setOrder] = useState(prefilledOrder);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,7 +60,7 @@ const NewBook = () => {
         authors: authorsArray,
         isbn: isbn.trim() || null,
         pictureUrl: cover.trim() || null,
-        collection: collection.trim() || null,
+        collectionId: collection?.id || null,
         order: order ? parseInt(order, 10) : null,
       });
       // Navigate back to library content, replacing history
@@ -173,32 +175,34 @@ const NewBook = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="collection">Collection</Label>
-              <Input
-                id="collection"
-                value={collection}
-                onChange={(e) => setCollection(e.target.value)}
-                placeholder="Collection name"
-              />
-            </div>
+          {/* Collection section - only shown if adding to a collection */}
+          {collection && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Collection</Label>
+                <Input
+                  value={collection.name}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="order">Order</Label>
-              <Input
-                id="order"
-                type="number"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                min="1"
-                max="1000"
-                value={order}
-                onChange={(e) => setOrder(e.target.value)}
-                placeholder="1"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="order">Order</Label>
+                <Input
+                  id="order"
+                  type="number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  min="1"
+                  max="1000"
+                  value={order}
+                  onChange={(e) => setOrder(e.target.value)}
+                  placeholder="1"
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

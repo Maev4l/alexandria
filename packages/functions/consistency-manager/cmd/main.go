@@ -24,7 +24,11 @@ func init() {
 
 	handlers = map[string]map[persistence.EntityType]processing.Handler{
 		"MODIFY": {
-			persistence.TypeLibrary: processing.UpdateLibraryHandler,
+			persistence.TypeLibrary:    processing.UpdateLibraryHandler,
+			persistence.TypeCollection: processing.UpdateCollectionHandler,
+		},
+		"REMOVE": {
+			persistence.TypeCollection: processing.DeleteCollectionHandler,
 		},
 	}
 }

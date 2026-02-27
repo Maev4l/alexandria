@@ -19,7 +19,8 @@ const NewVideo = () => {
   const toast = useToast();
 
   // Get prefilled collection and order from location state
-  const prefilledCollection = location.state?.collection || '';
+  // Collection is { id, name } object or null
+  const collection = location.state?.collection || null;
   const prefilledOrder = location.state?.order || '';
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,7 +32,6 @@ const NewVideo = () => {
     releaseYear: '',
     duration: '',
     pictureUrl: '',
-    collection: prefilledCollection,
     order: prefilledOrder,
   });
 
@@ -59,7 +59,7 @@ const NewVideo = () => {
         releaseYear: form.releaseYear ? parseInt(form.releaseYear, 10) : null,
         duration: form.duration ? parseInt(form.duration, 10) : null,
         pictureUrl: form.pictureUrl.trim() || null,
-        collection: form.collection.trim() || null,
+        collectionId: collection?.id || null,
         order: form.order ? parseInt(form.order, 10) : null,
       });
 
@@ -165,32 +165,33 @@ const NewVideo = () => {
           />
         </div>
 
-        {/* Collection and Order row */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="col-span-2 space-y-2">
-            <Label htmlFor="collection">Collection</Label>
-            <Input
-              id="collection"
-              value={form.collection}
-              onChange={handleChange('collection')}
-              placeholder="e.g., Star Wars"
-            />
+        {/* Collection and Order row - only shown if adding to a collection */}
+        {collection && (
+          <div className="grid grid-cols-3 gap-4">
+            <div className="col-span-2 space-y-2">
+              <Label>Collection</Label>
+              <Input
+                value={collection.name}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="order">Order</Label>
+              <Input
+                id="order"
+                type="number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                min="1"
+                max="1000"
+                value={form.order}
+                onChange={handleChange('order')}
+                placeholder="1"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="order">Order</Label>
-            <Input
-              id="order"
-              type="number"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              min="1"
-              max="1000"
-              value={form.order}
-              onChange={handleChange('order')}
-              placeholder="1"
-            />
-          </div>
-        </div>
+        )}
       </div>
 
         {/* Submit button */}

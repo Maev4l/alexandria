@@ -254,10 +254,14 @@ components:
           type: string
           nullable: true
           description: "Name of person the item is lent to"
-        collection:
+        collectionId:
           type: string
           nullable: true
-          description: "Collection name (1-100 chars)"
+          description: "Collection ID"
+        collectionName:
+          type: string
+          nullable: true
+          description: "Collection name (denormalized)"
         order:
           type: integer
           nullable: true
@@ -330,10 +334,10 @@ components:
         pictureUrl:
           type: string
           nullable: true
-        collection:
+        collectionId:
           type: string
           nullable: true
-          maxLength: 100
+          description: "Collection ID to add the book to"
         order:
           type: integer
           nullable: true
@@ -370,10 +374,10 @@ components:
         pictureUrl:
           type: string
           nullable: true
-        collection:
+        collectionId:
           type: string
           nullable: true
-          maxLength: 100
+          description: "Collection ID (null to remove from collection)"
         order:
           type: integer
           nullable: true
@@ -421,10 +425,10 @@ components:
         pictureUrl:
           type: string
           nullable: true
-        collection:
+        collectionId:
           type: string
           nullable: true
-          maxLength: 100
+          description: "Collection ID to add the video to"
         order:
           type: integer
           nullable: true
@@ -478,10 +482,10 @@ components:
         pictureUrl:
           type: string
           nullable: true
-        collection:
+        collectionId:
           type: string
           nullable: true
-          maxLength: 100
+          description: "Collection ID (null to remove from collection)"
         order:
           type: integer
           nullable: true
@@ -556,6 +560,59 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/GetBookResponse"
+
+    # Collections
+    CreateCollectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: "Collection name (required, unique per library)"
+        description:
+          type: string
+          maxLength: 500
+          description: "Collection description"
+      required:
+        - name
+
+    CreateCollectionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+
+    UpdateCollectionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+      required:
+        - name
+
+    GetCollectionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        itemCount:
+          type: integer
+
+    GetCollectionsResponse:
+      type: object
+      properties:
+        collections:
+          type: array
+          items:
+            $ref: "#/components/schemas/GetCollectionResponse"
 
 paths:
   /detections:
@@ -727,6 +784,161 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GetLibrariesContentResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /libraries/{libraryId}/collections:
+    parameters:
+      - name: libraryId
+        in: path
+        required: true
+        schema:
+          type: string
+
+    get:
+      summary: List collections
+      description: Get all collections in a library
+      operationId: listCollections
+      tags:
+        - Collections
+      responses:
+        "200":
+          description: List of collections
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetCollectionsResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    post:
+      summary: Create collection
+      description: Create a new collection in a library (name must be unique)
+      operationId: createCollection
+      tags:
+        - Collections
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCollectionRequest"
+      responses:
+        "201":
+          description: Collection created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateCollectionResponse"
+        "400":
+          description: Invalid request or duplicate name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /libraries/{libraryId}/collections/{collectionId}:
+    parameters:
+      - name: libraryId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: collectionId
+        in: path
+        required: true
+        schema:
+          type: string
+
+    get:
+      summary: Get collection
+      description: Get a collection by ID
+      operationId: getCollection
+      tags:
+        - Collections
+      responses:
+        "200":
+          description: Collection details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetCollectionResponse"
+        "404":
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      summary: Update collection
+      description: Update collection name and description
+      operationId: updateCollection
+      tags:
+        - Collections
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCollectionRequest"
+      responses:
+        "200":
+          description: Collection updated
+        "400":
+          description: Invalid request or duplicate name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Delete collection
+      description: Delete a collection (items are orphaned, not deleted)
+      operationId: deleteCollection
+      tags:
+        - Collections
+      responses:
+        "200":
+          description: Collection deleted
+        "404":
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           description: Server error
           content:
@@ -1121,6 +1333,8 @@ tags:
     description: Library management
   - name: Items
     description: Book and item management
+  - name: Collections
+    description: Collection management within libraries
   - name: Item History
     description: Lending and return tracking
   - name: Sharing

@@ -90,9 +90,9 @@ const VideoDetail = () => {
             )}
 
             {/* Collection info */}
-            {video.collection && (
+            {video.collectionName && (
               <p className="mt-3 text-xs text-muted-foreground">
-                Collection: {video.collection}
+                Collection: {video.collectionName}
                 {video.order && ` (#${video.order})`}
               </p>
             )}
