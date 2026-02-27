@@ -20,8 +20,8 @@ resource "aws_cloudwatch_log_group" "consistency_manager" {
   retention_in_days = local.log_retention_days
 }
 
-resource "aws_cloudwatch_log_group" "onboard_users" {
-  name              = "/aws/lambda/${aws_lambda_function.onboard_users.function_name}"
+resource "aws_cloudwatch_log_group" "user_management" {
+  name              = "/aws/lambda/${aws_lambda_function.user_management.function_name}"
   retention_in_days = local.log_retention_days
 }
 

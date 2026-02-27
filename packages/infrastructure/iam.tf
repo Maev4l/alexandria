@@ -189,14 +189,14 @@ resource "aws_iam_role_policy" "index_items" {
 }
 
 #
-# Onboard Users Role
+# User Management Role
 #
-resource "aws_iam_role" "onboard_users" {
-  name               = "alexandria-onboard-users"
+resource "aws_iam_role" "user_management" {
+  name               = "alexandria-user-management"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
 }
 
-data "aws_iam_policy_document" "onboard_users" {
+data "aws_iam_policy_document" "user_management" {
   source_policy_documents = [data.aws_iam_policy_document.cloudwatch_logs.json]
 
   statement {
@@ -215,10 +215,10 @@ data "aws_iam_policy_document" "onboard_users" {
   }
 }
 
-resource "aws_iam_role_policy" "onboard_users" {
-  name   = "alexandria-onboard-users"
-  role   = aws_iam_role.onboard_users.id
-  policy = data.aws_iam_policy_document.onboard_users.json
+resource "aws_iam_role_policy" "user_management" {
+  name   = "alexandria-user-management"
+  role   = aws_iam_role.user_management.id
+  policy = data.aws_iam_policy_document.user_management.json
 }
 
 #

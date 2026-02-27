@@ -3,7 +3,7 @@ locals {
   apiFilename            = "../functions/api/dist/api.zip"
   indexerFilename        = "../functions/index-items/dist/indexer.zip"
   consistencyMgrFilename = "../functions/consistency-manager/dist/consistency-mgr.zip"
-  onboardUsersFilename   = "../functions/onboard-users/dist/onboard-users.zip"
+  userManagementFilename = "../functions/user-management/dist/user-management.zip"
 
   globalIndexFilename     = "global-index.tar.gz"
   sharedLibrariesFilename = "shared-libraries.json"
@@ -190,14 +190,14 @@ module "consistency_manager_trigger" {
   ]
 }
 
-resource "aws_lambda_function" "onboard_users" {
-  function_name = "alexandria-onboard-users"
-  filename      = local.onboardUsersFilename
-  role          = aws_iam_role.onboard_users.arn
+resource "aws_lambda_function" "user_management" {
+  function_name = "alexandria-user-management"
+  filename      = local.userManagementFilename
+  role          = aws_iam_role.user_management.arn
   handler       = "bootstrap"
   runtime       = "provided.al2023"
   architectures = ["arm64"]
-  code_sha256   = filebase64sha256(local.onboardUsersFilename)
+  code_sha256   = filebase64sha256(local.userManagementFilename)
   package_type  = "Zip"
   memory_size   = 128
 
@@ -209,11 +209,11 @@ resource "aws_lambda_function" "onboard_users" {
   }
 }
 
-module "onboard_users_trigger" {
+module "user_management_trigger" {
   source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-cognito?ref=v1.3.0"
 
-  function_name = aws_lambda_function.onboard_users.function_name
-  function_arn  = aws_lambda_function.onboard_users.arn
+  function_name = aws_lambda_function.user_management.function_name
+  function_arn  = aws_lambda_function.user_management.arn
 
   user_pool_id = aws_cognito_user_pool.alexandria_user_pool.id
 }

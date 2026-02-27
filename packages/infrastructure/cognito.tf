@@ -8,10 +8,10 @@ resource "aws_cognito_user_pool" "alexandria_user_pool" {
     case_sensitive = false
   }
 
-  # Lambda triggers for user onboarding
+  # Lambda triggers for user management
   lambda_config {
-    pre_sign_up       = aws_lambda_function.onboard_users.arn
-    post_confirmation = aws_lambda_function.onboard_users.arn
+    pre_sign_up       = aws_lambda_function.user_management.arn
+    post_confirmation = aws_lambda_function.user_management.arn
   }
 
   account_recovery_setting {
