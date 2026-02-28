@@ -60,6 +60,7 @@ Source code: @../packages/functions/consistency-manager
 This function ensures the data in the DynamoDB table are consistent by consuming the CRUD events posted in a DynamoDB stream.
 
 Triggers on:
+
 - MODIFY: `LIBRARY`, `COLLECTION` - propagates name changes to items
 - REMOVE: `COLLECTION` - orphans items (sets CollectionId/Name/Order to NULL)
 
@@ -161,12 +162,12 @@ Table: alexandria
 
 #### Entity Key Patterns
 
-| Entity         | PK                    | SK                                              | GSI1PK                            | GSI1SK                              |
-| -------------- | --------------------- | ----------------------------------------------- | --------------------------------- | ----------------------------------- |
-| LIBRARY        | `owner#<ownerId>`     | `library#<libraryId>`                           | `owner#<ownerId>`                 | `library#<name>`                    |
-| COLLECTION     | `owner#<ownerId>`     | `library#<libId>#collection#<collectionId>`     | `owner#<ownerId>#library#<libId>` | `collection#<name>`                 |
-| LIBRARY_ITEM   | `owner#<ownerId>`     | `library#<libId>#item#<itemId>`                 | `owner#<ownerId>#library#<libId>` | `item#<collection>#<order>#<title>` |
-| SHARED_LIBRARY | `owner#<recipientId>` | `shared-library#<libraryId>`                    | -                                 | -                                   |
+| Entity         | PK                    | SK                                              | GSI1PK                                          | GSI1SK                              |
+| -------------- | --------------------- | ----------------------------------------------- | ----------------------------------------------- | ----------------------------------- |
+| LIBRARY        | `owner#<ownerId>`     | `library#<libraryId>`                           | `owner#<ownerId>`                               | `library#<name>`                    |
+| COLLECTION     | `owner#<ownerId>`     | `library#<libId>#collection#<collectionId>`     | `owner#<ownerId>#library#<libId>`               | `collection#<name>`                 |
+| LIBRARY_ITEM   | `owner#<ownerId>`     | `library#<libId>#item#<itemId>`                 | `owner#<ownerId>#library#<libId>`               | `item#<collection>#<order>#<title>` |
+| SHARED_LIBRARY | `owner#<recipientId>` | `shared-library#<libraryId>`                    | -                                               | -                                   |
 | ITEM_EVENT     | `owner#<ownerId>`     | `library#<libId>#item#<itemId>#event#<ISO8601>` | `owner#<ownerId>#library#<libId>#item#<itemId>` | `event#<ISO8601>`                   |
 
 #### GSI1SK Complexity
@@ -234,12 +235,14 @@ Source code: @../packages/migrations/collections
 CLI tool to convert legacy `Collection` string attribute on items to first-class COLLECTION entities.
 
 **What it does:**
+
 1. Scans all BOOK/VIDEO items with `Collection` attribute
 2. Groups by (ownerId, libraryId, collectionName)
 3. Creates COLLECTION entities with unique IDs
 4. Updates items with `CollectionId` and `CollectionName`
 
 **Usage:**
+
 ```bash
 cd packages/migrations/collections
 make dry-run TABLE=alexandria          # Preview changes
@@ -247,6 +250,7 @@ make run TABLE=alexandria              # Execute migration
 ```
 
 **Flags:**
+
 - `--table`: DynamoDB table name (required)
 - `--region`: AWS region (default: eu-central-1)
 - `--dry-run`: Preview mode, no writes

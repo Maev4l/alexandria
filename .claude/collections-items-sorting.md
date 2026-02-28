@@ -20,7 +20,7 @@ Sort order: `item#Foo` < `item#Foo#00001#MyBook` (collection header before its i
 
 When a standalone item has the same title as a collection, they have identical GSI1SK. DynamoDB sorts by SK: collection SK (`#collection#`) < item SK (`#item#`), so collection comes first.
 
-**Fix applied**: When processing items, standalone items (no `collectionId`) do NOT flush the active collection. Only items belonging to a *different* collection trigger a flush.
+DynamoDB returns the collection first (by SK), so the grouping logic correctly places the collection before the standalone item with the same name.
 
 ## Backend State Machine
 
@@ -37,7 +37,8 @@ for each record:
     else if item.CollectionId != "" (different collection):
       - flush currentCollection, add item standalone
     else (standalone, no collectionId):
-      - add item standalone WITHOUT flushing currentCollection
+      - flush currentCollection first (preserves sort order)
+      - add item standalone
 ```
 
 ## Pagination State

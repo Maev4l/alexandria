@@ -803,7 +803,11 @@ func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, co
 				}
 				items = append(items, domainItem)
 			} else {
-				// Standalone item (no collectionId) - add WITHOUT flushing currentCollection
+				// Standalone item (no collectionId) - flush currentCollection first to preserve sort order
+				if currentCollection != nil {
+					items = append(items, currentCollection)
+					currentCollection = nil
+				}
 				items = append(items, domainItem)
 			}
 		}
