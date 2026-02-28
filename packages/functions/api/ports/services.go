@@ -27,6 +27,8 @@ type Services interface {
 	DeleteLibrary(l *domain.Library) error
 	ListLibraries(ownerId string) ([]domain.Library, error)
 	ListItemsByLibrary(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error)
+	// ListItemsByLibraryGrouped returns library content with collections nested with their items
+	ListItemsByLibraryGrouped(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.GroupedLibraryContent, error)
 	CreateItem(i *domain.LibraryItem) (*domain.LibraryItem, error)
 	DeleteItem(i *domain.LibraryItem) error
 	UpdateItem(i *domain.LibraryItem, fetchPicture bool) error

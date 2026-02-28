@@ -223,8 +223,8 @@ components:
     # Items
     ItemType:
       type: integer
-      enum: [0, 1]
-      description: "Item type (0 = Book, 1 = Video)"
+      enum: [0, 1, 2]
+      description: "Item type (0 = Book, 1 = Video, 2 = Collection)"
 
     GetItemResponseBase:
       type: object
@@ -305,13 +305,40 @@ components:
               type: string
               nullable: true
 
+    GetCollectionItemResponse:
+      allOf:
+        - $ref: "#/components/schemas/GetItemResponseBase"
+        - type: object
+          description: "Collection item (type=2) with nested items"
+          properties:
+            description:
+              type: string
+              nullable: true
+            items:
+              type: array
+              description: "Nested items within this collection (books/videos)"
+              items:
+                oneOf:
+                  - $ref: "#/components/schemas/GetBookResponse"
+                  - $ref: "#/components/schemas/GetVideoResponse"
+            itemCount:
+              type: integer
+              description: "Total items in collection (denormalized from DynamoDB)"
+            partial:
+              type: boolean
+              description: "True if this collection continues from a previous page"
+
     GetLibrariesContentResponse:
       type: object
       properties:
         items:
           type: array
+          description: "Mixed array of books, videos, and collections. Collections (type=2) have nested items."
           items:
-            $ref: "#/components/schemas/GetBookResponse"
+            oneOf:
+              - $ref: "#/components/schemas/GetBookResponse"
+              - $ref: "#/components/schemas/GetVideoResponse"
+              - $ref: "#/components/schemas/GetCollectionItemResponse"
         nextToken:
           type: string
           description: "Pagination token for next page"
@@ -760,7 +787,12 @@ paths:
 
     get:
       summary: List library items
-      description: Get paginated list of items in a library
+      description: |
+        Get paginated list of items in a library with server-side grouping.
+        Returns a mixed array of standalone items (books/videos) and collections.
+        Collections (type=2) include their nested items in the `items` field.
+        Items are sorted alphabetically; collection items appear grouped after their collection header.
+        When pagination splits a collection, the continuation page marks it with `partial: true`.
       operationId: listLibraryItems
       tags:
         - Items

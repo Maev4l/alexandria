@@ -131,6 +131,10 @@ type LibraryItem struct {
 	ReleaseYear *int
 	Duration    *int
 	TmdbId      *string
+	// Collection-specific fields (only set when Type == ItemCollection)
+	Items     []*LibraryItem // Nested items within collection
+	ItemCount int            // Total items in collection (denormalized from Collection entity)
+	Partial   bool           // True if collection continues from previous page
 }
 
 // Collection represents a grouping of items within a library
@@ -143,4 +147,10 @@ type Collection struct {
 	LibraryId   string
 	CreatedAt   *time.Time
 	UpdatedAt   *time.Time
+}
+
+// GroupedLibraryContent represents library content with collections nested with their items
+type GroupedLibraryContent struct {
+	Items             []*LibraryItem
+	ContinuationToken string
 }

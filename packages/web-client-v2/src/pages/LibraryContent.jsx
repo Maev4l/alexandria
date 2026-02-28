@@ -2,7 +2,7 @@
 // Library detail page - shows list of items (books + videos) with infinite scroll
 // Groups items by collection, sorted alphabetically
 // Uses LibrariesContext for state management
-import { useEffect, useCallback, useRef, useMemo, useState } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, Plus } from 'lucide-react';
 import EmptyBookshelf from '@/components/EmptyBookshelf';
@@ -24,55 +24,6 @@ import { librariesApi } from '@/api';
 const ITEM_TYPE_BOOK = 0;
 const ITEM_TYPE_VIDEO = 1;
 const ITEM_TYPE_COLLECTION = 2;
-
-// Build unified sorted list: standalone items + collections, alphabetically
-// Handles both:
-// - Collection items (type = 2) from API as empty/standalone collections
-// - Regular items with collectionId as grouped collection members
-const buildSortedList = (items) => {
-  const collections = {};
-  const standalone = [];
-
-  items.forEach((item) => {
-    // Collection items from API (type = 2) - create empty collection entry
-    if (item.type === ITEM_TYPE_COLLECTION) {
-      if (!collections[item.id]) {
-        collections[item.id] = {
-          id: item.id,
-          name: item.title,
-          items: [],
-        };
-      }
-      return;
-    }
-
-    // Items with collectionId belong to a collection
-    if (item.collectionId && item.collectionName) {
-      if (!collections[item.collectionId]) {
-        collections[item.collectionId] = {
-          id: item.collectionId,
-          name: item.collectionName,
-          items: [],
-        };
-      }
-      collections[item.collectionId].items.push(item);
-    } else {
-      standalone.push({ type: 'item', data: item, sortKey: item.title?.toLowerCase() || '' });
-    }
-  });
-
-  // Convert collections to list entries, sort items by order within each
-  const collectionEntries = Object.values(collections).map((col) => ({
-    type: 'collection',
-    collection: { id: col.id, name: col.name },
-    items: col.items.sort((a, b) => (a.order || 0) - (b.order || 0)),
-    sortKey: col.name.toLowerCase(),
-  }));
-
-  // Merge and sort alphabetically by sortKey
-  return [...standalone, ...collectionEntries]
-    .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-};
 
 const LibraryContent = () => {
   const { libraryId } = useParams();
@@ -109,8 +60,8 @@ const LibraryContent = () => {
   const loadMoreRef = useRef(null);
   const pullToRefreshRef = useRef(null);
 
-  // Build sorted list with collections grouped
-  const sortedList = useMemo(() => buildSortedList(items), [items]);
+  // Items are pre-sorted and pre-grouped by the backend
+  // Collections (type=2) have nested items array already populated
 
   // Scroll to top handler for AppBar title tap
   const handleScrollToTop = useCallback(() => {
@@ -368,19 +319,21 @@ const LibraryContent = () => {
           onRefresh={handleRefresh}
         >
         <div className="p-4 space-y-2">
-          {sortedList.map((entry, idx) => {
-            if (entry.type === 'collection') {
+          {items.map((item, idx) => {
+            // Collections (type=2) have nested items array from backend
+            if (item.type === ITEM_TYPE_COLLECTION) {
               return (
                 <CollectionCard
-                  key={`collection-${entry.collection.id}`}
-                  collection={entry.collection}
-                  items={entry.items}
-                  onItemClick={(item) => {
+                  key={`collection-${item.id}`}
+                  collection={{ id: item.id, name: item.title }}
+                  items={item.items || []}
+                  itemCount={item.itemCount}
+                  onItemClick={(nestedItem) => {
                     // Route to correct detail page based on item type
-                    if (item.type === ITEM_TYPE_VIDEO) {
-                      navigate(`/libraries/${libraryId}/videos/${item.id}`);
+                    if (nestedItem.type === ITEM_TYPE_VIDEO) {
+                      navigate(`/libraries/${libraryId}/videos/${nestedItem.id}`);
                     } else {
-                      navigate(`/libraries/${libraryId}/books/${item.id}`);
+                      navigate(`/libraries/${libraryId}/books/${nestedItem.id}`);
                     }
                   }}
                   onItemLongPress={isSharedLibrary ? undefined : handleItemLongPress}
@@ -390,8 +343,7 @@ const LibraryContent = () => {
                 />
               );
             }
-            // Render VideoCard for videos, BookCard for books
-            const item = entry.data;
+            // Render VideoCard for videos (type=1), BookCard for books (type=0)
             if (item.type === ITEM_TYPE_VIDEO) {
               return (
                 <VideoCard

@@ -2,6 +2,11 @@ package dynamodb
 
 import (
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -664,4 +669,311 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 	}
 
 	return content, nil
+}
+
+// PaginationState encodes collection context for resuming mid-collection pagination
+type PaginationState struct {
+	LastEvaluatedKey map[string]types.AttributeValue `json:"lek,omitempty"`
+	CollectionCtx    *CollectionContext              `json:"col,omitempty"`
+}
+
+// CollectionContext holds the active collection when pagination splits a collection
+type CollectionContext struct {
+	Id          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"desc,omitempty"`
+	ItemCount   int    `json:"cnt"` // Total items in collection (for UI display)
+}
+
+// QueryLibraryContentGrouped returns library content with collections nested with their items.
+// Collections and items share the same GSI1SK prefix ("item#"), sorted alphabetically.
+// Items with Type=ItemCollection have their Items field populated with nested items.
+func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.GroupedLibraryContent, error) {
+	query := dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		IndexName:              aws.String("GSI1"),
+		KeyConditionExpression: aws.String("#GSI1PK = :gsi1pk and begins_with(#GSI1SK,:library_item_prefix)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":gsi1pk": &types.AttributeValueMemberS{
+				Value: persistence.MakeLibraryItemGSI1PK(ownerId, libraryId),
+			},
+			":library_item_prefix": &types.AttributeValueMemberS{
+				Value: "item#",
+			},
+		},
+		ExpressionAttributeNames: map[string]string{
+			"#GSI1PK": "GSI1PK",
+			"#GSI1SK": "GSI1SK",
+		},
+		Limit: aws.Int32(int32(pageSize)),
+	}
+
+	// Decode pagination state (includes collection context)
+	var paginationState *PaginationState
+	if continuationToken != "" {
+		state, err := deserializePaginationState(continuationToken)
+		if err != nil {
+			log.Error().Str("libraryId", libraryId).Msgf("Unable to deserialize pagination state: %s", err.Error())
+			return nil, errors.New("unable to deserialize continuation token")
+		}
+		paginationState = state
+		if state.LastEvaluatedKey != nil {
+			query.ExclusiveStartKey = state.LastEvaluatedKey
+		}
+	}
+
+	result, err := d.client.Query(context.TODO(), &query)
+	if err != nil {
+		log.Error().Str("libraryId", libraryId).Msgf("Failed to query library content: %s", err.Error())
+		return nil, err
+	}
+
+	// State machine: process records and group collection items
+	items := []*domain.LibraryItem{}
+	var currentCollection *domain.LibraryItem // Type=ItemCollection with Items populated
+
+	// If resuming mid-collection, initialize from pagination state
+	if paginationState != nil && paginationState.CollectionCtx != nil {
+		currentCollection = &domain.LibraryItem{
+			Id:        paginationState.CollectionCtx.Id,
+			Title:     paginationState.CollectionCtx.Name,
+			Summary:   paginationState.CollectionCtx.Description,
+			OwnerId:   ownerId,   // Needed for response serialization
+			LibraryId: libraryId, // Needed for response serialization
+			Type:      domain.ItemCollection,
+			Items:     []*domain.LibraryItem{},
+			ItemCount: paginationState.CollectionCtx.ItemCount,
+			Partial:   true, // Mark as continuation from previous page
+		}
+	}
+
+	for _, item := range result.Items {
+		// Determine entity type
+		entityTypeAttr, ok := item["EntityType"]
+		if !ok {
+			log.Warn().Msg("Record missing EntityType, skipping")
+			continue
+		}
+		entityType := entityTypeAttr.(*types.AttributeValueMemberS).Value
+
+		if entityType == string(persistence.TypeCollection) {
+			// Flush current collection to items
+			if currentCollection != nil {
+				items = append(items, currentCollection)
+			}
+
+			// Start new collection (Type=ItemCollection)
+			record := persistence.Collection{}
+			if err := attributevalue.UnmarshalMap(item, &record); err != nil {
+				log.Warn().Msgf("Failed to unmarshal collection: %s", err.Error())
+				continue
+			}
+
+			currentCollection = &domain.LibraryItem{
+				Id:        record.Id,
+				Title:     record.Name,
+				Summary:   record.Description,
+				OwnerId:   record.OwnerId,
+				LibraryId: record.LibraryId,
+				Type:      domain.ItemCollection,
+				UpdatedAt: record.UpdatedAt,
+				Items:     []*domain.LibraryItem{},
+				ItemCount: record.ItemCount,
+				Partial:   false,
+			}
+		} else {
+			// BOOK or VIDEO item
+			record := persistence.LibraryItem{}
+			if err := attributevalue.UnmarshalMap(item, &record); err != nil {
+				log.Warn().Msgf("Failed to unmarshal library item: %s", err.Error())
+				continue
+			}
+
+			domainItem := mapRecordToLibraryItem(&record)
+
+			// Check if item belongs to current collection
+			if currentCollection != nil && record.CollectionId != nil && *record.CollectionId == currentCollection.Id {
+				// Item belongs to current collection
+				currentCollection.Items = append(currentCollection.Items, domainItem)
+			} else if record.CollectionId != nil && *record.CollectionId != "" {
+				// Item belongs to a DIFFERENT collection - flush current and add item
+				if currentCollection != nil {
+					items = append(items, currentCollection)
+					currentCollection = nil
+				}
+				items = append(items, domainItem)
+			} else {
+				// Standalone item (no collectionId) - add WITHOUT flushing currentCollection
+				items = append(items, domainItem)
+			}
+		}
+	}
+
+	// Build continuation token with collection context
+	content := &domain.GroupedLibraryContent{
+		Items: items,
+	}
+
+	if result.LastEvaluatedKey != nil {
+		// More pages coming - include currentCollection in output AND save context for merging
+		newState := &PaginationState{
+			LastEvaluatedKey: result.LastEvaluatedKey,
+		}
+		if currentCollection != nil {
+			// Include collection in this page's output so frontend sees it
+			content.Items = append(content.Items, currentCollection)
+			// Save context so next page can merge additional items
+			newState.CollectionCtx = &CollectionContext{
+				Id:          currentCollection.Id,
+				Name:        currentCollection.Title,
+				Description: currentCollection.Summary,
+				ItemCount:   currentCollection.ItemCount,
+			}
+		}
+
+		nextToken, err := serializePaginationState(newState)
+		if err != nil {
+			log.Error().Str("libraryId", libraryId).Msg("Unable to serialize pagination state")
+			return nil, errors.New("unable to serialize continuation token")
+		}
+		content.ContinuationToken = *nextToken
+	} else {
+		// No more pages - flush remaining collection
+		if currentCollection != nil {
+			content.Items = append(content.Items, currentCollection)
+		}
+	}
+
+	return content, nil
+}
+
+// mapRecordToLibraryItem converts persistence.LibraryItem to domain.LibraryItem
+func mapRecordToLibraryItem(record *persistence.LibraryItem) *domain.LibraryItem {
+	return &domain.LibraryItem{
+		Id:             record.Id,
+		Title:          record.Title,
+		OwnerId:        record.OwnerId,
+		OwnerName:      record.OwnerName,
+		LibraryId:      record.LibraryId,
+		LibraryName:    record.LibraryName,
+		Summary:        record.Summary,
+		Authors:        record.Authors,
+		Isbn:           record.Isbn,
+		UpdatedAt:      record.UpdatedAt,
+		Type:           domain.ItemType(record.Type),
+		PictureUrl:     record.PictureUrl,
+		LentTo:         record.LentTo,
+		CollectionId:   record.CollectionId,
+		CollectionName: record.CollectionName,
+		Order:          record.Order,
+		Directors:      record.Directors,
+		Cast:           record.Cast,
+		ReleaseYear:    record.ReleaseYear,
+		Duration:       record.Duration,
+		TmdbId:         record.TmdbId,
+	}
+}
+
+// paginationStateJSON is the JSON-serializable version of PaginationState
+// types.AttributeValue can't be directly JSON marshaled, so we convert to map[string]interface{}
+type paginationStateJSON struct {
+	LastEvaluatedKey map[string]interface{} `json:"lek,omitempty"`
+	CollectionCtx    *CollectionContext     `json:"col,omitempty"`
+}
+
+func serializePaginationState(state *PaginationState) (*string, error) {
+	// Convert types.AttributeValue map to interface{} map for JSON serialization
+	var lekMap map[string]interface{}
+	if state.LastEvaluatedKey != nil {
+		if err := attributevalue.UnmarshalMap(state.LastEvaluatedKey, &lekMap); err != nil {
+			return nil, err
+		}
+	}
+
+	jsonState := paginationStateJSON{
+		LastEvaluatedKey: lekMap,
+		CollectionCtx:    state.CollectionCtx,
+	}
+
+	data, err := json.Marshal(jsonState)
+	if err != nil {
+		return nil, err
+	}
+
+	// Encrypt using same pattern as serializeLek
+	key, err := getSecretKey()
+	if err != nil {
+		return nil, err
+	}
+
+	aesBlock, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(aesBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	_, err = rand.Read(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	ciphertext := gcm.Seal(nonce, nonce, data, nil)
+	output := base64.StdEncoding.EncodeToString(ciphertext)
+
+	return &output, nil
+}
+
+func deserializePaginationState(token string) (*PaginationState, error) {
+	// Decrypt using same pattern as deserializeLek
+	dec, err := base64.StdEncoding.DecodeString(token)
+	if err != nil {
+		return nil, err
+	}
+
+	key, err := getSecretKey()
+	if err != nil {
+		return nil, err
+	}
+
+	aesBlock, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(aesBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	nonce, ciphertext := dec[:nonceSize], dec[nonceSize:]
+
+	plaintext, err := gcm.Open(nil, []byte(nonce), []byte(ciphertext), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var jsonState paginationStateJSON
+	if err := json.Unmarshal(plaintext, &jsonState); err != nil {
+		return nil, err
+	}
+
+	// Convert interface{} map back to types.AttributeValue map
+	var lek map[string]types.AttributeValue
+	if jsonState.LastEvaluatedKey != nil {
+		lek, err = attributevalue.MarshalMap(jsonState.LastEvaluatedKey)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &PaginationState{
+		LastEvaluatedKey: lek,
+		CollectionCtx:    jsonState.CollectionCtx,
+	}, nil
 }

@@ -192,6 +192,18 @@ type GetCollectionItemResponse struct {
 
 func (g GetCollectionItemResponse) getType() string { return domain.ItemCollection.String() }
 
+// GetCollectionWithItemsResponse represents a collection (type=2) with nested items in grouped responses
+// Named differently from GetCollectionResponse in collections.go to avoid conflict
+type GetCollectionWithItemsResponse struct {
+	GetItemResponseBase
+	Description string            `json:"description,omitempty"`
+	Items       []GetItemResponse `json:"items,omitempty"`   // Nested items within collection
+	ItemCount   int               `json:"itemCount"`         // Total items in collection (from DynamoDB)
+	Partial     bool              `json:"partial,omitempty"` // True if continues from previous page
+}
+
+func (g GetCollectionWithItemsResponse) getType() string { return domain.ItemCollection.String() }
+
 type ShareRequest struct {
 	UserName string `json:"userName"`
 }

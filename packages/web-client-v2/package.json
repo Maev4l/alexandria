@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "yarn build && aws s3 sync ./dist s3://alexandria-web-client --delete",
-    "invalidate": "aws cloudfront create-invalidation --path '/*' --distribution-id $(aws cloudformation describe-stacks --stack-name alexandria-web-client --query 'Stacks[0].Outputs' | jq 'map({(.ExportName): .OutputValue}) | add' | jq -r '.alexandriaWebClientDistributionId')"
+    "invalidate": "aws cloudfront create-invalidation --no-cli-pager --path '/*' --distribution-id $(aws cloudformation describe-stacks --stack-name alexandria-web-client --query 'Stacks[0].Outputs' | jq 'map({(.ExportName): .OutputValue}) | add' | jq -r '.alexandriaWebClientDistributionId')"
   },
   "dependencies": {
     "@zxing/browser": "0.1.5",

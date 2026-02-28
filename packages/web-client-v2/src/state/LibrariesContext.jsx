@@ -6,12 +6,44 @@ import { librariesApi } from '@/api';
 
 const LibrariesContext = createContext(null);
 
+// Item type constants (matches backend domain.ItemType)
+const ITEM_TYPE_COLLECTION = 2;
+
 // Initial state for items in a library
+// items: Array of items where type=2 (collections) have nested items array
 const initialItemsState = {
   items: [],
   nextToken: null,
   isLoading: false,
   error: null,
+};
+
+// Merge items from paginated response, handling partial collections
+// If incoming collection has partial: true, find and merge its nested items into the matching collection
+// (Search by ID, not just last item, since standalone items may appear between collection pages)
+const mergeItems = (existing, incoming) => {
+  if (!incoming || incoming.length === 0) return existing;
+
+  const result = [...existing];
+  for (const item of incoming) {
+    // Check if this is a partial collection that continues from previous page
+    if (item.type === ITEM_TYPE_COLLECTION && item.partial) {
+      // Search for matching collection by ID (may not be the last item)
+      const existingIdx = result.findIndex(
+        (r) => r.type === ITEM_TYPE_COLLECTION && r.id === item.id
+      );
+      if (existingIdx >= 0) {
+        // Merge nested items into existing collection
+        result[existingIdx] = {
+          ...result[existingIdx],
+          items: [...(result[existingIdx].items || []), ...(item.items || [])]
+        };
+        continue;
+      }
+    }
+    result.push(item);
+  }
+  return result;
 };
 
 export const LibrariesProvider = ({ children }) => {
@@ -113,6 +145,8 @@ export const LibrariesProvider = ({ children }) => {
   }, [itemsByLibrary]);
 
   // Fetch items for a library (initial load or refresh)
+  // API returns grouped items: { items: [...], nextToken }
+  // Collections (type=2) have nested items array already populated
   const fetchItems = useCallback(async (libraryId, refresh = false) => {
     // Update loading state
     setItemsByLibrary((prev) => ({
@@ -150,6 +184,7 @@ export const LibrariesProvider = ({ children }) => {
   }, []);
 
   // Load more items (pagination)
+  // Handles partial collection merging when pagination splits a collection
   const loadMoreItems = useCallback(async (libraryId) => {
     const current = itemsByLibrary[libraryId];
     if (!current?.nextToken || current.isLoading) return;
@@ -167,7 +202,7 @@ export const LibrariesProvider = ({ children }) => {
       setItemsByLibrary((prev) => ({
         ...prev,
         [libraryId]: {
-          items: [...(prev[libraryId]?.items || []), ...(data.items || [])],
+          items: mergeItems(prev[libraryId]?.items || [], data.items || []),
           nextToken: data.nextToken || null,
           isLoading: false,
           error: null,

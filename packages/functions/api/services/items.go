@@ -320,3 +320,54 @@ func (s *services) ListItemsByLibrary(ownerId string, libraryId string, continua
 
 	return content, nil
 }
+
+// ListItemsByLibraryGrouped returns library content with collections nested with their items.
+// Server-side grouping ensures collections appear with all their items on each page.
+// Items with Type=ItemCollection have their Items field populated with nested items.
+func (s *services) ListItemsByLibraryGrouped(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.GroupedLibraryContent, error) {
+
+	// Find if it is a shared library to the current requester
+	sharedLibraryOwnerId, err := s.db.GetSharedLibrary(ownerId, libraryId)
+	if err != nil {
+		return nil, err
+	}
+
+	var libraryOwnerId string
+	if sharedLibraryOwnerId != "" {
+		libraryOwnerId = sharedLibraryOwnerId
+	} else {
+		libraryOwnerId = ownerId
+	}
+
+	content, err := s.db.QueryLibraryContentGrouped(libraryOwnerId, libraryId, continuationToken, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch S3 pictures for all items (both standalone and inside collections)
+	for _, item := range content.Items {
+		if item.Type == domain.ItemCollection {
+			// Collection: fetch pictures for nested items
+			for _, nestedItem := range item.Items {
+				if nestedItem.PictureUrl != nil && *nestedItem.PictureUrl != "" {
+					pic, err := s.storage.GetPicture(libraryOwnerId, libraryId, nestedItem.Id)
+					if err != nil {
+						return nil, err
+					}
+					nestedItem.Picture = pic
+				}
+			}
+		} else {
+			// Standalone book/video
+			if item.PictureUrl != nil && *item.PictureUrl != "" {
+				pic, err := s.storage.GetPicture(libraryOwnerId, libraryId, item.Id)
+				if err != nil {
+					return nil, err
+				}
+				item.Picture = pic
+			}
+		}
+	}
+
+	return content, nil
+}

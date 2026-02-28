@@ -140,8 +140,12 @@ func MakeCollectionGSI1PK(ownerId string, libraryId string) string {
 	return fmt.Sprintf("owner#%s#library#%s", ownerId, libraryId)
 }
 
+// MakeCollectionGSI1SK returns GSI1SK for a collection.
+// Uses "item#<name>" prefix so collections sort alphabetically with items.
+// Collections sort BEFORE their items: "item#Foo" < "item#Foo#00001#Title"
+// EntityType attribute distinguishes COLLECTION from BOOK/VIDEO.
 func MakeCollectionGSI1SK(collectionName string) string {
-	return fmt.Sprintf("collection#%s", collectionName)
+	return fmt.Sprintf("item#%s", collectionName)
 }
 
 type SharedLibrary struct {

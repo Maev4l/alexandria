@@ -17,7 +17,9 @@ import (
 )
 
 // UpdateCollectionHandler handles MODIFY events for COLLECTION entities
-// When a collection is renamed, updates CollectionName and GSI1SK on all items in that collection
+// When a collection is renamed:
+// 1. Updates the collection's own GSI1SK to the new name
+// 2. Updates CollectionName and GSI1SK on all items in that collection
 func UpdateCollectionHandler(client *dynamodb.Client, evt *events.DynamoDBEventRecord) {
 	atv_new := ddbconversions.AttributeValueMapFrom(evt.Change.NewImage)
 	var collection_new persistence.Collection
@@ -33,6 +35,29 @@ func UpdateCollectionHandler(client *dynamodb.Client, evt *events.DynamoDBEventR
 	}
 
 	log.Info().Str("collectionId", collection_new.Id).Msgf("Collection renamed from '%s' to '%s'", collection_old.Name, collection_new.Name)
+
+	// Step 1: Update the collection entity's own GSI1SK (already done via UpdateCollection in API)
+	// The API updates GSI1SK when updating the collection, but we verify it here for safety
+	newCollectionGSI1SK := persistence.MakeCollectionGSI1SK(collection_new.Name)
+	if collection_new.GSI1SK != newCollectionGSI1SK {
+		log.Warn().Str("collectionId", collection_new.Id).Msg("Collection GSI1SK not updated by API, updating via stream")
+		_, err := client.UpdateItem(context.TODO(), &dynamodb.UpdateItemInput{
+			TableName: aws.String(tableName),
+			Key: map[string]types.AttributeValue{
+				"PK": &types.AttributeValueMemberS{Value: collection_new.PK},
+				"SK": &types.AttributeValueMemberS{Value: collection_new.SK},
+			},
+			UpdateExpression: aws.String("SET GSI1SK = :gsi1sk"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":gsi1sk": &types.AttributeValueMemberS{Value: newCollectionGSI1SK},
+			},
+		})
+		if err != nil {
+			log.Error().Str("collectionId", collection_new.Id).Msgf("Failed to update collection GSI1SK: %s", err.Error())
+		}
+	}
+
+	// Step 2: Update all items in this collection
 
 	// Query all items in this collection using GSI1
 	// Items have GSI1PK = owner#<ownerId>#library#<libraryId> and CollectionId = collectionId

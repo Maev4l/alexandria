@@ -4,6 +4,7 @@ package dynamodb
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 
 	"alexandria.isnan.eu/functions/internal/domain"
@@ -54,14 +55,17 @@ func (d *dynamo) GetCollection(ownerId string, libraryId string, collectionId st
 }
 
 // GetCollectionByName retrieves a collection by name within a library (for uniqueness check)
+// Uses FilterExpression on EntityType since GSI1SK prefix is shared with items ("item#")
 func (d *dynamo) GetCollectionByName(ownerId string, libraryId string, name string) (*domain.Collection, error) {
 	query := dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
 		IndexName:              aws.String("GSI1"),
 		KeyConditionExpression: aws.String("#GSI1PK = :gsi1pk AND #GSI1SK = :gsi1sk"),
+		FilterExpression:       aws.String("#EntityType = :entityType"),
 		ExpressionAttributeNames: map[string]string{
-			"#GSI1PK": "GSI1PK",
-			"#GSI1SK": "GSI1SK",
+			"#GSI1PK":     "GSI1PK",
+			"#GSI1SK":     "GSI1SK",
+			"#EntityType": "EntityType",
 		},
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":gsi1pk": &types.AttributeValueMemberS{
@@ -69,6 +73,9 @@ func (d *dynamo) GetCollectionByName(ownerId string, libraryId string, name stri
 			},
 			":gsi1sk": &types.AttributeValueMemberS{
 				Value: persistence.MakeCollectionGSI1SK(name),
+			},
+			":entityType": &types.AttributeValueMemberS{
+				Value: string(persistence.TypeCollection),
 			},
 		},
 		Limit: aws.Int32(1),
@@ -102,22 +109,24 @@ func (d *dynamo) GetCollectionByName(ownerId string, libraryId string, name stri
 	}, nil
 }
 
-// QueryCollectionsByLibrary returns all collections in a library
+// QueryCollectionsByLibrary returns all collections in a library.
+// Uses main table with SK prefix since GSI1SK is now shared with items ("item#").
+// Query: PK = owner#<ownerId>, SK begins_with library#<libraryId>#collection#
 func (d *dynamo) QueryCollectionsByLibrary(ownerId string, libraryId string) ([]domain.Collection, error) {
+	skPrefix := fmt.Sprintf("library#%s#collection#", libraryId)
 	query := dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
-		IndexName:              aws.String("GSI1"),
-		KeyConditionExpression: aws.String("#GSI1PK = :gsi1pk AND begins_with(#GSI1SK, :prefix)"),
+		KeyConditionExpression: aws.String("#PK = :pk AND begins_with(#SK, :sk_prefix)"),
 		ExpressionAttributeNames: map[string]string{
-			"#GSI1PK": "GSI1PK",
-			"#GSI1SK": "GSI1SK",
+			"#PK": "PK",
+			"#SK": "SK",
 		},
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":gsi1pk": &types.AttributeValueMemberS{
-				Value: persistence.MakeCollectionGSI1PK(ownerId, libraryId),
+			":pk": &types.AttributeValueMemberS{
+				Value: persistence.MakeCollectionPK(ownerId),
 			},
-			":prefix": &types.AttributeValueMemberS{
-				Value: "collection#",
+			":sk_prefix": &types.AttributeValueMemberS{
+				Value: skPrefix,
 			},
 		},
 	}

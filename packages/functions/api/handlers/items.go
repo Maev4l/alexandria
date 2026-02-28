@@ -487,7 +487,8 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 
 	t := h.getTokenInfo(c)
 
-	items, err := h.s.ListItemsByLibrary(t.userId, libraryId, continuationToken, pageSize)
+	// Use grouped query for server-side collection grouping
+	content, err := h.s.ListItemsByLibraryGrouped(t.userId, libraryId, continuationToken, pageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Failed to query library items ",
@@ -495,60 +496,89 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 		return
 	}
 
+	// Build response - items are unified, collections (type=2) have nested Items
 	itemsResponse := []GetItemResponse{}
 
-	for _, i := range items.Items {
-		var encodedPicture *string
-		if i.Picture != nil {
-			encoded := base64.StdEncoding.EncodeToString(i.Picture)
-			encodedPicture = &encoded
-		}
+	for _, item := range content.Items {
+		if item.Type == domain.ItemCollection {
+			// Collection with nested items
+			nestedItems := []GetItemResponse{}
+			for _, nested := range item.Items {
+				nestedItems = append(nestedItems, h.buildItemResponse(nested))
+			}
 
-		baseResponse := GetItemResponseBase{
-			Id:             i.Id,
-			Type:           i.Type,
-			Title:          i.Title,
-			Picture:        encodedPicture,
-			LibraryId:      &i.LibraryId,
-			LibraryName:    &i.LibraryName,
-			LentTo:         i.LentTo,
-			OwnerId:        i.OwnerId,
-			CollectionId:   i.CollectionId,
-			CollectionName: i.CollectionName,
-			Order:          i.Order,
-			PictureUrl:     i.PictureUrl,
-		}
-
-		switch i.Type {
-		case domain.ItemBook:
-			itemsResponse = append(itemsResponse, GetBookResponse{
-				GetItemResponseBase: baseResponse,
-				Authors:             i.Authors,
-				Summary:             i.Summary,
-				Isbn:                i.Isbn,
+			itemsResponse = append(itemsResponse, GetCollectionWithItemsResponse{
+				GetItemResponseBase: GetItemResponseBase{
+					Id:        item.Id,
+					Type:      domain.ItemCollection,
+					Title:     item.Title,
+					OwnerId:   item.OwnerId,
+					LibraryId: &item.LibraryId,
+				},
+				Description: item.Summary,
+				Items:       nestedItems,
+				ItemCount:   item.ItemCount,
+				Partial:     item.Partial,
 			})
-		case domain.ItemVideo:
-			itemsResponse = append(itemsResponse, GetVideoResponse{
-				GetItemResponseBase: baseResponse,
-				Directors:           i.Directors,
-				Cast:                i.Cast,
-				Summary:             i.Summary,
-				ReleaseYear:         i.ReleaseYear,
-				Duration:            i.Duration,
-				TmdbId:              i.TmdbId,
-			})
-		case domain.ItemCollection:
-			itemsResponse = append(itemsResponse, GetCollectionItemResponse{
-				GetItemResponseBase: baseResponse,
-				Description:         i.Summary,
-			})
+		} else {
+			// Standalone book or video
+			itemsResponse = append(itemsResponse, h.buildItemResponse(item))
 		}
 	}
 
 	response := GetLibrariesContentResponse{
 		GetItemsResponse:  itemsResponse,
-		ContinuationToken: items.ContinuationToken,
+		ContinuationToken: content.ContinuationToken,
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// buildItemResponse converts a domain.LibraryItem to the appropriate GetItemResponse
+func (h *HTTPHandler) buildItemResponse(i *domain.LibraryItem) GetItemResponse {
+	var encodedPicture *string
+	if i.Picture != nil {
+		encoded := base64.StdEncoding.EncodeToString(i.Picture)
+		encodedPicture = &encoded
+	}
+
+	baseResponse := GetItemResponseBase{
+		Id:             i.Id,
+		Type:           i.Type,
+		Title:          i.Title,
+		Picture:        encodedPicture,
+		LibraryId:      &i.LibraryId,
+		LibraryName:    &i.LibraryName,
+		LentTo:         i.LentTo,
+		OwnerId:        i.OwnerId,
+		CollectionId:   i.CollectionId,
+		CollectionName: i.CollectionName,
+		Order:          i.Order,
+		PictureUrl:     i.PictureUrl,
+	}
+
+	switch i.Type {
+	case domain.ItemBook:
+		return GetBookResponse{
+			GetItemResponseBase: baseResponse,
+			Authors:             i.Authors,
+			Summary:             i.Summary,
+			Isbn:                i.Isbn,
+		}
+	case domain.ItemVideo:
+		return GetVideoResponse{
+			GetItemResponseBase: baseResponse,
+			Directors:           i.Directors,
+			Cast:                i.Cast,
+			Summary:             i.Summary,
+			ReleaseYear:         i.ReleaseYear,
+			Duration:            i.Duration,
+			TmdbId:              i.TmdbId,
+		}
+	default:
+		return GetCollectionItemResponse{
+			GetItemResponseBase: baseResponse,
+			Description:         i.Summary,
+		}
+	}
 }

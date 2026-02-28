@@ -13,6 +13,7 @@ type Database interface {
 	GetLibrary(ownerId string, libraryId string) (*domain.Library, error)
 	QueryLibraries(ownerId string) ([]domain.Library, error)
 	QueryItemsByLibrary(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.LibraryContent, error)
+	QueryLibraryContentGrouped(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.GroupedLibraryContent, error)
 	PutLibraryItem(i *domain.LibraryItem) error
 	UpdateLibraryItem(i *domain.LibraryItem) error
 	DeleteLibraryItem(i *domain.LibraryItem) error

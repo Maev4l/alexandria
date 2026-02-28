@@ -1,6 +1,7 @@
 // Edited by Claude.
 // Horizontal scrolling collection card for displaying grouped items (books + videos)
 // Items are displayed as cover thumbnails with horizontal scroll
+// Uses itemCount (denormalized from DynamoDB) to determine if collection is empty
 import { useRef, useCallback } from 'react';
 import { BookOpen, Film, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -96,9 +97,13 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary }) => {
   );
 };
 
-const CollectionCard = ({ collection, items, onItemClick, onItemLongPress, onMorePress, isSharedLibrary = false, index }) => {
-  const itemCount = items.length;
+const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemClick, onItemLongPress, onMorePress, isSharedLibrary = false, index }) => {
+  // Use totalItemCount from DynamoDB if provided, fallback to items.length
+  const itemCount = totalItemCount ?? items.length;
+  const loadedItemCount = items.length;
   const name = collection?.name || 'Unknown';
+  // Number of skeleton placeholders to show for items not yet loaded
+  const pendingItemCount = Math.max(0, itemCount - loadedItemCount);
 
   // Staggered animation style
   const animationStyle = index != null
@@ -143,7 +148,7 @@ const CollectionCard = ({ collection, items, onItemClick, onItemLongPress, onMor
       {/* Horizontal scrolling items - card background */}
       <div className="relative bg-card">
         {itemCount === 0 ? (
-          // Empty state
+          // Empty state - only show "Tap ••• to add items" when truly empty
           <div className="flex items-center justify-center px-3 py-6 text-sm text-muted-foreground">
             {isSharedLibrary ? 'No items' : 'Tap ••• to add items'}
           </div>
@@ -163,6 +168,7 @@ const CollectionCard = ({ collection, items, onItemClick, onItemLongPress, onMor
                 msOverflowStyle: 'none',
               }}
             >
+              {/* Loaded items */}
               {items.map((item) => (
                 <ItemThumbnail
                   key={item.id}
@@ -171,6 +177,13 @@ const CollectionCard = ({ collection, items, onItemClick, onItemLongPress, onMor
                   onLongPress={onItemLongPress}
                   isSharedLibrary={isSharedLibrary}
                 />
+              ))}
+              {/* Skeleton placeholders for items not yet loaded (pagination) */}
+              {pendingItemCount > 0 && Array.from({ length: pendingItemCount }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="flex flex-col items-center gap-1 shrink-0">
+                  <div className="w-16 h-24 bg-muted rounded-md animate-pulse" />
+                  <div className="w-12 h-3 bg-muted rounded animate-pulse" />
+                </div>
               ))}
             </div>
 
