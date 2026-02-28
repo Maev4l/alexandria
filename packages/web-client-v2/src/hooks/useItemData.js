@@ -21,7 +21,17 @@ export const useItemData = (libraryId, itemId) => {
 
   const item = useMemo(() => {
     if (!itemId) return null;
-    return items.find((i) => i.id === itemId) || null;
+    // Search top-level items first
+    const topLevel = items.find((i) => i.id === itemId);
+    if (topLevel) return topLevel;
+    // Search inside collections (type=2 have nested items array)
+    for (const i of items) {
+      if (i.type === 2 && i.items) {
+        const nested = i.items.find((ni) => ni.id === itemId);
+        if (nested) return nested;
+      }
+    }
+    return null;
   }, [items, itemId]);
 
   return {
