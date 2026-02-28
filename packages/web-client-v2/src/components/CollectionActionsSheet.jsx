@@ -199,15 +199,8 @@ const CollectionActionsSheet = ({
           </button>
         </div>
 
-        {/* Cancel button */}
-        <div className="p-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-border">
-          <button
-            onClick={handleClose}
-            className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+        {/* Safe area padding */}
+        <div className="pb-[env(safe-area-inset-bottom)]" />
       </div>
     </div>
   );

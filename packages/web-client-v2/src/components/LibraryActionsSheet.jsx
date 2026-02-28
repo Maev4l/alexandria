@@ -156,7 +156,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
               </p>
             </div>
 
-            <div className="space-y-2 pb-[env(safe-area-inset-bottom)]">
+            <div className="pb-[env(safe-area-inset-bottom)]">
               <button
                 type="submit"
                 disabled={!isValidEmail || isLoading}
@@ -175,14 +175,6 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
                 ) : (
                   'Share'
                 )}
-              </button>
-              <button
-                type="button"
-                onClick={handleBack}
-                disabled={isLoading}
-                className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-              >
-                Back
               </button>
             </div>
           </form>
@@ -292,15 +284,8 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
           </button>
         </div>
 
-        {/* Cancel button */}
-        <div className="p-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-border">
-          <button
-            onClick={handleClose}
-            className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+        {/* Safe area padding */}
+        <div className="pb-[env(safe-area-inset-bottom)]" />
       </div>
     </div>
   );

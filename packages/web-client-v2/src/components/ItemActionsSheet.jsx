@@ -155,7 +155,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
               />
             </div>
 
-            <div className="space-y-2 pb-[env(safe-area-inset-bottom)]">
+            <div className="pb-[env(safe-area-inset-bottom)]">
               <button
                 type="submit"
                 disabled={!personName.trim() || isLoading}
@@ -172,16 +172,8 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
                     Lending...
                   </>
                 ) : (
-                  'Confirm'
+                  'Lend'
                 )}
-              </button>
-              <button
-                type="button"
-                onClick={handleBack}
-                disabled={isLoading}
-                className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors disabled:opacity-50"
-              >
-                Back
               </button>
             </div>
           </form>
@@ -299,15 +291,8 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
           </button>
         </div>
 
-        {/* Cancel button */}
-        <div className="p-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] border-t border-border">
-          <button
-            onClick={handleClose}
-            className="w-full py-3 rounded-lg bg-secondary text-secondary-foreground font-medium hover:bg-secondary/80 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+        {/* Safe area padding */}
+        <div className="pb-[env(safe-area-inset-bottom)]" />
       </div>
     </div>
   );
