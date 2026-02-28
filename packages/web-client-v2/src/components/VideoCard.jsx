@@ -5,6 +5,7 @@
 import { useRef, useCallback } from 'react';
 import { Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import FadeImage from './FadeImage';
 
 const LONG_PRESS_DURATION = 500;
 const STAGGER_DELAY = 50; // ms per item for staggered animation
@@ -94,10 +95,16 @@ const VideoCard = ({ video, onClick, onLongPress, showOrder = false, compact = f
           )}
         >
           {video.pictureUrl ? (
-            <img
+            <FadeImage
               src={video.pictureUrl}
               alt={video.title}
               className="w-full h-full object-cover"
+              fallback={
+                <Film className={cn(
+                  'text-muted-foreground/50',
+                  compact ? 'h-5 w-5' : 'h-6 w-6'
+                )} />
+              }
             />
           ) : (
             <Film className={cn(

@@ -4,6 +4,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Film, Clock, Calendar, Users, History } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useItemData } from '@/hooks';
+import FadeImage from '@/components/FadeImage';
 
 const VideoDetail = () => {
   const { libraryId, itemId } = useParams();
@@ -45,11 +46,14 @@ const VideoDetail = () => {
         {/* Poster and basic info */}
         <div className="p-4 flex gap-4">
           {video.pictureUrl ? (
-            <img
-              src={video.pictureUrl}
-              alt={video.title}
-              className="w-28 h-40 object-cover rounded-lg shadow-md flex-shrink-0"
-            />
+            <div className="w-28 h-40 rounded-lg shadow-md flex-shrink-0 overflow-hidden bg-muted flex items-center justify-center">
+              <FadeImage
+                src={video.pictureUrl}
+                alt={video.title}
+                className="w-full h-full object-cover"
+                fallback={<Film className="h-10 w-10 text-muted-foreground/50" />}
+              />
+            </div>
           ) : (
             <div className="w-28 h-40 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
               <Film className="h-10 w-10 text-muted-foreground/50" />

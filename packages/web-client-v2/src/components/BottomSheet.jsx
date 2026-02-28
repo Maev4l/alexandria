@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-const ANIMATION_DURATION = 200; // ms
+const ANIMATION_DURATION = 250; // ms
 
 const BottomSheet = ({
   isOpen,

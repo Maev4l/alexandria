@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Pencil, Share2, UserMinus, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const ANIMATION_DURATION = 200; // ms
+const ANIMATION_DURATION = 250; // ms
 
 const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = false }) => {
   // Track current view mode: 'actions' | 'share' | 'delete'
@@ -111,7 +111,7 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
 
   const sheetClasses = cn(
     'relative bg-background rounded-t-xl transition-all',
-    isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+    isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
   );
 
   const transitionStyle = { transitionDuration: `${ANIMATION_DURATION}ms` };

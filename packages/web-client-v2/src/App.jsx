@@ -62,18 +62,27 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
+// Wrapper for public pages with fade-in animation
+const PageWrapper = ({ children }) => (
+  <div className="animate-page-enter">
+    {children}
+  </div>
+);
+
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
       <PWAUpdatePrompt />
       <Routes>
-        {/* Public routes */}
+        {/* Public routes - wrapped with PageWrapper for fade animation */}
         <Route
           path="/login"
           element={
             <PublicRoute>
               <Suspense fallback={null}>
-                <Login />
+                <PageWrapper>
+                  <Login />
+                </PageWrapper>
               </Suspense>
             </PublicRoute>
           }
@@ -83,19 +92,23 @@ const App = () => (
           element={
             <PublicRoute>
               <Suspense fallback={null}>
-                <SignUp />
+                <PageWrapper>
+                  <SignUp />
+                </PageWrapper>
               </Suspense>
             </PublicRoute>
           }
         />
 
-        {/* Pending approval route */}
+        {/* Pending approval route - wrapped with PageWrapper for fade animation */}
         <Route
           path="/pending-approval"
           element={
             <PendingApprovalRoute>
               <Suspense fallback={null}>
-                <PendingApproval />
+                <PageWrapper>
+                  <PendingApproval />
+                </PageWrapper>
               </Suspense>
             </PendingApprovalRoute>
           }

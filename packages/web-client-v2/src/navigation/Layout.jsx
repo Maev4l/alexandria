@@ -33,7 +33,12 @@ const Layout = () => {
   return (
     <div className="flex min-h-svh flex-col">
       {/* Main content - pages render their own AppBar */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      {/* Key by pathname triggers fade animation on route change */}
+      {/* z-[51] ensures action sheets (z-60) inside main appear above BottomTabs (z-50) */}
+      <main
+        key={location.pathname}
+        className="flex-1 flex flex-col overflow-hidden animate-page-enter z-[51]"
+      >
         <Suspense fallback={null}>
           <Outlet />
         </Suspense>

@@ -5,6 +5,7 @@
 import { useRef, useCallback } from 'react';
 import { BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import FadeImage from './FadeImage';
 
 const LONG_PRESS_DURATION = 500;
 const STAGGER_DELAY = 50; // ms per item for staggered animation
@@ -89,10 +90,16 @@ const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = fal
           )}
         >
           {hasImage ? (
-            <img
+            <FadeImage
               src={book.pictureUrl || `data:image/webp;base64,${book.picture}`}
               alt={book.title}
               className="w-full h-full object-cover"
+              fallback={
+                <BookOpen className={cn(
+                  'text-muted-foreground/50',
+                  compact ? 'h-5 w-5' : 'h-6 w-6'
+                )} />
+              }
             />
           ) : (
             <BookOpen className={cn(

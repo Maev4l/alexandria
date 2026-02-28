@@ -10,6 +10,7 @@ import { AppBar } from '@/navigation';
 import { useAuth } from '@/auth/AuthContext';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils';
+import FadeImage from '@/components/FadeImage';
 
 const RECENT_SEARCHES_KEY = 'alexandria_recent_searches';
 const STAGGER_DELAY = 50; // ms per item for staggered animation
@@ -70,10 +71,15 @@ const SearchResultCard = ({ item, onClick, isShared, index }) => {
       {/* Cover/poster - asymmetric radius */}
       <div className="shrink-0 w-10 h-14 rounded-[2px_6px_6px_2px] bg-muted flex items-center justify-center overflow-hidden">
         {hasImage ? (
-          <img
+          <FadeImage
             src={item.pictureUrl || `data:image/webp;base64,${item.picture}`}
             alt={item.title}
             className="w-full h-full object-cover"
+            fallback={
+              isVideo
+                ? <Film className="h-5 w-5 text-muted-foreground/50" />
+                : <BookOpen className="h-5 w-5 text-muted-foreground/50" />
+            }
           />
         ) : isVideo ? (
           <Film className="h-5 w-5 text-muted-foreground/50" />

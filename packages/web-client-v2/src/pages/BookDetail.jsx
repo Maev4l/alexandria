@@ -5,6 +5,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, History } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useItemData } from '@/hooks';
+import FadeImage from '@/components/FadeImage';
 
 const BookDetail = () => {
   const { libraryId, itemId } = useParams();
@@ -52,10 +53,11 @@ const BookDetail = () => {
           <div className="flex justify-center">
             <div className="w-40 h-56 rounded-[3px_8px_8px_3px] bg-muted flex items-center justify-center overflow-hidden border border-border shadow-[var(--card-shadow-hover)]">
               {hasImage ? (
-                <img
+                <FadeImage
                   src={book.pictureUrl || `data:image/webp;base64,${book.picture}`}
                   alt={book.title}
                   className="w-full h-full object-cover"
+                  fallback={<BookOpen className="h-12 w-12 text-muted-foreground/50" />}
                 />
               ) : (
                 <BookOpen className="h-12 w-12 text-muted-foreground/50" />

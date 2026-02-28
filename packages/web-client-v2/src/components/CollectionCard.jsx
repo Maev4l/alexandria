@@ -5,6 +5,7 @@
 import { useRef, useCallback } from 'react';
 import { BookOpen, Film, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import FadeImage from './FadeImage';
 
 const STAGGER_DELAY = 50; // ms per item for staggered animation
 const LONG_PRESS_DURATION = 500;
@@ -66,10 +67,15 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary }) => {
           )}
         >
           {hasImage ? (
-            <img
+            <FadeImage
               src={item.pictureUrl || `data:image/webp;base64,${item.picture}`}
               alt={item.title}
               className="w-full h-full object-cover"
+              fallback={
+                isVideo
+                  ? <Film className="h-6 w-6 text-muted-foreground/50" />
+                  : <BookOpen className="h-6 w-6 text-muted-foreground/50" />
+              }
             />
           ) : isVideo ? (
             <Film className="h-6 w-6 text-muted-foreground/50" />
