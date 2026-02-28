@@ -1,9 +1,11 @@
 // Edited by Claude.
-// Bottom sheet for collection actions: Add book, Add video, Delete
-// Includes two-step delete confirmation
+// Bottom sheet for collection actions: Edit, Add book, Add video, Delete
+// Includes edit mode and two-step delete confirmation
 import { useState, useEffect, useRef } from 'react';
-import { BookOpen, Film, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { BookOpen, Film, Trash2, AlertTriangle, Loader2, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
 
 const ANIMATION_DURATION = 250; // ms
 
@@ -13,11 +15,15 @@ const CollectionActionsSheet = ({
   collectionName,
   onAddBook,
   onAddVideo,
+  onEdit,
   onDelete,
   isLoading = false,
 }) => {
-  // Track current view mode: 'actions' | 'delete'
+  // Track current view mode: 'actions' | 'edit' | 'delete'
   const [mode, setMode] = useState('actions');
+
+  // Edit mode state
+  const [editName, setEditName] = useState('');
 
   // Animation state
   const [isVisible, setIsVisible] = useState(false);
@@ -43,6 +49,7 @@ const CollectionActionsSheet = ({
         setIsVisible(false);
         // Reset state after close animation
         setMode('actions');
+        setEditName('');
         cachedNameRef.current = null;
       }, ANIMATION_DURATION);
       return () => clearTimeout(timer);
@@ -73,6 +80,22 @@ const CollectionActionsSheet = ({
     onClose();
     onAddVideo?.();
   };
+
+  const handleEditClick = () => {
+    setEditName(displayName);
+    setMode('edit');
+  };
+
+  const handleConfirmEdit = () => {
+    const trimmedName = editName.trim();
+    if (trimmedName && trimmedName !== displayName) {
+      onEdit?.(trimmedName);
+    }
+    onClose();
+  };
+
+  // Check if edit name is valid and different from original
+  const canSaveEdit = editName.trim().length > 0 && editName.trim() !== displayName;
 
   const handleDeleteClick = () => {
     setMode('delete');
@@ -107,6 +130,47 @@ const CollectionActionsSheet = ({
   );
 
   const transitionStyle = { transitionDuration: `${ANIMATION_DURATION}ms` };
+
+  // Edit view
+  if (mode === 'edit') {
+    return (
+      <div className="fixed inset-0 z-[60] flex flex-col justify-end">
+        <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
+        <div className={sheetClasses} style={transitionStyle}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <div className="min-w-[60px]" />
+            <h2 className="text-base font-semibold">Rename Collection</h2>
+            <button
+              onClick={handleConfirmEdit}
+              disabled={!canSaveEdit || isLoading}
+              className={cn(
+                'text-sm font-medium min-w-[60px] text-right',
+                canSaveEdit && !isLoading ? 'text-primary' : 'text-muted-foreground'
+              )}
+            >
+              {isLoading ? 'Saving...' : 'Done'}
+            </button>
+          </div>
+
+          {/* Edit form */}
+          <div className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+            <div className="space-y-2">
+              <Label htmlFor="collectionName">Name</Label>
+              <Input
+                id="collectionName"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Collection name"
+                autoFocus
+                maxLength={100}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Delete confirmation view
   if (mode === 'delete') {
@@ -174,6 +238,14 @@ const CollectionActionsSheet = ({
 
         {/* Actions */}
         <div className="py-2">
+          <button
+            onClick={handleEditClick}
+            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent transition-colors"
+          >
+            <Pencil className="h-5 w-5 text-muted-foreground" />
+            <span>Edit</span>
+          </button>
+
           <button
             onClick={handleAddBook}
             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent transition-colors"

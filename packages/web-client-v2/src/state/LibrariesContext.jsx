@@ -340,6 +340,44 @@ export const LibrariesProvider = ({ children }) => {
     });
   }, []);
 
+  // Rename a collection (optimistic update - no refetch needed)
+  const renameCollection = useCallback(async (libraryId, collectionId, newName) => {
+    await librariesApi.updateCollection(libraryId, collectionId, { name: newName });
+    // Optimistically update local state - update title and re-sort
+    setItemsByLibrary((prev) => {
+      const current = prev[libraryId];
+      if (!current) return prev;
+
+      // Update the collection title
+      const updatedItems = current.items.map((item) =>
+        item.type === ITEM_TYPE_COLLECTION && item.id === collectionId
+          ? { ...item, title: newName }
+          : item
+      );
+
+      // Re-sort alphabetically by title to maintain correct order
+      const sortedItems = [...updatedItems].sort((a, b) =>
+        a.title.localeCompare(b.title)
+      );
+
+      return {
+        ...prev,
+        [libraryId]: {
+          ...current,
+          items: sortedItems,
+        },
+      };
+    });
+  }, []);
+
+  // Delete a collection (invalidate cache - backend orphans items async)
+  const deleteCollection = useCallback(async (libraryId, collectionId) => {
+    await librariesApi.deleteCollection(libraryId, collectionId);
+    // Invalidate cache - consistency-manager will orphan items asynchronously
+    // Next fetch will show items without collection
+    invalidateItems(libraryId);
+  }, [invalidateItems]);
+
   // =====================
   // DERIVED STATE
   // =====================
@@ -392,6 +430,9 @@ export const LibrariesProvider = ({ children }) => {
     deleteItem,
     lendItem,
     returnItem,
+    // Collection actions
+    renameCollection,
+    deleteCollection,
   }), [
     libraries,
     ownedLibraries,
@@ -417,6 +458,8 @@ export const LibrariesProvider = ({ children }) => {
     deleteItem,
     lendItem,
     returnItem,
+    renameCollection,
+    deleteCollection,
   ]);
 
   return (

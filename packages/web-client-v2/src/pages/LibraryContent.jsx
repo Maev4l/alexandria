@@ -31,7 +31,7 @@ const LibraryContent = () => {
   const { library, isSharedLibrary } = useLibraryData(libraryId);
 
   // Get items state and actions from context
-  const { itemsByLibrary, fetchItems, loadMoreItems, deleteItem, lendItem, returnItem } = useLibraries();
+  const { itemsByLibrary, fetchItems, loadMoreItems, deleteItem, lendItem, returnItem, renameCollection, deleteCollection } = useLibraries();
   const toast = useToast();
   const itemsState = itemsByLibrary[libraryId];
   const items = itemsState?.items || [];
@@ -190,18 +190,27 @@ const LibraryContent = () => {
     });
   }, [selectedCollection, libraryId, navigate]);
 
-  // Handle deleting collection
+  // Handle editing (renaming) collection - optimistic update via context
+  const handleEditCollection = useCallback(async (newName) => {
+    if (!selectedCollection) return;
+    try {
+      await renameCollection(libraryId, selectedCollection.id, newName);
+      toast.success('Collection renamed');
+    } catch (err) {
+      toast.error(err.message || 'Failed to rename collection');
+    }
+  }, [selectedCollection, libraryId, renameCollection, toast]);
+
+  // Handle deleting collection - invalidates cache, next fetch shows orphaned items
   const handleDeleteCollection = useCallback(async () => {
     if (!selectedCollection) return;
     try {
-      await librariesApi.deleteCollection(libraryId, selectedCollection.id);
-      // Refresh items (orphaned items will no longer have collectionId)
-      await fetchItems(libraryId, true);
+      await deleteCollection(libraryId, selectedCollection.id);
       toast.success('Collection deleted');
     } catch (err) {
       toast.error(err.message || 'Failed to delete collection');
     }
-  }, [selectedCollection, libraryId, fetchItems, toast]);
+  }, [selectedCollection, libraryId, deleteCollection, toast]);
 
   // Handle opening new collection sheet
   const handleAddCollection = useCallback(() => {
@@ -408,6 +417,7 @@ const LibraryContent = () => {
         isOpen={isCollectionActionsOpen}
         onClose={() => setIsCollectionActionsOpen(false)}
         collectionName={selectedCollection?.name}
+        onEdit={handleEditCollection}
         onAddBook={handleAddBookToCollection}
         onAddVideo={handleAddVideoToCollection}
         onDelete={handleDeleteCollection}

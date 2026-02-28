@@ -93,8 +93,9 @@ func MakeLibraryItemGSI1PK(ownerId string, libraryId string) string {
 }
 
 func MakeLibraryItemGSI1SK(itemTitle string, collectionName *string, order *int) string {
-	// If no collection name or no valid order (must be >= 1), use simple title-only format
-	if (collectionName == nil || len(*collectionName) == 0) && (order == nil || *order < 1) {
+	// Both collectionName AND order are required for grouped sorting
+	// If either is missing/invalid, use simple title-only format
+	if collectionName == nil || len(*collectionName) == 0 || order == nil || *order < 1 {
 		return fmt.Sprintf("item#%s", itemTitle)
 	}
 
