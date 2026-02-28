@@ -22,7 +22,7 @@ const BookDetail = () => {
 
   if (!book) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         <AppBar title="Book" />
         <div className="flex flex-1 items-center justify-center p-4">
           <p className="text-muted-foreground">Book not found</p>
@@ -32,7 +32,7 @@ const BookDetail = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <AppBar
         title={book.title}
         headerRight={
@@ -47,8 +47,8 @@ const BookDetail = () => {
           ) : undefined
         }
       />
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-6 pb-8">
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 overflow-y-auto p-4 space-y-6 pb-8">
           {/* Cover image - asymmetric radius mimics real book (spine left, pages right) */}
           <div className="flex justify-center">
             <div className="w-40 h-56 rounded-[3px_8px_8px_3px] bg-muted flex items-center justify-center overflow-hidden border border-border shadow-[var(--card-shadow-hover)]">

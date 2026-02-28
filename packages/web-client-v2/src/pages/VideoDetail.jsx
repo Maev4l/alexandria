@@ -17,7 +17,7 @@ const VideoDetail = () => {
 
   if (!video) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         <AppBar title="Video" />
         <div className="flex flex-1 items-center justify-center p-4">
           <p className="text-muted-foreground">Video not found</p>
@@ -27,7 +27,7 @@ const VideoDetail = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <AppBar
         title={video.title}
         headerRight={
@@ -42,7 +42,8 @@ const VideoDetail = () => {
           ) : undefined
         }
       />
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 overflow-y-auto">
         {/* Poster and basic info */}
         <div className="p-4 flex gap-4">
           {video.pictureUrl ? (
@@ -125,6 +126,7 @@ const VideoDetail = () => {
             </p>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
