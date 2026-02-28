@@ -39,9 +39,12 @@ const NewVideo = () => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
+  // Title is required, and order is required when collection is selected
+  const canSubmit = form.title.trim() && (!collection || form.order.trim()) && !isSubmitting;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || isSubmitting) return;
+    if (!canSubmit) return;
 
     setIsSubmitting(true);
     try {
@@ -177,7 +180,7 @@ const NewVideo = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="order">Order</Label>
+              <Label htmlFor="order">Order *</Label>
               <Input
                 id="order"
                 type="number"
@@ -188,6 +191,7 @@ const NewVideo = () => {
                 value={form.order}
                 onChange={handleChange('order')}
                 placeholder="1"
+                required
               />
             </div>
           </div>
@@ -198,7 +202,7 @@ const NewVideo = () => {
         <div className="p-4 border-t border-border">
           <Button
             type="submit"
-            disabled={!form.title.trim() || isSubmitting}
+            disabled={!canSubmit}
             className="w-full"
             size="lg"
           >

@@ -246,23 +246,12 @@ export const LibrariesProvider = ({ children }) => {
   }, [invalidateItems]);
 
   // Update a book in a library
+  // Invalidates cache because collection assignment changes item grouping structure
   const updateBook = useCallback(async (libraryId, itemId, data) => {
     await librariesApi.updateBook(libraryId, itemId, data);
-    // Update local state
-    setItemsByLibrary((prev) => {
-      const current = prev[libraryId];
-      if (!current) return prev;
-      return {
-        ...prev,
-        [libraryId]: {
-          ...current,
-          items: current.items.map((item) =>
-            item.id === itemId ? { ...item, ...data } : item
-          ),
-        },
-      };
-    });
-  }, []);
+    // Invalidate to refetch - needed because collection changes affect grouping
+    invalidateItems(libraryId);
+  }, [invalidateItems]);
 
   // Create a video in a library
   const createVideo = useCallback(async (libraryId, data) => {
@@ -281,23 +270,12 @@ export const LibrariesProvider = ({ children }) => {
   }, [invalidateItems]);
 
   // Update a video in a library
+  // Invalidates cache because collection assignment changes item grouping structure
   const updateVideo = useCallback(async (libraryId, itemId, data) => {
     await librariesApi.updateVideo(libraryId, itemId, data);
-    // Update local state
-    setItemsByLibrary((prev) => {
-      const current = prev[libraryId];
-      if (!current) return prev;
-      return {
-        ...prev,
-        [libraryId]: {
-          ...current,
-          items: current.items.map((item) =>
-            item.id === itemId ? { ...item, ...data } : item
-          ),
-        },
-      };
-    });
-  }, []);
+    // Invalidate to refetch - needed because collection changes affect grouping
+    invalidateItems(libraryId);
+  }, [invalidateItems]);
 
   // Delete an item from a library
   const deleteItem = useCallback(async (libraryId, itemId) => {

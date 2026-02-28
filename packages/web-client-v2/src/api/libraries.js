@@ -65,6 +65,10 @@ export const librariesApi = {
   // Create a collection in a library
   createCollection: (libraryId, data) => api.post(`/libraries/${libraryId}/collections`, data),
 
+  // Update a collection
+  updateCollection: (libraryId, collectionId, data) =>
+    api.put(`/libraries/${libraryId}/collections/${collectionId}`, data),
+
   // Delete a collection (items are orphaned, not deleted)
   deleteCollection: (libraryId, collectionId) =>
     api.delete(`/libraries/${libraryId}/collections/${collectionId}`),

@@ -1,16 +1,18 @@
 // Edited by Claude.
 // Edit book page - form to update existing book details
-// Uses LibrariesContext to update items
+// Uses LibrariesContext to update items, allows collection assignment
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, ChevronDown } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useLibraries } from '@/state';
 import { useItemData } from '@/hooks';
+import { librariesApi } from '@/api';
 import { useToast } from '@/components/Toast';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Textarea } from '@/components/ui/Textarea';
+import CollectionPickerSheet from '@/components/CollectionPickerSheet';
 
 const EditBook = () => {
   const { libraryId, itemId } = useParams();
@@ -30,8 +32,12 @@ const EditBook = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  // Collection is read-only from item data
-  const collection = book ? { id: book.collectionId, name: book.collectionName } : null;
+  // Collection picker state
+  const [collectionId, setCollectionId] = useState(null);
+  const [collectionName, setCollectionName] = useState('');
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [collections, setCollections] = useState([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(false);
 
   // Initialize form when book data loads
   useEffect(() => {
@@ -42,9 +48,44 @@ const EditBook = () => {
       setAuthors(book.authors?.join(', ') || '');
       setIsbn(book.isbn || '');
       setOrder(book.order?.toString() || '');
+      setCollectionId(book.collectionId || null);
+      setCollectionName(book.collectionName || '');
       setInitialized(true);
     }
   }, [book, initialized]);
+
+  // Fetch available collections for this library
+  useEffect(() => {
+    if (!libraryId) return;
+
+    const fetchCollections = async () => {
+      setCollectionsLoading(true);
+      try {
+        const response = await librariesApi.getCollections(libraryId);
+        setCollections(response.collections || []);
+      } catch (err) {
+        console.error('Failed to fetch collections:', err);
+        // Non-fatal - user can still edit without changing collection
+      } finally {
+        setCollectionsLoading(false);
+      }
+    };
+
+    fetchCollections();
+  }, [libraryId]);
+
+  // Handle collection selection from picker
+  const handleCollectionSelect = (collection) => {
+    if (collection) {
+      setCollectionId(collection.id);
+      setCollectionName(collection.name);
+    } else {
+      // "None" selected - remove from collection
+      setCollectionId(null);
+      setCollectionName('');
+      setOrder('');
+    }
+  };
 
   // Reset cover error when URL changes
   const handleCoverChange = (e) => {
@@ -52,17 +93,18 @@ const EditBook = () => {
     setCoverError(false);
   };
 
-  // Title is required
-  const isValid = title.trim().length > 0;
+  // Title is required, and order is required when collection is selected
+  const isValid = title.trim().length > 0 && (!collectionId || order.trim().length > 0);
 
   // Check if there are changes compared to original book data
-  // Collection is not editable, so not included in change detection
+  // Includes collection changes (now editable via picker)
   const hasChanges = initialized && (
     cover.trim() !== (book?.pictureUrl || '') ||
     title.trim() !== (book?.title || '') ||
     summary.trim() !== (book?.summary || '') ||
     authors.trim() !== (book?.authors?.join(', ') || '') ||
     isbn.trim() !== (book?.isbn || '') ||
+    collectionId !== (book?.collectionId || null) ||
     order !== (book?.order?.toString() || '')
   );
 
@@ -80,15 +122,15 @@ const EditBook = () => {
         authors: authorsArray,
         isbn: isbn.trim() || null,
         pictureUrl: cover.trim() || null,
-        collectionId: collection?.id || null,
-        order: order ? parseInt(order, 10) : null,
+        collectionId: collectionId,
+        order: collectionId && order ? parseInt(order, 10) : null,
       });
       navigate(-1);
     } catch (err) {
       toast.error(err.message || 'Failed to update book');
       setIsSubmitting(false);
     }
-  }, [canSubmit, libraryId, itemId, title, summary, authors, isbn, cover, collection, order, updateBook, navigate, toast]);
+  }, [canSubmit, libraryId, itemId, title, summary, authors, isbn, cover, collectionId, order, updateBook, navigate, toast]);
 
   // Handle missing book data
   if (!book && initialized) {
@@ -195,20 +237,26 @@ const EditBook = () => {
             />
           </div>
 
-          {/* Collection section - only shown if item belongs to a collection */}
-          {collection?.name && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Collection</Label>
-                <Input
-                  value={collection.name}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
+          {/* Collection section - tappable field opens picker */}
+          <div className={collectionId ? 'grid grid-cols-2 gap-4' : ''}>
+            <div className="space-y-2">
+              <Label>Collection</Label>
+              <button
+                type="button"
+                onClick={() => setIsPickerOpen(true)}
+                className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <span className={collectionName ? '' : 'text-muted-foreground'}>
+                  {collectionName || 'None'}
+                </span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
 
+            {/* Order field only shown when collection is selected (required) */}
+            {collectionId && (
               <div className="space-y-2">
-                <Label htmlFor="order">Order</Label>
+                <Label htmlFor="order">Order *</Label>
                 <Input
                   id="order"
                   type="number"
@@ -221,10 +269,20 @@ const EditBook = () => {
                   placeholder="1"
                 />
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Collection picker sheet */}
+      <CollectionPickerSheet
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        collections={collections}
+        selectedId={collectionId}
+        onSelect={handleCollectionSelect}
+        isLoading={collectionsLoading}
+      />
     </div>
   );
 };

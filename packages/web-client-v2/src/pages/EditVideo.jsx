@@ -1,15 +1,17 @@
 // Edited by Claude.
-// Edit video form
+// Edit video form - allows collection assignment
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Film } from 'lucide-react';
+import { Film, ChevronDown } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useLibraries } from '@/state';
 import { useItemData } from '@/hooks';
+import { librariesApi } from '@/api';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Label } from '@/components/ui/Label';
 import { useToast } from '@/components/Toast';
+import CollectionPickerSheet from '@/components/CollectionPickerSheet';
 
 const EditVideo = () => {
   const { libraryId, itemId } = useParams();
@@ -33,8 +35,12 @@ const EditVideo = () => {
 
   const [posterError, setPosterError] = useState(false);
 
-  // Collection is read-only from item data
-  const collection = video ? { id: video.collectionId, name: video.collectionName } : null;
+  // Collection picker state
+  const [collectionId, setCollectionId] = useState(null);
+  const [collectionName, setCollectionName] = useState('');
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [collections, setCollections] = useState([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(false);
 
   // Initialize form when video data loads
   useEffect(() => {
@@ -49,20 +55,55 @@ const EditVideo = () => {
         pictureUrl: video.pictureUrl || '',
         order: video.order?.toString() || '',
       });
+      setCollectionId(video.collectionId || null);
+      setCollectionName(video.collectionName || '');
       setInitialized(true);
     }
   }, [video, initialized]);
+
+  // Fetch available collections for this library
+  useEffect(() => {
+    if (!libraryId) return;
+
+    const fetchCollections = async () => {
+      setCollectionsLoading(true);
+      try {
+        const response = await librariesApi.getCollections(libraryId);
+        setCollections(response.collections || []);
+      } catch (err) {
+        console.error('Failed to fetch collections:', err);
+        // Non-fatal - user can still edit without changing collection
+      } finally {
+        setCollectionsLoading(false);
+      }
+    };
+
+    fetchCollections();
+  }, [libraryId]);
+
+  // Handle collection selection from picker
+  const handleCollectionSelect = (collection) => {
+    if (collection) {
+      setCollectionId(collection.id);
+      setCollectionName(collection.name);
+    } else {
+      // "None" selected - remove from collection
+      setCollectionId(null);
+      setCollectionName('');
+      setForm((prev) => ({ ...prev, order: '' }));
+    }
+  };
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
     if (field === 'pictureUrl') setPosterError(false);
   };
 
-  // Title is required
-  const isValid = form.title.trim().length > 0;
+  // Title is required, and order is required when collection is selected
+  const isValid = form.title.trim().length > 0 && (!collectionId || form.order.trim().length > 0);
 
   // Check if there are changes compared to original video data
-  // Collection is not editable, so not included in change detection
+  // Includes collection changes (now editable via picker)
   const hasChanges = initialized && (
     form.title.trim() !== (video?.title || '') ||
     form.summary.trim() !== (video?.summary || '') ||
@@ -71,6 +112,7 @@ const EditVideo = () => {
     form.releaseYear !== (video?.releaseYear?.toString() || '') ||
     form.duration !== (video?.duration?.toString() || '') ||
     form.pictureUrl.trim() !== (video?.pictureUrl || '') ||
+    collectionId !== (video?.collectionId || null) ||
     form.order !== (video?.order?.toString() || '')
   );
 
@@ -95,8 +137,8 @@ const EditVideo = () => {
         releaseYear: form.releaseYear ? parseInt(form.releaseYear, 10) : null,
         duration: form.duration ? parseInt(form.duration, 10) : null,
         pictureUrl: form.pictureUrl.trim() || null,
-        collectionId: collection?.id || null,
-        order: form.order ? parseInt(form.order, 10) : null,
+        collectionId: collectionId,
+        order: collectionId && form.order ? parseInt(form.order, 10) : null,
       });
 
       navigate(-1);
@@ -105,7 +147,7 @@ const EditVideo = () => {
       toast.error(err.message || 'Failed to update video');
       setIsSubmitting(false);
     }
-  }, [canSubmit, libraryId, itemId, form, updateVideo, navigate, toast]);
+  }, [canSubmit, libraryId, itemId, form, collectionId, updateVideo, navigate, toast]);
 
   // Handle missing video data
   if (!video && initialized) {
@@ -243,19 +285,26 @@ const EditVideo = () => {
             />
           </div>
 
-          {/* Collection and Order row - only shown if item belongs to a collection */}
-          {collection?.name && (
-            <div className="grid grid-cols-2 gap-4">
+          {/* Collection section - tappable field opens picker */}
+          <div className={collectionId ? 'grid grid-cols-2 gap-4' : ''}>
+            <div className="space-y-2">
+              <Label>Collection</Label>
+              <button
+                type="button"
+                onClick={() => setIsPickerOpen(true)}
+                className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                <span className={collectionName ? '' : 'text-muted-foreground'}>
+                  {collectionName || 'None'}
+                </span>
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* Order field only shown when collection is selected (required) */}
+            {collectionId && (
               <div className="space-y-2">
-                <Label>Collection</Label>
-                <Input
-                  value={collection.name}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="order">Order</Label>
+                <Label htmlFor="order">Order *</Label>
                 <Input
                   id="order"
                   type="number"
@@ -268,10 +317,20 @@ const EditVideo = () => {
                   placeholder="1"
                 />
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Collection picker sheet */}
+      <CollectionPickerSheet
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        collections={collections}
+        selectedId={collectionId}
+        onSelect={handleCollectionSelect}
+        isLoading={collectionsLoading}
+      />
     </div>
   );
 };
