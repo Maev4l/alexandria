@@ -199,17 +199,17 @@ components:
     ShareRequest:
       type: object
       properties:
-        userName:
+        email:
           type: string
           format: email
           description: "Email of the user to share with"
       required:
-        - userName
+        - email
 
     UnshareRequest:
       type: object
       properties:
-        userNames:
+        emails:
           type: array
           items:
             type: string
@@ -218,7 +218,7 @@ components:
           maxItems: 10
           description: "List of user emails to remove sharing from"
       required:
-        - userNames
+        - emails
 
     # Items
     ItemType:

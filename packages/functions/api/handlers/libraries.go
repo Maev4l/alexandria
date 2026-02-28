@@ -127,7 +127,7 @@ func (h *HTTPHandler) ListLibraries(c *gin.Context) {
 payload:
 
 	{
-		UserNames: [<user email>, ...],
+		emails: [<user email>, ...],
 	}
 */
 
@@ -146,8 +146,8 @@ func (h *HTTPHandler) UnshareLibrary(c *gin.Context) {
 	}
 
 	// Validate: at least one user, max 10
-	if len(request.UserNames) == 0 || len(request.UserNames) > 10 {
-		log.Error().Msgf("Invalid request: userNames must have 1-10 entries")
+	if len(request.Emails) == 0 || len(request.Emails) > 10 {
+		log.Error().Msgf("Invalid request: emails must have 1-10 entries")
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request.",
 		})
@@ -157,18 +157,18 @@ func (h *HTTPHandler) UnshareLibrary(c *gin.Context) {
 	t := h.getTokenInfo(c)
 
 	// Validate each email and check for self-unshare
-	for _, userName := range request.UserNames {
-		_, err = mail.ParseAddress(userName)
+	for _, email := range request.Emails {
+		_, err = mail.ParseAddress(email)
 		if err != nil {
-			log.Error().Msgf("Invalid username (not an email format): %s", userName)
+			log.Error().Msgf("Invalid email format: %s", email)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"message": "Invalid request.",
 			})
 			return
 		}
 
-		if t.userName == userName {
-			log.Error().Msgf("Cannot self unshare: %s", userName)
+		if t.userName == email {
+			log.Error().Msgf("Cannot self unshare: %s", email)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"message": "Invalid request.",
 			})
@@ -179,7 +179,7 @@ func (h *HTTPHandler) UnshareLibrary(c *gin.Context) {
 	sh := domain.UnshareLibrary{
 		SharedFromUserName: t.userName,
 		SharedFromUserId:   t.userId,
-		SharedToUserNames:  request.UserNames,
+		SharedToUserNames:  request.Emails,
 		LibraryId:          libraryId,
 	}
 
@@ -198,7 +198,7 @@ func (h *HTTPHandler) UnshareLibrary(c *gin.Context) {
 payload:
 
 	{
-		UserName: <user email>,
+		email: <user email>,
 	}
 */
 
@@ -216,9 +216,9 @@ func (h *HTTPHandler) ShareLibrary(c *gin.Context) {
 		return
 	}
 
-	_, err = mail.ParseAddress(request.UserName)
+	_, err = mail.ParseAddress(request.Email)
 	if err != nil {
-		log.Error().Msgf("Invalid username (not an email format): %s", request.UserName)
+		log.Error().Msgf("Invalid email format: %s", request.Email)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request.",
 		})
@@ -227,8 +227,8 @@ func (h *HTTPHandler) ShareLibrary(c *gin.Context) {
 
 	t := h.getTokenInfo(c)
 
-	if t.userName == request.UserName {
-		log.Error().Msgf("Cannot self share: %s", request.UserName)
+	if t.userName == request.Email {
+		log.Error().Msgf("Cannot self share: %s", request.Email)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request.",
 		})
@@ -238,7 +238,7 @@ func (h *HTTPHandler) ShareLibrary(c *gin.Context) {
 	sh := domain.ShareLibrary{
 		SharedFromUserName: t.userName,
 		SharedFromUserId:   t.userId,
-		SharedToUserName:   request.UserName,
+		SharedToUserName:   request.Email,
 		LibraryId:          libraryId,
 	}
 

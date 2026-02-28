@@ -108,28 +108,28 @@ export const LibrariesProvider = ({ children }) => {
   }, []);
 
   // Share a library with another user
-  const shareLibrary = useCallback(async (libraryId, userName) => {
-    await librariesApi.share(libraryId, userName);
+  const shareLibrary = useCallback(async (libraryId, email) => {
+    await librariesApi.share(libraryId, email);
     // Update local state to reflect the new share
     setLibraries((prev) =>
       prev.map((lib) =>
         lib.id === libraryId
-          ? { ...lib, sharedTo: [...(lib.sharedTo || []), userName] }
+          ? { ...lib, sharedTo: [...(lib.sharedTo || []), email] }
           : lib
       )
     );
   }, []);
 
   // Unshare a library from one or more users
-  const unshareLibrary = useCallback(async (libraryId, userNames) => {
-    // Ensure userNames is an array
-    const users = Array.isArray(userNames) ? userNames : [userNames];
-    await librariesApi.unshare(libraryId, users);
+  const unshareLibrary = useCallback(async (libraryId, emails) => {
+    // Ensure emails is an array
+    const emailList = Array.isArray(emails) ? emails : [emails];
+    await librariesApi.unshare(libraryId, emailList);
     // Update local state to remove the shares
     setLibraries((prev) =>
       prev.map((lib) =>
         lib.id === libraryId
-          ? { ...lib, sharedTo: (lib.sharedTo || []).filter((u) => !users.includes(u)) }
+          ? { ...lib, sharedTo: (lib.sharedTo || []).filter((e) => !emailList.includes(e)) }
           : lib
       )
     );

@@ -16,10 +16,10 @@ export const librariesApi = {
   delete: (libraryId) => api.delete(`/libraries/${libraryId}`),
 
   // Share a library with another user
-  share: (libraryId, userName) => api.post(`/libraries/${libraryId}/share`, { userName }),
+  share: (libraryId, email) => api.post(`/libraries/${libraryId}/share`, { email }),
 
   // Unshare a library from one or more users
-  unshare: (libraryId, userNames) => api.post(`/libraries/${libraryId}/unshare`, { userNames }),
+  unshare: (libraryId, emails) => api.post(`/libraries/${libraryId}/unshare`, { emails }),
 
   // Get items in a library with cursor-based pagination
   getItems: (libraryId, { limit = 20, nextToken } = {}) => {

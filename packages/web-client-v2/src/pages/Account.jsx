@@ -70,10 +70,10 @@ const Account = () => {
   const passwordsMatch = newPassword === confirmPassword && confirmPassword.length > 0;
   const canSubmit = oldPassword && isPasswordValid && passwordsMatch && !isChangingPassword;
 
-  // Copy username to clipboard
-  const handleCopyUsername = () => {
-    if (user?.username) {
-      navigator.clipboard.writeText(user.username);
+  // Copy email to clipboard
+  const handleCopyEmail = () => {
+    if (user?.email) {
+      navigator.clipboard.writeText(user.email);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -102,17 +102,17 @@ const Account = () => {
       <AppBar title="Account" />
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-6">
-          {/* Avatar and username section */}
+          {/* Avatar and email section */}
           <div className="flex flex-col items-center gap-3 py-4">
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-primary-foreground text-2xl font-semibold">
-              {getInitials(user?.displayName, user?.username)}
+              {getInitials(user?.displayName, user?.email)}
             </div>
             <button
               type="button"
-              onClick={handleCopyUsername}
+              onClick={handleCopyEmail}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <span>{user?.username || '—'}</span>
+              <span>{user?.email || '—'}</span>
               {copied ? (
                 <Check className="h-4 w-4 text-green-500" />
               ) : (
@@ -120,7 +120,7 @@ const Account = () => {
               )}
             </button>
             <p className="text-xs text-muted-foreground">
-              Share your username with others so they can share their libraries with you.
+              Share your email with others so they can share their libraries with you.
             </p>
           </div>
 

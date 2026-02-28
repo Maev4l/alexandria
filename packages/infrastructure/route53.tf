@@ -29,3 +29,16 @@ resource "aws_route53_record" "alexandria_ipv6" {
     evaluate_target_health = false
   }
 }
+
+# Cognito custom domain for Google OAuth
+resource "aws_route53_record" "cognito_auth" {
+  zone_id = data.aws_route53_zone.isnan.zone_id
+  name    = "alexandria-auth.isnan.eu"
+  type    = "A"
+
+  alias {
+    name                   = aws_cognito_user_pool_domain.alexandria_domain.cloudfront_distribution_arn
+    zone_id                = "Z2FDTNDATAQYW2" # CloudFront fixed zone ID
+    evaluate_target_health = false
+  }
+}

@@ -52,6 +52,9 @@ const SignUp = () => {
         setError('An account with this email already exists');
       } else if (err.name === 'InvalidParameterException') {
         setError(err.message || 'Invalid input');
+      } else if (err.message?.toLowerCase().includes('user already exists')) {
+        // PreSignUp Lambda rejects native signup when federated user exists
+        setError('An account with this email already exists.');
       } else {
         setError(err.message || 'Sign up failed');
       }

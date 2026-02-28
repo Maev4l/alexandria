@@ -23,4 +23,12 @@ output "api_endpoint" {
   value       = module.api_trigger.api_endpoint
 }
 
+output "region" {
+  value = data.aws_region.current.id
+}
+
+output "authentication_domain" {
+  value = var.authentication_domain
+}
+
 

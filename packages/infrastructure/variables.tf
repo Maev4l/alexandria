@@ -13,3 +13,8 @@ variable "dynamodb_table_name" {
   default     = "alexandria"
 }
 
+variable "authentication_domain" {
+  description = "Domain for federated authentication"
+  type        = string
+  default     = "alexandria-auth.isnan.eu"
+}

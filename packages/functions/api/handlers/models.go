@@ -205,11 +205,11 @@ type GetCollectionWithItemsResponse struct {
 func (g GetCollectionWithItemsResponse) getType() string { return domain.ItemCollection.String() }
 
 type ShareRequest struct {
-	UserName string `json:"userName"`
+	Email string `json:"email"`
 }
 
 type UnshareRequest struct {
-	UserNames []string `json:"userNames"`
+	Emails []string `json:"emails"`
 }
 
 type SearchRequest struct {

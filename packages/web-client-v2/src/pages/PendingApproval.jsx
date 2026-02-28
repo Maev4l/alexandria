@@ -20,9 +20,9 @@ const PendingApproval = () => {
           Alexandria once your account has been approved.
         </p>
 
-        {user?.username && (
+        {(user?.email || user?.username) && (
           <p className="text-sm text-muted-foreground mb-6">
-            Signed in as <span className="font-medium">{user.username}</span>
+            Signed in as <span className="font-medium">{user.email || user.username}</span>
           </p>
         )}
 

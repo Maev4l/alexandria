@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/mail"
 	"os"
@@ -37,62 +36,195 @@ type Message struct {
 	Content           string `json:"content"`
 }
 
-// handlePreSignUp validates email format and sends notification for new signups
-// Only enforces email format for native signups (not federated)
+// findUserByEmail searches for an existing user with the given email
+// Returns username and whether it's a native user (username == email)
+func findUserByEmail(userPoolId, email string) (*types.UserType, bool, error) {
+	result, err := cognitoClient.ListUsers(context.TODO(), &cognitoidentityprovider.ListUsersInput{
+		UserPoolId: aws.String(userPoolId),
+		Filter:     aws.String(fmt.Sprintf("email = \"%s\"", email)),
+	})
+	if err != nil {
+		return nil, false, err
+	}
+
+	if len(result.Users) == 0 {
+		return nil, false, nil
+	}
+
+	user := &result.Users[0]
+	// Native user has username == email
+	isNative := *user.Username == email
+
+	return user, isNative, nil
+}
+
+// Identity represents a federated identity from Cognito
+type Identity struct {
+	ProviderName string `json:"providerName"`
+	ProviderType string `json:"providerType"`
+	UserId       string `json:"userId"`
+}
+
+// providerNameMapping maps lowercase username prefixes to Cognito provider names.
+//
+// Why normalization is needed:
+// - Cognito generates federated usernames with lowercase prefixes (e.g., "google_123456789")
+// - But AdminLinkProviderForUser requires the provider name to EXACTLY match the
+//   configured provider name in the User Pool (e.g., "Google" with capital G)
+// - AWS enforces PascalCase for built-in provider names (Google, Facebook, etc.)
+// - So we must normalize: "google" -> "Google" to match the Cognito configuration
+var providerNameMapping = map[string]string{
+	"google":          "Google",
+	"facebook":        "Facebook",
+	"signinwithapple": "SignInWithApple",
+	"loginwithamazon": "LoginWithAmazon",
+}
+
+// normalizeProviderName converts lowercase username prefix to Cognito provider name
+func normalizeProviderName(prefix string) string {
+	if mapped, ok := providerNameMapping[strings.ToLower(prefix)]; ok {
+		return mapped
+	}
+	// Return as-is if not in mapping (custom OIDC/SAML providers)
+	return prefix
+}
+
+// extractProviderInfo extracts provider name and subject from identities attribute or username
+func extractProviderInfo(identitiesJSON string, username string) (string, string) {
+	// First try to parse from identities attribute (most reliable)
+	if identitiesJSON != "" {
+		var identities []Identity
+		if err := json.Unmarshal([]byte(identitiesJSON), &identities); err == nil && len(identities) > 0 {
+			log.Info().Msgf("Extracted provider from identities: name=%s, userId=%s",
+				identities[0].ProviderName, identities[0].UserId)
+			return identities[0].ProviderName, identities[0].UserId
+		}
+	}
+
+	// Fallback: parse from username (e.g., "google_123456789")
+	parts := strings.SplitN(username, "_", 2)
+	if len(parts) == 2 {
+		providerName := normalizeProviderName(parts[0])
+		log.Info().Msgf("Extracted provider from username: raw=%s, normalized=%s, subject=%s",
+			parts[0], providerName, parts[1])
+		return providerName, parts[1]
+	}
+
+	return "", ""
+}
+
+// handlePreSignUp handles PreSignUp trigger for both native and federated users
+// - Native: reject if any user with same email exists
+// - Federated: link to existing user (native or federated) if found
+//
+// This ensures only ONE Cognito user per email, regardless of how many
+// federated providers the user signs in with (Google, Facebook, etc.)
 func handlePreSignUp(event events.CognitoEventUserPoolsPreSignup) (events.CognitoEventUserPoolsPreSignup, error) {
-	// Check if this is a native signup (not federated)
-	// TriggerSource for native: "PreSignUp_SignUp"
-	// TriggerSource for federated: "PreSignUp_ExternalProvider"
 	isNativeSignup := event.TriggerSource == "PreSignUp_SignUp"
+	isFederatedSignup := event.TriggerSource == "PreSignUp_ExternalProvider"
 
-	log.Info().Msgf("Trigger: %s - Username: %s", event.TriggerSource, event.UserName)
+	log.Info().Msgf("PreSignUp - Trigger: %s, Username: %s", event.TriggerSource, event.UserName)
 
-	// Only validate email format and auto-confirm for native signups
+	// Get email for lookup
+	var email string
 	if isNativeSignup {
+		// Validate email format for native signups
 		_, err := mail.ParseAddress(event.UserName)
 		if err != nil {
 			log.Error().Msgf("Invalid username (not an email format): %s", event.UserName)
 			return event, fmt.Errorf("invalid username (not an email format)")
 		}
+		email = event.UserName
+	} else if isFederatedSignup {
+		email = event.Request.UserAttributes["email"]
+		if email == "" {
+			log.Error().Msg("Federated user has no email attribute")
+			return event, fmt.Errorf("email is required")
+		}
+	}
+
+	// Check for existing user with same email
+	existingUser, isExistingNative, err := findUserByEmail(event.UserPoolID, email)
+	if err != nil {
+		log.Error().Msgf("Error searching for existing user: %s", err.Error())
+		return event, err
+	}
+
+	if isNativeSignup {
+		// Native signup: reject if ANY user with same email exists
+		if existingUser != nil {
+			log.Info().Msgf("Native signup rejected - user already exists with email: %s", email)
+			return event, fmt.Errorf("user already exists")
+		}
 
 		// Auto-confirm native users (skip email verification)
 		event.Response.AutoConfirmUser = true
-		log.Info().Msgf("Auto-confirming native user: %s", event.UserName)
-	}
+		log.Info().Msgf("Auto-confirming native user: %s", email)
 
-	// Check if user already exists in the user pool
-	// PreSignUp fires before Cognito checks for duplicates, so we check manually
-	_, err := cognitoClient.AdminGetUser(context.TODO(), &cognitoidentityprovider.AdminGetUserInput{
-		UserPoolId: aws.String(event.UserPoolID),
-		Username:   aws.String(event.UserName),
-	})
-	if err == nil {
-		// User exists - let Cognito handle the duplicate error, don't send notification
-		log.Info().Msgf("User already exists: %s, skipping notification", event.UserName)
-		return event, nil
-	}
+	} else if isFederatedSignup {
+		// Federated signup: link to existing user (native or federated) if found
+		// This ensures one Cognito user per email across all providers
+		if existingUser != nil {
+			log.Info().Msgf("Linking federated user to existing user: %s (native=%t)", *existingUser.Username, isExistingNative)
 
-	// Check if error is "user not found" (expected for new users)
-	var userNotFoundErr *types.UserNotFoundException
-	if !errors.As(err, &userNotFoundErr) {
-		// Fallback: check error message for SDK v2 compatibility
-		if strings.Contains(err.Error(), "UserNotFoundException") {
-			log.Info().Msgf("User not found (string match), proceeding with notification")
-		} else {
-			// Unexpected error checking user existence
-			log.Error().Msgf("Error checking user existence: %s", err.Error())
-			return event, err
+			// Extract provider info from identities attribute or username
+			identitiesJSON := event.Request.UserAttributes["identities"]
+			log.Info().Msgf("Federated user - Username: %s, Identities: %s", event.UserName, identitiesJSON)
+
+			providerName, providerSubject := extractProviderInfo(identitiesJSON, event.UserName)
+			if providerName == "" || providerSubject == "" {
+				log.Error().Msgf("Could not extract provider info from username: %s, identities: %s", event.UserName, identitiesJSON)
+				return event, fmt.Errorf("invalid federated username format")
+			}
+
+			log.Info().Msgf("Linking with provider=%s, subject=%s", providerName, providerSubject)
+
+			// Link the federated identity to the existing user
+			linkInput := &cognitoidentityprovider.AdminLinkProviderForUserInput{
+				UserPoolId: aws.String(event.UserPoolID),
+				DestinationUser: &types.ProviderUserIdentifierType{
+					ProviderName:           aws.String("Cognito"),
+					ProviderAttributeValue: existingUser.Username,
+				},
+				SourceUser: &types.ProviderUserIdentifierType{
+					ProviderName:           aws.String(providerName),
+					ProviderAttributeName:  aws.String("Cognito_Subject"),
+					ProviderAttributeValue: aws.String(providerSubject),
+				},
+			}
+			log.Info().Msgf("AdminLinkProviderForUser input: UserPoolId=%s, DestUser=%s, SrcProvider=%s, SrcSubject=%s",
+				event.UserPoolID, *existingUser.Username, providerName, providerSubject)
+
+			_, err := cognitoClient.AdminLinkProviderForUser(context.TODO(), linkInput)
+			if err != nil {
+				log.Error().Msgf("Failed to link federated user: %s", err.Error())
+				return event, err
+			}
+
+			log.Info().Msgf("Successfully linked %s to existing user %s", event.UserName, *existingUser.Username)
+
+			// Return error to prevent creating a duplicate user
+			// The user is now linked and can sign in via federated provider
+			return event, fmt.Errorf("linked to existing account")
 		}
-	} else {
-		log.Info().Msgf("User not found, proceeding with notification")
+
+		// No existing user with this email - this is a new federated user
+		log.Info().Msgf("New federated user signup: %s", email)
 	}
 
-	// User does not exist - send notification for new signup
+	// Send notification for new users (not linked)
+	sendSignupNotification(email)
+
+	return event, nil
+}
+
+// sendSignupNotification sends SNS notification for new user signup
+func sendSignupNotification(email string) {
 	message := Message{
 		Source:            "alexandria-onboard-users",
 		SourceDescription: "Alexandria user sign up (pre)",
 		Target:            "slack",
-		Content:           fmt.Sprintf("Awaiting registration for %s", event.UserName),
+		Content:           fmt.Sprintf("Awaiting registration for %s", email),
 	}
 
 	b, _ := json.Marshal(&message)
@@ -100,48 +232,60 @@ func handlePreSignUp(event events.CognitoEventUserPoolsPreSignup) (events.Cognit
 		TargetArn: aws.String(os.Getenv("SNS_TOPIC_ARN")),
 		Message:   aws.String(string(b)),
 	}
-	_, err = snsClient.Publish(context.TODO(), &params)
+	_, err := snsClient.Publish(context.TODO(), &params)
 	if err != nil {
 		log.Error().Msgf("Failed to publish to SNS topic: %s", err.Error())
 	}
-
-	return event, err
 }
 
-// handlePostConfirmation sets custom attributes after user confirmation
-// Generates UUID for custom:Id and sets custom:Approved to "false"
+// handlePostConfirmation sets custom attributes for newly confirmed users
+// With native linking, this only runs for truly new users (not linked)
 func handlePostConfirmation(event events.CognitoEventUserPoolsPostConfirmation) (events.CognitoEventUserPoolsPostConfirmation, error) {
-	// Generate a new UUID for the user (without dashes, uppercase)
+	log.Info().Msgf("PostConfirmation - Trigger: %s, Username: %s", event.TriggerSource, event.UserName)
+
+	// Generate new custom:Id for this user
 	userId := identifier.NewId()
 
-	log.Info().Msgf("Setting attributes for user %s: email=%s, custom:Id=%s, custom:Approved=false", event.UserName, event.UserName, userId)
+	// Check if email is already set (federated users get email from provider)
+	email := event.Request.UserAttributes["email"]
+	hasEmail := email != ""
 
-	// Set email (from username) and custom attributes
-	_, err := cognitoClient.AdminUpdateUserAttributes(context.TODO(), &cognitoidentityprovider.AdminUpdateUserAttributesInput{
-		UserPoolId: aws.String(event.UserPoolID),
-		Username:   aws.String(event.UserName),
-		UserAttributes: []types.AttributeType{
-			{
-				Name:  aws.String("email"),
-				Value: aws.String(event.UserName),
-			},
-			{
-				Name:  aws.String("custom:Id"),
-				Value: aws.String(userId),
-			},
-			{
-				Name:  aws.String("custom:Approved"),
-				Value: aws.String("false"),
-			},
+	// Build attributes to update
+	var attributes []types.AttributeType
+
+	// Only set email if not already present (native users need it set from username)
+	if !hasEmail {
+		attributes = append(attributes, types.AttributeType{
+			Name:  aws.String("email"),
+			Value: aws.String(event.UserName),
+		})
+	}
+
+	// Set custom attributes
+	attributes = append(attributes,
+		types.AttributeType{
+			Name:  aws.String("custom:Id"),
+			Value: aws.String(userId),
 		},
-	})
+		types.AttributeType{
+			Name:  aws.String("custom:Approved"),
+			Value: aws.String("false"),
+		},
+	)
 
+	log.Info().Msgf("Setting attributes for user %s: custom:Id=%s, custom:Approved=false", event.UserName, userId)
+
+	_, err := cognitoClient.AdminUpdateUserAttributes(context.TODO(), &cognitoidentityprovider.AdminUpdateUserAttributesInput{
+		UserPoolId:     aws.String(event.UserPoolID),
+		Username:       aws.String(event.UserName),
+		UserAttributes: attributes,
+	})
 	if err != nil {
-		log.Error().Msgf("Failed to set custom attributes for user %s: %s", event.UserName, err.Error())
+		log.Error().Msgf("Failed to set attributes for user %s: %s", event.UserName, err.Error())
 		return event, err
 	}
 
-	log.Info().Msgf("Successfully set custom attributes for user %s", event.UserName)
+	log.Info().Msgf("Successfully set attributes for user %s", event.UserName)
 	return event, nil
 }
 

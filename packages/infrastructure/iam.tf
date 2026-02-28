@@ -210,6 +210,8 @@ data "aws_iam_policy_document" "user_management" {
     actions = [
       "cognito-idp:AdminGetUser",
       "cognito-idp:AdminUpdateUserAttributes",
+      "cognito-idp:AdminLinkProviderForUser",
+      "cognito-idp:ListUsers",
     ]
     resources = ["arn:aws:cognito-idp:${local.region}:${local.account_id}:userpool/*"]
   }

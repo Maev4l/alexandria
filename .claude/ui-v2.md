@@ -9,21 +9,23 @@
 - Deployed on AWS via a CloudFormation template (`infra.yaml`)
 
 ## Development guidelines
+
 - Naming:
-    - Extensions: Use .jsx extension for React components.
-    - Filename: Use PascalCase for filenames. E.g., ReservationCard.jsx.
-    - Reference Naming: Use PascalCase for React components and camelCase for their instances.
-    - Component Naming: Use the filename as the component name. For example, ReservationCard.jsx should have a reference name of ReservationCard. However, for root components of a directory, use index.jsx as the filename and use the directory name as the component name.
-    - Props Naming: Avoid using DOM component prop names for different purposes.
+  - Extensions: Use .jsx extension for React components.
+  - Filename: Use PascalCase for filenames. E.g., ReservationCard.jsx.
+  - Reference Naming: Use PascalCase for React components and camelCase for their instances.
+  - Component Naming: Use the filename as the component name. For example, ReservationCard.jsx should have a reference name of ReservationCard. However, for root components of a directory, use index.jsx as the filename and use the directory name as the component name.
+  - Props Naming: Avoid using DOM component prop names for different purposes.
 - Always use double quotes (") for JSX attributes, but single quotes (') for all other JS
 
-## Pitfalls
-- The user id, comes from the 'sub' claim in the JWT returned by Cognito, where the dashes are removed and the final value capitalized
+## Authentication
+
+See @authn-scheme.md for full authentication documentation (native + Google OAuth, account linking, admin approval).
 
 ## Tech stack
 
 | Lib                      | Version |
-|--------------------------|---------|
+| ------------------------ | ------- |
 | React                    | 19.1.0  |
 | Vite                     | 6.3.5   |
 | Tailwind CSS             | 4.1.18  |
@@ -59,7 +61,7 @@ packages/web-client-v2/
     ├── config.js           # Cognito & API config from output.json
     ├── index.css           # Tailwind + shadcn/ui CSS variables (light/dark)
     ├── auth/
-    │   └── AuthContext.jsx # AuthProvider, useAuth hook (Cognito)
+    │   └── AuthContext.jsx # AuthProvider, useAuth hook (Cognito + Google OAuth, account linking)
     ├── navigation/         # react-router-dom based navigation
     │   ├── index.js        # Exports: AppBar, Layout
     │   ├── AppBar.jsx      # Props-based header (title, headerLeft, headerRight) - rendered by each page
@@ -79,7 +81,9 @@ packages/web-client-v2/
     │   ├── index.js        # Module exports
     │   └── LibrariesContext.jsx  # Libraries state + actions
     ├── pages/
-    │   ├── Login.jsx       # Login form
+    │   ├── Login.jsx       # Login form (native + Google OAuth)
+    │   ├── SignUp.jsx      # Native signup form with password validation
+    │   ├── PendingApproval.jsx # Shown when user.approved = false
     │   ├── Libraries.jsx   # Libraries list with pull-to-refresh + actions
     │   ├── NewLibrary.jsx  # Create library form
     │   ├── EditLibrary.jsx # Edit library form
@@ -126,29 +130,31 @@ packages/web-client-v2/
 
 ## URL Structure
 
-| Route | URL | Notes |
-|-------|-----|-------|
-| Login | `/login` | Public |
-| Libraries | `/libraries` | Tab: Libraries |
-| Search | `/search` | Tab: Search |
-| Settings | `/settings` | Tab: Settings |
-| Account | `/settings/account` | Stack |
-| About | `/settings/about` | Stack |
-| NewLibrary | `/libraries/new` | Stack |
-| EditLibrary | `/libraries/:libraryId/edit` | Stack |
-| UnshareLibrary | `/libraries/:libraryId/unshare` | Stack |
-| LibraryContent | `/libraries/:libraryId` | Stack |
-| AddBook | `/libraries/:libraryId/add-book` | Stack |
-| BookDetectionResults | `/libraries/:libraryId/book-results` | Stack, state via location.state |
-| NewBook | `/libraries/:libraryId/books/new` | Stack |
-| EditBook | `/libraries/:libraryId/books/:itemId/edit` | Stack |
-| BookDetail | `/libraries/:libraryId/books/:itemId` | Stack |
-| AddVideo | `/libraries/:libraryId/add-video` | Stack |
-| VideoDetectionResults | `/libraries/:libraryId/video-results` | Stack, state via location.state |
-| NewVideo | `/libraries/:libraryId/videos/new` | Stack |
-| EditVideo | `/libraries/:libraryId/videos/:itemId/edit` | Stack |
-| VideoDetail | `/libraries/:libraryId/videos/:itemId` | Stack |
-| ItemHistory | `/libraries/:libraryId/items/:itemId/history` | Stack |
+| Route                 | URL                                           | Notes                                     |
+| --------------------- | --------------------------------------------- | ----------------------------------------- |
+| Login                 | `/login`                                      | Public, native + Google OAuth             |
+| SignUp                | `/signup`                                     | Public, native signup only                |
+| PendingApproval       | (conditional)                                 | Shown when authenticated but not approved |
+| Libraries             | `/libraries`                                  | Tab: Libraries                            |
+| Search                | `/search`                                     | Tab: Search                               |
+| Settings              | `/settings`                                   | Tab: Settings                             |
+| Account               | `/settings/account`                           | Stack                                     |
+| About                 | `/settings/about`                             | Stack                                     |
+| NewLibrary            | `/libraries/new`                              | Stack                                     |
+| EditLibrary           | `/libraries/:libraryId/edit`                  | Stack                                     |
+| UnshareLibrary        | `/libraries/:libraryId/unshare`               | Stack                                     |
+| LibraryContent        | `/libraries/:libraryId`                       | Stack                                     |
+| AddBook               | `/libraries/:libraryId/add-book`              | Stack                                     |
+| BookDetectionResults  | `/libraries/:libraryId/book-results`          | Stack, state via location.state           |
+| NewBook               | `/libraries/:libraryId/books/new`             | Stack                                     |
+| EditBook              | `/libraries/:libraryId/books/:itemId/edit`    | Stack                                     |
+| BookDetail            | `/libraries/:libraryId/books/:itemId`         | Stack                                     |
+| AddVideo              | `/libraries/:libraryId/add-video`             | Stack                                     |
+| VideoDetectionResults | `/libraries/:libraryId/video-results`         | Stack, state via location.state           |
+| NewVideo              | `/libraries/:libraryId/videos/new`            | Stack                                     |
+| EditVideo             | `/libraries/:libraryId/videos/:itemId/edit`   | Stack                                     |
+| VideoDetail           | `/libraries/:libraryId/videos/:itemId`        | Stack                                     |
+| ItemHistory           | `/libraries/:libraryId/items/:itemId/history` | Stack                                     |
 
 ## Screen flow
 
@@ -159,9 +165,40 @@ packages/web-client-v2/
                                       │
                                       ▼
                                ┌────────────┐
-                               │   Login    │
-                               └────────────┘
-                                      │ login success
+                               │   Login    │◄──────────────────┐
+                               │ (native +  │                   │
+                               │  Google)   │                   │
+                               └────────────┘                   │
+                                      │                         │
+                    ┌─────────────────┼─────────────────┐       │
+                    │                 │                 │       │
+                    ▼                 │                 ▼       │
+             ┌────────────┐           │          ┌────────────┐ │
+             │   SignUp   │           │          │   Google   │ │
+             │  (native)  │           │          │   OAuth    │ │
+             └────────────┘           │          └────────────┘ │
+                    │                 │                 │       │
+                    │ success         │                 │       │
+                    ▼                 │                 │       │
+             ┌────────────┐           │                 │       │
+             │  Account   │           │ login success   │       │
+             │  Created   │───────────┼─────────────────┘       │
+             │  (toast)   │           │                         │
+             └────────────┘           ▼                         │
+                                ┌───────────┐                   │
+                                │ approved? │                   │
+                                └───────────┘                   │
+                                      │                         │
+                         ┌────────────┴────────────┐            │
+                         │ NO                      │ YES        │
+                         ▼                         ▼            │
+                  ┌─────────────┐           ┌───────────┐       │
+                  │  Pending    │           │   App     │       │
+                  │  Approval   │           │  (Layout) │       │
+                  │  (sign out) │───────────┘           │       │
+                  └─────────────┘     sign out          │       │
+                         │                              │       │
+                         └──────────────────────────────┴───────┘
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                     AUTHENTICATED (react-router-dom Layout)                 │
@@ -304,51 +341,54 @@ packages/web-client-v2/
 - [x] Video detail page: poster, directors, cast (top 5), duration, summary
 - [x] CollectionCard: renders VideoCard for video items within collections
 - [x] Search: unified results for books and videos, navigates to appropriate detail page
-
+- [x] Google OAuth sign-in: button on login page, redirect flow via Cognito
+- [x] Native signup: form with email, display name, password validation
+- [x] Pending approval page: shown when user.approved = false, with sign out
+- [x] OAuth callback handling: account linked message, error display
+- [x] Account page: shows email from JWT (not username)
 
 ## Future Enhancements
 
 ### Quick Wins (Low Effort)
 
-| # | Feature | Description |
-|---|---------|-------------|
-| 1 | Loading skeletons | Replace spinners with shimmer/skeleton placeholders matching card shapes |
-| 2 | Haptic feedback | Add `navigator.vibrate(10)` on long-press and button taps |
-| 3 | Page transitions | Slide-in for stack navigation, fade for tab switches |
-| 4 | Press states | Scale down cards on touch: `active:scale-[0.98]` |
-| 5 | Empty search illustration | Custom illustration for "no results found" |
-| 6 | Gradient headers | Subtle gradient on AppBar for depth |
+| #   | Feature                   | Description                                                              |
+| --- | ------------------------- | ------------------------------------------------------------------------ |
+| 1   | Loading skeletons         | Replace spinners with shimmer/skeleton placeholders matching card shapes |
+| 2   | Haptic feedback           | Add `navigator.vibrate(10)` on long-press and button taps                |
+| 3   | Page transitions          | Slide-in for stack navigation, fade for tab switches                     |
+| 4   | Press states              | Scale down cards on touch: `active:scale-[0.98]`                         |
+| 5   | Empty search illustration | Custom illustration for "no results found"                               |
+| 6   | Gradient headers          | Subtle gradient on AppBar for depth                                      |
 
 ### Medium Effort
 
-| # | Feature | Description |
-|---|---------|-------------|
-| 7 | Swipe actions | Swipe left on cards to reveal Edit/Delete/Lend buttons |
-| 8 | Sorting options | Sort by title, date added, author (dropdown in AppBar) |
-| 9 | Cover zoom | Tap cover image to see full-size in a modal |
-| 10 | Statistics card | Show total books/videos, lent items count on Libraries page |
-| 11 | Recently added | Horizontal scroll of last 5 items on home |
-| 12 | Custom pull-to-refresh | Book/film icon animation instead of spinner |
-| 13 | Filters | Filter by: lent, collection, type (book/video) |
+| #   | Feature                | Description                                                 |
+| --- | ---------------------- | ----------------------------------------------------------- |
+| 7   | Swipe actions          | Swipe left on cards to reveal Edit/Delete/Lend buttons      |
+| 8   | Sorting options        | Sort by title, date added, author (dropdown in AppBar)      |
+| 9   | Cover zoom             | Tap cover image to see full-size in a modal                 |
+| 10  | Statistics card        | Show total books/videos, lent items count on Libraries page |
+| 11  | Recently added         | Horizontal scroll of last 5 items on home                   |
+| 12  | Custom pull-to-refresh | Book/film icon animation instead of spinner                 |
+| 13  | Filters                | Filter by: lent, collection, type (book/video)              |
 
 ### Higher Effort (Impactful)
 
-| # | Feature | Description |
-|---|---------|-------------|
-| 14 | Reading/watching progress | Track "started", "finished" status with dates |
-| 15 | Drag to reorder | Reorder items within collections by dragging |
-| 16 | Bulk selection mode | Long press to enter selection mode, batch delete/lend |
-| 17 | Wishlist | Separate "want to read/watch" list |
-| 18 | Tags | Custom tags beyond collections |
-| 19 | Dashboard | Visual stats: items per month chart, genre breakdown |
-| 20 | Offline mode | Cache data for offline browsing |
+| #   | Feature                   | Description                                           |
+| --- | ------------------------- | ----------------------------------------------------- |
+| 14  | Reading/watching progress | Track "started", "finished" status with dates         |
+| 15  | Drag to reorder           | Reorder items within collections by dragging          |
+| 16  | Bulk selection mode       | Long press to enter selection mode, batch delete/lend |
+| 17  | Wishlist                  | Separate "want to read/watch" list                    |
+| 18  | Tags                      | Custom tags beyond collections                        |
+| 19  | Dashboard                 | Visual stats: items per month chart, genre breakdown  |
+| 20  | Offline mode              | Cache data for offline browsing                       |
 
 ### Visual Refinements
 
-| # | Feature | Description |
-|---|---------|-------------|
-| 21 | Book spine view | Alternative view showing just spines (like a real shelf) |
-| 22 | Dynamic cover shadows | Shadow color based on cover image dominant color |
-| 23 | Parallax on scroll | Subtle parallax effect on cover images |
-| 24 | Confetti on add | Small celebration animation when adding an item |
-
+| #   | Feature               | Description                                              |
+| --- | --------------------- | -------------------------------------------------------- |
+| 21  | Book spine view       | Alternative view showing just spines (like a real shelf) |
+| 22  | Dynamic cover shadows | Shadow color based on cover image dominant color         |
+| 23  | Parallax on scroll    | Subtle parallax effect on cover images                   |
+| 24  | Confetti on add       | Small celebration animation when adding an item          |

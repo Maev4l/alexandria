@@ -2,9 +2,22 @@
 // Cognito & API config derived from CloudFormation stack outputs
 import { alexandriaUserPoolId, alexandriaClientId } from '../output.json';
 
+// OAuth redirect URLs based on environment
+const isDev = window.location.hostname === 'localhost';
+const redirectUrl = isDev ? 'http://localhost:5173/' : 'https://alexandria.isnan.eu/';
+const logoutUrl = isDev ? 'http://localhost:5173/login' : 'https://alexandria.isnan.eu/login';
+
 export const config = {
   userPoolId: alexandriaUserPoolId,
   clientId: alexandriaClientId,
   region: 'eu-central-1',
   apiBaseUrl: '/api',
+  // OAuth configuration for Google sign-in
+  oauth: {
+    domain: 'alexandria-auth.isnan.eu',
+    scopes: ['openid', 'email', 'profile'],
+    redirectSignIn: redirectUrl,
+    redirectSignOut: logoutUrl,
+    responseType: 'code',
+  },
 };
