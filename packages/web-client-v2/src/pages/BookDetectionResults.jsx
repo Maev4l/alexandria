@@ -45,10 +45,6 @@ const BookDetectionResults = () => {
       const data = await detectionApi.detectBook(isbn);
       const books = data.detectedBooks || [];
       setResults(books);
-      // Auto-select first result if only one valid result
-      if (books.length === 1 && !books[0].error) {
-        setSelectedIndex(0);
-      }
     } catch (err) {
       setError(err.message || 'Failed to lookup ISBN');
     } finally {

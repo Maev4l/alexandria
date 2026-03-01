@@ -22,7 +22,7 @@ const VideoDetectionResults = () => {
   const collection = location.state?.collection || null;
   const order = location.state?.order || null;
 
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
 
   // Go back in history to library content
