@@ -465,7 +465,7 @@ func (d *dynamo) GetSharedLibrary(ownerId string, libraryId string) (string, err
 	}
 
 	if output.Item == nil {
-		log.Warn().Str("id", libraryId).Msgf("Shared Library %s does not exist for owner %s", libraryId, ownerId)
+		// Not a warning - caller will fall back to owned library lookup
 		return "", nil
 	}
 
