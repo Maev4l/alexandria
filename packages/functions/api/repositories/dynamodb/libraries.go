@@ -31,7 +31,7 @@ func (d *dynamo) GetLibrary(ownerId string, libraryId string) (*domain.Library, 
 	}
 
 	if output.Item == nil {
-		log.Info().Str("id", libraryId).Msgf("Library %s does not exist for owner %s", libraryId, ownerId)
+		log.Error().Str("id", libraryId).Msgf("Library %s does not exist for owner %s", libraryId, ownerId)
 		return nil, errors.New("unknown library")
 	}
 
@@ -465,13 +465,13 @@ func (d *dynamo) GetSharedLibrary(ownerId string, libraryId string) (string, err
 	}
 
 	if output.Item == nil {
-		log.Info().Str("id", libraryId).Msgf("Shared Library %s does not exist for owner %s", libraryId, ownerId)
+		log.Warn().Str("id", libraryId).Msgf("Shared Library %s does not exist for owner %s", libraryId, ownerId)
 		return "", nil
 	}
 
 	record := persistence.SharedLibrary{}
 	if err := attributevalue.UnmarshalMap(output.Item, &record); err != nil {
-		log.Warn().Msgf("Failed to unmarshal library: %s", err.Error())
+		log.Error().Msgf("Failed to unmarshal library: %s", err.Error())
 		return "", err
 	}
 

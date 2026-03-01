@@ -68,11 +68,11 @@ type Identity struct {
 // providerNameMapping maps lowercase username prefixes to Cognito provider names.
 //
 // Why normalization is needed:
-// - Cognito generates federated usernames with lowercase prefixes (e.g., "google_123456789")
-// - But AdminLinkProviderForUser requires the provider name to EXACTLY match the
-//   configured provider name in the User Pool (e.g., "Google" with capital G)
-// - AWS enforces PascalCase for built-in provider names (Google, Facebook, etc.)
-// - So we must normalize: "google" -> "Google" to match the Cognito configuration
+//   - Cognito generates federated usernames with lowercase prefixes (e.g., "google_123456789")
+//   - But AdminLinkProviderForUser requires the provider name to EXACTLY match the
+//     configured provider name in the User Pool (e.g., "Google" with capital G)
+//   - AWS enforces PascalCase for built-in provider names (Google, Facebook, etc.)
+//   - So we must normalize: "google" -> "Google" to match the Cognito configuration
 var providerNameMapping = map[string]string{
 	"google":          "Google",
 	"facebook":        "Facebook",
@@ -153,7 +153,7 @@ func handlePreSignUp(event events.CognitoEventUserPoolsPreSignup) (events.Cognit
 	if isNativeSignup {
 		// Native signup: reject if ANY user with same email exists
 		if existingUser != nil {
-			log.Info().Msgf("Native signup rejected - user already exists with email: %s", email)
+			log.Error().Msgf("Native signup rejected - user already exists with email: %s", email)
 			return event, fmt.Errorf("user already exists")
 		}
 

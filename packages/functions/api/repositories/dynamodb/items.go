@@ -251,33 +251,33 @@ func (d *dynamo) GetLibraryItem(ownerId string, libraryId string, itemId string)
 	}
 
 	if output.Item == nil {
-		log.Info().Str("id", itemId).Msgf("Item %s does not exist for owner %s", libraryId, ownerId)
+		log.Error().Str("id", itemId).Msgf("Item %s does not exist for owner %s", libraryId, ownerId)
 		return nil, errors.New("unknown item")
 	}
 
 	record := persistence.LibraryItem{}
 	if err := attributevalue.UnmarshalMap(output.Item, &record); err != nil {
-		log.Warn().Msgf("Failed to unmarshal item: %s", err.Error())
+		log.Error().Msgf("Failed to unmarshal item: %s", err.Error())
 		return nil, err
 	}
 
 	return &domain.LibraryItem{
-			Id:          record.Id,
-			Title:       record.Title,
-			LibraryId:   record.LibraryId,
-			LibraryName: record.LibraryName,
-			OwnerName:   record.OwnerName,
-			OwnerId:     record.OwnerId,
-			UpdatedAt:   record.UpdatedAt,
-			Summary:     record.Summary,
-			Authors:     record.Authors,
-			Isbn:        record.Isbn,
-			Type:        domain.ItemType(record.Type),
-			PictureUrl:  record.PictureUrl,
-			LentTo:      record.LentTo,
+			Id:             record.Id,
+			Title:          record.Title,
+			LibraryId:      record.LibraryId,
+			LibraryName:    record.LibraryName,
+			OwnerName:      record.OwnerName,
+			OwnerId:        record.OwnerId,
+			UpdatedAt:      record.UpdatedAt,
+			Summary:        record.Summary,
+			Authors:        record.Authors,
+			Isbn:           record.Isbn,
+			Type:           domain.ItemType(record.Type),
+			PictureUrl:     record.PictureUrl,
+			LentTo:         record.LentTo,
 			CollectionId:   record.CollectionId,
 			CollectionName: record.CollectionName,
-			Order:       record.Order,
+			Order:          record.Order,
 			// Video-specific fields
 			Directors:   record.Directors,
 			Cast:        record.Cast,
@@ -322,22 +322,22 @@ func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.Libr
 				}
 
 				result = append(result, &domain.LibraryItem{
-					Id:          record.Id,
-					Title:       record.Title,
-					OwnerId:     record.OwnerId,
-					OwnerName:   record.OwnerName,
-					LibraryId:   record.LibraryId,
-					LibraryName: record.LibraryName,
-					Summary:     record.Summary,
-					Authors:     record.Authors,
-					Isbn:        record.Isbn,
-					UpdatedAt:   record.UpdatedAt,
-					Type:        domain.ItemType(record.Type),
-					PictureUrl:  record.PictureUrl,
-					LentTo:      record.LentTo,
+					Id:             record.Id,
+					Title:          record.Title,
+					OwnerId:        record.OwnerId,
+					OwnerName:      record.OwnerName,
+					LibraryId:      record.LibraryId,
+					LibraryName:    record.LibraryName,
+					Summary:        record.Summary,
+					Authors:        record.Authors,
+					Isbn:           record.Isbn,
+					UpdatedAt:      record.UpdatedAt,
+					Type:           domain.ItemType(record.Type),
+					PictureUrl:     record.PictureUrl,
+					LentTo:         record.LentTo,
 					CollectionId:   record.CollectionId,
-			CollectionName: record.CollectionName,
-					Order:       record.Order,
+					CollectionName: record.CollectionName,
+					Order:          record.Order,
 					// Video-specific fields
 					Directors:   record.Directors,
 					Cast:        record.Cast,
@@ -630,22 +630,22 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 		}
 
 		items = append(items, &domain.LibraryItem{
-			Id:          record.Id,
-			Title:       record.Title,
-			OwnerId:     record.OwnerId,
-			OwnerName:   record.OwnerName,
-			LibraryId:   record.LibraryId,
-			LibraryName: record.LibraryName,
-			Summary:     record.Summary,
-			Authors:     record.Authors,
-			Isbn:        record.Isbn,
-			UpdatedAt:   record.UpdatedAt,
-			Type:        domain.ItemType(record.Type),
-			PictureUrl:  record.PictureUrl,
-			LentTo:      record.LentTo,
+			Id:             record.Id,
+			Title:          record.Title,
+			OwnerId:        record.OwnerId,
+			OwnerName:      record.OwnerName,
+			LibraryId:      record.LibraryId,
+			LibraryName:    record.LibraryName,
+			Summary:        record.Summary,
+			Authors:        record.Authors,
+			Isbn:           record.Isbn,
+			UpdatedAt:      record.UpdatedAt,
+			Type:           domain.ItemType(record.Type),
+			PictureUrl:     record.PictureUrl,
+			LentTo:         record.LentTo,
 			CollectionId:   record.CollectionId,
 			CollectionName: record.CollectionName,
-			Order:       record.Order,
+			Order:          record.Order,
 			// Video-specific fields
 			Directors:   record.Directors,
 			Cast:        record.Cast,

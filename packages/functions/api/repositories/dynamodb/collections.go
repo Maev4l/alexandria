@@ -38,7 +38,7 @@ func (d *dynamo) GetCollection(ownerId string, libraryId string, collectionId st
 
 	record := persistence.Collection{}
 	if err := attributevalue.UnmarshalMap(output.Item, &record); err != nil {
-		log.Warn().Msgf("Failed to unmarshal collection: %s", err.Error())
+		log.Error().Msgf("Failed to unmarshal collection: %s", err.Error())
 		return nil, err
 	}
 
