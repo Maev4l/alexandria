@@ -45,7 +45,8 @@ func MakeLibraryGSI1PK(ownerId string) string {
 }
 
 func MakeLibraryGSI1SK(libraryName string) string {
-	return fmt.Sprintf("library#%s", libraryName)
+	// Normalize for consistent alphabetical sorting regardless of accents
+	return fmt.Sprintf("library#%s", NormalizeForSort(libraryName))
 }
 
 type LibraryItem struct {
@@ -93,15 +94,19 @@ func MakeLibraryItemGSI1PK(ownerId string, libraryId string) string {
 }
 
 func MakeLibraryItemGSI1SK(itemTitle string, collectionName *string, order *int) string {
+	// Normalize for consistent alphabetical sorting regardless of accents
+	normalizedTitle := NormalizeForSort(itemTitle)
+
 	// Both collectionName AND order are required for grouped sorting
 	// If either is missing/invalid, use simple title-only format
 	if collectionName == nil || len(*collectionName) == 0 || order == nil || *order < 1 {
-		return fmt.Sprintf("item#%s", itemTitle)
+		return fmt.Sprintf("item#%s", normalizedTitle)
 	}
 
 	// Order padded to 5 digits for correct lexicographic sorting (00001-01000)
 	orderStr := fmt.Sprintf("%05d", *order)
-	return fmt.Sprintf("item#%s#%s#%s", *collectionName, orderStr, itemTitle)
+	normalizedCollection := NormalizeForSort(*collectionName)
+	return fmt.Sprintf("item#%s#%s#%s", normalizedCollection, orderStr, normalizedTitle)
 }
 
 func MakeLibraryItemGSI2PK(ownerId string) string {
@@ -109,7 +114,8 @@ func MakeLibraryItemGSI2PK(ownerId string) string {
 }
 
 func MakeLibraryItemGSI2SK(itemTitle string) string {
-	return fmt.Sprintf("item#%s", itemTitle)
+	// Normalize for consistent alphabetical sorting regardless of accents
+	return fmt.Sprintf("item#%s", NormalizeForSort(itemTitle))
 }
 
 // Collection represents a grouping of items within a library
@@ -146,7 +152,8 @@ func MakeCollectionGSI1PK(ownerId string, libraryId string) string {
 // Collections sort BEFORE their items: "item#Foo" < "item#Foo#00001#Title"
 // EntityType attribute distinguishes COLLECTION from BOOK/VIDEO.
 func MakeCollectionGSI1SK(collectionName string) string {
-	return fmt.Sprintf("item#%s", collectionName)
+	// Normalize for consistent alphabetical sorting regardless of accents
+	return fmt.Sprintf("item#%s", NormalizeForSort(collectionName))
 }
 
 type SharedLibrary struct {
