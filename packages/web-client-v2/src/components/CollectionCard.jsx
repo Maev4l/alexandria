@@ -118,12 +118,18 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary, unfoldInde
 };
 
 const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemClick, onItemLongPress, onMorePress, isSharedLibrary = false, index }) => {
-  // Use totalItemCount from DynamoDB if provided, fallback to items.length
+  // Use totalItemCount from DynamoDB - this is the authoritative count
+  // Only fallback to items.length if totalItemCount is explicitly 0 or items exist
   const itemCount = totalItemCount ?? items.length;
   const loadedItemCount = items.length;
   const name = collection?.name || 'Unknown';
+
   // Number of skeleton placeholders to show for items not yet loaded
+  // When totalItemCount > 0 but items haven't loaded yet, show skeletons
   const pendingItemCount = Math.max(0, itemCount - loadedItemCount);
+
+  // Determine if we're in a loading state (have expected items but none loaded yet)
+  const isLoading = totalItemCount > 0 && loadedItemCount === 0;
 
   // Staggered animation style
   const animationStyle = index != null
@@ -170,8 +176,8 @@ const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemCl
 
       {/* Horizontal scrolling items - transparent to show glass */}
       <div className="relative">
-        {itemCount === 0 ? (
-          // Empty state - only show "Tap ••• to add items" when truly empty
+        {itemCount === 0 && !isLoading ? (
+          // Empty state - only show when truly empty (not loading)
           <div className="flex items-center justify-center px-3 py-6 text-sm text-muted-foreground">
             {isSharedLibrary ? 'No items' : 'Tap ••• to add items'}
           </div>
@@ -202,7 +208,7 @@ const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemCl
                   unfoldIndex={idx}
                 />
               ))}
-              {/* Skeleton placeholders for items not yet loaded (pagination) */}
+              {/* Skeleton placeholders for items not yet loaded */}
               {pendingItemCount > 0 && Array.from({ length: pendingItemCount }).map((_, i) => (
                 <div key={`skeleton-${i}`} className="flex flex-col items-center gap-1 shrink-0">
                   <div className="w-16 h-24 bg-muted rounded-md animate-pulse" />
@@ -212,7 +218,7 @@ const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemCl
             </div>
 
             {/* Right fade gradient to indicate more content */}
-            {itemCount > 4 && (
+            {(itemCount > 4 || pendingItemCount > 0) && (
               <div className="absolute right-0 top-3 bottom-3 w-8 bg-gradient-to-l from-[var(--glass-bg)] to-transparent pointer-events-none" />
             )}
           </>
