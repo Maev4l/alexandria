@@ -12,13 +12,28 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
-	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
+	cognitotypes "github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
 const (
-	approvedAttr = "custom:Approved"
-	envPoolID    = "COGNITO_USER_POOL_ID"
+	approvedAttr   = "custom:Approved"
+	customIdAttr   = "custom:Id"
+	envPoolID      = "COGNITO_USER_POOL_ID"
+	envTableName   = "DYNAMODB_TABLE_NAME"
+)
+
+// Entity types matching backend persistence layer
+const (
+	TypeLibrary       = "LIBRARY"
+	TypeSharedLibrary = "SHARED_LIBRARY"
+	TypeBook          = "BOOK"
+	TypeVideo         = "VIDEO"
+	TypeEvent         = "EVENT"
+	TypeCollection    = "COLLECTION"
 )
 
 func main() {
@@ -43,13 +58,46 @@ func main() {
 		return
 	}
 
+	ctx := context.Background()
+
+	// check-consistency requires both Cognito and DynamoDB
+	if cmd == "check-consistency" {
+		poolID := getPoolID()
+		tableName := getTableName()
+		if poolID == "" {
+			fmt.Fprintf(os.Stderr, "Error: User Pool ID required. Use --pool-id, set %s, or provide config.json\n", envPoolID)
+			os.Exit(1)
+		}
+		if tableName == "" {
+			fmt.Fprintf(os.Stderr, "Error: DynamoDB table name required. Use --table-name, set %s, or provide config.json\n", envTableName)
+			os.Exit(1)
+		}
+
+		cognitoClient, err := newCognitoClient(ctx)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating Cognito client: %v\n", err)
+			os.Exit(1)
+		}
+		dynamoClient, err := newDynamoDBClient(ctx)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating DynamoDB client: %v\n", err)
+			os.Exit(1)
+		}
+
+		if err := checkConsistency(ctx, cognitoClient, dynamoClient, poolID, tableName); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// Other commands only require Cognito
 	poolID := getPoolID()
 	if poolID == "" {
 		fmt.Fprintf(os.Stderr, "Error: User Pool ID required. Use --pool-id, set %s, or provide config.json\n", envPoolID)
 		os.Exit(1)
 	}
 
-	ctx := context.Background()
 	client, err := newCognitoClient(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating AWS client: %v\n", err)
@@ -90,21 +138,24 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Println(`alexandria - Cognito user management CLI
+	fmt.Println(`alexandria - Alexandria administrative CLI
 
 Usage:
   alexandria <command> [arguments]
 
 Commands:
-  list                   List all users
+  list                   List all Cognito users
   approve <username>     Approve a user (set custom:Approved = true)
   unapprove <username>   Unapprove a user (set custom:Approved = false)
+  check-consistency      Check data consistency (DynamoDB + Cognito)
   help                   Show this help
 
 Configuration (priority order):
-  --pool-id <id>       Cognito User Pool ID
-  COGNITO_USER_POOL_ID Environment variable
-  config.json          File next to binary (alexandriaUserPoolId field)`)
+  --pool-id <id>         Cognito User Pool ID
+  COGNITO_USER_POOL_ID   Environment variable
+  --table-name <name>    DynamoDB table name (for check-consistency)
+  DYNAMODB_TABLE_NAME    Environment variable
+  config.json            File next to binary (alexandriaUserPoolId, alexandriaTableName)`)
 }
 
 // getPoolID retrieves pool ID from flag, environment, or config file
@@ -129,30 +180,74 @@ func getPoolID() string {
 	return getPoolIDFromConfig()
 }
 
-// getPoolIDFromConfig reads the pool ID from config.json in the binary's directory
-func getPoolIDFromConfig() string {
+// getTableName retrieves DynamoDB table name from flag, environment, or config file
+// Priority: --table-name flag > DYNAMODB_TABLE_NAME env > config.json
+func getTableName() string {
+	// Check for --table-name flag
+	for i, arg := range os.Args {
+		if arg == "--table-name" && i+1 < len(os.Args) {
+			return os.Args[i+1]
+		}
+		if strings.HasPrefix(arg, "--table-name=") {
+			return strings.TrimPrefix(arg, "--table-name=")
+		}
+	}
+
+	// Check environment variable
+	if envValue := os.Getenv(envTableName); envValue != "" {
+		return envValue
+	}
+
+	// Fallback: read from config.json next to binary
+	return getTableNameFromConfig()
+}
+
+// configFile represents the config.json structure
+type configFile struct {
+	AlexandriaUserPoolId string `json:"alexandriaUserPoolId"`
+	AlexandriaTableName  string `json:"alexandriaTableName"`
+}
+
+// readConfigFile reads and parses config.json from the binary's directory
+func readConfigFile() (*configFile, error) {
 	execPath, err := os.Executable()
 	if err != nil {
-		return ""
+		return nil, err
 	}
 
 	configPath := filepath.Join(filepath.Dir(execPath), "config.json")
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return ""
+		return nil, err
 	}
 
-	var cfg struct {
-		AlexandriaUserPoolId string `json:"alexandriaUserPoolId"`
-	}
+	var cfg configFile
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return ""
+		return nil, err
 	}
 
+	return &cfg, nil
+}
+
+// getPoolIDFromConfig reads the pool ID from config.json in the binary's directory
+func getPoolIDFromConfig() string {
+	cfg, err := readConfigFile()
+	if err != nil {
+		return ""
+	}
 	return cfg.AlexandriaUserPoolId
 }
 
-// filterPoolIDFlag removes --pool-id and its value from args
+// getTableNameFromConfig reads the table name from config.json in the binary's directory
+func getTableNameFromConfig() string {
+	cfg, err := readConfigFile()
+	if err != nil {
+		return ""
+	}
+	return cfg.AlexandriaTableName
+}
+
+// filterFlags removes --pool-id and --table-name flags and their values from args
 func filterPoolIDFlag(args []string) []string {
 	var filtered []string
 	skip := false
@@ -161,11 +256,11 @@ func filterPoolIDFlag(args []string) []string {
 			skip = false
 			continue
 		}
-		if arg == "--pool-id" {
+		if arg == "--pool-id" || arg == "--table-name" {
 			skip = true
 			continue
 		}
-		if strings.HasPrefix(arg, "--pool-id=") {
+		if strings.HasPrefix(arg, "--pool-id=") || strings.HasPrefix(arg, "--table-name=") {
 			continue
 		}
 		filtered = append(filtered, arg)
@@ -179,6 +274,14 @@ func newCognitoClient(ctx context.Context) (*cognitoidentityprovider.Client, err
 		return nil, fmt.Errorf("loading AWS config: %w", err)
 	}
 	return cognitoidentityprovider.NewFromConfig(cfg), nil
+}
+
+func newDynamoDBClient(ctx context.Context) (*dynamodb.Client, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("loading AWS config: %w", err)
+	}
+	return dynamodb.NewFromConfig(cfg), nil
 }
 
 func listUsers(ctx context.Context, client *cognitoidentityprovider.Client, poolID string) error {
@@ -220,7 +323,7 @@ func listUsers(ctx context.Context, client *cognitoidentityprovider.Client, pool
 
 // getProvider extracts the identity provider from the identities attribute
 // Returns "Native" for native users, or the provider name (e.g., "Google") for federated
-func getProvider(attrs []types.AttributeType) string {
+func getProvider(attrs []cognitotypes.AttributeType) string {
 	identities := getAttributeValue(attrs, "identities")
 	if identities == "-" || identities == "" || identities == "[]" {
 		return "Native"
@@ -249,7 +352,7 @@ func setApproval(ctx context.Context, client *cognitoidentityprovider.Client, po
 	_, err := client.AdminUpdateUserAttributes(ctx, &cognitoidentityprovider.AdminUpdateUserAttributesInput{
 		UserPoolId: aws.String(poolID),
 		Username:   aws.String(username),
-		UserAttributes: []types.AttributeType{
+		UserAttributes: []cognitotypes.AttributeType{
 			{
 				Name:  aws.String(approvedAttr),
 				Value: aws.String(value),
@@ -268,11 +371,540 @@ func setApproval(ctx context.Context, client *cognitoidentityprovider.Client, po
 	return nil
 }
 
-func getAttributeValue(attrs []types.AttributeType, name string) string {
+func getAttributeValue(attrs []cognitotypes.AttributeType, name string) string {
 	for _, attr := range attrs {
 		if aws.ToString(attr.Name) == name {
 			return aws.ToString(attr.Value)
 		}
 	}
 	return "-"
+}
+
+// =============================================================================
+// Consistency Check Implementation
+// =============================================================================
+
+// consistencyResult holds the results of all consistency checks
+type consistencyResult struct {
+	OrphanedSharedLibraries   []orphanedSharedLibrary
+	OrphanedItems             []orphanedRecord
+	OrphanedCollections       []orphanedRecord
+	OrphanedItemEvents        []orphanedItemEvent
+	ItemsWithMissingCollection []itemMissingCollection
+	OrphanOwners              []orphanOwner
+	LibraryCountMismatches    []countMismatch
+	CollectionCountMismatches []countMismatch
+	DenormalizationDrifts     []denormDrift
+}
+
+type orphanedSharedLibrary struct {
+	RecipientOwnerId string
+	LibraryId        string
+	SharedFromId     string
+}
+
+type orphanedRecord struct {
+	OwnerId   string
+	LibraryId string
+	RecordId  string
+	RecordType string
+}
+
+type orphanedItemEvent struct {
+	OwnerId   string
+	LibraryId string
+	ItemId    string
+	EventSK   string
+}
+
+type itemMissingCollection struct {
+	OwnerId      string
+	LibraryId    string
+	ItemId       string
+	CollectionId string
+}
+
+type orphanOwner struct {
+	OwnerId    string
+	EntityType string
+	RecordSK   string
+}
+
+type countMismatch struct {
+	OwnerId    string
+	RecordId   string
+	RecordName string
+	Expected   int
+	Actual     int
+}
+
+type denormDrift struct {
+	OwnerId      string
+	ItemId       string
+	Field        string
+	ExpectedVal  string
+	ActualVal    string
+}
+
+// DynamoDB record structures for scanning
+type dynamoRecord struct {
+	PK             string  `dynamodbav:"PK"`
+	SK             string  `dynamodbav:"SK"`
+	EntityType     string  `dynamodbav:"EntityType"`
+	OwnerId        string  `dynamodbav:"OwnerId"`
+	LibraryId      string  `dynamodbav:"LibraryId"`
+	LibraryName    string  `dynamodbav:"LibraryName"`
+	CollectionId   *string `dynamodbav:"CollectionId"`
+	CollectionName *string `dynamodbav:"CollectionName"`
+	SharedFromId   string  `dynamodbav:"SharedFromId"`
+	TotalItems     int     `dynamodbav:"TotalItems"`
+	ItemCount      int     `dynamodbav:"ItemCount"`
+	Name           string  `dynamodbav:"LibraryName"` // For LIBRARY entities
+	CollName       string  `dynamodbav:"CollectionName"` // For COLLECTION entities
+}
+
+func checkConsistency(ctx context.Context, cognitoClient *cognitoidentityprovider.Client, dynamoClient *dynamodb.Client, poolID, tableName string) error {
+	fmt.Println("Starting consistency check...")
+	fmt.Println()
+
+	// Step 1: Load all Cognito user IDs
+	fmt.Print("Loading Cognito users... ")
+	validOwnerIds, err := loadCognitoUserIds(ctx, cognitoClient, poolID)
+	if err != nil {
+		return fmt.Errorf("loading Cognito users: %w", err)
+	}
+	fmt.Printf("%d users found\n", len(validOwnerIds))
+
+	// Step 2: Scan all DynamoDB records
+	fmt.Print("Scanning DynamoDB table... ")
+	records, err := scanAllRecords(ctx, dynamoClient, tableName)
+	if err != nil {
+		return fmt.Errorf("scanning DynamoDB: %w", err)
+	}
+	fmt.Printf("%d records found\n", len(records))
+	fmt.Println()
+
+	// Build indexes for efficient lookups
+	libraries := make(map[string]dynamoRecord)        // key: "ownerId#libraryId"
+	collections := make(map[string]dynamoRecord)      // key: "ownerId#libraryId#collectionId"
+	items := make(map[string]dynamoRecord)            // key: "ownerId#libraryId#itemId"
+	sharedLibraries := []dynamoRecord{}
+	itemEvents := []dynamoRecord{}
+	itemsByLibrary := make(map[string][]dynamoRecord) // key: "ownerId#libraryId"
+	itemsByCollection := make(map[string][]dynamoRecord) // key: "ownerId#libraryId#collectionId"
+
+	for _, r := range records {
+		switch r.EntityType {
+		case TypeLibrary:
+			libId := extractLibraryIdFromSK(r.SK)
+			ownerId := extractOwnerIdFromPK(r.PK)
+			libraries[ownerId+"#"+libId] = r
+		case TypeCollection:
+			libId, collId := extractLibraryAndCollectionIdFromSK(r.SK)
+			ownerId := extractOwnerIdFromPK(r.PK)
+			collections[ownerId+"#"+libId+"#"+collId] = r
+		case TypeBook, TypeVideo:
+			libId, itemId := extractLibraryAndItemIdFromSK(r.SK)
+			ownerId := extractOwnerIdFromPK(r.PK)
+			items[ownerId+"#"+libId+"#"+itemId] = r
+			itemsByLibrary[ownerId+"#"+libId] = append(itemsByLibrary[ownerId+"#"+libId], r)
+			if r.CollectionId != nil && *r.CollectionId != "" {
+				itemsByCollection[ownerId+"#"+libId+"#"+*r.CollectionId] = append(itemsByCollection[ownerId+"#"+libId+"#"+*r.CollectionId], r)
+			}
+		case TypeSharedLibrary:
+			sharedLibraries = append(sharedLibraries, r)
+		case TypeEvent:
+			itemEvents = append(itemEvents, r)
+		}
+	}
+
+	result := consistencyResult{}
+
+	// Check 1: Orphaned shared libraries
+	fmt.Println("Checking orphaned shared libraries...")
+	for _, sl := range sharedLibraries {
+		libId := extractSharedLibraryIdFromSK(sl.SK)
+		// Check if source library exists
+		if _, exists := libraries[sl.SharedFromId+"#"+libId]; !exists {
+			result.OrphanedSharedLibraries = append(result.OrphanedSharedLibraries, orphanedSharedLibrary{
+				RecipientOwnerId: extractOwnerIdFromPK(sl.PK),
+				LibraryId:        libId,
+				SharedFromId:     sl.SharedFromId,
+			})
+		}
+	}
+
+	// Check 2: Orphaned items (library doesn't exist)
+	fmt.Println("Checking orphaned items...")
+	for key, item := range items {
+		parts := strings.SplitN(key, "#", 3)
+		ownerId, libId := parts[0], parts[1]
+		if _, exists := libraries[ownerId+"#"+libId]; !exists {
+			result.OrphanedItems = append(result.OrphanedItems, orphanedRecord{
+				OwnerId:    ownerId,
+				LibraryId:  libId,
+				RecordId:   parts[2],
+				RecordType: item.EntityType,
+			})
+		}
+	}
+
+	// Check 3: Orphaned collections (library doesn't exist)
+	fmt.Println("Checking orphaned collections...")
+	for key := range collections {
+		parts := strings.SplitN(key, "#", 3)
+		ownerId, libId := parts[0], parts[1]
+		if _, exists := libraries[ownerId+"#"+libId]; !exists {
+			result.OrphanedCollections = append(result.OrphanedCollections, orphanedRecord{
+				OwnerId:    ownerId,
+				LibraryId:  libId,
+				RecordId:   parts[2],
+				RecordType: TypeCollection,
+			})
+		}
+	}
+
+	// Check 4: Orphaned item events (item doesn't exist)
+	fmt.Println("Checking orphaned item events...")
+	for _, evt := range itemEvents {
+		ownerId := extractOwnerIdFromPK(evt.PK)
+		libId, itemId := extractLibraryAndItemIdFromEventSK(evt.SK)
+		if _, exists := items[ownerId+"#"+libId+"#"+itemId]; !exists {
+			result.OrphanedItemEvents = append(result.OrphanedItemEvents, orphanedItemEvent{
+				OwnerId:   ownerId,
+				LibraryId: libId,
+				ItemId:    itemId,
+				EventSK:   evt.SK,
+			})
+		}
+	}
+
+	// Check 5: Items with missing collection
+	fmt.Println("Checking items with missing collections...")
+	for key, item := range items {
+		if item.CollectionId != nil && *item.CollectionId != "" {
+			parts := strings.SplitN(key, "#", 3)
+			ownerId, libId := parts[0], parts[1]
+			if _, exists := collections[ownerId+"#"+libId+"#"+*item.CollectionId]; !exists {
+				result.ItemsWithMissingCollection = append(result.ItemsWithMissingCollection, itemMissingCollection{
+					OwnerId:      ownerId,
+					LibraryId:    libId,
+					ItemId:       parts[2],
+					CollectionId: *item.CollectionId,
+				})
+			}
+		}
+	}
+
+	// Check 6: Records with unknown owner
+	fmt.Println("Checking records with unknown owners...")
+	for _, r := range records {
+		ownerId := extractOwnerIdFromPK(r.PK)
+		if ownerId != "" && !validOwnerIds[ownerId] {
+			result.OrphanOwners = append(result.OrphanOwners, orphanOwner{
+				OwnerId:    ownerId,
+				EntityType: r.EntityType,
+				RecordSK:   r.SK,
+			})
+		}
+	}
+
+	// Check 7: Library TotalItems mismatch
+	fmt.Println("Checking library item count mismatches...")
+	for key, lib := range libraries {
+		actualCount := len(itemsByLibrary[key])
+		if lib.TotalItems != actualCount {
+			parts := strings.SplitN(key, "#", 2)
+			result.LibraryCountMismatches = append(result.LibraryCountMismatches, countMismatch{
+				OwnerId:    parts[0],
+				RecordId:   parts[1],
+				RecordName: lib.LibraryName,
+				Expected:   lib.TotalItems,
+				Actual:     actualCount,
+			})
+		}
+	}
+
+	// Check 8: Collection ItemCount mismatch
+	fmt.Println("Checking collection item count mismatches...")
+	for key, coll := range collections {
+		actualCount := len(itemsByCollection[key])
+		if coll.ItemCount != actualCount {
+			parts := strings.SplitN(key, "#", 3)
+			result.CollectionCountMismatches = append(result.CollectionCountMismatches, countMismatch{
+				OwnerId:    parts[0],
+				RecordId:   parts[2],
+				RecordName: coll.CollName,
+				Expected:   coll.ItemCount,
+				Actual:     actualCount,
+			})
+		}
+	}
+
+	// Check 9: Denormalization drift (LibraryName, CollectionName on items)
+	fmt.Println("Checking denormalization drift...")
+	for key, item := range items {
+		parts := strings.SplitN(key, "#", 3)
+		ownerId, libId := parts[0], parts[1]
+
+		// Check library name
+		if lib, exists := libraries[ownerId+"#"+libId]; exists {
+			if item.LibraryName != lib.LibraryName {
+				result.DenormalizationDrifts = append(result.DenormalizationDrifts, denormDrift{
+					OwnerId:     ownerId,
+					ItemId:      parts[2],
+					Field:       "LibraryName",
+					ExpectedVal: lib.LibraryName,
+					ActualVal:   item.LibraryName,
+				})
+			}
+		}
+
+		// Check collection name
+		if item.CollectionId != nil && *item.CollectionId != "" {
+			if coll, exists := collections[ownerId+"#"+libId+"#"+*item.CollectionId]; exists {
+				itemCollName := ""
+				if item.CollectionName != nil {
+					itemCollName = *item.CollectionName
+				}
+				if itemCollName != coll.CollName {
+					result.DenormalizationDrifts = append(result.DenormalizationDrifts, denormDrift{
+						OwnerId:     ownerId,
+						ItemId:      parts[2],
+						Field:       "CollectionName",
+						ExpectedVal: coll.CollName,
+						ActualVal:   itemCollName,
+					})
+				}
+			}
+		}
+	}
+
+	fmt.Println()
+	printConsistencyResults(result)
+	return nil
+}
+
+// loadCognitoUserIds fetches all user custom:Id values from Cognito
+func loadCognitoUserIds(ctx context.Context, client *cognitoidentityprovider.Client, poolID string) (map[string]bool, error) {
+	ids := make(map[string]bool)
+	var paginationToken *string
+
+	for {
+		resp, err := client.ListUsers(ctx, &cognitoidentityprovider.ListUsersInput{
+			UserPoolId:      aws.String(poolID),
+			PaginationToken: paginationToken,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, user := range resp.Users {
+			customId := getAttributeValue(user.Attributes, customIdAttr)
+			if customId != "-" && customId != "" {
+				ids[customId] = true
+			}
+		}
+
+		paginationToken = resp.PaginationToken
+		if paginationToken == nil {
+			break
+		}
+	}
+
+	return ids, nil
+}
+
+// scanAllRecords performs a full table scan and returns all records
+func scanAllRecords(ctx context.Context, client *dynamodb.Client, tableName string) ([]dynamoRecord, error) {
+	var records []dynamoRecord
+	var lastKey map[string]dynamodbtypes.AttributeValue
+
+	for {
+		input := &dynamodb.ScanInput{
+			TableName:         aws.String(tableName),
+			ExclusiveStartKey: lastKey,
+		}
+
+		resp, err := client.Scan(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range resp.Items {
+			var r dynamoRecord
+			if err := attributevalue.UnmarshalMap(item, &r); err != nil {
+				continue // Skip malformed records
+			}
+			records = append(records, r)
+		}
+
+		lastKey = resp.LastEvaluatedKey
+		if lastKey == nil {
+			break
+		}
+	}
+
+	return records, nil
+}
+
+// Key extraction helpers
+func extractOwnerIdFromPK(pk string) string {
+	// PK format: "owner#<ownerId>"
+	if strings.HasPrefix(pk, "owner#") {
+		return strings.TrimPrefix(pk, "owner#")
+	}
+	return ""
+}
+
+func extractLibraryIdFromSK(sk string) string {
+	// SK format: "library#<libraryId>"
+	if strings.HasPrefix(sk, "library#") {
+		parts := strings.SplitN(sk, "#", 3)
+		if len(parts) >= 2 {
+			return parts[1]
+		}
+	}
+	return ""
+}
+
+func extractSharedLibraryIdFromSK(sk string) string {
+	// SK format: "shared-library#<libraryId>"
+	if strings.HasPrefix(sk, "shared-library#") {
+		return strings.TrimPrefix(sk, "shared-library#")
+	}
+	return ""
+}
+
+func extractLibraryAndCollectionIdFromSK(sk string) (string, string) {
+	// SK format: "library#<libraryId>#collection#<collectionId>"
+	parts := strings.Split(sk, "#")
+	if len(parts) >= 4 && parts[0] == "library" && parts[2] == "collection" {
+		return parts[1], parts[3]
+	}
+	return "", ""
+}
+
+func extractLibraryAndItemIdFromSK(sk string) (string, string) {
+	// SK format: "library#<libraryId>#item#<itemId>"
+	parts := strings.Split(sk, "#")
+	if len(parts) >= 4 && parts[0] == "library" && parts[2] == "item" {
+		return parts[1], parts[3]
+	}
+	return "", ""
+}
+
+func extractLibraryAndItemIdFromEventSK(sk string) (string, string) {
+	// SK format: "library#<libraryId>#item#<itemId>#event#<date>"
+	parts := strings.Split(sk, "#")
+	if len(parts) >= 4 && parts[0] == "library" && parts[2] == "item" {
+		return parts[1], parts[3]
+	}
+	return "", ""
+}
+
+func printConsistencyResults(r consistencyResult) {
+	totalIssues := len(r.OrphanedSharedLibraries) + len(r.OrphanedItems) + len(r.OrphanedCollections) +
+		len(r.OrphanedItemEvents) + len(r.ItemsWithMissingCollection) + len(r.OrphanOwners) +
+		len(r.LibraryCountMismatches) + len(r.CollectionCountMismatches) + len(r.DenormalizationDrifts)
+
+	fmt.Println("=== CONSISTENCY CHECK RESULTS ===")
+	fmt.Println()
+
+	if totalIssues == 0 {
+		fmt.Println("No issues found. Data is consistent.")
+		return
+	}
+
+	fmt.Printf("Total issues found: %d\n\n", totalIssues)
+
+	// Orphaned shared libraries
+	if len(r.OrphanedSharedLibraries) > 0 {
+		fmt.Printf("ORPHANED SHARED LIBRARIES (%d):\n", len(r.OrphanedSharedLibraries))
+		fmt.Println("  (SHARED_LIBRARY records pointing to non-existent LIBRARY)")
+		for _, sl := range r.OrphanedSharedLibraries {
+			fmt.Printf("  - Recipient: %s, LibraryId: %s, SourceOwner: %s\n", sl.RecipientOwnerId, sl.LibraryId, sl.SharedFromId)
+		}
+		fmt.Println()
+	}
+
+	// Orphaned items
+	if len(r.OrphanedItems) > 0 {
+		fmt.Printf("ORPHANED ITEMS (%d):\n", len(r.OrphanedItems))
+		fmt.Println("  (BOOK/VIDEO records in non-existent LIBRARY)")
+		for _, item := range r.OrphanedItems {
+			fmt.Printf("  - Owner: %s, Library: %s, Item: %s (%s)\n", item.OwnerId, item.LibraryId, item.RecordId, item.RecordType)
+		}
+		fmt.Println()
+	}
+
+	// Orphaned collections
+	if len(r.OrphanedCollections) > 0 {
+		fmt.Printf("ORPHANED COLLECTIONS (%d):\n", len(r.OrphanedCollections))
+		fmt.Println("  (COLLECTION records in non-existent LIBRARY)")
+		for _, coll := range r.OrphanedCollections {
+			fmt.Printf("  - Owner: %s, Library: %s, Collection: %s\n", coll.OwnerId, coll.LibraryId, coll.RecordId)
+		}
+		fmt.Println()
+	}
+
+	// Orphaned item events
+	if len(r.OrphanedItemEvents) > 0 {
+		fmt.Printf("ORPHANED ITEM EVENTS (%d):\n", len(r.OrphanedItemEvents))
+		fmt.Println("  (EVENT records for non-existent ITEM)")
+		for _, evt := range r.OrphanedItemEvents {
+			fmt.Printf("  - Owner: %s, Library: %s, Item: %s, SK: %s\n", evt.OwnerId, evt.LibraryId, evt.ItemId, evt.EventSK)
+		}
+		fmt.Println()
+	}
+
+	// Items with missing collection
+	if len(r.ItemsWithMissingCollection) > 0 {
+		fmt.Printf("ITEMS WITH MISSING COLLECTION (%d):\n", len(r.ItemsWithMissingCollection))
+		fmt.Println("  (Items referencing non-existent COLLECTION)")
+		for _, item := range r.ItemsWithMissingCollection {
+			fmt.Printf("  - Owner: %s, Library: %s, Item: %s, MissingCollection: %s\n", item.OwnerId, item.LibraryId, item.ItemId, item.CollectionId)
+		}
+		fmt.Println()
+	}
+
+	// Orphan owners
+	if len(r.OrphanOwners) > 0 {
+		fmt.Printf("RECORDS WITH UNKNOWN OWNER (%d):\n", len(r.OrphanOwners))
+		fmt.Println("  (Records with OwnerId not in Cognito)")
+		for _, o := range r.OrphanOwners {
+			fmt.Printf("  - Owner: %s, Type: %s, SK: %s\n", o.OwnerId, o.EntityType, o.RecordSK)
+		}
+		fmt.Println()
+	}
+
+	// Library count mismatches
+	if len(r.LibraryCountMismatches) > 0 {
+		fmt.Printf("LIBRARY ITEM COUNT MISMATCHES (%d):\n", len(r.LibraryCountMismatches))
+		fmt.Println("  (LIBRARY.TotalItems != actual item count)")
+		for _, m := range r.LibraryCountMismatches {
+			fmt.Printf("  - Owner: %s, Library: %s (%s), TotalItems: %d, Actual: %d\n", m.OwnerId, m.RecordId, m.RecordName, m.Expected, m.Actual)
+		}
+		fmt.Println()
+	}
+
+	// Collection count mismatches
+	if len(r.CollectionCountMismatches) > 0 {
+		fmt.Printf("COLLECTION ITEM COUNT MISMATCHES (%d):\n", len(r.CollectionCountMismatches))
+		fmt.Println("  (COLLECTION.ItemCount != actual item count)")
+		for _, m := range r.CollectionCountMismatches {
+			fmt.Printf("  - Owner: %s, Collection: %s (%s), ItemCount: %d, Actual: %d\n", m.OwnerId, m.RecordId, m.RecordName, m.Expected, m.Actual)
+		}
+		fmt.Println()
+	}
+
+	// Denormalization drifts
+	if len(r.DenormalizationDrifts) > 0 {
+		fmt.Printf("DENORMALIZATION DRIFT (%d):\n", len(r.DenormalizationDrifts))
+		fmt.Println("  (Item's denormalized field doesn't match source)")
+		for _, d := range r.DenormalizationDrifts {
+			fmt.Printf("  - Owner: %s, Item: %s, Field: %s, Expected: %q, Actual: %q\n", d.OwnerId, d.ItemId, d.Field, d.ExpectedVal, d.ActualVal)
+		}
+		fmt.Println()
+	}
 }
