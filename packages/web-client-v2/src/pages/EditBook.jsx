@@ -135,7 +135,7 @@ const EditBook = () => {
   // Handle missing book data
   if (!book && initialized) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         <AppBar title="Edit Book" />
         <div className="flex flex-1 items-center justify-center p-4">
           <p className="text-muted-foreground">Book not found</p>
@@ -145,7 +145,7 @@ const EditBook = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <AppBar
         title="Edit Book"
         headerRight={
@@ -160,8 +160,9 @@ const EditBook = () => {
           </button>
         }
       />
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-4 pb-8">
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 overflow-y-auto">
+          <div className="p-4 space-y-4 pb-8">
           {/* Cover preview - asymmetric radius mimics real book */}
           <div className="flex justify-center">
             <div className="w-32 h-44 rounded-[2px_6px_6px_2px] bg-muted flex items-center justify-center overflow-hidden border border-border shadow-[var(--card-shadow)]">
@@ -270,6 +271,7 @@ const EditBook = () => {
                 />
               </div>
             )}
+          </div>
           </div>
         </div>
       </div>

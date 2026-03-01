@@ -152,7 +152,7 @@ const EditVideo = () => {
   // Handle missing video data
   if (!video && initialized) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         <AppBar title="Edit Video" />
         <div className="flex flex-1 items-center justify-center p-4">
           <p className="text-muted-foreground">Video not found</p>
@@ -162,7 +162,7 @@ const EditVideo = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       <AppBar
         title="Edit Video"
         headerRight={
@@ -177,8 +177,9 @@ const EditVideo = () => {
           </button>
         }
       />
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-4 pb-8">
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 overflow-y-auto">
+          <div className="p-4 space-y-4 pb-8">
           {/* Poster preview */}
           <div className="flex justify-center">
             <div className="w-28 h-40 rounded-md bg-muted flex items-center justify-center overflow-hidden border border-border shadow-[var(--card-shadow)]">
@@ -318,6 +319,7 @@ const EditVideo = () => {
                 />
               </div>
             )}
+          </div>
           </div>
         </div>
       </div>
