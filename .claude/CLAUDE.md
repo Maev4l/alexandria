@@ -29,6 +29,4 @@ Architecture diagram, see: @../documentation/architecture.jpg (or @../documentat
 
 ## Plan
 
-- Create a new version of the existing front-end, in the folder @../packages/web-client-v2
 - Track the progress in @ui-v2.md file in a dedicated section
-- Use the legacy client, @../packages/web-client for feature reference, but NOT technical reference, we want to start from scratch

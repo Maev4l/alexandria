@@ -39,6 +39,7 @@ See @authn-scheme.md for full authentication documentation (native + Google OAut
 | @zxing/browser           | 0.1.5   |
 | @zxing/library           | 0.21.3  |
 | react-webcam             | 7.2.0   |
+| lottie-react             | 2.4.0   |
 
 ## Project structure
 
@@ -70,7 +71,8 @@ packages/web-client-v2/
     ├── hooks/              # Navigation helper hooks (bridge URL params to context)
     │   ├── index.js        # Module exports
     │   ├── useLibraryData.js  # useLibraryData(libraryId) → { library, isSharedLibrary, isLoading }
-    │   └── useItemData.js  # useItemData(libraryId, itemId) → { item, library, isSharedLibrary, isLoading }
+    │   ├── useItemData.js  # useItemData(libraryId, itemId) → { item, library, isSharedLibrary, isLoading }
+    │   └── useOnboarding.js   # useOnboarding() → { showOnboarding, completeOnboarding } (localStorage)
     ├── api/                # API client layer
     │   ├── index.js        # Module exports
     │   ├── client.js       # Base fetch with auth token injection
@@ -115,6 +117,7 @@ packages/web-client-v2/
     │   ├── PullToRefresh.jsx  # Pull-to-refresh (transform-based, with ref for scroll control)
     │   ├── BottomSheet.jsx # Reusable bottom sheet
     │   ├── Toast.jsx       # Toast notification system
+    │   ├── Onboarding.jsx  # Full-screen swipeable onboarding with Lottie animations
     │   └── ui/             # shadcn/ui components
     │       ├── Button.jsx
     │       ├── Card.jsx
@@ -126,6 +129,7 @@ packages/web-client-v2/
     │   ├── utils.js        # cn() utility (clsx + tailwind-merge)
     │   └── splash.js       # hideSplash() utility
     └── assets/
+        └── animations/     # Lottie JSON files for onboarding (welcome, add-item, collections, share)
 ```
 
 ## URL Structure
@@ -346,49 +350,44 @@ packages/web-client-v2/
 - [x] Pending approval page: shown when user.approved = false, with sign out
 - [x] OAuth callback handling: account linked message, error display
 - [x] Account page: shows email from JWT (not username)
+- [x] Onboarding: swipeable story mode with Lottie animations for first-time users
+
+### UI Refresh
+
+- [x] Dark theme: "Library at Twilight" deep blue-purple palette, dark-first design
+- [x] Glassmorphism cards: frosted glass effect with backdrop-blur on all cards
+- [x] Gradient mesh background: layered radial gradients (purple/blue glows)
+- [x] Floating nav pill: centered bottom tabs with sliding indicator
+- [x] Cover color extraction: `lib/colorExtractor.js` extracts dominant color from covers
+- [x] Detail page hero: gradient background from cover color, reflection effect
+- [x] Long press lift animation: cards rise with enhanced shadow
+- [x] Tab switch animations: directional slide between tabs
+- [x] Spotlight search: full-screen overlay, glassmorphism input, pill chips for recent
+- [x] Collection unfold animation: staggered item reveal (80ms delay)
 
 ## Future Enhancements
 
-### Quick Wins (Low Effort)
-
-| #   | Feature                   | Description                                                              |
-| --- | ------------------------- | ------------------------------------------------------------------------ |
-| 1   | Loading skeletons         | Replace spinners with shimmer/skeleton placeholders matching card shapes |
-| 2   | Haptic feedback           | Add `navigator.vibrate(10)` on long-press and button taps                |
-| 3   | Page transitions          | Slide-in for stack navigation, fade for tab switches                     |
-| 4   | Press states              | Scale down cards on touch: `active:scale-[0.98]`                         |
-| 5   | Empty search illustration | Custom illustration for "no results found"                               |
-| 6   | Gradient headers          | Subtle gradient on AppBar for depth                                      |
-
 ### Medium Effort
 
-| #   | Feature                | Description                                                 |
-| --- | ---------------------- | ----------------------------------------------------------- |
-| 7   | Swipe actions          | Swipe left on cards to reveal Edit/Delete/Lend buttons      |
-| 8   | Sorting options        | Sort by title, date added, author (dropdown in AppBar)      |
-| 9   | Cover zoom             | Tap cover image to see full-size in a modal                 |
-| 10  | Statistics card        | Show total books/videos, lent items count on Libraries page |
-| 11  | Recently added         | Horizontal scroll of last 5 items on home                   |
-| 12  | Custom pull-to-refresh | Book/film icon animation instead of spinner                 |
-| 13  | Filters                | Filter by: lent, collection, type (book/video)              |
+| Feature         | Description                                            |
+| --------------- | ------------------------------------------------------ |
+| Swipe actions   | Swipe left on cards to reveal Edit/Delete/Lend buttons |
+| Cover zoom      | Tap cover image to see full-size in a modal            |
+| Drag to reorder | Reorder items within collections by dragging           |
+| Tags            | Custom tags beyond collections                         |
+| Parallax        | Subtle parallax effect on cover images when scrolling  |
 
-### Higher Effort (Impactful)
+### Higher Effort
 
-| #   | Feature                   | Description                                           |
-| --- | ------------------------- | ----------------------------------------------------- |
-| 14  | Reading/watching progress | Track "started", "finished" status with dates         |
-| 15  | Drag to reorder           | Reorder items within collections by dragging          |
-| 16  | Bulk selection mode       | Long press to enter selection mode, batch delete/lend |
-| 17  | Wishlist                  | Separate "want to read/watch" list                    |
-| 18  | Tags                      | Custom tags beyond collections                        |
-| 19  | Dashboard                 | Visual stats: items per month chart, genre breakdown  |
-| 20  | Offline mode              | Cache data for offline browsing                       |
+| Feature      | Description                       |
+| ------------ | --------------------------------- |
+| Offline mode | Cache data for offline browsing   |
 
-### Visual Refinements
+### Needs Backend Changes
 
-| #   | Feature               | Description                                              |
-| --- | --------------------- | -------------------------------------------------------- |
-| 21  | Book spine view       | Alternative view showing just spines (like a real shelf) |
-| 22  | Dynamic cover shadows | Shadow color based on cover image dominant color         |
-| 23  | Parallax on scroll    | Subtle parallax effect on cover images                   |
-| 24  | Confetti on add       | Small celebration animation when adding an item          |
+| Feature          | Description                                                 | Blocker                    |
+| ---------------- | ----------------------------------------------------------- | -------------------------- |
+| Sorting options  | Sort by title, date added, author (dropdown in AppBar)      | Needs `createdAt` field    |
+| Statistics card  | Show total books/videos, lent items count on Libraries page | Needs aggregation endpoint |
+| Recently added   | Horizontal scroll of last 5 items on home                   | Needs `createdAt` field    |
+| Dashboard        | Visual stats: items per month chart, genre breakdown        | Needs aggregation endpoint |

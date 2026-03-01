@@ -2,3 +2,4 @@
 // Hooks module exports
 export { useLibraryData } from './useLibraryData';
 export { useItemData } from './useItemData';
+export { useOnboarding } from './useOnboarding';

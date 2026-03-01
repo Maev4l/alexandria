@@ -3,9 +3,11 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { LibrariesProvider } from '@/state';
+import { useOnboarding } from '@/hooks';
 import { Layout } from '@/navigation';
 import { ToastProvider } from '@/components/Toast';
 import PWAUpdatePrompt from '@/components/PWAUpdatePrompt';
+import Onboarding from '@/components/Onboarding';
 
 // Lazy-loaded pages for code splitting
 const Login = lazy(() => import('@/pages/Login'));
@@ -69,6 +71,17 @@ const PageWrapper = ({ children }) => (
   </div>
 );
 
+// Wrapper that shows onboarding for first-time users
+const OnboardingWrapper = ({ children }) => {
+  const { showOnboarding, completeOnboarding } = useOnboarding();
+
+  if (showOnboarding) {
+    return <Onboarding onComplete={completeOnboarding} />;
+  }
+
+  return children;
+};
+
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
@@ -114,15 +127,17 @@ const App = () => (
           }
         />
 
-        {/* Protected routes - wrapped in Layout */}
+        {/* Protected routes - wrapped in Layout with onboarding for first-time users */}
         <Route
           element={
             <ProtectedRoute>
-              <ToastProvider>
-                <LibrariesProvider>
-                  <Layout />
-                </LibrariesProvider>
-              </ToastProvider>
+              <OnboardingWrapper>
+                <ToastProvider>
+                  <LibrariesProvider>
+                    <Layout />
+                  </LibrariesProvider>
+                </ToastProvider>
+              </OnboardingWrapper>
             </ProtectedRoute>
           }
         >

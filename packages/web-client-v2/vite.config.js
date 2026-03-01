@@ -96,6 +96,8 @@ export default defineConfig({
           amplify: ["aws-amplify"],
           // Barcode scanning library (only needed for AddBook)
           zxing: ["@zxing/browser", "@zxing/library"],
+          // Lottie animation library (only needed for Onboarding)
+          lottie: ["lottie-react", "lottie-web"],
           // React core (cached across deploys)
           react: ["react", "react-dom", "react-router-dom"],
         },
