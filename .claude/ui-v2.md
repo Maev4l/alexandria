@@ -375,7 +375,6 @@ packages/web-client-v2/
 | Cover zoom      | Tap cover image to see full-size in a modal            |
 | Drag to reorder | Reorder items within collections by dragging           |
 | Tags            | Custom tags beyond collections                         |
-| Parallax        | Subtle parallax effect on cover images when scrolling  |
 
 ### Higher Effort
 
