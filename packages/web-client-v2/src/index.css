@@ -29,64 +29,91 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* =============================================================================
+   "Library at Twilight" Theme - Dark-first design
+   Deep blue-purple palette that makes book/video covers pop like jewels
+   ============================================================================= */
+
 :root {
-  /* Warm paper-like background instead of pure white */
+  /* Deep twilight background with subtle blue undertone */
+  --background: oklch(0.14 0.02 270);
+  --foreground: oklch(0.93 0.01 270);
+
+  /* Cards: semi-transparent for glassmorphism effect */
+  --card: oklch(0.18 0.025 270 / 0.85);
+  --card-foreground: oklch(0.93 0.01 270);
+  --popover: oklch(0.20 0.025 270 / 0.95);
+  --popover-foreground: oklch(0.93 0.01 270);
+
+  /* Primary: soft violet accent */
+  --primary: oklch(0.75 0.12 280);
+  --primary-foreground: oklch(0.14 0.02 270);
+
+  /* Secondary: muted purple-grey */
+  --secondary: oklch(0.25 0.03 270);
+  --secondary-foreground: oklch(0.90 0.01 270);
+
+  /* Muted: for subtle backgrounds and disabled states */
+  --muted: oklch(0.22 0.02 270);
+  --muted-foreground: oklch(0.60 0.02 270);
+
+  /* Accent: slightly brighter for hover states */
+  --accent: oklch(0.26 0.04 275);
+  --accent-foreground: oklch(0.93 0.01 270);
+
+  /* Destructive: warm red that works on dark */
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  /* Borders: subtle glow effect */
+  --border: oklch(0.30 0.03 270 / 0.6);
+  --input: oklch(0.25 0.02 270);
+  --ring: oklch(0.65 0.12 280);
+
+  --radius: 0.75rem;
+
+  /* Accent colors for UI elements */
+  --accent-wood: oklch(0.55 0.10 70);
+  --accent-glow: oklch(0.65 0.15 280 / 0.2);
+
+  /* Card shadows: softer, with subtle color */
+  --card-shadow: 0 2px 8px oklch(0 0 0 / 0.3), 0 1px 3px oklch(0 0 0 / 0.2);
+  --card-shadow-hover: 0 8px 24px oklch(0 0 0 / 0.4), 0 4px 8px oklch(0.5 0.1 280 / 0.1);
+
+  /* Glassmorphism: for frosted glass effect */
+  --glass-bg: oklch(0.20 0.03 270 / 0.6);
+  --glass-border: oklch(1 0 0 / 0.08);
+  --glass-blur: 16px;
+}
+
+/* Light mode: warm paper-like aesthetic (optional, toggle with .light class) */
+.light {
   --background: oklch(0.98 0.006 85);
   --foreground: oklch(0.18 0.02 60);
-  /* Cards slightly warmer than background for subtle lift */
   --card: oklch(0.995 0.004 85);
   --card-foreground: oklch(0.18 0.02 60);
   --popover: oklch(0.995 0.004 85);
   --popover-foreground: oklch(0.18 0.02 60);
-  /* Primary with warm undertone */
-  --primary: oklch(0.25 0.02 60);
+  --primary: oklch(0.45 0.12 280);
   --primary-foreground: oklch(0.98 0.006 85);
   --secondary: oklch(0.96 0.008 80);
   --secondary-foreground: oklch(0.25 0.02 60);
   --muted: oklch(0.95 0.008 80);
-  --muted-foreground: oklch(0.50 0.02 60);
+  --muted-foreground: oklch(0.45 0.02 60);
   --accent: oklch(0.94 0.01 80);
   --accent-foreground: oklch(0.25 0.02 60);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.90 0.01 80);
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.88 0.01 80);
   --input: oklch(0.90 0.01 80);
-  --ring: oklch(0.65 0.05 55);
-  --radius: 0.625rem;
-  /* Modern Bookshelf: warm accent for wood tones */
+  --ring: oklch(0.55 0.12 280);
   --accent-wood: oklch(0.55 0.12 70);
-  /* Subtle card shadow for depth */
+  --accent-glow: oklch(0.5 0.1 280 / 0.1);
   --card-shadow: 0 1px 3px oklch(0.20 0.02 60 / 0.08), 0 1px 2px oklch(0.20 0.02 60 / 0.06);
-  --card-shadow-hover: 0 4px 6px oklch(0.20 0.02 60 / 0.1), 0 2px 4px oklch(0.20 0.02 60 / 0.06);
-}
-
-.dark {
-  /* Warm dark background instead of pure black */
-  --background: oklch(0.16 0.015 60);
-  --foreground: oklch(0.95 0.008 80);
-  /* Cards slightly lighter for depth */
-  --card: oklch(0.19 0.015 60);
-  --card-foreground: oklch(0.95 0.008 80);
-  --popover: oklch(0.19 0.015 60);
-  --popover-foreground: oklch(0.95 0.008 80);
-  --primary: oklch(0.95 0.008 80);
-  --primary-foreground: oklch(0.20 0.015 60);
-  --secondary: oklch(0.25 0.015 60);
-  --secondary-foreground: oklch(0.95 0.008 80);
-  --muted: oklch(0.25 0.015 60);
-  --muted-foreground: oklch(0.65 0.015 70);
-  --accent: oklch(0.28 0.015 60);
-  --accent-foreground: oklch(0.95 0.008 80);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.28 0.015 60);
-  --input: oklch(0.28 0.015 60);
-  --ring: oklch(0.50 0.04 60);
-  /* Modern Bookshelf: warm accent for wood tones */
-  --accent-wood: oklch(0.60 0.10 70);
-  /* Subtle card shadow for depth (darker in dark mode) */
-  --card-shadow: 0 1px 3px oklch(0 0 0 / 0.3), 0 1px 2px oklch(0 0 0 / 0.2);
-  --card-shadow-hover: 0 4px 6px oklch(0 0 0 / 0.35), 0 2px 4px oklch(0 0 0 / 0.25);
+  --card-shadow-hover: 0 4px 12px oklch(0.20 0.02 60 / 0.12), 0 2px 4px oklch(0.20 0.02 60 / 0.08);
+  --glass-bg: oklch(1 0 0 / 0.7);
+  --glass-border: oklch(0 0 0 / 0.06);
+  --glass-blur: 12px;
 }
 
 @layer base {
@@ -110,6 +137,28 @@
     overflow-x: hidden;
     /* Prevent pull-to-refresh on PWA interfering with our custom one */
     overscroll-behavior-y: contain;
+  }
+  /* Gradient mesh background - "Library at Twilight" ambient glow */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      /* Top-left purple glow */
+      radial-gradient(ellipse 80% 50% at 10% 0%, oklch(0.30 0.12 280 / 0.4) 0%, transparent 50%),
+      /* Bottom-right blue glow */
+      radial-gradient(ellipse 60% 40% at 90% 100%, oklch(0.25 0.08 240 / 0.3) 0%, transparent 50%),
+      /* Center subtle warm accent */
+      radial-gradient(ellipse 50% 50% at 50% 50%, oklch(0.20 0.04 300 / 0.15) 0%, transparent 60%);
+  }
+  /* Light mode: softer, warmer gradients */
+  .light body::before {
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, oklch(0.85 0.08 280 / 0.2) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, oklch(0.88 0.06 200 / 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse 50% 50% at 50% 50%, oklch(0.92 0.03 60 / 0.1) 0%, transparent 60%);
   }
   #root {
     min-height: 100svh;
@@ -162,6 +211,37 @@
   animation: page-enter 0.2s ease-out forwards;
 }
 
+/* Tab slide animations - directional based on navigation */
+@keyframes slide-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-from-right {
+  animation: slide-from-right 0.25s ease-out forwards;
+}
+
+.animate-slide-from-left {
+  animation: slide-from-left 0.25s ease-out forwards;
+}
+
 /* Lent ribbon indicator - diagonal ribbon on book cover */
 .lent-ribbon {
   position: absolute;
@@ -180,18 +260,18 @@
   right: -20px;
   width: 60px;
   padding: 2px 0;
-  background: oklch(0.65 0.18 45); /* Warm amber */
+  background: oklch(0.60 0.18 45); /* Warm amber - works on dark */
   color: white;
   font-size: 7px;
   font-weight: 700;
   letter-spacing: 0.5px;
   text-align: center;
   transform: rotate(45deg);
-  box-shadow: 0 1px 2px oklch(0 0 0 / 0.2);
+  box-shadow: 0 1px 2px oklch(0 0 0 / 0.3);
 }
 
-.dark .lent-ribbon::before {
-  background: oklch(0.55 0.15 45);
+.light .lent-ribbon::before {
+  background: oklch(0.65 0.18 45);
 }
 
 /* Hide scrollbar but keep functionality */
@@ -202,4 +282,56 @@
 
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+/* Long press "lift" state - card rises with enhanced shadow */
+.card-lifting {
+  transform: scale(1.03) translateY(-4px) !important;
+  box-shadow: 0 12px 32px oklch(0 0 0 / 0.4), 0 0 24px var(--accent-glow) !important;
+  z-index: 10;
+  position: relative;
+}
+
+/* Haptic pulse - subtle scale pulse for feedback */
+@keyframes haptic-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.97); }
+}
+
+.animate-haptic-pulse {
+  animation: haptic-pulse 0.15s ease-in-out;
+}
+
+/* Shimmer loading effect for skeletons */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 0%,
+    oklch(0.30 0.02 270) 50%,
+    var(--muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Collection unfold animation - items slide in from left like pages fanning out */
+@keyframes unfold-item {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-unfold-item {
+  animation: unfold-item 0.35s ease-out forwards;
+  opacity: 0;
 }

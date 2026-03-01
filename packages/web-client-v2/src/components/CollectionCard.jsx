@@ -7,17 +7,24 @@ import { BookOpen, Film, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FadeImage from './FadeImage';
 
-const STAGGER_DELAY = 50; // ms per item for staggered animation
+const STAGGER_DELAY = 50; // ms per card for staggered animation
+const ITEM_UNFOLD_DELAY = 80; // ms per item within collection for unfolding effect
 const LONG_PRESS_DURATION = 500;
 const ITEM_TYPE_VIDEO = 1;
 
-// Compact item thumbnail for horizontal scroll
-const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary }) => {
+// Compact item thumbnail for horizontal scroll with unfold animation
+const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary, unfoldIndex }) => {
   const pressTimer = useRef(null);
   const isLongPress = useRef(false);
   const isVideo = item.type === ITEM_TYPE_VIDEO;
-  const hasImage = item.pictureUrl || item.picture;
+  // Prioritize base64 picture over pictureUrl
+  const hasImage = item.picture || item.pictureUrl;
   const isLent = !!item.lentTo;
+
+  // Staggered unfold animation style
+  const unfoldStyle = unfoldIndex != null
+    ? { animationDelay: `${unfoldIndex * ITEM_UNFOLD_DELAY}ms` }
+    : undefined;
 
   const handleTouchStart = useCallback(() => {
     isLongPress.current = false;
@@ -54,21 +61,28 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary }) => {
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
       onContextMenu={handleContextMenu}
-      className="flex flex-col items-center gap-1 shrink-0 select-none group"
+      style={unfoldStyle}
+      className={cn(
+        'flex flex-col items-center gap-1 shrink-0 select-none group',
+        // Unfold animation - items slide in from left with fade
+        unfoldIndex != null && 'animate-unfold-item'
+      )}
     >
       {/* Cover/poster with order badge */}
       <div className="relative">
         <div
           className={cn(
-            'w-16 h-24 bg-muted flex items-center justify-center overflow-hidden',
+            'w-16 h-24 bg-muted/50 flex items-center justify-center overflow-hidden',
             'transition-transform duration-150 group-active:scale-95',
+            // Subtle shadow to lift cover
+            'shadow-[2px_2px_8px_rgba(0,0,0,0.3)]',
             // Book: asymmetric radius (spine left), Video: rounded
             isVideo ? 'rounded-md' : 'rounded-[2px_6px_6px_2px]'
           )}
         >
           {hasImage ? (
             <FadeImage
-              src={item.pictureUrl || `data:image/webp;base64,${item.picture}`}
+              src={item.picture ? `data:image/webp;base64,${item.picture}` : item.pictureUrl}
               alt={item.title}
               className="w-full h-full object-cover"
               fallback={
@@ -86,7 +100,7 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary }) => {
 
         {/* Subtle order indicator - bottom right corner */}
         {item.order != null && (
-          <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-muted border border-border text-[10px] font-medium text-muted-foreground flex items-center justify-center">
+          <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-background border border-muted-foreground text-[10px] font-semibold text-foreground flex items-center justify-center shadow-sm">
             {item.order}
           </div>
         )}
@@ -125,14 +139,17 @@ const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemCl
     <div
       style={animationStyle}
       className={cn(
-        'rounded-lg border border-border bg-card overflow-hidden',
-        'shadow-[var(--card-shadow)]',
+        // Glassmorphism styling for collection card
+        'rounded-xl overflow-hidden',
+        'bg-[var(--glass-bg)] backdrop-blur-xl',
+        'border border-[var(--glass-border)]',
+        'shadow-[var(--card-shadow),inset_0_1px_0_0_var(--glass-border)]',
         // Staggered fade-in animation
         index != null && 'animate-fade-in-up'
       )}
     >
-      {/* Collection header - muted background for contrast */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-muted/50 border-b border-border/50">
+      {/* Collection header - subtle glass panel */}
+      <div className="flex items-center justify-between px-3 py-2.5 bg-primary/5 border-b border-[var(--glass-border)]">
         <div className="flex flex-col">
           <h3 className="font-medium">{name}</h3>
           <span className="text-xs text-muted-foreground">
@@ -143,7 +160,7 @@ const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemCl
         {onMorePress && !isSharedLibrary && (
           <button
             onClick={handleMoreClick}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-foreground transition-colors"
             aria-label={`More options for ${name}`}
           >
             <MoreHorizontal className="h-4 w-4" />
@@ -151,8 +168,8 @@ const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemCl
         )}
       </div>
 
-      {/* Horizontal scrolling items - card background */}
-      <div className="relative bg-card">
+      {/* Horizontal scrolling items - transparent to show glass */}
+      <div className="relative">
         {itemCount === 0 ? (
           // Empty state - only show "Tap ••• to add items" when truly empty
           <div className="flex items-center justify-center px-3 py-6 text-sm text-muted-foreground">
@@ -174,14 +191,15 @@ const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemCl
                 msOverflowStyle: 'none',
               }}
             >
-              {/* Loaded items */}
-              {items.map((item) => (
+              {/* Loaded items with staggered unfold animation */}
+              {items.map((item, idx) => (
                 <ItemThumbnail
                   key={item.id}
                   item={item}
                   onClick={onItemClick}
                   onLongPress={onItemLongPress}
                   isSharedLibrary={isSharedLibrary}
+                  unfoldIndex={idx}
                 />
               ))}
               {/* Skeleton placeholders for items not yet loaded (pagination) */}
@@ -195,7 +213,7 @@ const CollectionCard = ({ collection, items, itemCount: totalItemCount, onItemCl
 
             {/* Right fade gradient to indicate more content */}
             {itemCount > 4 && (
-              <div className="absolute right-0 top-3 bottom-3 w-8 bg-gradient-to-l from-card to-transparent pointer-events-none" />
+              <div className="absolute right-0 top-3 bottom-3 w-8 bg-gradient-to-l from-[var(--glass-bg)] to-transparent pointer-events-none" />
             )}
           </>
         )}

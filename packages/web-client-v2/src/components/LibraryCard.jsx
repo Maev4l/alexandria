@@ -2,27 +2,42 @@
 // Grid-style library card for Modern Bookshelf layout
 // Shows library initial as visual identifier (like contact avatars)
 // Supports long press for actions on owned libraries
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { Users, UserCheck } from 'lucide-react';
-import { cn } from '@/lib/utils'; // Used for conditional animation class
+import { cn } from '@/lib/utils';
 
 const LONG_PRESS_DURATION = 500;
-const STAGGER_DELAY = 50; // ms per item for staggered animation
+const LIFT_DELAY = 150; // Start lift animation earlier than long press
+const STAGGER_DELAY = 50;
 
 // Get library initial for avatar display
 const getInitial = (name) => name?.charAt(0)?.toUpperCase() || '?';
 
-const LibraryCard = ({ library, onClick, onLongPress, index }) => {
+const LibraryCard = ({ library, onClick, onLongPress, isSelected = false, index }) => {
   const isSharedFromOther = !!library.sharedFrom;
   const isSharedToOthers = library.sharedTo?.length > 0;
   const pressTimer = useRef(null);
+  const liftTimer = useRef(null);
   const isLongPress = useRef(false);
+  const [isLifting, setIsLifting] = useState(false);
+
+  // Card is lifted during long press OR while selected (action sheet open)
+  const showLift = isLifting || isSelected;
 
   const handleTouchStart = useCallback(() => {
     isLongPress.current = false;
+
+    // Start lift animation early (visual feedback)
+    if (!isSharedFromOther && onLongPress) {
+      liftTimer.current = setTimeout(() => {
+        setIsLifting(true);
+      }, LIFT_DELAY);
+    }
+
+    // Trigger long press action
     pressTimer.current = setTimeout(() => {
       isLongPress.current = true;
-      // Only trigger long press for owned libraries
+      setIsLifting(false); // Reset lift when action triggers
       if (!isSharedFromOther && onLongPress) {
         onLongPress(library);
       }
@@ -34,6 +49,11 @@ const LibraryCard = ({ library, onClick, onLongPress, index }) => {
       clearTimeout(pressTimer.current);
       pressTimer.current = null;
     }
+    if (liftTimer.current) {
+      clearTimeout(liftTimer.current);
+      liftTimer.current = null;
+    }
+    setIsLifting(false);
   }, []);
 
   const handleClick = useCallback(() => {
@@ -63,29 +83,39 @@ const LibraryCard = ({ library, onClick, onLongPress, index }) => {
       }}
       style={animationStyle}
       className={cn(
-        // Grid card: square-ish, centered content
-        'relative flex flex-col items-center justify-center p-4 rounded-xl border text-center select-none',
+        // Grid card: square-ish, centered content with glassmorphism
+        'relative flex flex-col items-center justify-center p-4 rounded-2xl text-center select-none',
         'aspect-[4/3] min-h-[120px]',
-        'transition-[background-color,box-shadow,transform] duration-200',
-        'hover:bg-accent/50 active:bg-accent active:scale-[0.98]',
-        'border-border bg-card shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)]',
+        // Glassmorphism: frosted glass effect
+        'bg-[var(--glass-bg)] backdrop-blur-xl',
+        'border border-[var(--glass-border)]',
+        // Subtle inner glow at top edge
+        'shadow-[var(--card-shadow),inset_0_1px_0_0_var(--glass-border)]',
+        // Transitions
+        'transition-[background-color,box-shadow,transform,border-color] duration-200',
+        // Hover: lift up with glow (disabled during lift)
+        !showLift && 'hover:shadow-[var(--card-shadow-hover),inset_0_1px_0_0_var(--glass-border),0_0_20px_var(--accent-glow)]',
+        !showLift && 'hover:border-primary/20',
+        !showLift && 'active:scale-[0.97]',
+        // Long press lift state (during press or while action sheet open)
+        showLift && 'card-lifting',
         // Staggered fade-in animation
         index != null && 'animate-fade-in-up'
       )}
     >
       {/* Shared indicator badge - top right corner */}
       {(isSharedFromOther || isSharedToOthers) && (
-        <div className="absolute top-2 right-2 p-1 rounded-full bg-muted">
+        <div className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-primary/10 backdrop-blur-sm">
           {isSharedFromOther ? (
-            <UserCheck className="h-3.5 w-3.5 text-muted-foreground" />
+            <UserCheck className="h-3.5 w-3.5 text-primary/70" />
           ) : (
-            <Users className="h-3.5 w-3.5 text-muted-foreground" />
+            <Users className="h-3.5 w-3.5 text-primary/70" />
           )}
         </div>
       )}
 
-      {/* Library initial avatar */}
-      <div className="mb-2 w-11 h-11 rounded-full flex items-center justify-center text-lg font-semibold bg-primary/10 text-primary">
+      {/* Library initial avatar - glowing accent */}
+      <div className="mb-2 w-12 h-12 rounded-full flex items-center justify-center text-lg font-semibold bg-primary/15 text-primary border border-primary/20 shadow-[0_0_12px_var(--accent-glow)]">
         {getInitial(library.name)}
       </div>
 

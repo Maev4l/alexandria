@@ -143,6 +143,7 @@ const Libraries = () => {
                     library={library}
                     onClick={handleLibraryClick}
                     onLongPress={handleLongPress}
+                    isSelected={selectedLibrary?.id === library.id && isActionsOpen}
                     index={idx}
                   />
                 ))}

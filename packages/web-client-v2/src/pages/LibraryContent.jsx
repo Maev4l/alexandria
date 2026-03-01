@@ -363,6 +363,7 @@ const LibraryContent = () => {
                   }}
                   onLongPress={isSharedLibrary ? undefined : handleItemLongPress}
                   isSharedLibrary={isSharedLibrary}
+                  isSelected={selectedItem?.id === item.id && isActionsOpen}
                   index={idx}
                 />
               );
@@ -376,6 +377,7 @@ const LibraryContent = () => {
                 }}
                 onLongPress={isSharedLibrary ? undefined : handleItemLongPress}
                 isSharedLibrary={isSharedLibrary}
+                isSelected={selectedItem?.id === item.id && isActionsOpen}
                 index={idx}
               />
             );
