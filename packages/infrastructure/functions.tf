@@ -19,6 +19,7 @@ resource "aws_lambda_function" "api" {
   code_sha256   = filebase64sha256(local.apiFilename)
   package_type  = "Zip"
   memory_size   = 128
+  timeout       = 7
 
   environment {
     variables = {

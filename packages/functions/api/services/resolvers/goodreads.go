@@ -36,7 +36,11 @@ func (r *goodreadsResolver) Resolve(code string, ch chan []domain.ResolvedBook) 
 
 	searchResponse, err := r.client.Do(searchRequest)
 	if err != nil {
-		log.Error().Str("source", "Goodreads").Msgf("Failed to search: %s", err.Error())
+		if isTimeout(err) {
+			log.Warn().Str("source", "Goodreads").Msg("Detection request timed out")
+		} else {
+			log.Error().Str("source", "Goodreads").Msgf("Failed to detect: %s", err.Error())
+		}
 		msg := "Unavailable - Try later."
 		ch <- []domain.ResolvedBook{{
 			Source: r.Name(),
@@ -56,6 +60,7 @@ func (r *goodreadsResolver) Resolve(code string, ch chan []domain.ResolvedBook) 
 	cookies := searchResponse.Cookies()
 
 	c := colly.NewCollector()
+	c.SetRequestTimeout(5 * time.Second)
 	_ = c.SetCookies(r.url, cookies)
 	c.OnRequest(func(request *colly.Request) {
 		request.Headers.Set("User-Agent", uarand.GetRandom())
@@ -96,7 +101,11 @@ func (r *goodreadsResolver) Resolve(code string, ch chan []domain.ResolvedBook) 
 	foundUrl := location.String()
 	err = c.Visit(foundUrl)
 	if err != nil {
-		log.Error().Str("source", "Goodreads").Msgf(" Failed to visit book url: %s: %s", foundUrl, err.Error())
+		if isTimeout(err) {
+			log.Warn().Str("source", "Goodreads").Str("url", foundUrl).Msg("Detection request timed out")
+		} else {
+			log.Error().Str("source", "Goodreads").Msgf("Failed to detect: %s: %s", foundUrl, err.Error())
+		}
 		msg := "Not available"
 		resolvedBook.Error = &msg
 	}

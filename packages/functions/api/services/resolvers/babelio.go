@@ -6,6 +6,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -25,6 +27,21 @@ import (
 	utls "github.com/refraction-networking/utls"
 	"github.com/rs/zerolog/log"
 )
+
+// isTimeout checks if an error is a timeout (context deadline, http timeout, or net timeout)
+func isTimeout(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	if os.IsTimeout(err) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return false
+}
 
 // Modern user agents (updated 2024) - desktop browsers commonly used in France
 var userAgents = []string{
@@ -94,7 +111,11 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	searchResponse, err := r.client.Do(searchRequest)
 	if err != nil {
-		log.Error().Str("source", "Babelio").Msgf("Failed to search: %s", err.Error())
+		if isTimeout(err) {
+			log.Warn().Str("source", "Babelio").Msg("Detection request timed out")
+		} else {
+			log.Error().Str("source", "Babelio").Msgf("Failed to detect: %s", err.Error())
+		}
 		msg := "Unavailable - Try later."
 		ch <- []domain.ResolvedBook{{
 			Source: r.Name(),
@@ -131,8 +152,9 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	// Random delay between search and scrape to mimic human behavior (500-1500ms)
 	randomDelay(500, 1500)
 
-	// Use same browser-like transport for colly
+	// Use same browser-like transport for colly with timeout
 	c := colly.NewCollector()
+	c.SetRequestTimeout(5 * time.Second)
 	c.WithTransport(createBrowserTransport())
 
 	// Share cookies from search response to maintain session
@@ -247,7 +269,11 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	err = c.Visit(foundUrl)
 	if err != nil {
-		log.Error().Str("source", "Babelio").Msgf(" Failed to visit book url: %s: %s", foundUrl, err.Error())
+		if isTimeout(err) {
+			log.Warn().Str("source", "Babelio").Str("url", foundUrl).Msg("Detection request timed out")
+		} else {
+			log.Error().Str("source", "Babelio").Msgf("Failed to detect: %s: %s", foundUrl, err.Error())
+		}
 		msg := "Not available"
 		resolvedBook.Error = &msg
 	}

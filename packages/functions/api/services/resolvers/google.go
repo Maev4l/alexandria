@@ -52,7 +52,11 @@ func (r *googleResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	searchResponse, err := r.client.Do(searchRequest)
 	if err != nil {
-		log.Error().Str("source", "Google").Msgf("Failed to search: %s", err.Error())
+		if isTimeout(err) {
+			log.Warn().Str("source", "Google").Msg("Detection request timed out")
+		} else {
+			log.Error().Str("source", "Google").Msgf("Failed to detect: %s", err.Error())
+		}
 		ch <- nil
 		return
 	}
