@@ -85,7 +85,7 @@ const ItemHistory = () => {
   );
 
   // Fetch events
-  const fetchEvents = useCallback(async (refresh = false) => {
+  const fetchEvents = useCallback(async () => {
     if (!libraryId || !itemId) return;
 
     setIsLoading(true);
@@ -115,7 +115,7 @@ const ItemHistory = () => {
       });
       setEvents((prev) => [...prev, ...(data.events || [])]);
       setNextToken(data.nextToken || null);
-    } catch (err) {
+    } catch {
       // Silent fail for load more
     } finally {
       setIsLoading(false);

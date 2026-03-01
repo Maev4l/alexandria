@@ -43,7 +43,6 @@ const Layout = () => {
     const prevOrder = getTabOrder(prevPathRef.current);
 
     // Update ref for next comparison
-    const prevPath = prevPathRef.current;
     prevPathRef.current = location.pathname;
 
     // If both are tabs, use directional slide

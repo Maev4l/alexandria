@@ -208,7 +208,7 @@ export const LibrariesProvider = ({ children }) => {
           error: null,
         },
       }));
-    } catch (err) {
+    } catch {
       setItemsByLibrary((prev) => ({
         ...prev,
         [libraryId]: {

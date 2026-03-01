@@ -41,7 +41,9 @@ const saveRecentSearch = (term) => {
 const clearRecentSearches = () => {
   try {
     localStorage.removeItem(RECENT_SEARCHES_KEY);
-  } catch {}
+  } catch {
+    // Ignore localStorage errors
+  }
 };
 
 // Search result card - glassmorphism style

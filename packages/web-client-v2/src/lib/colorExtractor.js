@@ -67,7 +67,7 @@ export const extractDominantColor = (imageUrl) => {
         } else {
           resolve(fallback);
         }
-      } catch (err) {
+      } catch {
         // Canvas security error or other issue
         resolve(fallback);
       }

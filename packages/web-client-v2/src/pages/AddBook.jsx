@@ -155,7 +155,7 @@ const AddBook = () => {
         controlsRef.current = await readerRef.current.decodeFromVideoDevice(
           deviceId,
           videoRef.current,
-          (result, error) => {
+          (result, _error) => {
             if (result) {
               const scannedCode = result.getText();
               // EAN-13 starting with 978 or 979 is ISBN-13
@@ -187,6 +187,9 @@ const AddBook = () => {
 
     initScanner();
 
+    // Save ref value for cleanup (React best practice)
+    const videoElement = videoRef.current;
+
     // Cleanup on unmount - stop camera and release all tracks
     return () => {
       mounted = false;
@@ -195,10 +198,10 @@ const AddBook = () => {
         controlsRef.current = null;
       }
       // Stop all media tracks directly
-      if (videoRef.current?.srcObject) {
-        const tracks = videoRef.current.srcObject.getTracks();
+      if (videoElement?.srcObject) {
+        const tracks = videoElement.srcObject.getTracks();
         tracks.forEach((track) => track.stop());
-        videoRef.current.srcObject = null;
+        videoElement.srcObject = null;
       }
     };
   }, []); // Empty deps - run once on mount

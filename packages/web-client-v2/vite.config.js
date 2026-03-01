@@ -4,7 +4,11 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
+import { fileURLToPath } from "url";
 import { execSync } from "child_process";
+
+// ES module equivalent of __dirname
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Get git commit hash for build identification
 const getGitCommitHash = () => {

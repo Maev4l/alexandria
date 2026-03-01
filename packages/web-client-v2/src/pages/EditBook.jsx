@@ -18,7 +18,7 @@ const EditBook = () => {
   const { libraryId, itemId } = useParams();
   const navigate = useNavigate();
   const { updateBook } = useLibraries();
-  const { item: book, library } = useItemData(libraryId, itemId);
+  const { item: book } = useItemData(libraryId, itemId);
   const toast = useToast();
 
   // Pre-fill form with existing book data

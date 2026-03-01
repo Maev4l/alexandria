@@ -13,7 +13,7 @@ const BookDetail = () => {
   const { libraryId, itemId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { item: contextItem, library, isSharedLibrary } = useItemData(libraryId, itemId);
+  const { item: contextItem, isSharedLibrary } = useItemData(libraryId, itemId);
 
   // Use item from context, or fallback to item passed via location.state (from Search)
   const book = contextItem || location.state?.item;

@@ -16,10 +16,10 @@ export const useItemData = (libraryId, itemId) => {
   const { itemsByLibrary } = useLibraries();
 
   const itemsState = itemsByLibrary[libraryId];
-  const items = itemsState?.items || [];
   const isItemsLoading = itemsState?.isLoading || false;
 
   const item = useMemo(() => {
+    const items = itemsState?.items || [];
     if (!itemId) return null;
     // Search top-level items first
     const topLevel = items.find((i) => i.id === itemId);
@@ -32,7 +32,7 @@ export const useItemData = (libraryId, itemId) => {
       }
     }
     return null;
-  }, [items, itemId]);
+  }, [itemsState?.items, itemId]);
 
   return {
     item,

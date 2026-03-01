@@ -21,7 +21,6 @@ import { useToast } from '@/components/Toast';
 import { librariesApi } from '@/api';
 
 // Item type constants (matches backend domain.ItemType)
-const ITEM_TYPE_BOOK = 0;
 const ITEM_TYPE_VIDEO = 1;
 const ITEM_TYPE_COLLECTION = 2;
 
@@ -47,7 +46,6 @@ const LibraryContent = () => {
 
   // State for add item sheet
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
-  const [prefilledCollection, setPrefilledCollection] = useState(null);
 
   // State for collection actions sheet
   const [selectedCollection, setSelectedCollection] = useState(null);
@@ -162,9 +160,8 @@ const LibraryContent = () => {
     }
   }, [libraryId, navigate, deleteItem, lendItem, returnItem, toast, handleCloseActions]);
 
-  // Handle add item from AppBar (no collection prefilled)
+  // Handle add item from AppBar
   const handleAddItem = useCallback(() => {
-    setPrefilledCollection(null);
     setIsAddItemOpen(true);
   }, []);
 

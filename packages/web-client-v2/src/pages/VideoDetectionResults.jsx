@@ -17,8 +17,6 @@ const VideoDetectionResults = () => {
 
   // Get data from location state
   const videos = location.state?.videos || [];
-  const extractedTitle = location.state?.extractedTitle;
-  const searchTitle = location.state?.searchTitle;
   const collection = location.state?.collection || null;
   const order = location.state?.order || null;
 
