@@ -21,12 +21,29 @@ import (
 
 	"alexandria.isnan.eu/functions/api/ports"
 	"alexandria.isnan.eu/functions/internal/domain"
-	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/net/html/charset"
 
 	"github.com/gocolly/colly"
+	"github.com/microcosm-cc/bluemonday"
 	utls "github.com/refraction-networking/utls"
 	"github.com/rs/zerolog/log"
 )
+
+// stripHTMLPolicy strips all HTML tags from text
+var stripHTMLPolicy = bluemonday.StripTagsPolicy()
+
+// cleanSummary sanitizes HTML content: converts <br> to newlines, strips remaining tags, unescapes entities
+func cleanSummary(text string) string {
+	// Replace <br>, <br/>, <br /> with newlines before stripping tags
+	text = strings.ReplaceAll(text, "<br>", "\n")
+	text = strings.ReplaceAll(text, "<br/>", "\n")
+	text = strings.ReplaceAll(text, "<br />", "\n")
+	// Strip all remaining HTML tags
+	text = stripHTMLPolicy.Sanitize(text)
+	// Unescape HTML entities (&amp; -> &, etc.)
+	text = html.UnescapeString(text)
+	return strings.TrimSpace(text)
+}
 
 // isTimeout checks if an error is a timeout (context deadline, http timeout, or net timeout)
 func isTimeout(err error) bool {
@@ -152,9 +169,10 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	// Random delay between search and scrape to mimic human behavior (500-1500ms)
 	randomDelay(500, 1500)
 
-	// Use same browser-like transport for colly with timeout
+	// Use same browser-like transport for colly with timeout and auto charset detection
 	c := colly.NewCollector()
 	c.SetRequestTimeout(5 * time.Second)
+	c.DetectCharset = true
 	c.WithTransport(createBrowserTransport())
 
 	// Share cookies from search response to maintain session
@@ -225,41 +243,26 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 			return
 		}
 		defer func() { _ = moreSummaryResponse.Body.Close() }()
-		body, _ := io.ReadAll(moreSummaryResponse.Body)
-		dec8859_1 := charmap.ISO8859_1.NewDecoder()
-		body, err = dec8859_1.Bytes(body)
+		// Auto-detect charset from Content-Type header
+		reader, err := charset.NewReader(moreSummaryResponse.Body, moreSummaryResponse.Header.Get("Content-Type"))
 		if err != nil {
-			log.Error().Msg("Failed to encode in utf-8")
+			log.Error().Str("source", "Babelio").Msgf("Failed to create charset reader: %s", err.Error())
 			ch <- nil
 			return
 		}
-		summary := string(body)
-		// Remove line breaks
-		summary = strings.Trim(summary, "\n\t")
-
-		// The replace <br> tag, with line breaks
-		summary = strings.ReplaceAll(summary, "<br>", "\n")
-		summary = html.UnescapeString(summary)
-		summary = strings.TrimSpace(summary)
-		resolvedBook.Summary = summary
+		body, err := io.ReadAll(reader)
+		if err != nil {
+			log.Error().Str("source", "Babelio").Msgf("Failed to read response body: %s", err.Error())
+			ch <- nil
+			return
+		}
+		resolvedBook.Summary = cleanSummary(string(body))
 	})
 
 	c.OnHTML(".livre_resume", func(e *colly.HTMLElement) {
 		if !needExpandSummary {
-			dec8859_1 := charmap.ISO8859_1.NewDecoder()
-			summary, err := dec8859_1.String(e.Text)
-			if err != nil {
-				log.Error().Msg("Failed to encode in utf-8")
-				ch <- nil
-				return
-			}
-
-			summary = strings.Trim(summary, "\n\t")
-			// The replace <br> tag, with line breaks
-			summary = strings.ReplaceAll(summary, "<br>", "\n")
-			summary = html.UnescapeString(summary)
-			summary = strings.TrimSpace(summary)
-			resolvedBook.Summary = summary
+			// Charset is auto-detected by Colly (DetectCharset = true)
+			resolvedBook.Summary = cleanSummary(e.Text)
 		}
 	})
 
