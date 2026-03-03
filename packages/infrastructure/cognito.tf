@@ -10,8 +10,8 @@ resource "aws_cognito_user_pool" "alexandria_user_pool" {
 
   # Lambda triggers for user management
   lambda_config {
-    pre_sign_up       = aws_lambda_function.user_management.arn
-    post_confirmation = aws_lambda_function.user_management.arn
+    pre_sign_up       = module.user_management.function_arn
+    post_confirmation = module.user_management.function_arn
   }
 
   account_recovery_setting {
@@ -119,6 +119,14 @@ resource "aws_cognito_identity_provider" "google" {
     email    = "email"
     name     = "name"
     username = "sub"
+  }
+
+  # AWS auto-populates additional OIDC fields in provider_details (attributes_url,
+  # authorize_url, token_url, etc.) when creating a Google identity provider.
+  # Since these aren't in our config, Terraform detects drift and tries to remove them.
+  # Ignoring provider_details changes prevents this noise - AWS will re-add them anyway.
+  lifecycle {
+    ignore_changes = [provider_details]
   }
 }
 

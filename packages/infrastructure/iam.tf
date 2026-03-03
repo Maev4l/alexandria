@@ -9,43 +9,10 @@ locals {
   region     = data.aws_region.current.region
 }
 
-# Common assume role policy for Lambda
-data "aws_iam_policy_document" "lambda_assume_role" {
-  statement {
-    effect = "Allow"
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-    actions = ["sts:AssumeRole"]
-  }
-}
-
-# Common CloudWatch Logs policy
-data "aws_iam_policy_document" "cloudwatch_logs" {
-  statement {
-    effect = "Allow"
-    actions = [
-      "logs:CreateLogGroup",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents",
-      "logs:TagResource",
-    ]
-    resources = ["arn:aws:logs:${local.region}:${local.account_id}:log-group:/aws/lambda/*:*:*"]
-  }
-}
-
 #
-# API Role
+# API Policy (role managed by lambda-function module)
 #
-resource "aws_iam_role" "api" {
-  name               = "alexandria-api"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
-}
-
 data "aws_iam_policy_document" "api" {
-  source_policy_documents = [data.aws_iam_policy_document.cloudwatch_logs.json]
-
   statement {
     effect = "Allow"
     actions = [
@@ -107,23 +74,15 @@ data "aws_iam_policy_document" "api" {
   }
 }
 
-resource "aws_iam_role_policy" "api" {
+resource "aws_iam_policy" "api" {
   name   = "alexandria-api"
-  role   = aws_iam_role.api.id
   policy = data.aws_iam_policy_document.api.json
 }
 
 #
-# Consistency Manager Role
+# Consistency Manager Policy (role managed by lambda-function module)
 #
-resource "aws_iam_role" "consistency_manager" {
-  name               = "alexandria-consistency-manager"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
-}
-
 data "aws_iam_policy_document" "consistency_manager" {
-  source_policy_documents = [data.aws_iam_policy_document.cloudwatch_logs.json]
-
   statement {
     effect = "Allow"
     actions = [
@@ -145,23 +104,15 @@ data "aws_iam_policy_document" "consistency_manager" {
   }
 }
 
-resource "aws_iam_role_policy" "consistency_manager" {
+resource "aws_iam_policy" "consistency_manager" {
   name   = "alexandria-consistency-manager"
-  role   = aws_iam_role.consistency_manager.id
   policy = data.aws_iam_policy_document.consistency_manager.json
 }
 
 #
-# Index Items Role
+# Index Items Policy (role managed by lambda-function module)
 #
-resource "aws_iam_role" "index_items" {
-  name               = "alexandria-index-items"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
-}
-
 data "aws_iam_policy_document" "index_items" {
-  source_policy_documents = [data.aws_iam_policy_document.cloudwatch_logs.json]
-
   statement {
     effect    = "Allow"
     actions   = ["dynamodb:Scan"]
@@ -182,23 +133,15 @@ data "aws_iam_policy_document" "index_items" {
   }
 }
 
-resource "aws_iam_role_policy" "index_items" {
+resource "aws_iam_policy" "index_items" {
   name   = "alexandria-index-items"
-  role   = aws_iam_role.index_items.id
   policy = data.aws_iam_policy_document.index_items.json
 }
 
 #
-# User Management Role
+# User Management Policy (role managed by lambda-function module)
 #
-resource "aws_iam_role" "user_management" {
-  name               = "alexandria-user-management"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
-}
-
 data "aws_iam_policy_document" "user_management" {
-  source_policy_documents = [data.aws_iam_policy_document.cloudwatch_logs.json]
-
   statement {
     effect    = "Allow"
     actions   = ["sns:Publish"]
@@ -217,23 +160,15 @@ data "aws_iam_policy_document" "user_management" {
   }
 }
 
-resource "aws_iam_role_policy" "user_management" {
+resource "aws_iam_policy" "user_management" {
   name   = "alexandria-user-management"
-  role   = aws_iam_role.user_management.id
   policy = data.aws_iam_policy_document.user_management.json
 }
 
 #
-# Images Processor Role
+# Images Processor Policy (role managed by lambda-function module)
 #
-resource "aws_iam_role" "images_processor" {
-  name               = "alexandria-images-processor"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume_role.json
-}
-
 data "aws_iam_policy_document" "images_processor" {
-  source_policy_documents = [data.aws_iam_policy_document.cloudwatch_logs.json]
-
   statement {
     effect = "Allow"
     actions = [
@@ -250,8 +185,7 @@ data "aws_iam_policy_document" "images_processor" {
   }
 }
 
-resource "aws_iam_role_policy" "images_processor" {
+resource "aws_iam_policy" "images_processor" {
   name   = "alexandria-images-processor"
-  role   = aws_iam_role.images_processor.id
   policy = data.aws_iam_policy_document.images_processor.json
 }

@@ -9,39 +9,41 @@ locals {
   sharedLibrariesFilename = "shared-libraries.json"
 }
 
-resource "aws_lambda_function" "api" {
+module "api" {
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+
   function_name = "alexandria-api"
-  filename      = local.apiFilename
-  role          = aws_iam_role.api.arn
-  handler       = "bootstrap"
-  runtime       = "provided.al2023"
-  architectures = ["arm64"]
-  code_sha256   = filebase64sha256(local.apiFilename)
-  package_type  = "Zip"
+  architecture  = "arm64"
   memory_size   = 128
   timeout       = 7
 
-  environment {
-    variables = {
-      DYNAMODB_TABLE_NAME : aws_dynamodb_table.alexandria.name
-      S3_PICTURES_BUCKET : aws_s3_bucket.alexandria.id
-      S3_INDEX_BUCKET : aws_s3_bucket.alexandria.id
-      REGION : var.region
-      USER_POOL_ID : aws_cognito_user_pool.alexandria_user_pool.id
-      GLOBAL_INDEX_FILE_NAME : local.globalIndexFilename
-      SHARE_LIBRARIES_FILE_NAME : local.sharedLibrariesFilename
-      LEK_SECRET_KEY : "alexandria.lastevaluatedkey.secret"
-      TMDB_ACCESS_TOKEN : "alexandria.tmdb.access.token"
-    }
+  additional_policy_arns = [aws_iam_policy.api.arn]
+
+  zip = {
+    filename = local.apiFilename
+    runtime  = "provided.al2023"
+    handler  = "bootstrap"
+  }
+
+  environment_variables = {
+    DYNAMODB_TABLE_NAME       = aws_dynamodb_table.alexandria.name
+    S3_PICTURES_BUCKET        = aws_s3_bucket.alexandria.id
+    S3_INDEX_BUCKET           = aws_s3_bucket.alexandria.id
+    REGION                    = var.region
+    USER_POOL_ID              = aws_cognito_user_pool.alexandria_user_pool.id
+    GLOBAL_INDEX_FILE_NAME    = local.globalIndexFilename
+    SHARE_LIBRARIES_FILE_NAME = local.sharedLibrariesFilename
+    LEK_SECRET_KEY            = "alexandria.lastevaluatedkey.secret"
+    TMDB_ACCESS_TOKEN         = "alexandria.tmdb.access.token"
   }
 }
 
 module "api_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-apigw?ref=v1.3.0"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-apigw?ref=v1.4.1"
 
-  function_name = aws_lambda_function.api.function_name
-  function_arn  = aws_lambda_function.api.arn
-  invoke_arn    = aws_lambda_function.api.invoke_arn
+  function_name = module.api.function_name
+  function_arn  = module.api.function_arn
+  invoke_arn    = module.api.invoke_arn
   cors          = false
 
   # Allow CloudFront to access the execute-api endpoint
@@ -63,36 +65,38 @@ module "api_trigger" {
   ]
 }
 
-resource "aws_lambda_function" "indexer" {
+module "indexer" {
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+
   function_name                  = "alexandria-indexer"
-  filename                       = local.indexerFilename
-  role                           = aws_iam_role.index_items.arn
-  handler                        = "bootstrap"
-  runtime                        = "provided.al2023"
-  architectures                  = ["arm64"]
-  code_sha256                    = filebase64sha256(local.indexerFilename)
-  package_type                   = "Zip"
+  architecture                   = "arm64"
   memory_size                    = 256
   reserved_concurrent_executions = 1
 
-  environment {
-    variables = {
-      S3_INDEX_BUCKET : aws_s3_bucket.alexandria.id
-      REGION : var.region
-      GLOBAL_INDEX_FILE_NAME : local.globalIndexFilename
-      SHARE_LIBRARIES_FILE_NAME : local.sharedLibrariesFilename
-      DYNAMODB_TABLE_NAME : aws_dynamodb_table.alexandria.name
-    }
+  additional_policy_arns = [aws_iam_policy.index_items.arn]
+
+  zip = {
+    filename = local.indexerFilename
+    runtime  = "provided.al2023"
+    handler  = "bootstrap"
+  }
+
+  environment_variables = {
+    S3_INDEX_BUCKET           = aws_s3_bucket.alexandria.id
+    REGION                    = var.region
+    GLOBAL_INDEX_FILE_NAME    = local.globalIndexFilename
+    SHARE_LIBRARIES_FILE_NAME = local.sharedLibrariesFilename
+    DYNAMODB_TABLE_NAME       = aws_dynamodb_table.alexandria.name
   }
 }
 
 module "indexer_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.3.0"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.4.1"
 
-  function_name = aws_lambda_function.indexer.function_name
-  function_arn  = aws_lambda_function.indexer.arn
+  function_name = module.indexer.function_name
+  function_arn  = module.indexer.function_arn
 
-  role_name  = aws_iam_role.index_items.name
+  role_name  = module.indexer.role_name
   stream_arn = aws_dynamodb_table.alexandria.stream_arn
 
   starting_position                  = "LATEST"
@@ -135,32 +139,34 @@ module "indexer_trigger" {
   ]
 }
 
-resource "aws_lambda_function" "consistency_manager" {
+module "consistency_manager" {
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+
   function_name = "alexandria-consistency-manager"
-  filename      = local.consistencyMgrFilename
-  role          = aws_iam_role.consistency_manager.arn
-  handler       = "bootstrap"
-  runtime       = "provided.al2023"
-  architectures = ["arm64"]
-  code_sha256   = filebase64sha256(local.consistencyMgrFilename)
-  package_type  = "Zip"
+  architecture  = "arm64"
   memory_size   = 256
 
-  environment {
-    variables = {
-      REGION : var.region
-      DYNAMODB_TABLE_NAME : aws_dynamodb_table.alexandria.name
-    }
+  additional_policy_arns = [aws_iam_policy.consistency_manager.arn]
+
+  zip = {
+    filename = local.consistencyMgrFilename
+    runtime  = "provided.al2023"
+    handler  = "bootstrap"
+  }
+
+  environment_variables = {
+    REGION              = var.region
+    DYNAMODB_TABLE_NAME = aws_dynamodb_table.alexandria.name
   }
 }
 
 module "consistency_manager_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.3.0"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.4.1"
 
-  function_name = aws_lambda_function.consistency_manager.function_name
-  function_arn  = aws_lambda_function.consistency_manager.arn
+  function_name = module.consistency_manager.function_name
+  function_arn  = module.consistency_manager.function_arn
 
-  role_name  = aws_iam_role.consistency_manager.name
+  role_name  = module.consistency_manager.role_name
   stream_arn = aws_dynamodb_table.alexandria.stream_arn
 
   starting_position                  = "LATEST"
@@ -191,56 +197,61 @@ module "consistency_manager_trigger" {
   ]
 }
 
-resource "aws_lambda_function" "user_management" {
+module "user_management" {
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+
   function_name = "alexandria-user-management"
-  filename      = local.userManagementFilename
-  role          = aws_iam_role.user_management.arn
-  handler       = "bootstrap"
-  runtime       = "provided.al2023"
-  architectures = ["arm64"]
-  code_sha256   = filebase64sha256(local.userManagementFilename)
-  package_type  = "Zip"
+  architecture  = "arm64"
   memory_size   = 128
 
-  environment {
-    variables = {
-      REGION : var.region
-      SNS_TOPIC_ARN : data.aws_sns_topic.alerting.arn
-    }
+  additional_policy_arns = [aws_iam_policy.user_management.arn]
+
+  zip = {
+    filename = local.userManagementFilename
+    runtime  = "provided.al2023"
+    handler  = "bootstrap"
+  }
+
+  environment_variables = {
+    REGION        = var.region
+    SNS_TOPIC_ARN = data.aws_sns_topic.alerting.arn
   }
 }
 
 module "user_management_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-cognito?ref=v1.3.0"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-cognito?ref=v1.4.1"
 
-  function_name = aws_lambda_function.user_management.function_name
-  function_arn  = aws_lambda_function.user_management.arn
+  function_name = module.user_management.function_name
+  function_arn  = module.user_management.function_arn
 
   user_pool_id = aws_cognito_user_pool.alexandria_user_pool.id
 }
 
 
-resource "aws_lambda_function" "image_processor" {
+module "image_processor" {
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+
   function_name = "alexandria-image-processor"
-  image_uri     = "${aws_ecr_repository.images_processing.repository_url}:latest"
-  role          = aws_iam_role.images_processor.arn
-  architectures = ["arm64"]
+  architecture  = "arm64"
+  memory_size   = 512
 
-  package_type = "Image"
-  memory_size  = 512
+  additional_policy_arns = [aws_iam_policy.images_processor.arn]
 
-  environment {
-    variables = {
-      REGION : var.region
-      S3_PICTURES_BUCKET : aws_s3_bucket.alexandria.id
-    }
+  image = {
+    uri = "${aws_ecr_repository.images_processing.repository_url}:latest"
+  }
+
+  environment_variables = {
+    REGION             = var.region
+    S3_PICTURES_BUCKET = aws_s3_bucket.alexandria.id
   }
 }
 
 module "image_processor_trigger" {
-  source        = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-s3?ref=v1.3.0"
-  function_name = aws_lambda_function.image_processor.function_name
-  function_arn  = aws_lambda_function.image_processor.arn
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-s3?ref=v1.4.1"
+
+  function_name = module.image_processor.function_name
+  function_arn  = module.image_processor.function_arn
 
   bucket_id  = aws_s3_bucket.alexandria.id
   bucket_arn = aws_s3_bucket.alexandria.arn
