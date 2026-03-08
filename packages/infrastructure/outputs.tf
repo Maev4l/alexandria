@@ -31,4 +31,9 @@ output "authentication_domain" {
   value = var.authentication_domain
 }
 
+output "webclient_bucket" {
+  description = "S3 bucket name for the web client"
+  value       = aws_s3_bucket.webclient.id
+}
+
 

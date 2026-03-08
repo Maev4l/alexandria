@@ -7,8 +7,9 @@
     "apply-infra": "yarn workspace @alexandria/infrastructure deploy",
     "build-backend": "yarn workspace @alexandria/functions build",
     "deploy-backend": "yarn build-backend && yarn workspace @alexandria/functions push-images-processing && yarn apply-infra",
-    "build-frontend": "yarn workspace @alexandria/web-client-v2 build",
-    "deploy-frontend": "yarn workspace @alexandria/web-client-v2 deploy && yarn workspace @alexandria/infrastructure invalidate-frontend",
+    "build-frontend": "yarn workspace @alexandria/infrastructure output && yarn workspace @alexandria/web-client-v2 build",
+    "sync-frontend": "aws s3 sync packages/web-client-v2/dist s3://$(cd packages/infrastructure && terraform output -raw webclient_bucket) --delete",
+    "deploy-frontend": "yarn build-frontend && yarn sync-frontend && yarn workspace @alexandria/infrastructure invalidate-frontend",
     "frontend-dev": "yarn workspace @alexandria/web-client-v2 dev"
   },
   "workspaces": [
