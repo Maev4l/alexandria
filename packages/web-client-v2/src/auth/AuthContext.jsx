@@ -1,6 +1,7 @@
 // Edited by Claude.
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { signIn as cognitoSignIn, signOut as cognitoSignOut, signUp as cognitoSignUp, signInWithRedirect, fetchAuthSession, updatePassword, getCurrentUser } from 'aws-amplify/auth';
+import { Hub } from 'aws-amplify/utils';
 import { hideSplash } from '@/lib/splash';
 
 const AuthContext = createContext(null);
@@ -52,6 +53,26 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [oauthMessage, setOauthMessage] = useState(null); // { type: 'success' | 'error', text: string }
 
+  // Refresh user state from current session
+  const refreshUserFromSession = useCallback(async () => {
+    try {
+      const session = await fetchAuthSession();
+      if (session?.tokens) {
+        const currentUser = await getCurrentUser();
+        setUser({
+          id: extractUserId(session.tokens.idToken),
+          token: session.tokens.idToken.toString(),
+          username: currentUser.username,
+          email: extractEmail(session.tokens.idToken),
+          displayName: extractDisplayName(session.tokens.idToken),
+          approved: extractApproved(session.tokens.idToken),
+        });
+      }
+    } catch {
+      // No active session
+    }
+  }, []);
+
   // Check for an existing session on mount
   useEffect(() => {
     const checkSession = async () => {
@@ -72,33 +93,40 @@ export const AuthProvider = ({ children }) => {
         });
       }
 
-      try {
-        const session = await fetchAuthSession();
-        if (session?.tokens) {
-          const currentUser = await getCurrentUser();
-          setUser({
-            id: extractUserId(session.tokens.idToken),
-            token: session.tokens.idToken.toString(),
-            username: currentUser.username,
-            email: extractEmail(session.tokens.idToken),
-            displayName: extractDisplayName(session.tokens.idToken),
-            approved: extractApproved(session.tokens.idToken),
-          });
-        }
-      } catch {
-        // No active session — stay unauthenticated
-      } finally {
-        // Ensure splash is shown for at least 2 seconds
-        const elapsed = Date.now() - splashStart;
-        const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
-        setTimeout(() => {
-          setIsLoading(false);
-          hideSplash();
-        }, remaining);
-      }
+      await refreshUserFromSession();
+
+      // Ensure splash is shown for at least 2 seconds
+      const elapsed = Date.now() - splashStart;
+      const remaining = Math.max(0, MIN_SPLASH_MS - elapsed);
+      setTimeout(() => {
+        setIsLoading(false);
+        hideSplash();
+      }, remaining);
     };
     checkSession();
-  }, []);
+
+    // Listen for auth events (token refresh, sign out, etc.)
+    const hubListener = Hub.listen('auth', ({ payload }) => {
+      switch (payload.event) {
+        case 'signedIn':
+          refreshUserFromSession();
+          break;
+        case 'signedOut':
+          setUser(null);
+          break;
+        case 'tokenRefresh':
+          // Tokens refreshed successfully, update user state
+          refreshUserFromSession();
+          break;
+        case 'tokenRefresh_failure':
+          // Refresh token expired, user needs to re-login
+          setUser(null);
+          break;
+      }
+    });
+
+    return () => hubListener();
+  }, [refreshUserFromSession]);
 
   // Clear the OAuth message
   const clearOauthMessage = useCallback(() => {
