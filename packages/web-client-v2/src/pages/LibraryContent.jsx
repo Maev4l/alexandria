@@ -57,14 +57,19 @@ const LibraryContent = () => {
 
   const loadMoreRef = useRef(null);
   const pullToRefreshRef = useRef(null);
+  const scrollRestoredRef = useRef(false);
+
+  // Scroll position persistence key
+  const scrollKey = `library-scroll-${libraryId}`;
 
   // Items are pre-sorted and pre-grouped by the backend
   // Collections (type=2) have nested items array already populated
 
-  // Scroll to top handler for AppBar title tap
+  // Scroll to top handler for AppBar title tap (clears saved position)
   const handleScrollToTop = useCallback(() => {
+    sessionStorage.removeItem(scrollKey);
     pullToRefreshRef.current?.scrollToTop();
-  }, []);
+  }, [scrollKey]);
 
   // Fetch items on mount if not already loaded for this library
   useEffect(() => {
@@ -72,6 +77,49 @@ const LibraryContent = () => {
       fetchItems(libraryId, true);
     }
   }, [libraryId, hasLoaded, fetchItems]);
+
+  // Throttled scroll position save (200ms) - handles all exit scenarios
+  const scrollTimeoutRef = useRef(null);
+  const lastScrollRef = useRef(0);
+  const handleScroll = useCallback((scrollTop) => {
+    lastScrollRef.current = scrollTop;
+    if (scrollTimeoutRef.current) return;
+    scrollTimeoutRef.current = setTimeout(() => {
+      scrollTimeoutRef.current = null;
+      if (lastScrollRef.current > 0) {
+        sessionStorage.setItem(scrollKey, String(lastScrollRef.current));
+      } else {
+        sessionStorage.removeItem(scrollKey);
+      }
+    }, 200);
+  }, [scrollKey]);
+
+  // Cleanup timeout and save final position on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      // Save final scroll position
+      if (lastScrollRef.current > 0) {
+        sessionStorage.setItem(scrollKey, String(lastScrollRef.current));
+      }
+    };
+  }, [scrollKey]);
+
+  // Restore scroll position after items load
+  useEffect(() => {
+    if (items.length > 0 && !scrollRestoredRef.current) {
+      scrollRestoredRef.current = true;
+      const savedScroll = sessionStorage.getItem(scrollKey);
+      if (savedScroll) {
+        // Small delay to ensure DOM is ready after render
+        requestAnimationFrame(() => {
+          pullToRefreshRef.current?.scrollTo?.(parseInt(savedScroll, 10));
+        });
+      }
+    }
+  }, [items.length, scrollKey]);
 
   // Intersection observer for infinite scroll
   useEffect(() => {
@@ -323,6 +371,7 @@ const LibraryContent = () => {
         <PullToRefresh
           ref={pullToRefreshRef}
           onRefresh={handleRefresh}
+          onScroll={handleScroll}
         >
         <div className="p-4 space-y-2">
           {items.map((item, idx) => {
@@ -335,7 +384,6 @@ const LibraryContent = () => {
                   items={item.items || []}
                   itemCount={item.itemCount}
                   onItemClick={(nestedItem) => {
-                    // Route to correct detail page based on item type
                     if (nestedItem.type === ITEM_TYPE_VIDEO) {
                       navigate(`/libraries/${libraryId}/videos/${nestedItem.id}`);
                     } else {

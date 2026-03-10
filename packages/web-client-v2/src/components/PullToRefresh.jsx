@@ -63,11 +63,17 @@ const PullToRefresh = forwardRef(({
   const childrenRef = useRef(null);
   const pullDownRef = useRef(null);
 
-  // Expose scrollToTop method via ref
+  // Expose scroll methods via ref
   useImperativeHandle(ref, () => ({
     scrollToTop: (smooth = true) => {
       childrenRef.current?.scrollTo({
         top: 0,
+        behavior: smooth ? 'smooth' : 'instant',
+      });
+    },
+    scrollTo: (top, smooth = false) => {
+      childrenRef.current?.scrollTo({
+        top,
         behavior: smooth ? 'smooth' : 'instant',
       });
     },
