@@ -10,7 +10,7 @@ locals {
 }
 
 module "api" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.5.1"
 
   function_name = "alexandria-api"
   architecture  = "arm64"
@@ -39,7 +39,7 @@ module "api" {
 }
 
 module "api_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-apigw?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-apigw?ref=v1.5.1"
 
   function_name = module.api.function_name
   function_arn  = module.api.function_arn
@@ -66,7 +66,7 @@ module "api_trigger" {
 }
 
 module "indexer" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.5.1"
 
   function_name                  = "alexandria-indexer"
   architecture                   = "arm64"
@@ -91,7 +91,7 @@ module "indexer" {
 }
 
 module "indexer_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.5.1"
 
   function_name = module.indexer.function_name
   function_arn  = module.indexer.function_arn
@@ -140,7 +140,7 @@ module "indexer_trigger" {
 }
 
 module "consistency_manager" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.5.1"
 
   function_name = "alexandria-consistency-manager"
   architecture  = "arm64"
@@ -161,7 +161,7 @@ module "consistency_manager" {
 }
 
 module "consistency_manager_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.5.1"
 
   function_name = module.consistency_manager.function_name
   function_arn  = module.consistency_manager.function_arn
@@ -198,7 +198,7 @@ module "consistency_manager_trigger" {
 }
 
 module "user_management" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.5.1"
 
   function_name = "alexandria-user-management"
   architecture  = "arm64"
@@ -219,7 +219,7 @@ module "user_management" {
 }
 
 module "user_management_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-cognito?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-cognito?ref=v1.5.1"
 
   function_name = module.user_management.function_name
   function_arn  = module.user_management.function_arn
@@ -229,7 +229,7 @@ module "user_management_trigger" {
 
 
 module "image_processor" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.5.1"
 
   function_name = "alexandria-image-processor"
   architecture  = "arm64"
@@ -248,7 +248,7 @@ module "image_processor" {
 }
 
 module "image_processor_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-s3?ref=v1.4.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-s3?ref=v1.5.1"
 
   function_name = module.image_processor.function_name
   function_arn  = module.image_processor.function_arn
