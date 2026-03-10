@@ -27,7 +27,7 @@ const ITEM_TYPE_COLLECTION = 2;
 const LibraryContent = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
-  const { library, isSharedLibrary } = useLibraryData(libraryId);
+  const { library, isSharedLibrary, isLoading: isLibrariesLoading } = useLibraryData(libraryId);
 
   // Get items state and actions from context
   const { itemsByLibrary, fetchItems, loadMoreItems, deleteItem, lendItem, returnItem, renameCollection, deleteCollection } = useLibraries();
@@ -297,6 +297,18 @@ const LibraryContent = () => {
       }
     />
   );
+
+  // Show loading while libraries are being fetched
+  if (!library && isLibrariesLoading) {
+    return (
+      <div className="flex flex-col flex-1 min-h-0">
+        {renderAppBar()}
+        <div className="flex flex-1 items-center justify-center p-4">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
 
   if (!library) {
     return (

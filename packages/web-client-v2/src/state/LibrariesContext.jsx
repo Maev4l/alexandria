@@ -1,7 +1,7 @@
 // Edited by Claude.
 // Libraries and items state management via React Context
 // Provides shared state for libraries and their items across the application
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { librariesApi } from '@/api';
 
 const LibrariesContext = createContext(null);
@@ -24,7 +24,7 @@ const initialItemsState = {
 const mergeItems = (existing, incoming) => {
   if (!incoming || incoming.length === 0) return existing;
 
-  const result = [...existing];
+    const result = [...existing];
   for (const item of incoming) {
     // Check if this is a partial collection that continues from previous page
     if (item.type === ITEM_TYPE_COLLECTION && item.partial) {
@@ -74,6 +74,11 @@ export const LibrariesProvider = ({ children }) => {
       setHasLoaded(true);
     }
   }, []);
+
+  // Auto-fetch libraries on mount (handles direct URL access and reloads)
+  useEffect(() => {
+    fetchLibraries();
+  }, [fetchLibraries]);
 
   // Create a new library
   const createLibrary = useCallback(async (data) => {
