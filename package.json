@@ -14,7 +14,6 @@
   },
   "workspaces": [
     "packages/functions",
-    "packages/web-client",
     "packages/web-client-v2",
     "packages/infrastructure",
     "packages/cli"
