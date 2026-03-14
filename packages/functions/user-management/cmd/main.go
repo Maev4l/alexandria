@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/Maev4l/platform/users-management/pkg/cognito"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 func main() {
@@ -20,6 +20,13 @@ func main() {
 			Target:            "slack",
 			Content:           fmt.Sprintf("Awaiting registration for %s", event.Email),
 		}, true
+	}
+
+	handler.GetCustomAttributes = func(ctx context.Context, event *cognito.PostConfirmationEvent) ([]cognito.Attribute, error) {
+		attrs := []cognito.Attribute{
+			{Name: "custom:Approved", Value: "false"},
+		}
+		return attrs, nil
 	}
 
 	lambda.Start(handler.Handle)

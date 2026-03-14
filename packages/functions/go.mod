@@ -3,7 +3,7 @@ module alexandria.isnan.eu/functions
 go 1.25.0
 
 require (
-	github.com/Maev4l/platform/users-management v1.0.0
+	github.com/Maev4l/platform/users-management v1.1.0
 	github.com/aereal/go-dynamodb-attribute-conversions/v2 v2.0.24
 	github.com/aws/aws-lambda-go v1.47.0
 	github.com/aws/aws-sdk-go-v2 v1.41.2
@@ -24,7 +24,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/lestrrat-go/jwx v1.2.28
 	github.com/microcosm-cc/bluemonday v1.0.26
-	github.com/refraction-networking/utls v1.8.2
 	github.com/rs/zerolog v1.33.0
 	github.com/skowalak/isbn v0.0.0-20240205221643-aa3ad5df03ab
 	golang.org/x/net v0.38.0
@@ -34,7 +33,6 @@ require (
 require (
 	github.com/PuerkitoBio/goquery v1.8.1 // indirect
 	github.com/RoaringBitmap/roaring v1.2.3 // indirect
-	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/antchfx/htmlquery v1.2.3 // indirect
 	github.com/antchfx/xmlquery v1.2.4 // indirect
