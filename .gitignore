@@ -13,3 +13,6 @@ dist/
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
+
+# Drawio
+*.bkp
