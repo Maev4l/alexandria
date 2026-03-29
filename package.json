@@ -3,20 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "cli:build": "yarn workspace @alexandria/cli build",
-    "infra:apply": "yarn workspace @alexandria/infrastructure deploy",
-    "backend:build": "yarn workspace @alexandria/functions build",
-    "backend:deploy": "yarn backend:build && yarn workspace @alexandria/functions push-images-processing && yarn infra:apply",
-    "frontend:build": "yarn workspace @alexandria/infrastructure output && yarn workspace @alexandria/web-client-v2 build",
-    "frontend:sync": "aws s3 sync packages/web-client-v2/dist s3://$(cd packages/infrastructure && terraform output -raw webclient_bucket) --delete",
-    "frontend:deploy": "yarn frontend:build && yarn frontend:sync && yarn workspace @alexandria/infrastructure invalidate-frontend",
-    "frontend:serve": "yarn workspace @alexandria/web-client-v2 dev"
-  },
-  "workspaces": [
-    "packages/functions",
-    "packages/web-client-v2",
-    "packages/infrastructure",
-    "packages/cli"
-  ],
-  "devDependencies": {}
+    "cli:build": "make -C packages/cli build",
+    "infra:apply": "terraform -chdir=packages/infrastructure apply -auto-approve",
+    "infra:output": "terraform -chdir=packages/infrastructure output -json | jq '{alexandriaUserPoolId: .cognito_user_pool_id.value, alexandriaClientId: .cognito_user_pool_client_id.value, apiEndpoint: .api_endpoint.value}' | tee ./packages/web-client-v2/output.json ./packages/cli/bin/config.json > /dev/null",
+    "backend:build": "make -C packages/functions build && docker buildx build --platform linux/arm64 -t alexandria/images-processing -f ./packages/functions/images-processing/Dockerfile ./packages/functions/images-processing --provenance false && docker tag alexandria/images-processing 671123374425.dkr.ecr.eu-central-1.amazonaws.com/alexandria/images-processing && docker image prune --force",
+    "backend:deploy": " make -C packages/functions package && aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 671123374425.dkr.ecr.eu-central-1.amazonaws.com && docker push 671123374425.dkr.ecr.eu-central-1.amazonaws.com/alexandria/images-processing && yarn infra:apply",
+    "frontend:build": "yarn infra:output && yarn --cwd packages/web-client-v2 build",
+    "frontend:sync": "aws s3 sync packages/web-client-v2/dist s3://$(terraform -chdir=packages/infrastructure output -raw webclient_bucket) --delete",
+    "frontend:invalidate": "aws cloudfront create-invalidation --path '/*' --distribution-id $(terraform -chdir=packages/infrastructure output -raw cloudfront_distribution_id)",
+    "frontend:deploy": "yarn frontend:build && yarn frontend:sync && yarn frontend:invalidate",
+    "frontend:serve": "yarn --cwd packages/web-client-v2 dev",
+    "resync-index": "aws lambda invoke --function-name alexandria-index-items --payload '{\"action\":\"fullResync\"}' --cli-binary-format raw-in-base64-out /dev/stdout"
+  }
 }
