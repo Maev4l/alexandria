@@ -79,6 +79,8 @@ const EditBook = () => {
     if (collection) {
       setCollectionId(collection.id);
       setCollectionName(collection.name);
+      // Default order to 1 when assigning to a collection for the first time
+      if (!order) setOrder('1');
     } else {
       // "None" selected - remove from collection
       setCollectionId(null);
