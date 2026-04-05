@@ -184,7 +184,9 @@ const BookDetectionResults = () => {
             </p>
           </div>
           <button
-            onClick={() => navigate(`/libraries/${libraryId}/books/new`)}
+            onClick={() => navigate(`/libraries/${libraryId}/books/new`, {
+              state: { collection, order }
+            })}
             className="text-sm text-primary hover:underline"
           >
             Enter details manually

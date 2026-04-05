@@ -97,13 +97,15 @@ const VideoDetectionResults = () => {
           <Film className="h-12 w-12 text-muted-foreground/50 mb-4" />
           <p className="text-lg font-medium">No results found</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Try searching with a different title
+            No videos found in TMDB database
           </p>
           <button
-            onClick={handleBack}
+            onClick={() => navigate(`/libraries/${libraryId}/videos/new`, {
+              state: { collection, order }
+            })}
             className="mt-4 text-sm text-primary hover:underline"
           >
-            Go back
+            Enter details manually
           </button>
         </div>
       </div>
