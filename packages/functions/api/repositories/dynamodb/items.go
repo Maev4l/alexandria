@@ -686,8 +686,9 @@ type CollectionContext struct {
 }
 
 // QueryLibraryContentGrouped returns library content with collections nested with their items.
-// Collections and items share the same GSI1SK prefix ("item#"), sorted alphabetically.
-// Items with Type=ItemCollection have their Items field populated with nested items.
+// Uses two-pass grouping: first collects all records, then groups items into their collections
+// by collectionId (not relying on sort order, which can break when standalone item titles
+// start with a collection name due to space sorting before #).
 func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, continuationToken string, pageSize int) (*domain.GroupedLibraryContent, error) {
 	query := dynamodb.QueryInput{
 		TableName:              aws.String(tableName),
@@ -728,27 +729,42 @@ func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, co
 		return nil, err
 	}
 
-	// State machine: process records and group collection items
-	items := []*domain.LibraryItem{}
-	var currentCollection *domain.LibraryItem // Type=ItemCollection with Items populated
+	// Two-pass grouping algorithm:
+	// Pass 1: Parse all records, build collections map and ordered list of all entities
+	// Pass 2: Assign items to their collections, build final output
 
-	// If resuming mid-collection, initialize from pagination state
+	// Collections indexed by ID for quick lookup
+	collectionsMap := make(map[string]*domain.LibraryItem)
+	// Track which items belong to which collection (collectionId -> list of items)
+	collectionItems := make(map[string][]*domain.LibraryItem)
+	// Ordered list of entity IDs/types as they appear in query results (for output ordering)
+	type entityRef struct {
+		id           string
+		isCollection bool
+	}
+	orderedEntities := []entityRef{}
+	// Standalone items (no collection)
+	standaloneItems := make(map[string]*domain.LibraryItem)
+
+	// If resuming mid-collection from pagination, initialize the partial collection
+	var partialCollection *domain.LibraryItem
 	if paginationState != nil && paginationState.CollectionCtx != nil {
-		currentCollection = &domain.LibraryItem{
+		partialCollection = &domain.LibraryItem{
 			Id:        paginationState.CollectionCtx.Id,
 			Title:     paginationState.CollectionCtx.Name,
 			Summary:   paginationState.CollectionCtx.Description,
-			OwnerId:   ownerId,   // Needed for response serialization
-			LibraryId: libraryId, // Needed for response serialization
+			OwnerId:   ownerId,
+			LibraryId: libraryId,
 			Type:      domain.ItemCollection,
 			Items:     []*domain.LibraryItem{},
 			ItemCount: paginationState.CollectionCtx.ItemCount,
-			Partial:   true, // Mark as continuation from previous page
+			Partial:   true,
 		}
+		collectionsMap[partialCollection.Id] = partialCollection
 	}
 
+	// Pass 1: Parse all records
 	for _, item := range result.Items {
-		// Determine entity type
 		entityTypeAttr, ok := item["EntityType"]
 		if !ok {
 			log.Warn().Msg("Record missing EntityType, skipping")
@@ -757,19 +773,13 @@ func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, co
 		entityType := entityTypeAttr.(*types.AttributeValueMemberS).Value
 
 		if entityType == string(persistence.TypeCollection) {
-			// Flush current collection to items
-			if currentCollection != nil {
-				items = append(items, currentCollection)
-			}
-
-			// Start new collection (Type=ItemCollection)
 			record := persistence.Collection{}
 			if err := attributevalue.UnmarshalMap(item, &record); err != nil {
 				log.Warn().Msgf("Failed to unmarshal collection: %s", err.Error())
 				continue
 			}
 
-			currentCollection = &domain.LibraryItem{
+			collection := &domain.LibraryItem{
 				Id:        record.Id,
 				Title:     record.Name,
 				Summary:   record.Description,
@@ -781,6 +791,8 @@ func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, co
 				ItemCount: record.ItemCount,
 				Partial:   false,
 			}
+			collectionsMap[record.Id] = collection
+			orderedEntities = append(orderedEntities, entityRef{id: record.Id, isCollection: true})
 		} else {
 			// BOOK or VIDEO item
 			record := persistence.LibraryItem{}
@@ -791,47 +803,78 @@ func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, co
 
 			domainItem := mapRecordToLibraryItem(&record)
 
-			// Check if item belongs to current collection
-			if currentCollection != nil && record.CollectionId != nil && *record.CollectionId == currentCollection.Id {
-				// Item belongs to current collection
-				currentCollection.Items = append(currentCollection.Items, domainItem)
-			} else if record.CollectionId != nil && *record.CollectionId != "" {
-				// Item belongs to a DIFFERENT collection - flush current and add item
-				if currentCollection != nil {
-					items = append(items, currentCollection)
-					currentCollection = nil
-				}
-				items = append(items, domainItem)
+			if record.CollectionId != nil && *record.CollectionId != "" {
+				// Item belongs to a collection - add to collection items map
+				collectionItems[*record.CollectionId] = append(collectionItems[*record.CollectionId], domainItem)
 			} else {
-				// Standalone item (no collectionId) - flush currentCollection first to preserve sort order
-				if currentCollection != nil {
-					items = append(items, currentCollection)
-					currentCollection = nil
-				}
-				items = append(items, domainItem)
+				// Standalone item
+				standaloneItems[record.Id] = domainItem
+				orderedEntities = append(orderedEntities, entityRef{id: record.Id, isCollection: false})
+			}
+		}
+	}
+
+	// Pass 2: Assign items to their collections
+	for collId, items := range collectionItems {
+		if collection, exists := collectionsMap[collId]; exists {
+			collection.Items = append(collection.Items, items...)
+		} else {
+			// Collection not in this page - items appear as standalone with their collection info preserved
+			for _, item := range items {
+				standaloneItems[item.Id] = item
+				orderedEntities = append(orderedEntities, entityRef{id: item.Id, isCollection: false})
+			}
+		}
+	}
+
+	// Pass 3: Build output maintaining query order
+	// First, add partial collection from previous page if any
+	outputItems := []*domain.LibraryItem{}
+	if partialCollection != nil {
+		outputItems = append(outputItems, partialCollection)
+	}
+
+	// Add entities in query order
+	for _, ref := range orderedEntities {
+		if ref.isCollection {
+			if coll, ok := collectionsMap[ref.id]; ok {
+				outputItems = append(outputItems, coll)
+			}
+		} else {
+			if item, ok := standaloneItems[ref.id]; ok {
+				outputItems = append(outputItems, item)
 			}
 		}
 	}
 
 	// Build continuation token with collection context
 	content := &domain.GroupedLibraryContent{
-		Items: items,
+		Items: outputItems,
 	}
 
 	if result.LastEvaluatedKey != nil {
-		// More pages coming - include currentCollection in output AND save context for merging
 		newState := &PaginationState{
 			LastEvaluatedKey: result.LastEvaluatedKey,
 		}
-		if currentCollection != nil {
-			// Include collection in this page's output so frontend sees it
-			content.Items = append(content.Items, currentCollection)
-			// Save context so next page can merge additional items
+
+		// Check if last item in output is a collection that might continue on next page
+		// Find the last collection in collectionsMap that has items
+		var lastCollectionWithItems *domain.LibraryItem
+		for _, ref := range orderedEntities {
+			if ref.isCollection {
+				if coll, ok := collectionsMap[ref.id]; ok && len(coll.Items) > 0 {
+					lastCollectionWithItems = coll
+				}
+			}
+		}
+
+		if lastCollectionWithItems != nil && lastCollectionWithItems.ItemCount > len(lastCollectionWithItems.Items) {
+			// Collection might have more items on next page
 			newState.CollectionCtx = &CollectionContext{
-				Id:          currentCollection.Id,
-				Name:        currentCollection.Title,
-				Description: currentCollection.Summary,
-				ItemCount:   currentCollection.ItemCount,
+				Id:          lastCollectionWithItems.Id,
+				Name:        lastCollectionWithItems.Title,
+				Description: lastCollectionWithItems.Summary,
+				ItemCount:   lastCollectionWithItems.ItemCount,
 			}
 		}
 
@@ -841,11 +884,6 @@ func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, co
 			return nil, errors.New("unable to serialize continuation token")
 		}
 		content.ContinuationToken = *nextToken
-	} else {
-		// No more pages - flush remaining collection
-		if currentCollection != nil {
-			content.Items = append(content.Items, currentCollection)
-		}
 	}
 
 	return content, nil

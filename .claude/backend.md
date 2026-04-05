@@ -165,7 +165,7 @@ Table: alexandria
 | Entity         | PK                    | SK                                              | GSI1PK                                          | GSI1SK                              |
 | -------------- | --------------------- | ----------------------------------------------- | ----------------------------------------------- | ----------------------------------- |
 | LIBRARY        | `owner#<ownerId>`     | `library#<libraryId>`                           | `owner#<ownerId>`                               | `library#<name>`                    |
-| COLLECTION     | `owner#<ownerId>`     | `library#<libId>#collection#<collectionId>`     | `owner#<ownerId>#library#<libId>`               | `collection#<name>`                 |
+| COLLECTION     | `owner#<ownerId>`     | `library#<libId>#collection#<collectionId>`     | `owner#<ownerId>#library#<libId>`               | `item#<name>`                       |
 | LIBRARY_ITEM   | `owner#<ownerId>`     | `library#<libId>#item#<itemId>`                 | `owner#<ownerId>#library#<libId>`               | `item#<collection>#<order>#<title>` |
 | SHARED_LIBRARY | `owner#<recipientId>` | `shared-library#<libraryId>`                    | -                                               | -                                   |
 | ITEM_EVENT     | `owner#<ownerId>`     | `library#<libId>#item#<itemId>#event#<ISO8601>` | `owner#<ownerId>#library#<libId>#item#<itemId>` | `event#<ISO8601>`                   |
@@ -174,8 +174,13 @@ Table: alexandria
 
 `persistence/models.go:93-100`: Sort key format varies based on collection/order presence:
 
-- With collection: `item#<collection>#<order_padded_5digits>#<title>`
-- Without: `item#<title>`
+- Collection: `item#<name>` (same prefix as items so they're queried together)
+- Item with collection: `item#<collection>#<order_padded_5digits>#<title>`
+- Item without collection: `item#<title>`
+
+**Note**: The grouping algorithm uses two-pass collection-by-ID lookup instead of relying on sort order,
+because standalone items whose titles start with a collection name can sort between the collection and
+its items (space ASCII 32 < hash ASCII 35).
 
 #### Denormalization (Intentional)
 
