@@ -15,7 +15,7 @@ module "api" {
   function_name = "alexandria-api"
   architecture  = "arm64"
   memory_size   = 128
-  timeout       = 7
+  timeout       = 20
 
   additional_policy_arns = [aws_iam_policy.api.arn]
 
@@ -35,6 +35,7 @@ module "api" {
     SHARE_LIBRARIES_FILE_NAME = local.sharedLibrariesFilename
     LEK_SECRET_KEY            = "alexandria.lastevaluatedkey.secret"
     TMDB_ACCESS_TOKEN         = "alexandria.tmdb.access.token"
+    SCRAPER_PROXY_API_KEY     = "alexandria.scraper.proxy.api.key"
   }
 }
 

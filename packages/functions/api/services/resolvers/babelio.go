@@ -15,16 +15,90 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"alexandria.isnan.eu/functions/api/ports"
 	"alexandria.isnan.eu/functions/internal/domain"
 	"golang.org/x/net/html/charset"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/gocolly/colly"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/rs/zerolog/log"
 )
+
+// SSM parameter name for ScraperAPI key (optional - if not set, direct requests are used)
+var scraperAPIKeyParam = os.Getenv("SCRAPER_PROXY_API_KEY")
+
+// Cached ScraperAPI key with one-time fetch from SSM
+var (
+	scraperAPIKey     string
+	scraperAPIKeyOnce sync.Once
+	scraperAPIKeyErr  error
+)
+
+// getScraperAPIKey fetches the API key from SSM once, caching the result
+// Returns empty string if not configured (graceful fallback to direct requests)
+func getScraperAPIKey() string {
+	scraperAPIKeyOnce.Do(func() {
+		if scraperAPIKeyParam == "" {
+			log.Debug().Str("source", "Babelio").Msg("SCRAPER_PROXY_API_KEY env var not set - using direct requests")
+			return
+		}
+
+		region := os.Getenv("REGION")
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
+		if err != nil {
+			scraperAPIKeyErr = err
+			log.Warn().Str("source", "Babelio").Err(err).Msg("Failed to load AWS config for ScraperAPI key - using direct requests")
+			return
+		}
+
+		ssmClient := ssm.NewFromConfig(cfg)
+		withDecryption := true
+		output, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
+			Name:           &scraperAPIKeyParam,
+			WithDecryption: &withDecryption,
+		})
+		if err != nil {
+			scraperAPIKeyErr = err
+			log.Warn().Str("source", "Babelio").Err(err).Msg("Failed to fetch ScraperAPI key from SSM - using direct requests")
+			return
+		}
+
+		scraperAPIKey = *output.Parameter.Value
+		log.Info().Str("source", "Babelio").Msg("ScraperAPI key loaded - requests will use proxy")
+	})
+
+	return scraperAPIKey
+}
+
+// buildScraperAPIUrl wraps a target URL with ScraperAPI URL method
+// Uses country_code=fr for French IPs (standard datacenter IPs, 1 credit per request)
+func buildScraperAPIUrl(apiKey, targetUrl string) string {
+	return fmt.Sprintf("http://api.scraperapi.com?api_key=%s&country_code=fr&url=%s",
+		apiKey,
+		url.QueryEscape(targetUrl))
+}
+
+// createProxyClient creates an HTTP client configured to use ScraperAPI proxy mode
+// Proxy mode supports all HTTP methods (GET, POST, etc.) unlike the URL method
+func createProxyClient(apiKey string) *http.Client {
+	// ScraperAPI proxy format: http://scraperapi:API_KEY@proxy-server.scraperapi.com:8001
+	proxyURL, _ := url.Parse(fmt.Sprintf("http://scraperapi.country_code=fr:%s@proxy-server.scraperapi.com:8001", apiKey))
+
+	return &http.Client{
+		Timeout: 15 * time.Second,
+		Transport: &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+			TLSClientConfig: &tls.Config{
+				MinVersion: tls.VersionTLS12,
+			},
+		},
+	}
+}
 
 // stripHTMLPolicy strips all HTML tags from text
 var stripHTMLPolicy = bluemonday.StripTagsPolicy()
@@ -108,20 +182,69 @@ func (r *babelioResolver) Name() string {
 }
 
 func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
+	// Check if ScraperAPI is available for proxied requests
+	apiKey := getScraperAPIKey()
+	useProxy := apiKey != ""
+
 	// Go directly to ISBN page instead of using search API
-	isbnUrl := fmt.Sprintf("%s/isbn/%s", r.url, code)
+	directUrl := fmt.Sprintf("%s/isbn/%s", r.url, code)
+	isbnUrl := directUrl
+	if useProxy {
+		isbnUrl = buildScraperAPIUrl(apiKey, directUrl)
+	}
 
 	c := colly.NewCollector()
-	c.SetRequestTimeout(5 * time.Second)
+	// Increase timeout when using proxy (adds ~1-2s latency)
+	timeout := 5 * time.Second
+	if useProxy {
+		timeout = 15 * time.Second
+	}
+	c.SetRequestTimeout(timeout)
 	c.DetectCharset = true
 	c.WithTransport(createBrowserTransport())
 
 	c.OnRequest(func(req *colly.Request) {
-		req.Headers.Set("User-Agent", randomUserAgent())
+		ua := randomUserAgent()
+		req.Headers.Set("User-Agent", ua)
 		req.Headers.Set("Referer", r.url)
 		for k, v := range browserHeaders {
 			req.Headers.Set(k, v)
 		}
+		log.Debug().Str("source", "Babelio").Str("url", directUrl).Bool("proxy", useProxy).Str("user-agent", ua).Msg("Sending request")
+	})
+
+	// Diagnostic logging for response - helps identify blocks/captchas
+	c.OnResponse(func(resp *colly.Response) {
+		log.Debug().
+			Str("source", "Babelio").
+			Int("status", resp.StatusCode).
+			Str("content-type", resp.Headers.Get("Content-Type")).
+			Str("server", resp.Headers.Get("Server")).
+			Int("body_length", len(resp.Body)).
+			Msg("Received response")
+
+		// Log body snippet if status is not 200 or body is suspiciously small
+		if resp.StatusCode != 200 || len(resp.Body) < 1000 {
+			snippet := string(resp.Body)
+			if len(snippet) > 500 {
+				snippet = snippet[:500]
+			}
+			log.Warn().
+				Str("source", "Babelio").
+				Int("status", resp.StatusCode).
+				Str("body_snippet", snippet).
+				Msg("Suspicious response - possible block or error page")
+		}
+	})
+
+	// Log scraping errors with details
+	c.OnError(func(resp *colly.Response, err error) {
+		log.Error().
+			Str("source", "Babelio").
+			Str("url", resp.Request.URL.String()).
+			Int("status", resp.StatusCode).
+			Str("error", err.Error()).
+			Msg("Request failed")
 	})
 
 	resolvedBook := domain.ResolvedBook{
@@ -157,6 +280,12 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		}
 	})
 
+	// Create proxy client for POST requests if ScraperAPI is enabled
+	var proxyClient *http.Client
+	if useProxy {
+		proxyClient = createProxyClient(apiKey)
+	}
+
 	needExpandSummary := false
 	c.OnHTML("a[onclick*='voir_plus_a']", func(e *colly.HTMLElement) {
 		needExpandSummary = true
@@ -180,15 +309,22 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		moreSummaryRequest.Host = "www.babelio.com"
 		moreSummaryRequest.Header.Set("User-Agent", randomUserAgent())
 		moreSummaryRequest.Header.Set("Origin", r.url)
-		moreSummaryRequest.Header.Set("Referer", isbnUrl)
+		moreSummaryRequest.Header.Set("Referer", directUrl)
 		moreSummaryRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 		for k, v := range browserHeaders {
 			moreSummaryRequest.Header.Set(k, v)
 		}
 
-		moreSummaryResponse, err := r.client.Do(moreSummaryRequest)
+		// Use proxy client for POST if available, otherwise direct client
+		client := r.client
+		if useProxy {
+			client = proxyClient
+			log.Debug().Str("source", "Babelio").Msg("Using proxy for expanded summary POST request")
+		}
+
+		moreSummaryResponse, err := client.Do(moreSummaryRequest)
 		if err != nil {
-			log.Error().Str("source", "Babelio").Msgf("Failed to request expanded summary: %s", err.Error())
+			log.Error().Str("source", "Babelio").Bool("proxy", useProxy).Msgf("Failed to request expanded summary: %s", err.Error())
 			return
 		}
 		defer func() { _ = moreSummaryResponse.Body.Close() }()
@@ -238,10 +374,26 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 
 	// Check if we found a book (title is required)
 	if resolvedBook.Title == "" {
-		log.Info().Str("source", "Babelio").Msgf("No book found for ISBN: %s", code)
+		log.Warn().
+			Str("source", "Babelio").
+			Str("isbn", code).
+			Str("id", resolvedBook.Id).
+			Int("authors_count", len(resolvedBook.Authors)).
+			Bool("has_picture", resolvedBook.PictureUrl != nil).
+			Bool("has_summary", resolvedBook.Summary != "").
+			Msg("No title found - selectors may have failed or page structure changed")
 		ch <- []domain.ResolvedBook{}
 		return
 	}
+
+	log.Debug().
+		Str("source", "Babelio").
+		Str("isbn", code).
+		Str("title", resolvedBook.Title).
+		Int("authors_count", len(resolvedBook.Authors)).
+		Bool("has_picture", resolvedBook.PictureUrl != nil).
+		Bool("has_summary", resolvedBook.Summary != "").
+		Msg("Successfully resolved book")
 
 	ch <- []domain.ResolvedBook{resolvedBook}
 }

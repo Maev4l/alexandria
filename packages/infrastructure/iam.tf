@@ -69,7 +69,8 @@ data "aws_iam_policy_document" "api" {
     actions = ["ssm:GetParameter"]
     resources = [
       "arn:aws:ssm:${local.region}:${local.account_id}:parameter/alexandria.lastevaluatedkey.secret",
-      "arn:aws:ssm:${local.region}:${local.account_id}:parameter/alexandria.tmdb.access.token"
+      "arn:aws:ssm:${local.region}:${local.account_id}:parameter/alexandria.tmdb.access.token",
+      "arn:aws:ssm:${local.region}:${local.account_id}:parameter/alexandria.scraper.proxy.api.key"
     ]
   }
 }
