@@ -46,8 +46,8 @@ const NewBook = () => {
     setCoverError(false);
   };
 
-  // Title is required, and order is required when collection is selected
-  const canSubmit = title.trim() && (!collection || order.trim()) && !isSubmitting;
+  // Title is required. Order is optional (server auto-calculates if not provided)
+  const canSubmit = title.trim() && !isSubmitting;
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit || !libraryId) return;
@@ -189,7 +189,7 @@ const NewBook = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="order">Order *</Label>
+                <Label htmlFor="order">Order</Label>
                 <Input
                   id="order"
                   type="number"
@@ -199,8 +199,7 @@ const NewBook = () => {
                   max="1000"
                   value={order}
                   onChange={(e) => setOrder(e.target.value)}
-                  placeholder="1"
-                  required
+                  placeholder="Auto"
                 />
               </div>
             </div>

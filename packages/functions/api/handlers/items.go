@@ -33,12 +33,9 @@ func (h *HTTPHandler) validateItemPayload(item *domain.LibraryItem) error {
 	}
 
 	if item.CollectionId != nil && *item.CollectionId != "" {
-		if item.Order == nil {
-			return errors.New("invalid request - order must be specified when collectionId is set")
-		}
-
-		// Order must be positive (1-1000) for correct GSI1SK sorting with %05d padding
-		if *item.Order < 1 || *item.Order > 1000 {
+		// Order is optional - will be auto-calculated by service layer if not provided
+		// Validate range only if order is explicitly set
+		if item.Order != nil && (*item.Order < 1 || *item.Order > 1000) {
 			return errors.New("invalid request - invalid order (must be between 1 and 1000)")
 		}
 	}

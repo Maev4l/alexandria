@@ -33,4 +33,5 @@ type Database interface {
 	GetCollectionByName(ownerId string, libraryId string, name string) (*domain.Collection, error)
 	QueryCollectionsByLibrary(ownerId string, libraryId string) ([]domain.Collection, error)
 	IncrementCollectionItemCount(ownerId string, libraryId string, collectionId string, delta int) error
+	GetMaxOrderInCollection(ownerId string, libraryId string, collectionId string) (int, error)
 }

@@ -223,7 +223,7 @@ const LibraryContent = () => {
   const handleAddBookToCollection = useCallback(() => {
     if (!selectedCollection) return;
     navigate(`/libraries/${libraryId}/add-book`, {
-      state: { collection: selectedCollection, order: '1' }
+      state: { collection: selectedCollection }
     });
   }, [selectedCollection, libraryId, navigate]);
 
@@ -231,7 +231,7 @@ const LibraryContent = () => {
   const handleAddVideoToCollection = useCallback(() => {
     if (!selectedCollection) return;
     navigate(`/libraries/${libraryId}/add-video`, {
-      state: { collection: selectedCollection, order: '1' }
+      state: { collection: selectedCollection }
     });
   }, [selectedCollection, libraryId, navigate]);
 

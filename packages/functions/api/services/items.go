@@ -162,6 +162,22 @@ func (s *services) UpdateItem(i *domain.LibraryItem, fetchPic bool) error {
 			return errors.New(msg)
 		}
 		i.CollectionName = &collection.Name
+
+		// Auto-calculate order if not provided and item is being added/moved to a collection
+		oldCollectionId := ""
+		if currentItem.CollectionId != nil {
+			oldCollectionId = *currentItem.CollectionId
+		}
+		isNewToCollection := oldCollectionId != *i.CollectionId
+		if i.Order == nil && isNewToCollection {
+			maxOrder, err := s.db.GetMaxOrderInCollection(i.OwnerId, i.LibraryId, *i.CollectionId)
+			if err != nil {
+				return err
+			}
+			newOrder := maxOrder + 1
+			i.Order = &newOrder
+			log.Debug().Str("collectionId", *i.CollectionId).Int("order", newOrder).Msg("Auto-calculated order for moved item")
+		}
 	} else {
 		// Clearing collection
 		i.CollectionName = nil
@@ -239,6 +255,17 @@ func (s *services) CreateItem(i *domain.LibraryItem) (*domain.LibraryItem, error
 			return nil, errors.New(msg)
 		}
 		i.CollectionName = &collection.Name
+
+		// Auto-calculate order if not provided
+		if i.Order == nil {
+			maxOrder, err := s.db.GetMaxOrderInCollection(i.OwnerId, i.LibraryId, *i.CollectionId)
+			if err != nil {
+				return nil, err
+			}
+			newOrder := maxOrder + 1
+			i.Order = &newOrder
+			log.Debug().Str("collectionId", *i.CollectionId).Int("order", newOrder).Msg("Auto-calculated order for new item")
+		}
 	}
 
 	current := time.Now().UTC()

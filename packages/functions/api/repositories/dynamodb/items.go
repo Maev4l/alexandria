@@ -1019,3 +1019,65 @@ func deserializePaginationState(token string) (*PaginationState, error) {
 		CollectionCtx:    jsonState.CollectionCtx,
 	}, nil
 }
+
+// GetMaxOrderInCollection returns the maximum order value among items in a collection.
+// Returns 0 if the collection has no items.
+func (d *dynamo) GetMaxOrderInCollection(ownerId string, libraryId string, collectionId string) (int, error) {
+	// Query all items in the library and filter by collectionId
+	// We use a filter expression since there's no GSI on collectionId
+	query := dynamodb.QueryInput{
+		TableName:              aws.String(tableName),
+		IndexName:              aws.String("GSI1"),
+		KeyConditionExpression: aws.String("#GSI1PK = :gsi1pk and begins_with(#GSI1SK,:library_item_prefix)"),
+		FilterExpression:       aws.String("#CollectionId = :collectionId"),
+		ProjectionExpression:   aws.String("#Order"),
+		ExpressionAttributeNames: map[string]string{
+			"#GSI1PK":       "GSI1PK",
+			"#GSI1SK":       "GSI1SK",
+			"#CollectionId": "CollectionId",
+			"#Order":        "Order",
+		},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":gsi1pk": &types.AttributeValueMemberS{
+				Value: persistence.MakeLibraryItemGSI1PK(ownerId, libraryId),
+			},
+			":library_item_prefix": &types.AttributeValueMemberS{
+				Value: "item#",
+			},
+			":collectionId": &types.AttributeValueMemberS{
+				Value: collectionId,
+			},
+		},
+	}
+
+	maxOrder := 0
+
+	// Paginate through all items to find max order
+	for {
+		result, err := d.client.Query(context.TODO(), &query)
+		if err != nil {
+			log.Error().Str("collectionId", collectionId).Msgf("Failed to query collection items: %s", err.Error())
+			return 0, err
+		}
+
+		for _, item := range result.Items {
+			if orderAttr, ok := item["Order"]; ok {
+				if orderVal, ok := orderAttr.(*types.AttributeValueMemberN); ok {
+					var order int
+					if _, err := fmt.Sscanf(orderVal.Value, "%d", &order); err == nil {
+						if order > maxOrder {
+							maxOrder = order
+						}
+					}
+				}
+			}
+		}
+
+		if result.LastEvaluatedKey == nil {
+			break
+		}
+		query.ExclusiveStartKey = result.LastEvaluatedKey
+	}
+
+	return maxOrder, nil
+}

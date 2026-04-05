@@ -39,8 +39,8 @@ const NewVideo = () => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  // Title is required, and order is required when collection is selected
-  const canSubmit = form.title.trim() && (!collection || form.order.trim()) && !isSubmitting;
+  // Title is required. Order is optional (server auto-calculates if not provided)
+  const canSubmit = form.title.trim() && !isSubmitting;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -180,7 +180,7 @@ const NewVideo = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="order">Order *</Label>
+              <Label htmlFor="order">Order</Label>
               <Input
                 id="order"
                 type="number"
@@ -190,8 +190,7 @@ const NewVideo = () => {
                 max="1000"
                 value={form.order}
                 onChange={handleChange('order')}
-                placeholder="1"
-                required
+                placeholder="Auto"
               />
             </div>
           </div>
