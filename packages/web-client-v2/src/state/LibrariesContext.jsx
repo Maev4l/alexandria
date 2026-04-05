@@ -283,9 +283,10 @@ export const LibrariesProvider = ({ children }) => {
   }, [invalidateItems]);
 
   // Delete an item from a library
+  // Handles both top-level items and items nested inside collections
   const deleteItem = useCallback(async (libraryId, itemId) => {
     await librariesApi.deleteItem(libraryId, itemId);
-    // Remove from local state
+    // Remove from local state (check both top-level and inside collections)
     setItemsByLibrary((prev) => {
       const current = prev[libraryId];
       if (!current) return prev;
@@ -293,7 +294,19 @@ export const LibrariesProvider = ({ children }) => {
         ...prev,
         [libraryId]: {
           ...current,
-          items: current.items.filter((item) => item.id !== itemId),
+          items: current.items
+            .filter((item) => item.id !== itemId)
+            .map((item) => {
+              // If this is a collection, also filter its nested items
+              if (item.type === ITEM_TYPE_COLLECTION && item.items) {
+                return {
+                  ...item,
+                  items: item.items.filter((nested) => nested.id !== itemId),
+                  itemCount: item.items.filter((nested) => nested.id !== itemId).length,
+                };
+              }
+              return item;
+            }),
         },
       };
     });
@@ -308,9 +321,10 @@ export const LibrariesProvider = ({ children }) => {
   }, []);
 
   // Lend an item to a person
+  // Handles both top-level items and items nested inside collections
   const lendItem = useCallback(async (libraryId, itemId, personName) => {
     await librariesApi.createItemEvent(libraryId, itemId, { type: 'LENT', event: personName });
-    // Update local state to reflect lent status
+    // Update local state to reflect lent status (check both top-level and inside collections)
     setItemsByLibrary((prev) => {
       const current = prev[libraryId];
       if (!current) return prev;
@@ -318,18 +332,31 @@ export const LibrariesProvider = ({ children }) => {
         ...prev,
         [libraryId]: {
           ...current,
-          items: current.items.map((item) =>
-            item.id === itemId ? { ...item, lentTo: personName } : item
-          ),
+          items: current.items.map((item) => {
+            if (item.id === itemId) {
+              return { ...item, lentTo: personName };
+            }
+            // If this is a collection, also check its nested items
+            if (item.type === ITEM_TYPE_COLLECTION && item.items) {
+              return {
+                ...item,
+                items: item.items.map((nested) =>
+                  nested.id === itemId ? { ...nested, lentTo: personName } : nested
+                ),
+              };
+            }
+            return item;
+          }),
         },
       };
     });
   }, []);
 
   // Return a lent item
+  // Handles both top-level items and items nested inside collections
   const returnItem = useCallback(async (libraryId, itemId, personName) => {
     await librariesApi.createItemEvent(libraryId, itemId, { type: 'RETURNED', event: personName });
-    // Update local state to clear lent status
+    // Update local state to clear lent status (check both top-level and inside collections)
     setItemsByLibrary((prev) => {
       const current = prev[libraryId];
       if (!current) return prev;
@@ -337,9 +364,21 @@ export const LibrariesProvider = ({ children }) => {
         ...prev,
         [libraryId]: {
           ...current,
-          items: current.items.map((item) =>
-            item.id === itemId ? { ...item, lentTo: null } : item
-          ),
+          items: current.items.map((item) => {
+            if (item.id === itemId) {
+              return { ...item, lentTo: null };
+            }
+            // If this is a collection, also check its nested items
+            if (item.type === ITEM_TYPE_COLLECTION && item.items) {
+              return {
+                ...item,
+                items: item.items.map((nested) =>
+                  nested.id === itemId ? { ...nested, lentTo: null } : nested
+                ),
+              };
+            }
+            return item;
+          }),
         },
       };
     });
