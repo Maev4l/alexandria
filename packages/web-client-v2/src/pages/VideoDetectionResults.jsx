@@ -1,6 +1,6 @@
 // Edited by Claude.
 // Display TMDB search results and allow user to select one to add
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Film, Check } from 'lucide-react';
 import { AppBar } from '@/navigation';
@@ -16,6 +16,7 @@ const VideoDetectionResults = () => {
   const toast = useToast();
 
   // Get data from location state
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- videos always provided via navigation state
   const videos = location.state?.videos || [];
   const collection = location.state?.collection || null;
   const order = location.state?.order || null;
@@ -23,12 +24,20 @@ const VideoDetectionResults = () => {
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
 
+  // Auto-select first valid result when component mounts
+  useEffect(() => {
+    if (videos.length > 0 && selectedIndex === null) {
+      setSelectedIndex(0);
+    }
+  }, [videos, selectedIndex]);
+
   // Go back in history to library content
   const handleBack = useCallback(() => {
     navigate(-1);
   }, [navigate]);
 
-  const handleCreate = async () => {
+  // Create video and return to scan screen for continuous scanning
+  const handleAdd = useCallback(async () => {
     if (isCreating || !videos[selectedIndex]) return;
 
     setIsCreating(true);
@@ -48,20 +57,23 @@ const VideoDetectionResults = () => {
       });
 
       toast.success('Video added');
-      // Go back 2 steps to library content (skip detection results + add-video)
-      navigate(-2);
+      // Navigate back to add-video screen, preserving collection context
+      navigate(`/libraries/${libraryId}/add-video`, {
+        replace: true,
+        state: { collection, order },
+      });
     } catch (err) {
       console.error('Failed to create video:', err);
       toast.error(err.message || 'Failed to add video');
     } finally {
       setIsCreating(false);
     }
-  };
+  }, [isCreating, videos, selectedIndex, libraryId, collection, order, navigate, toast, createVideo]);
 
   // Can add when a video is selected and not currently creating
   const canAdd = selectedIndex !== null && videos[selectedIndex] && !isCreating;
 
-  // Render AppBar with Cancel and Add buttons
+  // Render AppBar with dual add buttons for continuous scanning
   const renderAppBar = () => (
     <AppBar
       title="Select Video"
@@ -75,14 +87,16 @@ const VideoDetectionResults = () => {
       }
       headerRight={
         <button
-          onClick={handleCreate}
+          onClick={handleAdd}
           disabled={!canAdd}
           className={cn(
-            'text-sm font-medium',
-            canAdd ? 'text-primary' : 'text-muted-foreground'
+            'px-3 py-1 text-sm font-medium rounded-md transition-colors',
+            canAdd
+              ? 'text-primary hover:bg-accent'
+              : 'text-muted-foreground cursor-not-allowed'
           )}
         >
-          {isCreating ? 'Adding...' : 'Add'}
+          {isCreating ? 'Adding...' : 'Done'}
         </button>
       }
     />
@@ -115,6 +129,12 @@ const VideoDetectionResults = () => {
   return (
     <div className="flex flex-col h-full">
       {renderAppBar()}
+      {/* Collection context banner - only shown when adding to a collection */}
+      {collection && (
+        <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+          Adding to: {collection.name}
+        </div>
+      )}
       {/* Results list */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-3">

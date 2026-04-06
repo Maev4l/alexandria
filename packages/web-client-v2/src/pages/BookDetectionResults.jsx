@@ -56,7 +56,15 @@ const BookDetectionResults = () => {
     fetchResults();
   }, [fetchResults]);
 
-  // Create book directly from selected detection result
+  // Auto-select first valid result when results load
+  useEffect(() => {
+    if (results.length > 0 && selectedIndex === null) {
+      const firstValid = results.findIndex((r) => !r.error);
+      if (firstValid >= 0) setSelectedIndex(firstValid);
+    }
+  }, [results, selectedIndex]);
+
+  // Create book and return to scan screen for continuous scanning
   const handleAdd = useCallback(async () => {
     if (selectedIndex === null || isCreating) return;
 
@@ -74,8 +82,12 @@ const BookDetectionResults = () => {
         collectionId: collection?.id || null,
         order: order ? parseInt(order, 10) : null,
       });
-      // Go back 2 steps to library content (skip detection results + add-book)
-      navigate(-2);
+      toast.success('Book added');
+      // Navigate back to add-book screen, preserving collection context
+      navigate(`/libraries/${libraryId}/add-book`, {
+        replace: true,
+        state: { collection, order },
+      });
     } catch (err) {
       toast.error(err.message || 'Failed to add book');
       setIsCreating(false);
@@ -90,7 +102,7 @@ const BookDetectionResults = () => {
   // Computed: can add book
   const canAdd = selectedIndex !== null && results[selectedIndex] && !results[selectedIndex].error && !isCreating;
 
-  // Render AppBar
+  // Render AppBar with dual add buttons for continuous scanning
   const renderAppBar = () => (
     <AppBar
       title="Select Book"
@@ -113,7 +125,7 @@ const BookDetectionResults = () => {
               : 'text-muted-foreground cursor-not-allowed'
           )}
         >
-          {isCreating ? 'Adding...' : 'Add'}
+          {isCreating ? 'Adding...' : 'Done'}
         </button>
       }
     />
@@ -200,6 +212,12 @@ const BookDetectionResults = () => {
   return (
     <div className="flex flex-col h-full">
       {renderAppBar()}
+      {/* Collection context banner - only shown when adding to a collection */}
+      {collection && (
+        <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+          Adding to: {collection.name}
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto">
       <div className="p-4 space-y-3">
         <p className="text-sm text-muted-foreground">
