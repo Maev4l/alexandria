@@ -44,33 +44,15 @@ func init() {
 		Pattern:        "babelio.com",
 		APIKeyParam:    scraperAPIKeyParam,
 		BuildURL:       buildScraperAPIUrl,
-		TimeoutSeconds: 10,
+		TimeoutSeconds: 30,
 	})
 }
 
-// buildScraperAPIUrl wraps a target URL with ScraperAPI URL method
-// Uses country_code=fr for French IPs (standard datacenter IPs, 1 credit per request)
+// buildScraperAPIUrl wraps a target URL with ScraperAPI URL method (for GET and POST requests)
 func buildScraperAPIUrl(apiKey, targetUrl string) string {
 	return fmt.Sprintf("http://api.scraperapi.com?api_key=%s&country_code=fr&url=%s",
 		apiKey,
 		url.QueryEscape(targetUrl))
-}
-
-// createProxyClient creates an HTTP client configured to use ScraperAPI proxy mode
-// Proxy mode supports all HTTP methods (GET, POST, etc.) unlike the URL method
-func createProxyClient(apiKey string) *http.Client {
-	// ScraperAPI proxy format: http://scraperapi:API_KEY@proxy-server.scraperapi.com:8001
-	proxyURL, _ := url.Parse(fmt.Sprintf("http://scraperapi.country_code=fr:%s@proxy-server.scraperapi.com:8001", apiKey))
-
-	return &http.Client{
-		Timeout: 15 * time.Second,
-		Transport: &http.Transport{
-			Proxy: http.ProxyURL(proxyURL),
-			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS12,
-			},
-		},
-	}
 }
 
 // stripHTMLPolicy strips all HTML tags from text
@@ -167,10 +149,10 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 	}
 
 	c := colly.NewCollector()
-	// Increase timeout when using proxy (adds ~1-2s latency)
+	// Increase timeout when using proxy - ScraperAPI can take 20-60s for difficult sites
 	timeout := 5 * time.Second
 	if useProxy {
-		timeout = 15 * time.Second
+		timeout = 30 * time.Second
 	}
 	c.SetRequestTimeout(timeout)
 	c.DetectCharset = true
@@ -253,16 +235,11 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 		}
 	})
 
-	// Create proxy client for POST requests if ScraperAPI is enabled
-	var proxyClient *http.Client
-	if useProxy {
-		proxyClient = createProxyClient(apiKey)
-	}
+	// Track if we got expanded summary successfully
+	gotExpandedSummary := false
 
-	needExpandSummary := false
+	// Try to expand summary if "voir_plus_a" link exists
 	c.OnHTML("a[onclick*='voir_plus_a']", func(e *colly.HTMLElement) {
-		needExpandSummary = true
-
 		jsScript := e.Attr("onclick")
 		// Updated regex: now handles CSS selector format voir_plus_a('#d_bio', type, id)
 		re := regexp.MustCompile(`voir_plus_a\('[^']*',\s*(\d+),\s*(\d+)\)`)
@@ -272,59 +249,71 @@ func (r *babelioResolver) Resolve(code string, ch chan []domain.ResolvedBook) {
 			return
 		}
 
-		data := url.Values{}
-		data.Set("type", matches[1])
-		data.Set("id_obj", matches[2])
+		formData := url.Values{}
+		formData.Set("type", matches[1])
+		formData.Set("id_obj", matches[2])
 
 		randomDelay(200, 500)
 
-		moreSummaryRequest, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/aj_voir_plus_a.php", r.url), strings.NewReader(data.Encode()))
-		moreSummaryRequest.Host = "www.babelio.com"
-		moreSummaryRequest.Header.Set("User-Agent", randomUserAgent())
-		moreSummaryRequest.Header.Set("Origin", r.url)
-		moreSummaryRequest.Header.Set("Referer", directUrl)
-		moreSummaryRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-		for k, v := range browserHeaders {
-			moreSummaryRequest.Header.Set(k, v)
+		// Build request URL - use ScraperAPI URL method for POST when proxy enabled
+		targetUrl := fmt.Sprintf("%s/aj_voir_plus_a.php", r.url)
+		requestUrl := targetUrl
+		if useProxy {
+			// ScraperAPI URL method: POST to api.scraperapi.com with target in query param
+			requestUrl = buildScraperAPIUrl(apiKey, targetUrl)
+			log.Debug().Str("source", "Babelio").Msg("Using ScraperAPI URL method for expanded summary POST")
 		}
 
-		// Use proxy client for POST if available, otherwise direct client
+		moreSummaryRequest, _ := http.NewRequest(http.MethodPost, requestUrl, strings.NewReader(formData.Encode()))
+		moreSummaryRequest.Header.Set("User-Agent", randomUserAgent())
+		moreSummaryRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+		if !useProxy {
+			// Only set these headers for direct requests (ScraperAPI handles them)
+			moreSummaryRequest.Host = "www.babelio.com"
+			moreSummaryRequest.Header.Set("Origin", r.url)
+			moreSummaryRequest.Header.Set("Referer", directUrl)
+			for k, v := range browserHeaders {
+				moreSummaryRequest.Header.Set(k, v)
+			}
+		}
+
+		// Use client with longer timeout for proxy requests
 		client := r.client
 		if useProxy {
-			client = proxyClient
-			log.Debug().Str("source", "Babelio").Msg("Using proxy for expanded summary POST request")
+			client = &http.Client{Timeout: 30 * time.Second}
 		}
 
 		moreSummaryResponse, err := client.Do(moreSummaryRequest)
 		if err != nil {
-			log.Error().Str("source", "Babelio").Bool("proxy", useProxy).Msgf("Failed to request expanded summary: %s", err.Error())
+			log.Warn().Str("source", "Babelio").Bool("proxy", useProxy).Msgf("Failed to expand summary (will use truncated): %s", err.Error())
 			return
 		}
 		defer func() { _ = moreSummaryResponse.Body.Close() }()
 
 		reader, err := charset.NewReader(moreSummaryResponse.Body, moreSummaryResponse.Header.Get("Content-Type"))
 		if err != nil {
-			log.Error().Str("source", "Babelio").Msgf("Failed to create charset reader: %s", err.Error())
+			log.Warn().Str("source", "Babelio").Msgf("Failed to create charset reader: %s", err.Error())
 			return
 		}
 		body, err := io.ReadAll(reader)
 		if err != nil {
-			log.Error().Str("source", "Babelio").Msgf("Failed to read response body: %s", err.Error())
+			log.Warn().Str("source", "Babelio").Msgf("Failed to read response body: %s", err.Error())
 			return
 		}
 		resolvedBook.Summary = cleanSummary(string(body))
+		gotExpandedSummary = true
 	})
 
-	// Summary with itemprop="description" - more reliable selector for new UI
+	// Capture visible summary (may be truncated) - use if expand fails or not needed
 	c.OnHTML("div[itemprop='description'].livre_resume", func(e *colly.HTMLElement) {
-		if !needExpandSummary {
+		if !gotExpandedSummary && resolvedBook.Summary == "" {
 			resolvedBook.Summary = cleanSummary(e.Text)
 		}
 	})
 
 	// Fallback: original .livre_resume selector
 	c.OnHTML(".livre_resume", func(e *colly.HTMLElement) {
-		if !needExpandSummary && resolvedBook.Summary == "" {
+		if !gotExpandedSummary && resolvedBook.Summary == "" {
 			resolvedBook.Summary = cleanSummary(e.Text)
 		}
 	})

@@ -15,7 +15,7 @@ module "api" {
   function_name = "alexandria-api"
   architecture  = "arm64"
   memory_size   = 128
-  timeout       = 20
+  timeout       = 35
 
   additional_policy_arns = [aws_iam_policy.api.arn]
 
