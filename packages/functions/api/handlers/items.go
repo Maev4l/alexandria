@@ -482,6 +482,9 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 		pageSize = 20
 	}
 
+	// Include base64 picture in response (defaults to true for backward compatibility)
+	includePicture := c.DefaultQuery("picture", "true") == "true"
+
 	t := h.getTokenInfo(c)
 
 	// Use grouped query for server-side collection grouping
@@ -501,7 +504,7 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 			// Collection with nested items
 			nestedItems := []GetItemResponse{}
 			for _, nested := range item.Items {
-				nestedItems = append(nestedItems, h.buildItemResponse(nested))
+				nestedItems = append(nestedItems, h.buildItemResponse(nested, includePicture))
 			}
 
 			itemsResponse = append(itemsResponse, GetCollectionWithItemsResponse{
@@ -519,7 +522,7 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 			})
 		} else {
 			// Standalone book or video
-			itemsResponse = append(itemsResponse, h.buildItemResponse(item))
+			itemsResponse = append(itemsResponse, h.buildItemResponse(item, includePicture))
 		}
 	}
 
@@ -532,9 +535,10 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 }
 
 // buildItemResponse converts a domain.LibraryItem to the appropriate GetItemResponse
-func (h *HTTPHandler) buildItemResponse(i *domain.LibraryItem) GetItemResponse {
+// includePicture controls whether base64 picture is included (reduces payload size when false)
+func (h *HTTPHandler) buildItemResponse(i *domain.LibraryItem, includePicture bool) GetItemResponse {
 	var encodedPicture *string
-	if i.Picture != nil {
+	if includePicture && i.Picture != nil {
 		encoded := base64.StdEncoding.EncodeToString(i.Picture)
 		encodedPicture = &encoded
 	}
