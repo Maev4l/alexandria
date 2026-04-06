@@ -44,7 +44,7 @@ func untarDirectory(archive []byte, destDir string) error {
 	if err != nil {
 		return err
 	}
-	defer gzReader.Close()
+	defer func() { _ = gzReader.Close() }()
 
 	tarReader := tar.NewReader(gzReader)
 
@@ -75,10 +75,10 @@ func untarDirectory(archive []byte, destDir string) error {
 			}
 
 			if _, err := io.Copy(file, tarReader); err != nil {
-				file.Close()
+				_ = file.Close()
 				return err
 			}
-			file.Close()
+			_ = file.Close()
 		}
 	}
 
@@ -112,7 +112,7 @@ func (o *objectstorage) GetBlugeIndex() (string, func(), error) {
 	}
 
 	cleanup := func() {
-		os.RemoveAll(indexDir)
+		_ = os.RemoveAll(indexDir)
 	}
 
 	if err := untarDirectory(buf.Bytes(), indexDir); err != nil {

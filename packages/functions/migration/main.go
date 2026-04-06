@@ -3,7 +3,8 @@
 // This fixes alphabetical sorting issues caused by UTF-8 byte order with accented characters.
 //
 // Usage:
-//   go run main.go --table alexandria [--dry-run] [--verbose]
+//
+//	go run main.go --table alexandria [--dry-run] [--verbose]
 //
 // The tool will:
 // 1. Scan all LIBRARY, COLLECTION, BOOK, and VIDEO entities

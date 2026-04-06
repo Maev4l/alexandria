@@ -15,15 +15,13 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"alexandria.isnan.eu/functions/api/ports"
+	"alexandria.isnan.eu/functions/api/services/proxy"
 	"alexandria.isnan.eu/functions/internal/domain"
 	"golang.org/x/net/html/charset"
 
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/gocolly/colly"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/rs/zerolog/log"
@@ -32,47 +30,22 @@ import (
 // SSM parameter name for ScraperAPI key (optional - if not set, direct requests are used)
 var scraperAPIKeyParam = os.Getenv("SCRAPER_PROXY_API_KEY")
 
-// Cached ScraperAPI key with one-time fetch from SSM
-var (
-	scraperAPIKey     string
-	scraperAPIKeyOnce sync.Once
-	scraperAPIKeyErr  error
-)
-
-// getScraperAPIKey fetches the API key from SSM once, caching the result
-// Returns empty string if not configured (graceful fallback to direct requests)
+// getScraperAPIKey returns the cached API key from the proxy registry
 func getScraperAPIKey() string {
-	scraperAPIKeyOnce.Do(func() {
-		if scraperAPIKeyParam == "" {
-			log.Debug().Str("source", "Babelio").Msg("SCRAPER_PROXY_API_KEY env var not set - using direct requests")
-			return
-		}
+	return proxy.GetAPIKey(scraperAPIKeyParam)
+}
 
-		region := os.Getenv("REGION")
-		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
-		if err != nil {
-			scraperAPIKeyErr = err
-			log.Warn().Str("source", "Babelio").Err(err).Msg("Failed to load AWS config for ScraperAPI key - using direct requests")
-			return
-		}
-
-		ssmClient := ssm.NewFromConfig(cfg)
-		withDecryption := true
-		output, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
-			Name:           &scraperAPIKeyParam,
-			WithDecryption: &withDecryption,
-		})
-		if err != nil {
-			scraperAPIKeyErr = err
-			log.Warn().Str("source", "Babelio").Err(err).Msg("Failed to fetch ScraperAPI key from SSM - using direct requests")
-			return
-		}
-
-		scraperAPIKey = *output.Parameter.Value
-		log.Info().Str("source", "Babelio").Msg("ScraperAPI key loaded - requests will use proxy")
+// Register Babelio's proxy configuration at startup
+func init() {
+	if scraperAPIKeyParam == "" {
+		return
+	}
+	proxy.Register(proxy.Config{
+		Pattern:        "babelio.com",
+		APIKeyParam:    scraperAPIKeyParam,
+		BuildURL:       buildScraperAPIUrl,
+		TimeoutSeconds: 10,
 	})
-
-	return scraperAPIKey
 }
 
 // buildScraperAPIUrl wraps a target URL with ScraperAPI URL method
@@ -105,9 +78,9 @@ var stripHTMLPolicy = bluemonday.StripTagsPolicy()
 
 // Regex patterns for whitespace normalization
 var (
-	multipleSpacesRe  = regexp.MustCompile(`[^\S\n]+`)      // Multiple spaces/tabs (not newlines)
-	multipleNewlinesRe = regexp.MustCompile(`\n{3,}`)       // 3+ newlines → 2 newlines (paragraph)
-	leadingSpacesRe   = regexp.MustCompile(`(?m)^[ \t]+`)   // Leading spaces on each line
+	multipleSpacesRe   = regexp.MustCompile(`[^\S\n]+`)    // Multiple spaces/tabs (not newlines)
+	multipleNewlinesRe = regexp.MustCompile(`\n{3,}`)      // 3+ newlines → 2 newlines (paragraph)
+	leadingSpacesRe    = regexp.MustCompile(`(?m)^[ \t]+`) // Leading spaces on each line
 )
 
 // cleanSummary sanitizes HTML content: converts <br> to newlines, strips remaining tags, unescapes entities, normalizes whitespace

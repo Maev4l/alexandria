@@ -135,16 +135,16 @@ func (s *services) UpdateItem(i *domain.LibraryItem, fetchPic bool) error {
 		return err
 	}
 
+	// Picture fetch is best-effort - don't fail item update if it fails
 	if fetchPic && i.PictureUrl != nil && *i.PictureUrl != "" {
 		data, err := fetchPicture(*i.PictureUrl)
 		if err != nil {
-			return err
-		}
-
-		// save picture into S3
-		err = s.storage.PutPicture(i.OwnerId, i.LibraryId, i.Id, data)
-		if err != nil {
-			return err
+			log.Warn().Str("url", *i.PictureUrl).Err(err).Msg("Picture fetch failed, continuing without picture update")
+		} else {
+			err = s.storage.PutPicture(i.OwnerId, i.LibraryId, i.Id, data)
+			if err != nil {
+				log.Warn().Err(err).Msg("Picture upload failed, continuing without picture update")
+			}
 		}
 	}
 
@@ -223,16 +223,16 @@ func (s *services) UpdateItem(i *domain.LibraryItem, fetchPic bool) error {
 func (s *services) CreateItem(i *domain.LibraryItem) (*domain.LibraryItem, error) {
 	i.Id = identifier.NewId()
 
+	// Picture fetch is best-effort - don't fail item creation if it fails
 	if i.PictureUrl != nil && *i.PictureUrl != "" {
 		data, err := fetchPicture(*i.PictureUrl)
 		if err != nil {
-			return nil, err
-		}
-
-		// save picture into S3
-		err = s.storage.PutPicture(i.OwnerId, i.LibraryId, i.Id, data)
-		if err != nil {
-			return nil, err
+			log.Warn().Str("url", *i.PictureUrl).Err(err).Msg("Picture fetch failed, continuing without picture")
+		} else {
+			err = s.storage.PutPicture(i.OwnerId, i.LibraryId, i.Id, data)
+			if err != nil {
+				log.Warn().Err(err).Msg("Picture upload failed, continuing without picture")
+			}
 		}
 	}
 

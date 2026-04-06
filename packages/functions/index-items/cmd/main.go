@@ -81,7 +81,7 @@ func untarDirectory(archive *bytes.Buffer, destDir string) error {
 	if err != nil {
 		return err
 	}
-	defer gzReader.Close()
+	defer func() { _ = gzReader.Close() }()
 
 	tarReader := tar.NewReader(gzReader)
 
@@ -113,10 +113,10 @@ func untarDirectory(archive *bytes.Buffer, destDir string) error {
 			}
 
 			if _, err := io.Copy(file, tarReader); err != nil {
-				file.Close()
+				_ = file.Close()
 				return err
 			}
-			file.Close()
+			_ = file.Close()
 		}
 	}
 
@@ -157,7 +157,7 @@ func tarDirectory(sourceDir string) (*bytes.Buffer, error) {
 			if err != nil {
 				return err
 			}
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 
 			if _, err := io.Copy(tarWriter, file); err != nil {
 				return err
@@ -196,7 +196,7 @@ func fullResync() error {
 		log.Error().Msgf("Failed to create temp directory: %s", err.Error())
 		return err
 	}
-	defer os.RemoveAll(indexDir)
+	defer func() { _ = os.RemoveAll(indexDir) }()
 
 	// Create Bluge writer
 	cfg := bluge.DefaultConfig(indexDir)
@@ -226,7 +226,7 @@ func fullResync() error {
 
 		result, err := ddbClient.Scan(context.TODO(), input)
 		if err != nil {
-			writer.Close()
+			_ = writer.Close()
 			log.Error().Msgf("Failed to scan DynamoDB: %s", err.Error())
 			return err
 		}
@@ -350,7 +350,7 @@ func streamHandler(event events.DynamoDBEvent) error {
 		log.Error().Msgf("Failed to create temp directory: %s", err.Error())
 		return err
 	}
-	defer os.RemoveAll(indexDir)
+	defer func() { _ = os.RemoveAll(indexDir) }()
 
 	// Download and extract existing Bluge index
 	indexBuf := manager.NewWriteAtBuffer([]byte{})

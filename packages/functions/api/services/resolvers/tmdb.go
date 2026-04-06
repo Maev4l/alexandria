@@ -58,10 +58,10 @@ func getTmdbAccessToken() (string, error) {
 }
 
 const (
-	tmdbBaseURL     = "https://api.themoviedb.org/3"
-	tmdbImageURL    = "https://image.tmdb.org/t/p/w500"
-	tmdbCastLimit   = 5  // Limit cast to top 5 actors
-	tmdbLangPrimary = "fr-FR" // Primary language for results
+	tmdbBaseURL      = "https://api.themoviedb.org/3"
+	tmdbImageURL     = "https://image.tmdb.org/t/p/w500"
+	tmdbCastLimit    = 5       // Limit cast to top 5 actors
+	tmdbLangPrimary  = "fr-FR" // Primary language for results
 	tmdbLangFallback = "en-US" // Fallback language for search
 )
 
@@ -71,19 +71,19 @@ type tmdbResolver struct {
 
 // TMDB API response structures
 type tmdbSearchResult struct {
-	Page         int           `json:"page"`
-	Results      []tmdbMovie   `json:"results"`
-	TotalResults int           `json:"total_results"`
-	TotalPages   int           `json:"total_pages"`
+	Page         int         `json:"page"`
+	Results      []tmdbMovie `json:"results"`
+	TotalResults int         `json:"total_results"`
+	TotalPages   int         `json:"total_pages"`
 }
 
 type tmdbMovie struct {
-	Id           int     `json:"id"`
-	Title        string  `json:"title"`
-	Overview     string  `json:"overview"`
-	PosterPath   *string `json:"poster_path"`
-	ReleaseDate  string  `json:"release_date"`
-	VoteAverage  float64 `json:"vote_average"`
+	Id          int     `json:"id"`
+	Title       string  `json:"title"`
+	Overview    string  `json:"overview"`
+	PosterPath  *string `json:"poster_path"`
+	ReleaseDate string  `json:"release_date"`
+	VoteAverage float64 `json:"vote_average"`
 }
 
 type tmdbMovieDetails struct {
@@ -261,7 +261,7 @@ func (r *tmdbResolver) fetchMovieDetails(accessToken string, movieId int) *domai
 	// Extract release year
 	var releaseYear int
 	if len(details.ReleaseDate) >= 4 {
-		fmt.Sscanf(details.ReleaseDate[:4], "%d", &releaseYear)
+		_, _ = fmt.Sscanf(details.ReleaseDate[:4], "%d", &releaseYear)
 	}
 
 	// Build poster URL
