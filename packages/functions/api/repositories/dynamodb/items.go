@@ -674,7 +674,9 @@ func (d *dynamo) QueryItemsByLibrary(ownerId string, libraryId string, continuat
 // PaginationState encodes collection context for resuming mid-collection pagination
 type PaginationState struct {
 	LastEvaluatedKey map[string]types.AttributeValue `json:"lek,omitempty"`
-	CollectionCtx    *CollectionContext              `json:"col,omitempty"`
+	// CollectionContexts tracks all collections that may have items on the next page
+	// (ItemCount > fetched items count). Allows proper grouping across page boundaries.
+	CollectionContexts []*CollectionContext `json:"cols,omitempty"`
 }
 
 // CollectionContext holds the active collection when pagination splits a collection
@@ -746,21 +748,25 @@ func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, co
 	// Standalone items (no collection)
 	standaloneItems := make(map[string]*domain.LibraryItem)
 
-	// If resuming mid-collection from pagination, initialize the partial collection
-	var partialCollection *domain.LibraryItem
-	if paginationState != nil && paginationState.CollectionCtx != nil {
-		partialCollection = &domain.LibraryItem{
-			Id:        paginationState.CollectionCtx.Id,
-			Title:     paginationState.CollectionCtx.Name,
-			Summary:   paginationState.CollectionCtx.Description,
-			OwnerId:   ownerId,
-			LibraryId: libraryId,
-			Type:      domain.ItemCollection,
-			Items:     []*domain.LibraryItem{},
-			ItemCount: paginationState.CollectionCtx.ItemCount,
-			Partial:   true,
+	// If resuming from pagination, restore all collections that may have items on this page
+	// This ensures items can find their parent collection even if it was on a previous page
+	var partialCollections []*domain.LibraryItem
+	if paginationState != nil && len(paginationState.CollectionContexts) > 0 {
+		for _, ctx := range paginationState.CollectionContexts {
+			partialColl := &domain.LibraryItem{
+				Id:        ctx.Id,
+				Title:     ctx.Name,
+				Summary:   ctx.Description,
+				OwnerId:   ownerId,
+				LibraryId: libraryId,
+				Type:      domain.ItemCollection,
+				Items:     []*domain.LibraryItem{},
+				ItemCount: ctx.ItemCount,
+				Partial:   true,
+			}
+			collectionsMap[partialColl.Id] = partialColl
+			partialCollections = append(partialCollections, partialColl)
 		}
-		collectionsMap[partialCollection.Id] = partialCollection
 	}
 
 	// Pass 1: Parse all records
@@ -828,10 +834,12 @@ func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, co
 	}
 
 	// Pass 3: Build output maintaining query order
-	// First, add partial collection from previous page if any
+	// First, add partial collections from previous pages that have items on this page
 	outputItems := []*domain.LibraryItem{}
-	if partialCollection != nil {
-		outputItems = append(outputItems, partialCollection)
+	for _, partialColl := range partialCollections {
+		if len(partialColl.Items) > 0 {
+			outputItems = append(outputItems, partialColl)
+		}
 	}
 
 	// Add entities in query order
@@ -857,24 +865,17 @@ func (d *dynamo) QueryLibraryContentGrouped(ownerId string, libraryId string, co
 			LastEvaluatedKey: result.LastEvaluatedKey,
 		}
 
-		// Check if last item in output is a collection that might continue on next page
-		// Find the last collection in collectionsMap that has items
-		var lastCollectionWithItems *domain.LibraryItem
-		for _, ref := range orderedEntities {
-			if ref.isCollection {
-				if coll, ok := collectionsMap[ref.id]; ok && len(coll.Items) > 0 {
-					lastCollectionWithItems = coll
-				}
-			}
-		}
-
-		if lastCollectionWithItems != nil && lastCollectionWithItems.ItemCount > len(lastCollectionWithItems.Items) {
-			// Collection might have more items on next page
-			newState.CollectionCtx = &CollectionContext{
-				Id:          lastCollectionWithItems.Id,
-				Name:        lastCollectionWithItems.Title,
-				Description: lastCollectionWithItems.Summary,
-				ItemCount:   lastCollectionWithItems.ItemCount,
+		// Track ALL collections that might have items on the next page
+		// This includes both collections from this page and partial collections from pagination
+		// that still have remaining items
+		for _, coll := range collectionsMap {
+			if coll.ItemCount > len(coll.Items) {
+				newState.CollectionContexts = append(newState.CollectionContexts, &CollectionContext{
+					Id:          coll.Id,
+					Name:        coll.Title,
+					Description: coll.Summary,
+					ItemCount:   coll.ItemCount,
+				})
 			}
 		}
 
@@ -919,8 +920,8 @@ func mapRecordToLibraryItem(record *persistence.LibraryItem) *domain.LibraryItem
 // paginationStateJSON is the JSON-serializable version of PaginationState
 // types.AttributeValue can't be directly JSON marshaled, so we convert to map[string]interface{}
 type paginationStateJSON struct {
-	LastEvaluatedKey map[string]interface{} `json:"lek,omitempty"`
-	CollectionCtx    *CollectionContext     `json:"col,omitempty"`
+	LastEvaluatedKey   map[string]interface{} `json:"lek,omitempty"`
+	CollectionContexts []*CollectionContext   `json:"cols,omitempty"`
 }
 
 func serializePaginationState(state *PaginationState) (*string, error) {
@@ -933,8 +934,8 @@ func serializePaginationState(state *PaginationState) (*string, error) {
 	}
 
 	jsonState := paginationStateJSON{
-		LastEvaluatedKey: lekMap,
-		CollectionCtx:    state.CollectionCtx,
+		LastEvaluatedKey:   lekMap,
+		CollectionContexts: state.CollectionContexts,
 	}
 
 	data, err := json.Marshal(jsonState)
@@ -1015,8 +1016,8 @@ func deserializePaginationState(token string) (*PaginationState, error) {
 	}
 
 	return &PaginationState{
-		LastEvaluatedKey: lek,
-		CollectionCtx:    jsonState.CollectionCtx,
+		LastEvaluatedKey:   lek,
+		CollectionContexts: jsonState.CollectionContexts,
 	}, nil
 }
 
