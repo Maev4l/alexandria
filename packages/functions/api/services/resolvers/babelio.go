@@ -65,6 +65,10 @@ var (
 	leadingSpacesRe    = regexp.MustCompile(`(?m)^[ \t]+`) // Leading spaces on each line
 )
 
+// problematicCharsRe matches Unicode characters that cause display issues
+// Includes C0 controls, C1 controls (U+0080-009F), zero-width chars, and other invisibles
+var problematicCharsRe = regexp.MustCompile(`[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x{0080}-\x{009F}\x{200B}-\x{200F}\x{2028}-\x{202F}\x{FEFF}\x{FFFC}]`)
+
 // cleanSummary sanitizes HTML content: converts <br> to newlines, strips remaining tags, unescapes entities, normalizes whitespace
 func cleanSummary(text string) string {
 	// Replace <br>, <br/>, <br /> with newlines before stripping tags
@@ -75,6 +79,19 @@ func cleanSummary(text string) string {
 	text = stripHTMLPolicy.Sanitize(text)
 	// Unescape HTML entities (&amp; -> &, etc.)
 	text = html.UnescapeString(text)
+	// Remove problematic Unicode characters (zero-width spaces, control chars, etc.)
+	text = problematicCharsRe.ReplaceAllString(text, "")
+	// Normalize typographic characters to ASCII equivalents
+	text = strings.ReplaceAll(text, "\u00A0", " ")  // NBSP -> space
+	text = strings.ReplaceAll(text, "\u2013", "-")  // en-dash -> hyphen
+	text = strings.ReplaceAll(text, "\u2014", "-")  // em-dash -> hyphen
+	text = strings.ReplaceAll(text, "\u2026", "...") // ellipsis -> three dots
+	text = strings.ReplaceAll(text, "\u2018", "'")  // left single quote
+	text = strings.ReplaceAll(text, "\u2019", "'")  // right single quote
+	text = strings.ReplaceAll(text, "\u201C", "\"") // left double quote
+	text = strings.ReplaceAll(text, "\u201D", "\"") // right double quote
+	text = strings.ReplaceAll(text, "\u00AB", "\"") // « -> "
+	text = strings.ReplaceAll(text, "\u00BB", "\"") // » -> "
 	// Normalize whitespace: collapse multiple spaces, remove leading spaces per line
 	text = multipleSpacesRe.ReplaceAllString(text, " ")
 	text = leadingSpacesRe.ReplaceAllString(text, "")
