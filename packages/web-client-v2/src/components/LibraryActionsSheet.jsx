@@ -110,8 +110,8 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
   );
 
   const sheetClasses = cn(
-    'relative bg-background rounded-t-xl transition-all',
-    isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+    'relative bg-background rounded-t-xl transition-all border border-white/10',
+    isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
   );
 
   const transitionStyle = { transitionDuration: `${ANIMATION_DURATION}ms` };
@@ -122,6 +122,11 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
       <div className="fixed inset-0 z-[60] flex flex-col justify-end">
         <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
         <div className={sheetClasses} style={transitionStyle}>
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
+
           {/* Header */}
           <div className="px-4 py-3 border-b border-border text-center">
             <p className="text-sm text-muted-foreground">Share</p>
@@ -189,6 +194,11 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
       <div className="fixed inset-0 z-[60] flex flex-col justify-end">
         <div className={backdropClasses} style={transitionStyle} onClick={handleBack} />
         <div className={sheetClasses} style={transitionStyle}>
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+          </div>
+
           {/* Warning content */}
           <div className="p-6 text-center space-y-4">
             <div className="flex justify-center">
@@ -242,46 +252,71 @@ const LibraryActionsSheet = ({ library, isOpen, onClose, onAction, isLoading = f
     <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       <div className={backdropClasses} style={transitionStyle} onClick={handleClose} />
       <div className={sheetClasses} style={transitionStyle}>
-        {/* Library name header */}
-        <div className="px-4 py-3 border-b border-border text-center">
-          <p className="font-medium truncate">{displayLibrary.name}</p>
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
         </div>
 
-        {/* Actions */}
-        <div className="py-2">
+        {/* Library name header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <div className="min-w-[60px]" />
+          <h2 className="text-base font-semibold truncate">{displayLibrary.name}</h2>
+          <div className="min-w-[60px]" />
+        </div>
+
+        {/* Actions - prominent style */}
+        <div className="p-4 space-y-2">
           <button
             onClick={() => handleAction('edit')}
-            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent transition-colors"
+            className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition-colors text-left"
           >
-            <Pencil className="h-5 w-5 text-muted-foreground" />
-            <span>Edit</span>
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Pencil className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium">Edit</p>
+              <p className="text-sm text-muted-foreground">Change name and description</p>
+            </div>
           </button>
 
           <button
             onClick={handleShareClick}
-            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent transition-colors"
+            className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition-colors text-left"
           >
-            <Share2 className="h-5 w-5 text-muted-foreground" />
-            <span>Share</span>
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Share2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-medium">Share</p>
+              <p className="text-sm text-muted-foreground">Give read-only access</p>
+            </div>
           </button>
 
           {isShared && (
             <button
               onClick={() => handleAction('unshare')}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent transition-colors"
+              className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition-colors text-left"
             >
-              <UserMinus className="h-5 w-5 text-muted-foreground" />
-              <span>Unshare</span>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <UserMinus className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">Unshare</p>
+                <p className="text-sm text-muted-foreground">Remove access from users</p>
+              </div>
             </button>
           )}
 
-          <button
-            onClick={handleDeleteClick}
-            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-destructive/10 active:bg-destructive/10 transition-colors text-destructive"
-          >
-            <Trash2 className="h-5 w-5" />
-            <span>Delete</span>
-          </button>
+          {/* Delete - compact style, separated */}
+          <div className="pt-2 border-t border-border">
+            <button
+              onClick={handleDeleteClick}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-destructive/10 active:bg-destructive/10 transition-colors text-destructive"
+            >
+              <Trash2 className="h-5 w-5" />
+              <span>Delete</span>
+            </button>
+          </div>
         </div>
 
         {/* Safe area padding */}

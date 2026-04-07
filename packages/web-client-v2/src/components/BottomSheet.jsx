@@ -64,7 +64,7 @@ const BottomSheet = ({
       {/* Sheet with slide + fade */}
       <div
         className={cn(
-          'relative bg-background rounded-t-xl min-h-[50vh] max-h-[90vh] flex flex-col',
+          'relative bg-background rounded-t-xl min-h-[50vh] max-h-[90vh] flex flex-col border border-white/10',
           'transition-all',
           isAnimating
             ? 'opacity-100 translate-y-0'
@@ -72,6 +72,11 @@ const BottomSheet = ({
         )}
         style={{ transitionDuration: `${ANIMATION_DURATION}ms` }}
       >
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           {cancelLabel ? (
