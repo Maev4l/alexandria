@@ -2,7 +2,7 @@
 // Spotlight-style search - full-screen overlay with floating input and instant results
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, X, Loader2, Clock, BookOpen, Film, Library, Users } from 'lucide-react';
+import { Search as SearchIcon, X, Loader2, Clock, BookOpen, Film, Library, Users, ArrowRightFromLine } from 'lucide-react';
 
 const ITEM_TYPE_VIDEO = 1;
 const LONG_PRESS_DURATION = 500;
@@ -146,6 +146,13 @@ const SearchResultCard = ({ item, onClick, onLongPress, isShared, index }) => {
               <Library className="h-3 w-3 shrink-0" />
             )}
             {item.libraryName}
+          </p>
+        )}
+        {/* Lent indicator */}
+        {item.lentTo && (
+          <p className="text-xs text-amber-500 truncate mt-0.5 flex items-center gap-1">
+            <ArrowRightFromLine className="h-3 w-3 shrink-0" />
+            Lent to {item.lentTo}
           </p>
         )}
       </div>
