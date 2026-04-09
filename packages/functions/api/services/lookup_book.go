@@ -11,6 +11,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Overall timeout for book resolution - return partial results if exceeded
+const bookResolverTimeout = 25 * time.Second
+
 var bookResolversRegistry []ports.BookResolver
 
 func (s *services) ResolveBook(code string) []domain.ResolvedBook {
@@ -38,12 +41,22 @@ func (s *services) ResolveBook(code string) []domain.ResolvedBook {
 		}(r)
 	}
 
-	for i := 0; i < len(bookResolversRegistry); i++ {
-		res := <-ch
-		if res.books != nil {
-			result = append(result, res.books...)
+	// Collect results with timeout - return partial results if some resolvers hang
+	timeout := time.After(bookResolverTimeout)
+	received := 0
+	for received < len(bookResolversRegistry) {
+		select {
+		case res := <-ch:
+			received++
+			if res.books != nil {
+				result = append(result, res.books...)
+			}
+		case <-timeout:
+			log.Warn().Int("received", received).Int("expected", len(bookResolversRegistry)).Msg("ResolveBook: timeout, returning partial results")
+			goto done
 		}
 	}
+done:
 
 	slices.SortFunc(result, func(a, b domain.ResolvedBook) int {
 		return strings.Compare(a.Source, b.Source)
