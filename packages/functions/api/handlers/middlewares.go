@@ -4,6 +4,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -81,10 +82,13 @@ func ApprovalChecker() gin.HandlerFunc {
 }
 
 func IdentityLogger() gin.HandlerFunc {
+	// Capture a fresh base logger at middleware init to prevent field accumulation across Lambda warm starts
+	baseLogger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+
 	return func(c *gin.Context) {
 		t := c.MustGet("tokenInfo").(*tokenInfo)
-		// userId from custom:Id is already normalized (UUID without dashes, uppercase)
-		log.Logger = log.With().Str("user", fmt.Sprintf("%s (id: %s)", t.userName, t.userId)).Logger()
+		// Reset global logger from base, then add user field for this request
+		log.Logger = baseLogger.With().Str("user", fmt.Sprintf("%s (id: %s)", t.userName, t.userId)).Logger()
 		c.Next()
 	}
 }
