@@ -261,10 +261,11 @@ const Search = () => {
     switch (action) {
       case 'edit':
         handleCloseActions();
+        // Pass item via state so Edit page has data even if library items aren't loaded in context
         if (item.type === ITEM_TYPE_VIDEO) {
-          navigate(`/libraries/${item.libraryId}/videos/${item.id}/edit`);
+          navigate(`/libraries/${item.libraryId}/videos/${item.id}/edit`, { state: { item } });
         } else {
-          navigate(`/libraries/${item.libraryId}/books/${item.id}/edit`);
+          navigate(`/libraries/${item.libraryId}/books/${item.id}/edit`, { state: { item } });
         }
         break;
       case 'lend':

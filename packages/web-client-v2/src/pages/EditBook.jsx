@@ -2,7 +2,7 @@
 // Edit book page - form to update existing book details
 // Uses LibrariesContext to update items, allows collection assignment
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, ChevronDown } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useLibraries } from '@/state';
@@ -17,9 +17,13 @@ import CollectionPickerSheet from '@/components/CollectionPickerSheet';
 const EditBook = () => {
   const { libraryId, itemId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { updateBook } = useLibraries();
-  const { item: book } = useItemData(libraryId, itemId);
+  const { item: contextItem } = useItemData(libraryId, itemId);
   const toast = useToast();
+
+  // Use item from location.state (e.g., from Search) as fallback when not in context
+  const book = contextItem || location.state?.item;
 
   // Pre-fill form with existing book data
   const [cover, setCover] = useState('');

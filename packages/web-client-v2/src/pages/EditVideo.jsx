@@ -1,7 +1,7 @@
 // Edited by Claude.
 // Edit video form - allows collection assignment
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Film, ChevronDown } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useLibraries } from '@/state';
@@ -16,9 +16,13 @@ import CollectionPickerSheet from '@/components/CollectionPickerSheet';
 const EditVideo = () => {
   const { libraryId, itemId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { updateVideo } = useLibraries();
-  const { item: video } = useItemData(libraryId, itemId);
+  const { item: contextItem } = useItemData(libraryId, itemId);
   const toast = useToast();
+
+  // Use item from location.state (e.g., from Search) as fallback when not in context
+  const video = contextItem || location.state?.item;
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialized, setInitialized] = useState(false);
