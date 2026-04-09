@@ -76,11 +76,12 @@ const AddBook = () => {
         return;
       }
       lastDetectedRef.current = detectedIsbn;
-      // Show success flash then navigate
+      // Show success flash then navigate (replace to avoid history stack growth)
       setScanSuccess(true);
       setTimeout(() => {
         stopCamera();
         navigate(`/libraries/${libraryId}/book-results`, {
+          replace: true,
           state: {
             isbn: detectedIsbn,
             collection: prefilledCollection,
@@ -92,8 +93,9 @@ const AddBook = () => {
     }
 
     stopCamera();
-    // Pass collection if adding to a collection
+    // Pass collection if adding to a collection (replace to avoid history stack growth)
     navigate(`/libraries/${libraryId}/book-results`, {
+      replace: true,
       state: {
         isbn: detectedIsbn,
         collection: prefilledCollection,
