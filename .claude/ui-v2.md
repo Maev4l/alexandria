@@ -297,6 +297,24 @@ packages/web-client-v2/
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
+│                      SEARCH ACTIONS (long press on result)                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Search.jsx                                                                 │
+│       │                                                                     │
+│       │ tap on result ──────────► BookDetail or VideoDetail                 │
+│       │                                                                     │
+│       │ long press on OWNED item (shared items: no long press)              │
+│       ▼                                                                     │
+│  ┌─────────────────────┐                                                    │
+│  │  ItemActionsSheet   │                                                    │
+│  │  - Edit ──────────────► EditBook or EditVideo → back → Search            │
+│  │  - Lend ─────────────────► (inline form, updates result in place)        │
+│  │  - Return ───────────────► (API call, updates result in place)           │
+│  │  - Delete ────────────► (removes from search results)                    │
+│  └─────────────────────┘                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
 │                           SETTINGS (tab)                                    │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  Settings.jsx                                                               │

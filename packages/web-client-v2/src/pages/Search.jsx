@@ -5,10 +5,13 @@ import { useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, X, Loader2, Clock, BookOpen, Film, Library, Users } from 'lucide-react';
 
 const ITEM_TYPE_VIDEO = 1;
-import { searchApi } from '@/api';
+const LONG_PRESS_DURATION = 500;
+import { searchApi, librariesApi } from '@/api';
 import { useAuth } from '@/auth/AuthContext';
 import { cn } from '@/lib/utils';
 import FadeImage from '@/components/FadeImage';
+import ItemActionsSheet from '@/components/ItemActionsSheet';
+import { useToast } from '@/components/Toast';
 
 const RECENT_SEARCHES_KEY = 'alexandria_recent_searches';
 const STAGGER_DELAY = 40;
@@ -46,8 +49,11 @@ const clearRecentSearches = () => {
   }
 };
 
-// Search result card - glassmorphism style
-const SearchResultCard = ({ item, onClick, isShared, index }) => {
+// Search result card - glassmorphism style with long press support for owned items
+const SearchResultCard = ({ item, onClick, onLongPress, isShared, index }) => {
+  const pressTimer = useRef(null);
+  const isLongPress = useRef(false);
+
   // Prioritize base64 picture over pictureUrl
   const hasImage = item.picture || item.pictureUrl;
   const isVideo = item.type === ITEM_TYPE_VIDEO;
@@ -55,9 +61,43 @@ const SearchResultCard = ({ item, onClick, isShared, index }) => {
     ? item.directors?.[0] || ''
     : item.authors?.join(', ') || '';
 
+  const handleTouchStart = useCallback(() => {
+    // Only enable long press for owned items
+    if (isShared) return;
+    isLongPress.current = false;
+    pressTimer.current = setTimeout(() => {
+      isLongPress.current = true;
+      onLongPress?.(item);
+    }, LONG_PRESS_DURATION);
+  }, [item, onLongPress, isShared]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+  }, []);
+
+  const handleClick = useCallback(() => {
+    if (!isLongPress.current) {
+      onClick?.(item);
+    }
+  }, [item, onClick]);
+
+  const handleContextMenu = (e) => {
+    // Only enable context menu for owned items
+    if (isShared) return;
+    e.preventDefault();
+    onLongPress?.(item);
+  };
+
   return (
     <button
-      onClick={() => onClick(item)}
+      onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onContextMenu={handleContextMenu}
       style={{ animationDelay: `${index * STAGGER_DELAY}ms` }}
       className={cn(
         'w-full flex gap-3 p-3 rounded-xl text-left select-none',
@@ -116,6 +156,7 @@ const SearchResultCard = ({ item, onClick, isShared, index }) => {
 const Search = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -124,6 +165,11 @@ const Search = () => {
   const [recentSearches, setRecentSearches] = useState(getRecentSearches);
   const inputRef = useRef(null);
   const debounceRef = useRef(null);
+
+  // Action sheet state
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   // Auto-focus input on mount
   useEffect(() => {
@@ -197,6 +243,83 @@ const Search = () => {
       : `/libraries/${item.libraryId}/books/${item.id}`;
     navigate(path, { state: { item } });
   }, [navigate]);
+
+  // Long press on owned item -> show actions sheet
+  const handleItemLongPress = useCallback((item) => {
+    setSelectedItem(item);
+    setIsActionsOpen(true);
+  }, []);
+
+  // Close actions sheet
+  const handleCloseActions = useCallback(() => {
+    setIsActionsOpen(false);
+    setIsActionLoading(false);
+  }, []);
+
+  // Handle action from sheet
+  const handleAction = useCallback(async (action, item, data) => {
+    switch (action) {
+      case 'edit':
+        handleCloseActions();
+        if (item.type === ITEM_TYPE_VIDEO) {
+          navigate(`/libraries/${item.libraryId}/videos/${item.id}/edit`);
+        } else {
+          navigate(`/libraries/${item.libraryId}/books/${item.id}/edit`);
+        }
+        break;
+      case 'lend':
+        setIsActionLoading(true);
+        try {
+          await librariesApi.createItemEvent(item.libraryId, item.id, {
+            type: 'LENT',
+            event: data.personName,
+          });
+          // Update item in results to reflect lent state
+          setResults((prev) =>
+            prev.map((r) => (r.id === item.id ? { ...r, lentTo: data.personName } : r))
+          );
+          handleCloseActions();
+          toast.success(`Lent to ${data.personName}`);
+        } catch (err) {
+          toast.error(err.message || 'Failed to lend item');
+          setIsActionLoading(false);
+        }
+        break;
+      case 'return':
+        setIsActionLoading(true);
+        try {
+          await librariesApi.createItemEvent(item.libraryId, item.id, {
+            type: 'RETURNED',
+            event: item.lentTo,
+          });
+          // Update item in results to reflect returned state
+          setResults((prev) =>
+            prev.map((r) => (r.id === item.id ? { ...r, lentTo: null } : r))
+          );
+          handleCloseActions();
+          toast.success('Item returned');
+        } catch (err) {
+          toast.error(err.message || 'Failed to return item');
+          setIsActionLoading(false);
+        }
+        break;
+      case 'delete':
+        setIsActionLoading(true);
+        try {
+          await librariesApi.deleteItem(item.libraryId, item.id);
+          // Remove item from results
+          setResults((prev) => prev.filter((r) => r.id !== item.id));
+          handleCloseActions();
+          toast.success('Item deleted');
+        } catch (err) {
+          toast.error(err.message || 'Failed to delete item');
+          setIsActionLoading(false);
+        }
+        break;
+      default:
+        break;
+    }
+  }, [navigate, toast, handleCloseActions]);
 
   const showRecentSearches = query.trim().length < MIN_SEARCH_LENGTH && recentSearches.length > 0;
   const showEmptyState = !query.trim() && !showRecentSearches && !isLoading;
@@ -337,6 +460,7 @@ const Search = () => {
                   key={item.id}
                   item={item}
                   onClick={handleItemClick}
+                  onLongPress={handleItemLongPress}
                   isShared={isSharedItem(item)}
                   index={idx}
                 />
@@ -345,6 +469,15 @@ const Search = () => {
           </div>
         )}
       </div>
+
+      {/* Item actions sheet (only for owned items) */}
+      <ItemActionsSheet
+        item={selectedItem}
+        isOpen={isActionsOpen}
+        onClose={handleCloseActions}
+        onAction={handleAction}
+        isLoading={isActionLoading}
+      />
     </div>
   );
 };
