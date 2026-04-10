@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { LibrariesProvider } from '@/state';
+import { PWAProvider } from '@/pwa';
 import { useOnboarding } from '@/hooks';
 import { Layout } from '@/navigation';
 import { ToastProvider } from '@/components/Toast';
@@ -83,9 +84,10 @@ const OnboardingWrapper = ({ children }) => {
 };
 
 const App = () => (
-  <BrowserRouter>
-    <AuthProvider>
-      <PWAUpdatePrompt />
+  <PWAProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <PWAUpdatePrompt />
       <Routes>
         {/* Public routes - wrapped with PageWrapper for fade animation */}
         <Route
@@ -182,6 +184,7 @@ const App = () => (
       </Routes>
     </AuthProvider>
   </BrowserRouter>
+  </PWAProvider>
 );
 
 export default App;
