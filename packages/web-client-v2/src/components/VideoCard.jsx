@@ -120,10 +120,9 @@ const VideoCard = ({ video, onClick, onLongPress, showOrder = false, compact = f
       <div className="relative shrink-0">
         <div
           className={cn(
-            'bg-muted/50 flex items-center justify-center overflow-hidden rounded-md',
+            'w-16 h-24 bg-muted/50 flex items-center justify-center overflow-hidden rounded-md',
             // Subtle shadow to lift poster off the card
-            !compact && 'shadow-[2px_2px_8px_rgba(0,0,0,0.3)]',
-            compact ? 'w-10 h-14' : 'w-12 h-16'
+            !compact && 'shadow-[2px_2px_8px_rgba(0,0,0,0.3)]'
           )}
         >
           {(video.picture || video.pictureUrl) ? (
@@ -131,18 +130,10 @@ const VideoCard = ({ video, onClick, onLongPress, showOrder = false, compact = f
               src={video.picture ? `data:image/webp;base64,${video.picture}` : video.pictureUrl}
               alt={video.title}
               className="w-full h-full object-cover"
-              fallback={
-                <Film className={cn(
-                  'text-muted-foreground/50',
-                  compact ? 'h-5 w-5' : 'h-6 w-6'
-                )} />
-              }
+              fallback={<Film className="h-6 w-6 text-muted-foreground/50" />}
             />
           ) : (
-            <Film className={cn(
-              'text-muted-foreground/50',
-              compact ? 'h-5 w-5' : 'h-6 w-6'
-            )} />
+            <Film className="h-6 w-6 text-muted-foreground/50" />
           )}
         </div>
         {/* Lent ribbon overlay - same as BookCard */}

@@ -114,12 +114,11 @@ const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = fal
       <div className="relative shrink-0">
         <div
           className={cn(
-            'bg-muted/50 flex items-center justify-center overflow-hidden',
+            'w-16 h-24 bg-muted/50 flex items-center justify-center overflow-hidden',
             // Realistic book corners: 2px spine (left), 6px pages (right)
             'rounded-[2px_6px_6px_2px]',
             // Subtle shadow to lift cover off the card
-            !compact && 'shadow-[2px_2px_8px_rgba(0,0,0,0.3)]',
-            compact ? 'w-10 h-14' : 'w-12 h-16'
+            !compact && 'shadow-[2px_2px_8px_rgba(0,0,0,0.3)]'
           )}
         >
           {hasImage ? (
@@ -127,18 +126,10 @@ const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = fal
               src={book.picture ? `data:image/webp;base64,${book.picture}` : book.pictureUrl}
               alt={book.title}
               className="w-full h-full object-cover"
-              fallback={
-                <BookOpen className={cn(
-                  'text-muted-foreground/50',
-                  compact ? 'h-5 w-5' : 'h-6 w-6'
-                )} />
-              }
+              fallback={<BookOpen className="h-6 w-6 text-muted-foreground/50" />}
             />
           ) : (
-            <BookOpen className={cn(
-              'text-muted-foreground/50',
-              compact ? 'h-5 w-5' : 'h-6 w-6'
-            )} />
+            <BookOpen className="h-6 w-6 text-muted-foreground/50" />
           )}
         </div>
         {/* Lent ribbon overlay */}
