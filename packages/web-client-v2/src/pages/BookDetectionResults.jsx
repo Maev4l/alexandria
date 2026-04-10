@@ -134,7 +134,7 @@ const BookDetectionResults = () => {
   // Guard: no ISBN provided
   if (!isbn) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
           <AlertCircle className="h-10 w-10 text-destructive" />
@@ -153,7 +153,7 @@ const BookDetectionResults = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -166,7 +166,7 @@ const BookDetectionResults = () => {
   // Error state
   if (error) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
           <AlertCircle className="h-10 w-10 text-destructive" />
@@ -185,7 +185,7 @@ const BookDetectionResults = () => {
   // No results - offer manual entry
   if (results.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
           <BookOpen className="h-10 w-10 text-muted-foreground/50" />
@@ -210,19 +210,20 @@ const BookDetectionResults = () => {
 
   // Results list
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {renderAppBar()}
-      {/* Collection context banner - only shown when adding to a collection */}
-      {collection && (
-        <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-          Adding to: {collection.name}
-        </div>
-      )}
-      <div className="flex-1 overflow-y-auto">
-      <div className="p-4 space-y-3">
-        <p className="text-sm text-muted-foreground">
-          Found {results.length} result{results.length !== 1 ? 's' : ''} for ISBN {isbn}
-        </p>
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 overflow-y-auto">
+          {/* Collection context banner - only shown when adding to a collection */}
+          {collection && (
+            <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+              Adding to: {collection.name}
+            </div>
+          )}
+          <div className="p-4 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Found {results.length} result{results.length !== 1 ? 's' : ''} for ISBN {isbn}
+            </p>
 
         {results.map((book, index) => {
           const hasError = !!book.error;
@@ -288,7 +289,8 @@ const BookDetectionResults = () => {
             </button>
           );
         })}
-      </div>
+          </div>
+        </div>
       </div>
     </div>
   );

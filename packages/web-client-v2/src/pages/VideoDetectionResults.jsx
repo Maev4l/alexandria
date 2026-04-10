@@ -105,7 +105,7 @@ const VideoDetectionResults = () => {
   // Guard: no videos provided
   if (videos.length === 0) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-col flex-1 items-center justify-center p-4 text-center">
           <Film className="h-12 w-12 text-muted-foreground/50 mb-4" />
@@ -127,17 +127,18 @@ const VideoDetectionResults = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {renderAppBar()}
-      {/* Collection context banner - only shown when adding to a collection */}
-      {collection && (
-        <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-          Adding to: {collection.name}
-        </div>
-      )}
       {/* Results list */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-3">
+      <div className="flex-1 min-h-0 relative">
+        <div className="absolute inset-0 overflow-y-auto">
+          {/* Collection context banner - only shown when adding to a collection */}
+          {collection && (
+            <div className="mx-4 mt-2 px-3 py-2 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+              Adding to: {collection.name}
+            </div>
+          )}
+          <div className="p-4 space-y-3">
           {videos.map((video, index) => (
             <button
               key={video.id || index}
@@ -194,6 +195,7 @@ const VideoDetectionResults = () => {
               </div>
             </button>
           ))}
+          </div>
         </div>
       </div>
     </div>
