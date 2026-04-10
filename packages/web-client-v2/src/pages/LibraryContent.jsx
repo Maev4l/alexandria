@@ -347,6 +347,14 @@ const LibraryContent = () => {
           </div>
           </PullToRefresh>
         </div>
+
+        {/* Add item sheet */}
+        <AddItemSheet
+          isOpen={isAddItemOpen}
+          onClose={() => setIsAddItemOpen(false)}
+          onSelectBook={() => navigate(`/libraries/${libraryId}/add-book`)}
+          onSelectVideo={() => navigate(`/libraries/${libraryId}/add-video`)}
+        />
       </div>
     );
   }
@@ -371,6 +379,14 @@ const LibraryContent = () => {
           </div>
           </PullToRefresh>
         </div>
+
+        {/* Add item sheet - needed for empty state too */}
+        <AddItemSheet
+          isOpen={isAddItemOpen}
+          onClose={() => setIsAddItemOpen(false)}
+          onSelectBook={() => navigate(`/libraries/${libraryId}/add-book`)}
+          onSelectVideo={() => navigate(`/libraries/${libraryId}/add-video`)}
+        />
       </div>
     );
   }
