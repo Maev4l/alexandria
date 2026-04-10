@@ -361,11 +361,11 @@ const LibraryContent = () => {
           <div className="flex h-full flex-col items-center justify-center gap-4 p-4 text-center">
             <EmptyBookshelf className="w-32 h-28 text-muted-foreground" />
             <div className="space-y-1">
-              <p className="text-lg font-medium">No books yet</p>
+              <p className="text-lg font-medium">No items yet</p>
               <p className="text-sm text-muted-foreground">
                 {isSharedLibrary
                   ? 'This library is empty.'
-                  : 'Add books to this library to see them here.'}
+                  : 'Add books or videos to get started.'}
               </p>
             </div>
           </div>
