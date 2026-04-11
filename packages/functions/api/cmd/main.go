@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"alexandria.isnan.eu/functions/api/handlers"
+	"alexandria.isnan.eu/functions/api/repositories/bedrock"
 	"alexandria.isnan.eu/functions/api/repositories/cognito"
 	"alexandria.isnan.eu/functions/api/repositories/dynamodb"
-	"alexandria.isnan.eu/functions/api/repositories/rekognition"
 	storage "alexandria.isnan.eu/functions/api/repositories/s3"
 	"alexandria.isnan.eu/functions/api/services"
 	"github.com/aws/aws-lambda-go/events"
@@ -31,7 +31,11 @@ func init() {
 	db := dynamodb.NewDynamoDB(region)
 	storage := storage.NewObjectStorage(region)
 	idp := cognito.NewIdp(region)
-	ocr := rekognition.NewOCR(region)
+
+	// OCR via Bedrock Claude - model configurable via environment variable
+	ocrModel := os.Getenv("OCR_MODEL")
+	ocr := bedrock.NewOCR(region, ocrModel)
+
 	s := services.NewServices(db, storage, idp, ocr)
 	h := handlers.NewHTTPHandler(s)
 

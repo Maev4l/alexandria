@@ -60,7 +60,19 @@ data "aws_iam_policy_document" "api" {
 
   statement {
     effect    = "Allow"
-    actions   = ["rekognition:DetectText"]
+    actions   = ["bedrock:InvokeModel"]
+    resources = [
+      "arn:aws:bedrock:*::foundation-model/*",
+      "arn:aws:bedrock:*:*:inference-profile/*",
+    ]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "aws-marketplace:ViewSubscriptions",
+      "aws-marketplace:Subscribe",
+    ]
     resources = ["*"]
   }
 

@@ -21,18 +21,20 @@ This function exposes the core HTTP APIS behind and AWS API Gateway.
 Features:
 
 - **Book detection**: ISBN-based lookup using Google Books, Babelio, and GoodReads resolvers
-- **Video detection**: OCR-based title extraction (AWS Rekognition) + TMDB metadata lookup
+- **Video detection**: OCR-based title extraction (AWS Bedrock/Claude vision) + TMDB metadata lookup
 - **Search**: Fuzzy search powered by Bluge library (see @search.md)
 - **CRUD**: Libraries, Books, Videos, Collections, lending history
 
 #### Video Detection Flow
 
 1. Client sends base64 image or manual title
-2. If image provided: Rekognition `DetectText` extracts title
+2. If image provided: Bedrock Claude vision extracts title from DVD/Blu-ray cover
 3. TMDB API search by title returns movie candidates
 4. Each candidate includes: title, summary, director, cast (top 5), year, duration, poster
 
-**Configuration**: TMDB access token via SSM parameter `alexandria.tmdb.access.token`
+**Configuration**:
+- TMDB access token via SSM parameter `alexandria.tmdb.access.token`
+- OCR model via env var `OCR_MODEL` (default: `eu.anthropic.claude-haiku-4-5-20251001-v1:0`)
 
 It is written in Golang.
 

@@ -37,6 +37,7 @@ module "api" {
     LEK_SECRET_KEY            = "alexandria.lastevaluatedkey.secret"
     TMDB_ACCESS_TOKEN         = "alexandria.tmdb.access.token"
     SCRAPER_PROXY_API_KEY     = "alexandria.scraper.proxy.api.key"
+    OCR_MODEL                 = var.ocr_model
   }
 }
 
