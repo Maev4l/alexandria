@@ -309,16 +309,7 @@ func (s *services) ListItemsByLibrary(ownerId string, libraryId string, continua
 		return nil, err
 	}
 
-	for _, i := range content.Items {
-		if i.PictureUrl != nil && *i.PictureUrl != "" {
-			pic, err := s.storage.GetPicture(libraryOwnerId, libraryId, i.Id)
-			if err != nil {
-				return nil, err
-			}
-
-			i.Picture = pic
-		}
-	}
+	// Pictures are now served via CloudFront URLs - no need to load bytes from S3
 
 	// On first page (no continuation token), include collections as items with type = ItemCollection
 	// This ensures empty collections are visible and pagination still works correctly
@@ -371,30 +362,7 @@ func (s *services) ListItemsByLibraryGrouped(ownerId string, libraryId string, c
 		return nil, err
 	}
 
-	// Fetch S3 pictures for all items (both standalone and inside collections)
-	for _, item := range content.Items {
-		if item.Type == domain.ItemCollection {
-			// Collection: fetch pictures for nested items
-			for _, nestedItem := range item.Items {
-				if nestedItem.PictureUrl != nil && *nestedItem.PictureUrl != "" {
-					pic, err := s.storage.GetPicture(libraryOwnerId, libraryId, nestedItem.Id)
-					if err != nil {
-						return nil, err
-					}
-					nestedItem.Picture = pic
-				}
-			}
-		} else {
-			// Standalone book/video
-			if item.PictureUrl != nil && *item.PictureUrl != "" {
-				pic, err := s.storage.GetPicture(libraryOwnerId, libraryId, item.Id)
-				if err != nil {
-					return nil, err
-				}
-				item.Picture = pic
-			}
-		}
-	}
+	// Pictures are now served via CloudFront URLs - no need to load bytes from S3
 
 	return content, nil
 }

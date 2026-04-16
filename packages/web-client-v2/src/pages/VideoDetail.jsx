@@ -18,15 +18,15 @@ const VideoDetail = () => {
   // Use item from context, or fallback to item passed via location.state (from Search)
   const video = contextItem || location.state?.item;
 
-  // Prioritize base64 picture field over pictureUrl
-  const imageUrl = video?.picture
-    ? `data:image/webp;base64,${video.picture}`
-    : video?.pictureUrl || null;
-  const hasImage = !!imageUrl;
+  // picture is CloudFront URL (S3 thumbnail) - no fallback to external URL
+  const cloudFrontUrl = video?.picture
+    ? `${video.picture}?v=${video.updatedAt ? new Date(video.updatedAt).getTime() : '0'}`
+    : null;
+  const hasImage = !!cloudFrontUrl;
   const isLent = !!video?.lentTo;
 
   // Extract dominant color from poster for ambient background
-  const { color } = useExtractedColor(imageUrl);
+  const { color } = useExtractedColor(cloudFrontUrl);
   const gradientStyle = useMemo(() => {
     if (!color) return {};
     return { background: createCoverGradient(color, 0.35) };
@@ -75,7 +75,7 @@ const VideoDetail = () => {
               <div className="w-44 h-64 rounded-xl bg-muted/50 flex items-center justify-center overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
                 {hasImage ? (
                   <FadeImage
-                    src={imageUrl}
+                    src={cloudFrontUrl}
                     alt={video.title}
                     className="w-full h-full object-cover"
                     fallback={<Film className="h-14 w-14 text-muted-foreground/50" />}
@@ -97,7 +97,7 @@ const VideoDetail = () => {
                 >
                   <div className="w-44 h-64 rounded-xl overflow-hidden blur-[2px] opacity-60">
                     <FadeImage
-                      src={imageUrl}
+                      src={cloudFrontUrl}
                       alt=""
                       className="w-full h-full object-cover"
                     />

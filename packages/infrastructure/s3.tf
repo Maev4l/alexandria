@@ -40,3 +40,28 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "alexandria" {
     }
   }
 }
+
+# Bucket policy to allow CloudFront OAC access to thumbnails
+resource "aws_s3_bucket_policy" "alexandria_cloudfront" {
+  bucket = aws_s3_bucket.alexandria.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowCloudFrontOAC"
+        Effect    = "Allow"
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        }
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.alexandria.arn}/user/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.main.arn
+          }
+        }
+      }
+    ]
+  })
+}

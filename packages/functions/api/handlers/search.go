@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"encoding/base64"
+	"fmt"
 	"net/http"
 
 	"alexandria.isnan.eu/functions/internal/domain"
@@ -33,17 +33,19 @@ func (h *HTTPHandler) Search(c *gin.Context) {
 	itemsResponse := []GetItemResponse{}
 
 	for _, i := range items {
-		var encodedPicture *string
-		if i.Picture != nil {
-			encoded := base64.StdEncoding.EncodeToString(i.Picture)
-			encodedPicture = &encoded
+		// Construct CloudFront URL if item has a picture in S3
+		var pictureCloudFrontUrl *string
+		if i.PictureUrl != nil && *i.PictureUrl != "" {
+			url := fmt.Sprintf("https://alexandria.isnan.eu/thumbnails/user/%s/library/%s/item/%s",
+				i.OwnerId, i.LibraryId, i.Id)
+			pictureCloudFrontUrl = &url
 		}
 
 		baseResponse := GetItemResponseBase{
 			Id:             i.Id,
 			Type:           i.Type,
 			Title:          i.Title,
-			Picture:        encodedPicture,
+			Picture:        pictureCloudFrontUrl,
 			LibraryId:      &i.LibraryId,
 			LibraryName:    &i.LibraryName,
 			LentTo:         i.LentTo,
@@ -52,6 +54,7 @@ func (h *HTTPHandler) Search(c *gin.Context) {
 			CollectionId:   i.CollectionId,
 			CollectionName: i.CollectionName,
 			Order:          i.Order,
+			UpdatedAt:      i.UpdatedAt,
 		}
 
 		switch i.Type {

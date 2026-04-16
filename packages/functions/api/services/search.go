@@ -120,16 +120,7 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		return nil, err
 	}
 
-	// Load pictures
-	for _, i := range result {
-		if i.PictureUrl != nil && *i.PictureUrl != "" {
-			pic, err := s.storage.GetPicture(i.OwnerId, i.LibraryId, i.Id)
-			if err != nil {
-				return nil, err
-			}
-			i.Picture = pic
-		}
-	}
+	// Pictures are now served via CloudFront URLs - no need to load bytes from S3
 
 	return result, nil
 }

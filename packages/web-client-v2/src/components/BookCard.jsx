@@ -12,8 +12,11 @@ const LIFT_DELAY = 150;
 const STAGGER_DELAY = 50;
 
 const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = false, isSharedLibrary = false, isSelected = false, index }) => {
-  // Prioritize base64 picture over pictureUrl
-  const hasImage = book.picture || book.pictureUrl;
+  // picture is CloudFront URL (S3 thumbnail) - no fallback to external URL
+  const cloudFrontUrl = book.picture
+    ? `${book.picture}?v=${book.updatedAt ? new Date(book.updatedAt).getTime() : '0'}`
+    : null;
+  const hasImage = !!cloudFrontUrl;
   const authors = book.authors?.join(', ') || '';
   const isLent = !!book.lentTo;
 
@@ -123,7 +126,7 @@ const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = fal
         >
           {hasImage ? (
             <FadeImage
-              src={book.picture ? `data:image/webp;base64,${book.picture}` : book.pictureUrl}
+              src={cloudFrontUrl}
               alt={book.title}
               className="w-full h-full object-cover"
               fallback={<BookOpen className="h-6 w-6 text-muted-foreground/50" />}

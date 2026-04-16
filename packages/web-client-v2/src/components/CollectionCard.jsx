@@ -17,8 +17,11 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary, unfoldInde
   const pressTimer = useRef(null);
   const isLongPress = useRef(false);
   const isVideo = item.type === ITEM_TYPE_VIDEO;
-  // Prioritize base64 picture over pictureUrl
-  const hasImage = item.picture || item.pictureUrl;
+  // picture is CloudFront URL (S3 thumbnail) - no fallback to external URL
+  const cloudFrontUrl = item.picture
+    ? `${item.picture}?v=${item.updatedAt ? new Date(item.updatedAt).getTime() : '0'}`
+    : null;
+  const hasImage = !!cloudFrontUrl;
   const isLent = !!item.lentTo;
 
   // Staggered unfold animation style
@@ -82,7 +85,7 @@ const ItemThumbnail = ({ item, onClick, onLongPress, isSharedLibrary, unfoldInde
         >
           {hasImage ? (
             <FadeImage
-              src={item.picture ? `data:image/webp;base64,${item.picture}` : item.pictureUrl}
+              src={cloudFrontUrl}
               alt={item.title}
               className="w-full h-full object-cover"
               fallback={

@@ -54,8 +54,12 @@ const SearchResultCard = ({ item, onClick, onLongPress, isShared, index }) => {
   const pressTimer = useRef(null);
   const isLongPress = useRef(false);
 
-  // Prioritize base64 picture over pictureUrl
-  const hasImage = item.picture || item.pictureUrl;
+  // picture is CloudFront URL (S3 thumbnail); fallback to pictureUrl (external source)
+  // picture is CloudFront URL (S3 thumbnail) - no fallback to external URL
+  const cloudFrontUrl = item.picture
+    ? `${item.picture}?v=${item.updatedAt ? new Date(item.updatedAt).getTime() : '0'}`
+    : null;
+  const hasImage = !!cloudFrontUrl;
   const isVideo = item.type === ITEM_TYPE_VIDEO;
   const subtitle = isVideo
     ? item.directors?.[0] || ''
@@ -116,7 +120,7 @@ const SearchResultCard = ({ item, onClick, onLongPress, isShared, index }) => {
       )}>
         {hasImage ? (
           <FadeImage
-            src={item.picture ? `data:image/webp;base64,${item.picture}` : item.pictureUrl}
+            src={cloudFrontUrl}
             alt={item.title}
             className="w-full h-full object-cover"
             fallback={

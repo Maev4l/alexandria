@@ -18,6 +18,12 @@ const VideoCard = ({ video, onClick, onLongPress, showOrder = false, compact = f
   const [isLifting, setIsLifting] = useState(false);
   const isLent = !!video.lentTo;
 
+  // picture is CloudFront URL (S3 thumbnail) - no fallback to external URL
+  const cloudFrontUrl = video.picture
+    ? `${video.picture}?v=${video.updatedAt ? new Date(video.updatedAt).getTime() : '0'}`
+    : null;
+  const hasImage = !!cloudFrontUrl;
+
   // Card is lifted during long press OR while selected (action sheet open)
   const showLift = isLifting || isSelected;
 
@@ -125,9 +131,9 @@ const VideoCard = ({ video, onClick, onLongPress, showOrder = false, compact = f
             !compact && 'shadow-[2px_2px_8px_rgba(0,0,0,0.3)]'
           )}
         >
-          {(video.picture || video.pictureUrl) ? (
+          {hasImage ? (
             <FadeImage
-              src={video.picture ? `data:image/webp;base64,${video.picture}` : video.pictureUrl}
+              src={cloudFrontUrl}
               alt={video.title}
               className="w-full h-full object-cover"
               fallback={<Film className="h-6 w-6 text-muted-foreground/50" />}

@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -482,9 +482,6 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 		pageSize = 50
 	}
 
-	// Include base64 picture in response (defaults to true for backward compatibility)
-	includePicture := c.DefaultQuery("picture", "true") == "true"
-
 	t := h.getTokenInfo(c)
 
 	// Use grouped query for server-side collection grouping
@@ -504,7 +501,7 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 			// Collection with nested items
 			nestedItems := []GetItemResponse{}
 			for _, nested := range item.Items {
-				nestedItems = append(nestedItems, h.buildItemResponse(nested, includePicture))
+				nestedItems = append(nestedItems, h.buildItemResponse(nested))
 			}
 
 			itemsResponse = append(itemsResponse, GetCollectionWithItemsResponse{
@@ -522,7 +519,7 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 			})
 		} else {
 			// Standalone book or video
-			itemsResponse = append(itemsResponse, h.buildItemResponse(item, includePicture))
+			itemsResponse = append(itemsResponse, h.buildItemResponse(item))
 		}
 	}
 
@@ -535,19 +532,22 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 }
 
 // buildItemResponse converts a domain.LibraryItem to the appropriate GetItemResponse
-// includePicture controls whether base64 picture is included (reduces payload size when false)
-func (h *HTTPHandler) buildItemResponse(i *domain.LibraryItem, includePicture bool) GetItemResponse {
-	var encodedPicture *string
-	if includePicture && i.Picture != nil {
-		encoded := base64.StdEncoding.EncodeToString(i.Picture)
-		encodedPicture = &encoded
+// Picture field contains CloudFront URL (if item has a thumbnail in S3)
+func (h *HTTPHandler) buildItemResponse(i *domain.LibraryItem) GetItemResponse {
+	// Construct CloudFront URL if item has a picture in S3
+	// PictureUrl being set implies a picture was uploaded to S3 during creation
+	var pictureCloudFrontUrl *string
+	if i.PictureUrl != nil && *i.PictureUrl != "" {
+		url := fmt.Sprintf("https://alexandria.isnan.eu/thumbnails/user/%s/library/%s/item/%s",
+			i.OwnerId, i.LibraryId, i.Id)
+		pictureCloudFrontUrl = &url
 	}
 
 	baseResponse := GetItemResponseBase{
 		Id:             i.Id,
 		Type:           i.Type,
 		Title:          i.Title,
-		Picture:        encodedPicture,
+		Picture:        pictureCloudFrontUrl,
 		LibraryId:      &i.LibraryId,
 		LibraryName:    &i.LibraryName,
 		LentTo:         i.LentTo,
@@ -556,6 +556,7 @@ func (h *HTTPHandler) buildItemResponse(i *domain.LibraryItem, includePicture bo
 		CollectionName: i.CollectionName,
 		Order:          i.Order,
 		PictureUrl:     i.PictureUrl,
+		UpdatedAt:      i.UpdatedAt,
 	}
 
 	switch i.Type {

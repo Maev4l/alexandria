@@ -238,10 +238,11 @@ components:
         picture:
           type: string
           nullable: true
-          description: "Base64 encoded picture"
+          description: "CloudFront URL to thumbnail (served from S3 via CDN)"
         pictureUrl:
           type: string
           nullable: true
+          description: "External source URL (from detection APIs like Google Books, TMDB)"
         libraryId:
           type: string
           nullable: true
@@ -266,6 +267,11 @@ components:
           type: integer
           nullable: true
           description: "Order within collection (1-1000)"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: "Last update timestamp (use for cache busting: ?v={timestamp})"
 
     GetBookResponse:
       allOf:

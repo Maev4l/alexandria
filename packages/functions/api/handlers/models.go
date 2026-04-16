@@ -93,6 +93,7 @@ type GetItemResponseBase struct {
 	CollectionId   *string         `json:"collectionId,omitempty"`
 	CollectionName *string         `json:"collectionName,omitempty"`
 	Order          *int            `json:"order,omitempty"`
+	UpdatedAt      *time.Time      `json:"updatedAt,omitempty"`
 }
 
 func (g GetItemResponseBase) getType() string { return "" }

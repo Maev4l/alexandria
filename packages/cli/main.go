@@ -2,13 +2,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,6 +21,7 @@ import (
 	cognitotypes "github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dynamodbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 const (
@@ -24,6 +29,7 @@ const (
 	customIdAttr   = "custom:Id"
 	envPoolID      = "COGNITO_USER_POOL_ID"
 	envTableName   = "DYNAMODB_TABLE_NAME"
+	envBucketName  = "S3_BUCKET_NAME"
 )
 
 // Entity types matching backend persistence layer
@@ -91,6 +97,46 @@ func main() {
 		return
 	}
 
+	// fix-thumbnails requires DynamoDB and S3
+	if cmd == "fix-thumbnails" {
+		tableName := getTableName()
+		bucketName := getBucketName()
+		if tableName == "" {
+			fmt.Fprintf(os.Stderr, "Error: DynamoDB table name required. Use --table-name, set %s, or provide config.json\n", envTableName)
+			os.Exit(1)
+		}
+		if bucketName == "" {
+			fmt.Fprintf(os.Stderr, "Error: S3 bucket name required. Use --bucket-name, set %s, or provide config.json\n", envBucketName)
+			os.Exit(1)
+		}
+
+		// Check for --dry-run flag
+		dryRun := false
+		for _, arg := range cmdArgs {
+			if arg == "--dry-run" {
+				dryRun = true
+				break
+			}
+		}
+
+		dynamoClient, err := newDynamoDBClient(ctx)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating DynamoDB client: %v\n", err)
+			os.Exit(1)
+		}
+		s3Client, err := newS3Client(ctx)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating S3 client: %v\n", err)
+			os.Exit(1)
+		}
+
+		if err := fixThumbnails(ctx, dynamoClient, s3Client, tableName, bucketName, dryRun); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// Other commands only require Cognito
 	poolID := getPoolID()
 	if poolID == "" {
@@ -148,14 +194,17 @@ Commands:
   approve <username>     Approve a user (set custom:Approved = true)
   unapprove <username>   Unapprove a user (set custom:Approved = false)
   check-consistency      Check data consistency (DynamoDB + Cognito)
+  fix-thumbnails         Detect and repopulate missing S3 thumbnails
   help                   Show this help
 
 Configuration (priority order):
   --pool-id <id>         Cognito User Pool ID
   COGNITO_USER_POOL_ID   Environment variable
-  --table-name <name>    DynamoDB table name (for check-consistency)
+  --table-name <name>    DynamoDB table name (for check-consistency, fix-thumbnails)
   DYNAMODB_TABLE_NAME    Environment variable
-  config.json            File next to binary (alexandriaUserPoolId, alexandriaTableName)`)
+  --bucket-name <name>   S3 bucket name (for fix-thumbnails)
+  S3_BUCKET_NAME         Environment variable
+  config.json            File next to binary (alexandriaUserPoolId, alexandriaTableName, alexandriaBucketName)`)
 }
 
 // getPoolID retrieves pool ID from flag, environment, or config file
@@ -206,6 +255,7 @@ func getTableName() string {
 type configFile struct {
 	AlexandriaUserPoolId string `json:"alexandriaUserPoolId"`
 	AlexandriaTableName  string `json:"alexandriaTableName"`
+	AlexandriaBucketName string `json:"alexandriaBucketName"`
 }
 
 // readConfigFile reads and parses config.json from the binary's directory
@@ -247,7 +297,37 @@ func getTableNameFromConfig() string {
 	return cfg.AlexandriaTableName
 }
 
-// filterFlags removes --pool-id and --table-name flags and their values from args
+// getBucketName retrieves S3 bucket name from flag, environment, or config file
+func getBucketName() string {
+	// Check for --bucket-name flag
+	for i, arg := range os.Args {
+		if arg == "--bucket-name" && i+1 < len(os.Args) {
+			return os.Args[i+1]
+		}
+		if strings.HasPrefix(arg, "--bucket-name=") {
+			return strings.TrimPrefix(arg, "--bucket-name=")
+		}
+	}
+
+	// Check environment variable
+	if envValue := os.Getenv(envBucketName); envValue != "" {
+		return envValue
+	}
+
+	// Fallback: read from config.json next to binary
+	return getBucketNameFromConfig()
+}
+
+// getBucketNameFromConfig reads the bucket name from config.json in the binary's directory
+func getBucketNameFromConfig() string {
+	cfg, err := readConfigFile()
+	if err != nil {
+		return ""
+	}
+	return cfg.AlexandriaBucketName
+}
+
+// filterFlags removes --pool-id, --table-name, and --bucket-name flags and their values from args
 func filterPoolIDFlag(args []string) []string {
 	var filtered []string
 	skip := false
@@ -256,11 +336,11 @@ func filterPoolIDFlag(args []string) []string {
 			skip = false
 			continue
 		}
-		if arg == "--pool-id" || arg == "--table-name" {
+		if arg == "--pool-id" || arg == "--table-name" || arg == "--bucket-name" {
 			skip = true
 			continue
 		}
-		if strings.HasPrefix(arg, "--pool-id=") || strings.HasPrefix(arg, "--table-name=") {
+		if strings.HasPrefix(arg, "--pool-id=") || strings.HasPrefix(arg, "--table-name=") || strings.HasPrefix(arg, "--bucket-name=") {
 			continue
 		}
 		filtered = append(filtered, arg)
@@ -282,6 +362,14 @@ func newDynamoDBClient(ctx context.Context) (*dynamodb.Client, error) {
 		return nil, fmt.Errorf("loading AWS config: %w", err)
 	}
 	return dynamodb.NewFromConfig(cfg), nil
+}
+
+func newS3Client(ctx context.Context) (*s3.Client, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("loading AWS config: %w", err)
+	}
+	return s3.NewFromConfig(cfg), nil
 }
 
 func listUsers(ctx context.Context, client *cognitoidentityprovider.Client, poolID string) error {
@@ -907,4 +995,223 @@ func printConsistencyResults(r consistencyResult) {
 		}
 		fmt.Println()
 	}
+}
+
+// =============================================================================
+// Fix Thumbnails Implementation
+// =============================================================================
+
+// itemRecord represents a DynamoDB item record for thumbnail processing
+type itemRecord struct {
+	PK         string  `dynamodbav:"PK"`
+	SK         string  `dynamodbav:"SK"`
+	EntityType string  `dynamodbav:"EntityType"`
+	OwnerId    string  `dynamodbav:"OwnerId"`
+	LibraryId  string  `dynamodbav:"LibraryId"`
+	PictureUrl *string `dynamodbav:"PictureUrl"`
+	Title      string  `dynamodbav:"Title"`
+}
+
+// thumbnailResult holds stats for the fix-thumbnails operation
+type thumbnailResult struct {
+	TotalItems     int
+	MissingInS3    int
+	Repopulated    int
+	FailedToFetch  int
+	SkippedNoPicUrl int
+}
+
+func fixThumbnails(ctx context.Context, dynamoClient *dynamodb.Client, s3Client *s3.Client, tableName, bucketName string, dryRun bool) error {
+	if dryRun {
+		fmt.Println("DRY RUN MODE - no changes will be made")
+	}
+	fmt.Println("Scanning for items with missing thumbnails...")
+	fmt.Println()
+
+	// Scan DynamoDB for all BOOK and VIDEO items
+	items, err := scanItemsWithPictureUrl(ctx, dynamoClient, tableName)
+	if err != nil {
+		return fmt.Errorf("scanning items: %w", err)
+	}
+
+	result := thumbnailResult{TotalItems: len(items)}
+	fmt.Printf("Found %d items with PictureUrl set\n\n", len(items))
+
+	for i, item := range items {
+		// Check if thumbnail exists in S3
+		s3Key := fmt.Sprintf("user/%s/library/%s/item/%s", item.OwnerId, item.LibraryId, extractItemIdFromSK(item.SK))
+		exists, err := s3ObjectExists(ctx, s3Client, bucketName, s3Key)
+		if err != nil {
+			fmt.Printf("  [%d/%d] Error checking S3 for %s: %v\n", i+1, len(items), item.Title, err)
+			continue
+		}
+
+		if exists {
+			continue // Thumbnail already exists
+		}
+
+		result.MissingInS3++
+
+		if item.PictureUrl == nil || *item.PictureUrl == "" {
+			result.SkippedNoPicUrl++
+			continue
+		}
+
+		fmt.Printf("  [%d/%d] Missing thumbnail: %s\n", i+1, len(items), item.Title)
+		fmt.Printf("          S3 key: %s\n", s3Key)
+		fmt.Printf("          Source: %s\n", *item.PictureUrl)
+
+		if dryRun {
+			fmt.Println("          (skipped - dry run)")
+			continue
+		}
+
+		// Fetch image from external URL
+		imageData, contentType, err := fetchImageFromUrl(*item.PictureUrl)
+		if err != nil {
+			result.FailedToFetch++
+			fmt.Printf("          ERROR: failed to fetch: %v\n", err)
+			continue
+		}
+
+		// Upload to S3 incoming folder (image processor will handle the rest)
+		itemId := extractItemIdFromSK(item.SK)
+		incomingKey := fmt.Sprintf("incoming/%s", itemId)
+		if err := uploadToS3(ctx, s3Client, bucketName, incomingKey, imageData, contentType, item.OwnerId, item.LibraryId, itemId); err != nil {
+			result.FailedToFetch++
+			fmt.Printf("          ERROR: failed to upload: %v\n", err)
+			continue
+		}
+
+		result.Repopulated++
+		fmt.Println("          OK: uploaded to incoming/")
+	}
+
+	fmt.Println()
+	fmt.Println("=== FIX THUMBNAILS RESULTS ===")
+	fmt.Printf("Total items scanned:    %d\n", result.TotalItems)
+	fmt.Printf("Missing in S3:          %d\n", result.MissingInS3)
+	if dryRun {
+		fmt.Printf("Would repopulate:       %d\n", result.MissingInS3-result.SkippedNoPicUrl)
+	} else {
+		fmt.Printf("Successfully uploaded:  %d\n", result.Repopulated)
+		fmt.Printf("Failed to fetch/upload: %d\n", result.FailedToFetch)
+	}
+	fmt.Printf("Skipped (no PictureUrl):%d\n", result.SkippedNoPicUrl)
+
+	return nil
+}
+
+// scanItemsWithPictureUrl scans DynamoDB for all BOOK and VIDEO items that have PictureUrl set
+func scanItemsWithPictureUrl(ctx context.Context, client *dynamodb.Client, tableName string) ([]itemRecord, error) {
+	var items []itemRecord
+	var lastKey map[string]dynamodbtypes.AttributeValue
+
+	for {
+		input := &dynamodb.ScanInput{
+			TableName:         aws.String(tableName),
+			FilterExpression:  aws.String("(EntityType = :book OR EntityType = :video) AND attribute_exists(PictureUrl)"),
+			ExpressionAttributeValues: map[string]dynamodbtypes.AttributeValue{
+				":book":  &dynamodbtypes.AttributeValueMemberS{Value: TypeBook},
+				":video": &dynamodbtypes.AttributeValueMemberS{Value: TypeVideo},
+			},
+			ExclusiveStartKey: lastKey,
+		}
+
+		resp, err := client.Scan(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, item := range resp.Items {
+			var r itemRecord
+			if err := attributevalue.UnmarshalMap(item, &r); err != nil {
+				continue
+			}
+			items = append(items, r)
+		}
+
+		lastKey = resp.LastEvaluatedKey
+		if lastKey == nil {
+			break
+		}
+	}
+
+	return items, nil
+}
+
+// s3ObjectExists checks if an object exists in S3
+func s3ObjectExists(ctx context.Context, client *s3.Client, bucket, key string) (bool, error) {
+	_, err := client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		// Check if it's a "not found" error by examining the error string
+		// AWS SDK v2 returns errors that contain "NotFound" or "404" for missing objects
+		errStr := err.Error()
+		if strings.Contains(errStr, "NotFound") ||
+			strings.Contains(errStr, "NoSuchKey") ||
+			strings.Contains(errStr, "404") ||
+			strings.Contains(errStr, "not found") {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// fetchImageFromUrl downloads an image from a URL
+func fetchImageFromUrl(url string) ([]byte, string, error) {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		return nil, "", fmt.Errorf("GET request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("reading response body: %w", err)
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	return data, contentType, nil
+}
+
+// uploadToS3 uploads data to S3 with metadata for image processor
+func uploadToS3(ctx context.Context, client *s3.Client, bucket, key string, data []byte, contentType string, ownerId, libraryId, itemId string) error {
+	_, err := client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(data),
+		ContentType: aws.String(contentType),
+		// Metadata required by image processor Lambda
+		Metadata: map[string]string{
+			"targetprefix": fmt.Sprintf("user/%s/library/%s/item/%s", ownerId, libraryId, itemId),
+			"targetwidth":  "210",
+			"targetheight": "300",
+		},
+	})
+	return err
+}
+
+// extractItemIdFromSK extracts item ID from SK format "library#<libraryId>#item#<itemId>"
+func extractItemIdFromSK(sk string) string {
+	parts := strings.Split(sk, "#")
+	if len(parts) >= 4 && parts[0] == "library" && parts[2] == "item" {
+		return parts[3]
+	}
+	return ""
 }
