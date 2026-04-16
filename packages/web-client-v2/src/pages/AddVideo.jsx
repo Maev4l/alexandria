@@ -73,9 +73,7 @@ const AddVideo = () => {
       const result = await detectionApi.detectVideoByImage(imageBase64);
 
       if (result.detectedVideos?.length > 0) {
-        // Replace to avoid history stack growth during continuous scanning
         navigate(`/libraries/${libraryId}/video-results`, {
-          replace: true,
           state: {
             videos: result.detectedVideos,
             extractedTitle: result.extractedTitle,
@@ -110,9 +108,7 @@ const AddVideo = () => {
       const result = await detectionApi.detectVideoByTitle(trimmedTitle);
 
       if (result.detectedVideos?.length > 0) {
-        // Replace to avoid history stack growth during continuous scanning
         navigate(`/libraries/${libraryId}/video-results`, {
-          replace: true,
           state: {
             videos: result.detectedVideos,
             searchTitle: trimmedTitle,

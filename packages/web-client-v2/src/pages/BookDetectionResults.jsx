@@ -83,11 +83,8 @@ const BookDetectionResults = () => {
         order: order ? parseInt(order, 10) : null,
       });
       toast.success('Book added');
-      // Navigate back to add-book screen, preserving collection context
-      navigate(`/libraries/${libraryId}/add-book`, {
-        replace: true,
-        state: { collection, order },
-      });
+      // Go back to add-book screen (already in history stack)
+      navigate(-1);
     } catch (err) {
       toast.error(err.message || 'Failed to add book');
       setIsCreating(false);

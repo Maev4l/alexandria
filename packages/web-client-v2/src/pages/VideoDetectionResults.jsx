@@ -57,11 +57,8 @@ const VideoDetectionResults = () => {
       });
 
       toast.success('Video added');
-      // Navigate back to add-video screen, preserving collection context
-      navigate(`/libraries/${libraryId}/add-video`, {
-        replace: true,
-        state: { collection, order },
-      });
+      // Go back to add-video screen (already in history stack)
+      navigate(-1);
     } catch (err) {
       console.error('Failed to create video:', err);
       toast.error(err.message || 'Failed to add video');
