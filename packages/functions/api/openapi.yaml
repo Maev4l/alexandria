@@ -802,8 +802,8 @@ paths:
           schema:
             type: integer
             default: 10
-            maximum: 20
-          description: "Number of items per page (max 20)"
+            maximum: 50
+          description: "Number of items per page (max 50)"
         - name: nextToken
           in: query
           schema:
@@ -1200,8 +1200,8 @@ paths:
           schema:
             type: integer
             default: 10
-            maximum: 20
-          description: "Number of events per page (max 20)"
+            maximum: 50
+          description: "Number of events per page (max 50)"
         - name: nextToken
           in: query
           schema:

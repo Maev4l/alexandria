@@ -63,7 +63,7 @@ const PullToRefresh = forwardRef(({
   const childrenRef = useRef(null);
   const pullDownRef = useRef(null);
 
-  // Expose scroll methods via ref
+  // Expose scroll methods and container ref via ref
   useImperativeHandle(ref, () => ({
     scrollToTop: (smooth = true) => {
       childrenRef.current?.scrollTo({
@@ -78,6 +78,8 @@ const PullToRefresh = forwardRef(({
       });
     },
     getScrollTop: () => childrenRef.current?.scrollTop || 0,
+    // Expose scroll container for IntersectionObserver root
+    getScrollContainer: () => childrenRef.current,
   }), []);
 
   // Use refs for mutable state to avoid re-renders during drag

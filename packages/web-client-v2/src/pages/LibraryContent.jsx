@@ -122,22 +122,24 @@ const LibraryContent = () => {
   }, [items.length, scrollKey]);
 
   // Intersection observer for infinite scroll
+  // Uses the PullToRefresh scroll container as root so rootMargin works correctly
   useEffect(() => {
+    const scrollContainer = pullToRefreshRef.current?.getScrollContainer?.();
+    if (!scrollContainer || !loadMoreRef.current) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && nextToken && !isLoading) {
           loadMoreItems(libraryId);
         }
       },
-      { threshold: 0.1 }
+      { root: scrollContainer, threshold: 0.1, rootMargin: '0px 0px 400px 0px' }
     );
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
+    observer.observe(loadMoreRef.current);
 
     return () => observer.disconnect();
-  }, [nextToken, isLoading, loadMoreItems, libraryId]);
+  }, [nextToken, isLoading, loadMoreItems, libraryId, items.length]);
 
   // Pull to refresh handler
   const handleRefresh = useCallback(async () => {

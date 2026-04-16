@@ -140,8 +140,8 @@ func (h *HTTPHandler) GetItemHistoryEvents(c *gin.Context) {
 		pageSize = 10
 	}
 
-	if pageSize > 20 {
-		pageSize = 20
+	if pageSize > 50 {
+		pageSize = 50
 	}
 	t := h.getTokenInfo(c)
 
@@ -478,8 +478,8 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 		pageSize = 10
 	}
 
-	if pageSize > 20 {
-		pageSize = 20
+	if pageSize > 50 {
+		pageSize = 50
 	}
 
 	// Include base64 picture in response (defaults to true for backward compatibility)

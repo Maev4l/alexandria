@@ -22,7 +22,7 @@ export const librariesApi = {
   unshare: (libraryId, emails) => api.post(`/libraries/${libraryId}/unshare`, { emails }),
 
   // Get items in a library with cursor-based pagination
-  getItems: (libraryId, { limit = 20, nextToken } = {}) => {
+  getItems: (libraryId, { limit = 50, nextToken } = {}) => {
     const params = new URLSearchParams({ limit: String(limit) });
     if (nextToken) params.append('nextToken', nextToken);
     return api.get(`/libraries/${libraryId}/items?${params}`);

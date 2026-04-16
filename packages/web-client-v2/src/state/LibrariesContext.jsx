@@ -166,7 +166,7 @@ export const LibrariesProvider = ({ children }) => {
     }));
 
     try {
-      const data = await librariesApi.getItems(libraryId, { limit: 20 });
+      const data = await librariesApi.getItems(libraryId, { limit: 50 });
       setItemsByLibrary((prev) => ({
         ...prev,
         [libraryId]: {
@@ -201,7 +201,7 @@ export const LibrariesProvider = ({ children }) => {
 
     try {
       const data = await librariesApi.getItems(libraryId, {
-        limit: 20,
+        limit: 50,
         nextToken: current.nextToken,
       });
       setItemsByLibrary((prev) => ({
