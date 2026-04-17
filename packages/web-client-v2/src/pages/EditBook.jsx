@@ -122,6 +122,7 @@ const EditBook = () => {
     setIsSubmitting(true);
     try {
       const authorsArray = authors.split(',').map((a) => a.trim()).filter(Boolean);
+      const coverChanged = cover.trim() !== (book?.pictureUrl || '');
       await updateBook(libraryId, itemId, {
         title: title.trim(),
         summary: summary.trim() || null,
@@ -130,13 +131,15 @@ const EditBook = () => {
         pictureUrl: cover.trim() || null,
         collectionId: collectionId,
         order: collectionId && order ? parseInt(order, 10) : null,
+        // Trigger picture re-fetch only when cover URL changed
+        updatePicture: coverChanged ? true : undefined,
       });
       navigate(-1);
     } catch (err) {
       toast.error(err.message || 'Failed to update book');
       setIsSubmitting(false);
     }
-  }, [canSubmit, libraryId, itemId, title, summary, authors, isbn, cover, collectionId, order, updateBook, navigate, toast]);
+  }, [canSubmit, libraryId, itemId, title, summary, authors, isbn, cover, collectionId, order, book, updateBook, navigate, toast]);
 
   // Handle missing book data
   if (!book && initialized) {

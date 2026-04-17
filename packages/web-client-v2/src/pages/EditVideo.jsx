@@ -129,6 +129,7 @@ const EditVideo = () => {
 
     setIsSubmitting(true);
     try {
+      const posterChanged = form.pictureUrl.trim() !== (video?.pictureUrl || '');
       await updateVideo(libraryId, itemId, {
         title: form.title.trim(),
         summary: form.summary.trim(),
@@ -145,6 +146,8 @@ const EditVideo = () => {
         pictureUrl: form.pictureUrl.trim() || null,
         collectionId: collectionId,
         order: collectionId && form.order ? parseInt(form.order, 10) : null,
+        // Trigger picture re-fetch only when poster URL changed
+        updatePicture: posterChanged ? true : undefined,
       });
 
       navigate(-1);
@@ -153,7 +156,7 @@ const EditVideo = () => {
       toast.error(err.message || 'Failed to update video');
       setIsSubmitting(false);
     }
-  }, [canSubmit, libraryId, itemId, form, collectionId, updateVideo, navigate, toast]);
+  }, [canSubmit, libraryId, itemId, form, video, collectionId, updateVideo, navigate, toast]);
 
   // Handle missing video data
   if (!video && initialized) {
