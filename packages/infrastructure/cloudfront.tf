@@ -69,6 +69,19 @@ resource "aws_cloudfront_cache_policy" "thumbnails" {
   }
 }
 
+# Response headers policy for thumbnails - tells browser to cache for 7 days
+resource "aws_cloudfront_response_headers_policy" "thumbnails" {
+  name = "alexandria-thumbnails-response-headers"
+
+  custom_headers_config {
+    items {
+      header   = "Cache-Control"
+      value    = "public, max-age=604800, immutable"
+      override = true
+    }
+  }
+}
+
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
@@ -114,13 +127,14 @@ resource "aws_cloudfront_distribution" "main" {
 
   # /thumbnails/* → S3 (pictures bucket)
   ordered_cache_behavior {
-    path_pattern           = "/thumbnails/*"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD"]
-    target_origin_id       = "s3-thumbnails"
-    viewer_protocol_policy = "redirect-to-https"
-    compress               = true
-    cache_policy_id        = aws_cloudfront_cache_policy.thumbnails.id
+    path_pattern               = "/thumbnails/*"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    target_origin_id           = "s3-thumbnails"
+    viewer_protocol_policy     = "redirect-to-https"
+    compress                   = true
+    cache_policy_id            = aws_cloudfront_cache_policy.thumbnails.id
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.thumbnails.id
 
     # CloudFront Function to strip /thumbnails prefix
     function_association {
