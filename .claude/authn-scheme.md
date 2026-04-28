@@ -289,8 +289,18 @@ resource "aws_cognito_user_pool_client" "alexandria_client" {
     "https://alexandria.isnan.eu/",
     "http://localhost:5173/"
   ]
+  refresh_token_validity = 365
+  access_token_validity  = 60
+  id_token_validity      = 60
+  token_validity_units {
+    refresh_token = "days"
+    access_token  = "minutes"
+    id_token      = "minutes"
+  }
 }
 ```
+
+**Token TTLs**: access/ID = 60 min, refresh = 1 year (absolute expiry; re-login required yearly or on explicit sign-out, password change, or admin disable). Cognito refresh tokens are non-sliding — using them does not extend their lifetime.
 
 ### Lambda IAM Permissions
 

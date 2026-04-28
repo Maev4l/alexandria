@@ -68,6 +68,17 @@ resource "aws_cognito_user_pool_client" "alexandria_client" {
     "ALLOW_USER_SRP_AUTH",
   ]
 
+  # Cognito refresh tokens have absolute (non-sliding) expiry. 1 year keeps users
+  # signed in long enough for daily-use scenarios while still rotating credentials yearly.
+  refresh_token_validity = 365
+  access_token_validity  = 60
+  id_token_validity      = 60
+  token_validity_units {
+    refresh_token = "days"
+    access_token  = "minutes"
+    id_token      = "minutes"
+  }
+
   # OAuth configuration
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_flows_user_pool_client = true
