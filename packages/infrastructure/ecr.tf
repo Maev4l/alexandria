@@ -4,6 +4,8 @@
 resource "aws_ecr_repository" "images_processing" {
   name                 = "alexandria/images-processing"
   image_tag_mutability = "MUTABLE"
+  # Allow `terraform destroy` to remove the repository even when images remain.
+  force_delete = true
 
   image_scanning_configuration {
     scan_on_push = false

@@ -3,6 +3,8 @@
 
 resource "aws_s3_bucket" "alexandria" {
   bucket = "alexandria-items"
+  # Allow `terraform destroy` to remove the bucket even when objects remain.
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "alexandria" {
