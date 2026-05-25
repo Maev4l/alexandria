@@ -1,4 +1,4 @@
-.PHONY: build build-api build-indexer build-consistency-manager build-user-management package package-api package-indexer package-user-management clean lint
+.PHONY: build build-api build-indexer build-consistency-manager build-user-management package package-api package-indexer package-user-management clean lint format run-api-local
 # Build settings for AWS Lambda (ARM64)
 GOOS := linux
 GOARCH := arm64
@@ -54,6 +54,13 @@ lint:
 format:
 	golangci-lint fmt ./...
 
+
+# Run the API lambda locally as a plain HTTP server (Web Adapter mode).
+# Requires AWS credentials in the environment (e.g. `aws sso login`)
+# and env vars sourced from api/.env.local (copy from .env.local.example).
+run-api-local:
+	@test -f api/.env.local || (echo "Missing api/.env.local — copy from api/.env.local.example"; exit 1)
+	@set -a && . ./api/.env.local && set +a && go run ./api/cmd
 
 clean:
 	rm -rf api/$(BIN_DIR)

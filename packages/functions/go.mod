@@ -17,7 +17,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rekognition v1.51.16
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.1
-	github.com/awslabs/aws-lambda-go-api-proxy v0.16.1
 	github.com/blugelabs/bluge v0.2.2
 	github.com/corpix/uarand v0.2.0
 	github.com/gin-gonic/gin v1.9.1

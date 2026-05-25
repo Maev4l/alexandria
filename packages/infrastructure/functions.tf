@@ -7,6 +7,12 @@ locals {
 
   globalIndexFilename     = "global-index.tar.gz"
   sharedLibrariesFilename = "shared-libraries.json"
+
+  # AWS Lambda Web Adapter (arm64) - publisher account 753240598075.
+  # Bump intentionally; release notes:
+  # https://github.com/aws/aws-lambda-web-adapter/releases
+  lwa_layer_version = 27
+  lwa_layer_arn     = "arn:aws:lambda:${var.region}:753240598075:layer:LambdaAdapterLayerArm64:${local.lwa_layer_version}"
 }
 
 module "api" {
@@ -18,6 +24,10 @@ module "api" {
   timeout       = 35
 
   additional_policy_arns = [aws_iam_policy.api.arn]
+
+  # AWS Lambda Web Adapter (arm64). The layer's Extension intercepts the
+  # Lambda runtime API and forwards events as HTTP requests to PORT.
+  layers = [local.lwa_layer_arn]
 
   zip = {
     filename = local.apiFilename
@@ -38,6 +48,11 @@ module "api" {
     TMDB_ACCESS_TOKEN         = "alexandria.tmdb.access.token"
     SCRAPER_PROXY_API_KEY     = "alexandria.scraper.proxy.api.key"
     OCR_MODEL                 = var.ocr_model
+
+    # AWS Lambda Web Adapter forwards events to this port on 127.0.0.1.
+    # Must match the port the Gin server binds to in api/cmd/main.go.
+    PORT                = "8080"
+    AWS_LWA_INVOKE_MODE = "buffered"
   }
 }
 

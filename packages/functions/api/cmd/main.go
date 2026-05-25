@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 
 	"alexandria.isnan.eu/functions/api/handlers"
@@ -10,16 +9,10 @@ import (
 	"alexandria.isnan.eu/functions/api/repositories/dynamodb"
 	storage "alexandria.isnan.eu/functions/api/repositories/s3"
 	"alexandria.isnan.eu/functions/api/services"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-lambda-go/lambda"
-	ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
 	"github.com/gin-gonic/gin"
 )
 
-var ginLambda *ginadapter.GinLambdaV2
-
-func init() {
-
+func main() {
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
@@ -68,18 +61,11 @@ func init() {
 	g.DELETE("/libraries/:libraryId/collections/:collectionId", h.DeleteCollection)
 	g.POST("/search", h.Search)
 
-	/* g.GET("/hello", func(c *gin.Context) {
-		c.JSON(http.StatusOK, map[string]string{
-			"response": "world",
-		})
-	})
-	*/
-	ginLambda = ginadapter.NewV2(router)
-}
-
-func handler(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
-	return ginLambda.ProxyWithContext(ctx, req)
-}
-func main() {
-	lambda.Start(handler)
+	// LWA forwards requests to the port set by env (default 8080).
+	// Locally (no LWA) the same default lets `go run ./api/cmd` work out of the box.
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	_ = router.Run(":" + port)
 }

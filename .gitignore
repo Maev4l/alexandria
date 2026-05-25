@@ -16,3 +16,6 @@ dist/
 
 # Drawio
 *.bkp
+
+# Local dev env files (per-developer secrets)
+**/.env.local
