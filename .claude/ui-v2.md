@@ -5,7 +5,7 @@
 - PWA (Progressive Web App) based on React
 - Leverage shadcn/ui
 - Use vite
-- Based on yarn workspace
+- Installed independently via `yarn --cwd packages/web-client-v2` (no yarn workspaces; own `yarn.lock`)
 - Deployed on AWS via a CloudFormation template (`infra.yaml`)
 
 ## Development guidelines

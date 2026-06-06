@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.18",
-    "@types/node": "22.10.0",
+    "@types/node": "24.13.1",
     "@vitejs/plugin-react": "4.5.2",
     "eslint": "9.21.0",
     "eslint-plugin-react": "7.37.4",

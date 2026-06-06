@@ -1,6 +1,6 @@
 # Edited by Claude.
 # Build stage - install dependencies including sharp
-FROM public.ecr.aws/lambda/nodejs:22 AS build
+FROM public.ecr.aws/lambda/nodejs:24 AS build
 
 WORKDIR ${LAMBDA_TASK_ROOT}
 COPY handler.js package.json ./
@@ -9,7 +9,7 @@ COPY handler.js package.json ./
 RUN npm install --cpu=arm64 --os=linux --omit=dev
 
 # Production stage
-FROM public.ecr.aws/lambda/nodejs:22
+FROM public.ecr.aws/lambda/nodejs:24
 
 COPY --from=build ${LAMBDA_TASK_ROOT} ${LAMBDA_TASK_ROOT}
 

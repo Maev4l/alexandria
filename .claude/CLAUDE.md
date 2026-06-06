@@ -20,7 +20,7 @@ Architecture diagram, see: @../documentation/architecture.jpg (or @../documentat
 - The UI is a React based application, see: @ui-v2.md.
 - The backend is AWS Lamdba written in Golang, see @backend.md file
 - Everything is deployed on AWS.
-- The project is a monorepo based on yarn workspaces.
+- The project is a monorepo. Each JS package installs independently via `yarn --cwd <package>` (no yarn workspaces; one `yarn.lock` per package).
 - In addition, there is an administrative CLI tool here: @../packages/cli
 
 ## Instructions
