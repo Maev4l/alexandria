@@ -6,7 +6,7 @@
 - Leverage shadcn/ui
 - Use vite
 - Installed independently via `yarn --cwd packages/web-client-v2` (no yarn workspaces; own `yarn.lock`)
-- Deployed on AWS via a CloudFormation template (`infra.yaml`)
+- Deployed on AWS via Terraform (`packages/infrastructure`: `webclient.tf` S3 bucket + `cloudfront.tf` distribution). Deploy with `yarn frontend:deploy` (build → `s3 sync` → CloudFront invalidation).
 
 ## Development guidelines
 

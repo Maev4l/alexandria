@@ -13,19 +13,22 @@ export const PWAProvider = ({ children }) => {
   } = useRegisterSW({
     onRegisteredSW(swUrl, registration) {
       registrationRef.current = registration;
-      if (registration) {
-        // Check for updates periodically (every 60 seconds)
-        setInterval(() => {
-          registration.update();
-        }, 60 * 1000);
+      if (!registration) return;
 
-        // Also check when app regains focus
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') {
-            registration.update();
-          }
-        });
-      }
+      // Background safety net: catch a deploy while the app sits open and idle in
+      // the foreground. Hourly is enough because visibilitychange (below) handles
+      // the common case, so a tighter interval would only add nagging, not speed.
+      setInterval(() => {
+        registration.update();
+      }, 60 * 60 * 1000);
+
+      // Primary trigger: re-check the instant the user returns to the app. This is
+      // what makes a fresh deploy show up quickly for normal foreground/background usage.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          registration.update();
+        }
+      });
     },
   });
 
