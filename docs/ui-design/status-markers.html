@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Alexandria — Status markers · "Circulation Card" system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     "The Shelf" tokens (E) — for this mockup
+     ============================================================ */
+  :root{
+    --linen:#f3ecdd; --cream:#faf5ea; --ink:#2c2820; --muted:#7d7361;
+    --sienna:#bb5a33; --green:#3f6157; --border:#e0d6bf;
+    --wood:#a07c4f; --wood-d:#7c5d38; --wood-edge:#c8a877;
+    --lent:#b9762a; --lent-bg:#f3e3c8;
+    --card-shadow:0 1px 2px rgba(74,58,36,.10), 0 2px 6px rgba(74,58,36,.07);
+    --shelf-shadow:2px 4px 10px rgba(74,58,36,.22);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Bricolage Grotesque",system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(ellipse 80% 50% at 12% 0%, rgba(208,150,54,.10) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 50% at 88% 100%, rgba(63,97,87,.08) 0%, transparent 55%),
+      linear-gradient(180deg,#f3ecdd 0%, #ead9b8 100%);
+    min-height:100vh; padding:40px 20px 80px;
+  }
+  .wrap{max-width:920px; margin:0 auto;}
+  h1{font-weight:800; font-size:30px; letter-spacing:-.02em; margin-bottom:4px;}
+  .sub{font-family:"Newsreader",serif; font-style:italic; color:var(--muted); font-size:16px; margin-bottom:8px;}
+  .note{font-size:13.5px; color:var(--muted); line-height:1.55; max-width:680px; margin-bottom:30px;}
+  h2{font-weight:700; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--wood-d); margin:38px 0 14px; display:flex; align-items:center; gap:12px;}
+  h2::after{content:""; flex:1; height:1px; background:var(--border);}
+  .cap{font-family:"Bricolage Grotesque"; font-weight:600; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-top:8px;}
+
+  /* shared shelf primitives */
+  .ledge{height:7px; border-radius:1px; background:linear-gradient(180deg,var(--wood) 0%, var(--wood-d) 100%); box-shadow:inset 0 1px 0 var(--wood-edge), 0 2px 5px rgba(74,58,36,.20);}
+  .card{background:var(--cream); border-radius:18px; box-shadow:var(--card-shadow); overflow:hidden;}
+  .cover{border-radius:4px 4px 2px 2px; box-shadow:var(--shelf-shadow); position:relative; overflow:hidden;}
+  .c1{background:linear-gradient(160deg,#6f86b8,#33486f);}
+  .c2{background:linear-gradient(160deg,#b8543a,#7c2f1c);}
+  .c3{background:linear-gradient(160deg,#4a6f5f,#274038);}
+  .c4{background:linear-gradient(160deg,#c98a3a,#8a5a18);}
+
+  /* ============================================================
+     THE CIRCULATION-CARD EPHEMERA
+     ============================================================ */
+  .caps{font-family:"Bricolage Grotesque"; font-weight:700; letter-spacing:.14em; text-transform:uppercase;}
+
+  /* (1) LENT — the amber date-due SLIP */
+  .slip{
+    display:inline-flex; align-items:center; gap:7px;
+    background:var(--lent-bg); color:var(--lent);
+    border-radius:2px; padding:3px 8px;
+    border-top:1.5px dashed rgba(185,118,42,.5);
+    transform:rotate(-1.5deg);
+    box-shadow:0 1px 2px rgba(0,0,0,.18);
+    font-size:10px;
+  }
+  .slip .who{font-family:"Newsreader",serif; font-style:italic; font-weight:400; font-size:12.5px; letter-spacing:0; text-transform:none; line-height:1;}
+  .slip .div{width:1px; align-self:stretch; background:rgba(185,118,42,.4);}
+
+  /* (1b) corner tab on a thumbnail */
+  .slip-tab{
+    position:absolute; top:-2px; left:6px;
+    background:var(--lent-bg); color:var(--lent);
+    font-size:8.5px; letter-spacing:.1em; padding:2px 5px;
+    border-bottom:1.5px dashed rgba(185,118,42,.5);
+    transform:rotate(-1.5deg);
+    box-shadow:0 1px 2px rgba(0,0,0,.25);
+  }
+
+  /* (1c) hero date-due card tucked behind cover */
+  .duecard{
+    background:var(--lent-bg); color:var(--lent);
+    border-radius:3px; padding:14px 16px 10px;
+    box-shadow:0 2px 6px rgba(0,0,0,.16);
+    transform:rotate(-1.2deg);
+    border-bottom:1px solid rgba(185,118,42,.30);
+  }
+  .duecard .l1{font-size:11px; letter-spacing:.16em;}
+  .duecard .l2{font-family:"Newsreader",serif; font-style:italic; font-size:15px; color:#946022; margin-top:3px;}
+
+  /* (2) SHARED OUT — the hollow green STAMP */
+  .stamp{
+    display:inline-flex; align-items:center;
+    border:1.5px solid var(--green); color:var(--green);
+    background:transparent; border-radius:4px;
+    padding:3px 8px; font-size:9.5px; letter-spacing:.14em;
+    transform:rotate(-2deg); opacity:.92;
+  }
+
+  /* (3) SHARED WITH ME — the green spine RIBBON */
+  .ribbon{
+    position:absolute; left:0; top:0; bottom:0; width:6px;
+    background:var(--green);
+    clip-path:polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%);
+  }
+  .exlibris{font-size:9.5px; letter-spacing:.14em; color:var(--green);}
+
+  /* ---- specimen strip ---- */
+  .specimens{display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start;}
+  .spec{background:var(--cream); border-radius:14px; box-shadow:var(--card-shadow); padding:22px 20px; flex:1; min-width:210px; display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center;}
+  .spec .label{font-weight:700; font-size:14px;}
+  .spec .desc{font-family:"Newsreader",serif; font-style:italic; font-size:13px; color:var(--muted); line-height:1.4;}
+  .swatchbox{height:64px; display:flex; align-items:center; justify-content:center;}
+
+  /* ---- in-context rows ---- */
+  .demo{display:flex; flex-direction:column; gap:18px;}
+  .itemrow{padding:0 14px;}
+  .itemrow .row{display:flex; align-items:flex-end; gap:12px; padding-bottom:8px;}
+  .itemrow .cover{width:64px; height:96px; flex:none;}
+  .itemrow .info{flex:1; padding-bottom:4px;}
+  .itemrow .title{font-weight:700; font-size:17px;}
+  .itemrow .author{font-family:"Newsreader",serif; font-style:italic; color:var(--muted); font-size:14px; margin-bottom:7px;}
+
+  /* collection card */
+  .collection{padding:12px 0 0;}
+  .collection .hd{display:flex; justify-content:space-between; align-items:flex-start; padding:0 14px 6px;}
+  .collection .hd h3{font-weight:700; font-size:16px;}
+  .collection .hd .meta{font-family:"Newsreader",serif; font-style:italic; font-size:12px; color:var(--muted);}
+  .collection .badge{display:inline-flex; align-items:center; gap:3px; background:rgba(187,90,51,.10); color:var(--sienna); border-radius:6px; padding:2px 8px; font-weight:700; font-size:13px;}
+  .shelfrow{display:flex; gap:12px; padding:4px 14px 0; overflow:hidden;}
+  .thumb{display:flex; flex-direction:column; align-items:center; gap:5px;}
+  .thumb .cover{width:64px; height:96px;}
+  .thumb .t{width:64px; font-family:"Newsreader",serif; font-style:italic; font-size:12px; color:var(--muted); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+
+  /* detail hero */
+  .hero{display:flex; flex-direction:column; align-items:center; padding:26px 16px 18px; position:relative;}
+  .hero .cover{width:150px; height:218px; position:relative; z-index:2;}
+  .hero .ledge{width:184px; max-width:100%;}
+  .hero .duecard{margin-top:-16px; z-index:1; width:210px; padding-top:24px; text-align:center;}
+  .hero h1.t{font-weight:800; font-size:23px; margin-top:18px;}
+  .hero .author{font-family:"Newsreader",serif; font-style:italic; color:var(--muted); font-size:16px;}
+
+  /* history row */
+  .histcard{padding:0;}
+  .histtop{height:2px; background:var(--wood-d);}
+  .histtop2{height:1px; background:rgba(124,93,56,.5); margin-top:3px;}
+  .histhead{display:flex; align-items:flex-end; gap:12px; padding:12px 14px;}
+  .histhead .cover{width:46px; height:64px;}
+  .histhead .eye{font-size:11px; letter-spacing:.18em; color:var(--wood-d);}
+  .histhead .t{font-weight:700; font-size:16px;}
+  .histrow{position:relative; display:flex; gap:12px; padding:12px 14px; border-top:1px solid var(--border); align-items:flex-start;}
+  .histrow.open{padding-left:16px;}
+  .histrow .acc{position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--lent);}
+  .histrow .gutter{width:44px; text-align:center; flex:none;}
+  .histrow .gutter .m{font-weight:700; font-size:14px; text-transform:uppercase; line-height:1;}
+  .histrow .gutter .d{font-family:"Newsreader",serif; font-size:12px; color:var(--muted); margin-top:2px;}
+  .histrow .vr{width:1px; align-self:stretch; background:var(--border);}
+  .histrow .field{flex:1;}
+  .histrow .field .who{font-weight:600; font-size:15px; display:flex; justify-content:space-between; align-items:center; gap:8px;}
+  .histrow .field .sub{font-family:"Newsreader",serif; font-style:italic; font-size:13px; color:var(--muted);}
+  .pill-green{background:rgba(63,97,87,.12); color:var(--green); border-radius:20px; padding:2px 9px; font-size:11px; font-weight:700;}
+
+  /* libraries shelf-section rows */
+  .librow{position:relative; padding:0;}
+  .librow .body{display:flex; align-items:flex-end; gap:12px; padding:12px 16px 8px;}
+  .spines{display:flex; align-items:flex-end; gap:3px; height:46px;}
+  .spines i{width:8px; border-radius:2px 2px 1px 1px; box-shadow:inset 1px 0 0 rgba(255,255,255,.2), 1px 2px 3px rgba(74,58,36,.22); display:block;}
+  .librow .lname{font-weight:700; font-size:17px;}
+  .librow .lmeta{font-family:"Newsreader",serif; font-style:italic; font-size:14px; color:var(--muted);}
+  .stamp-tr{position:absolute; top:12px; right:14px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Status markers — the “Circulation Card” system</h1>
+  <p class="sub">Library ephemera applied to a shelved object.</p>
+  <p class="note">
+    Every status is a small printed artifact, sharing one type system (Bricolage uppercase micro-caps + a hairline,
+    the human/name part in Newsreader italic, a faint “placed by hand” tilt) but a <b>different physical form</b>, so they
+    never blur together: an <b>amber perforated slip</b> = lent out (a moment in time) · a <b>hollow green stamp</b> = a copy you lend to others · a
+    <b>green spine ribbon</b> = a library someone lends to you. Replaces the old generic pills/chips + lucide icons.
+  </p>
+
+  <!-- SPECIMENS -->
+  <h2>The three artifacts</h2>
+  <div class="specimens">
+    <div class="spec">
+      <div class="swatchbox"><span class="slip caps"><span>Lent</span><span class="div"></span><span class="who">Marcus</span></span></div>
+      <div class="label">Date-due slip · <span style="color:var(--lent)">lent out</span></div>
+      <div class="desc">Filled amber paper, perforated (dashed) top edge, square corners, slight tilt.</div>
+    </div>
+    <div class="spec">
+      <div class="swatchbox"><span class="stamp caps">Shared · 3</span></div>
+      <div class="label">Ink stamp · <span style="color:var(--green)">shared out</span></div>
+      <div class="desc">Hollow green outline, no fill — a pressed rubber-stamp mark on the face.</div>
+    </div>
+    <div class="spec">
+      <div class="swatchbox" style="position:relative; width:120px;">
+        <div style="position:relative; width:78px; height:58px; background:var(--linen); border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+          <span class="ribbon" style="height:100%"></span>
+        </div>
+      </div>
+      <div class="label">Spine ribbon · <span style="color:var(--green)">shared with me</span></div>
+      <div class="desc">A green ribbon down the spine edge with a notched tail — structural, not a face mark.</div>
+    </div>
+  </div>
+
+  <!-- LENT IN CONTEXT -->
+  <h2>Lent “out” — across surfaces</h2>
+  <div class="demo">
+
+    <!-- standalone row -->
+    <div class="card itemrow">
+      <div class="row">
+        <div class="cover c2"></div>
+        <div class="info">
+          <div class="title">Dune</div>
+          <div class="author">Frank Herbert</div>
+          <span class="slip caps"><span>Lent</span><span class="div"></span><span class="who">Marcus</span></span>
+        </div>
+      </div>
+      <div class="ledge"></div>
+    </div>
+    <div class="cap">Standalone book / film row — inline slip in the meta line (name in Newsreader italic)</div>
+
+    <!-- collection with a lent thumbnail -->
+    <div class="card collection">
+      <div class="hd">
+        <div>
+          <h3>Dune</h3>
+          <div class="meta">novels &amp; films together</div>
+        </div>
+        <span class="badge">⌗ 5</span>
+      </div>
+      <div class="shelfrow">
+        <div class="thumb"><div class="cover c2"><span class="slip-tab caps">Lent</span></div><div class="t">Dune</div></div>
+        <div class="thumb"><div class="cover c1"></div><div class="t">Messiah</div></div>
+        <div class="thumb"><div class="cover c4"></div><div class="t">Children</div></div>
+        <div class="thumb"><div class="cover c3"></div><div class="t">Dune (1984)</div></div>
+      </div>
+      <div class="ledge" style="margin:6px 14px 0;"></div>
+    </div>
+    <div class="cap">Collection thumbnail (64px) — a tiny “OUT” corner tab overhanging the cover edge (no room for a name)</div>
+
+    <!-- detail hero -->
+    <div class="card">
+      <div class="hero">
+        <div class="cover c2" style="display:flex;align-items:center;justify-content:center;"></div>
+        <div class="ledge" style="margin-top:0;"></div>
+        <div class="duecard">
+          <div class="l1 caps">Lent</div>
+          <div class="l2">to Marcus · since 4 Mar</div>
+        </div>
+        <h1 class="t">Dune</h1>
+        <div class="author">Frank Herbert</div>
+      </div>
+    </div>
+    <div class="cap">Detail hero — a full date-due card tucked behind the cover’s lower edge, peeking out</div>
+
+    <!-- history still-out -->
+    <div class="card histcard">
+      <div class="histtop"></div><div class="histtop2"></div>
+      <div class="histhead">
+        <div class="cover c2"></div>
+        <div><div class="eye caps">Checkout card</div><div class="t">Dune</div></div>
+      </div>
+      <div class="ledge" style="margin:0;"></div>
+      <div class="histrow open">
+        <div class="acc"></div>
+        <div class="gutter"><div class="m">Mar</div><div class="d">4 ’25</div></div>
+        <div class="vr"></div>
+        <div class="field">
+          <div class="who">Marcus <span class="slip caps" style="transform:rotate(-1.5deg)"><span>Lent</span><span class="div"></span><span class="who">12 days</span></span></div>
+          <div class="sub">out 4 Mar · 12 days and counting</div>
+        </div>
+      </div>
+      <div class="histrow">
+        <div class="gutter"><div class="m">Jan</div><div class="d">9 ’25</div></div>
+        <div class="vr"></div>
+        <div class="field">
+          <div class="who">Théo <span class="pill-green">18 days</span></div>
+          <div class="sub">out 9 Jan · back 27 Jan</div>
+        </div>
+      </div>
+    </div>
+    <div class="cap">History “still out” row — the slip at the row end; a closed loan keeps the calm green duration pill</div>
+  </div>
+
+  <!-- SHARED IN CONTEXT -->
+  <h2>Shared libraries — stamp vs ribbon</h2>
+  <div class="demo">
+
+    <!-- shared out: stamp -->
+    <div class="card librow">
+      <span class="stamp caps stamp-tr">Shared · 3</span>
+      <div class="body">
+        <div class="spines">
+          <i style="height:78%; background:linear-gradient(165deg,#cf6a3c,#9a3f1f)"></i>
+          <i style="height:100%; background:linear-gradient(165deg,#4a6f5f,#274038)"></i>
+          <i style="height:64%; background:linear-gradient(165deg,#d09636,#9a6618)"></i>
+        </div>
+        <div>
+          <div class="lname">Science Fiction</div>
+          <div class="lmeta">128 items</div>
+        </div>
+      </div>
+      <div class="ledge" style="margin:0;"></div>
+    </div>
+    <div class="cap">A library I share OUT — a hollow green “LENDING COPY · N” stamp pressed top-right (replaces the filled pill + Users icon)</div>
+
+    <!-- shared with me: ribbon -->
+    <div class="card librow">
+      <span class="ribbon"></span>
+      <div class="body" style="padding-left:20px;">
+        <div class="spines" style="opacity:.85;">
+          <i style="height:70%; background:linear-gradient(165deg,#6f86b8,#33486f)"></i>
+          <i style="height:92%; background:linear-gradient(165deg,#9a6f8a,#5f3f57)"></i>
+          <i style="height:60%; background:linear-gradient(165deg,#8a8a4f,#5a5a2f)"></i>
+        </div>
+        <div>
+          <div class="lname">Marcus’ Cinema</div>
+          <div><span class="exlibris caps">Lent to you</span></div>
+          <div class="lmeta">from Marcus’ library</div>
+        </div>
+      </div>
+      <div class="ledge" style="margin:0;"></div>
+    </div>
+    <div class="cap">A library shared WITH me — a green spine ribbon (notched tail) + an “ex libris” provenance line in Newsreader italic</div>
+  </div>
+
+  <p class="note" style="margin-top:38px;">
+    <b>At a glance:</b> filled amber slip = lent · hollow green stamp = shared out · green spine ribbon = shared with me.
+    Three silhouettes, distinguishable even in greyscale — form carries the meaning, colour reinforces it.
+  </p>
+</div>
+</body>
+</html>

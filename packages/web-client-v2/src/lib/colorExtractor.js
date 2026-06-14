@@ -10,8 +10,8 @@
  */
 export const extractDominantColor = (imageUrl) => {
   return new Promise((resolve) => {
-    // Default fallback color (muted purple to match theme)
-    const fallback = { r: 80, g: 70, b: 120 };
+    // Default fallback color (warm walnut to match the Shelf theme)
+    const fallback = { r: 160, g: 124, b: 79 };
 
     if (!imageUrl) {
       resolve(fallback);
@@ -85,14 +85,20 @@ export const extractDominantColor = (imageUrl) => {
 };
 
 /**
- * Creates a CSS gradient string from an extracted color
- * Gradient fades from color at top to transparent
- * @param {{r: number, g: number, b: number}} color - RGB color object
- * @param {number} opacity - Opacity of the color (0-1)
- * @returns {string} CSS gradient string
+ * A restrained, linen-washed halo for the detail "reading table" hero.
+ * Blends the cover color ~85% toward linen so it reads as warm atmosphere,
+ * never a saturated band. Returns a CSS radial-gradient centered behind the cover.
+ * @param {{r:number,g:number,b:number}} color
+ * @returns {string} CSS background value
  */
-export const createCoverGradient = (color, opacity = 0.4) => {
-  return `radial-gradient(ellipse 120% 80% at 50% 0%, rgba(${color.r}, ${color.g}, ${color.b}, ${opacity}) 0%, transparent 70%)`;
+export const createCoverHalo = (color) => {
+  if (!color) return 'transparent';
+  // Linen base #f3ecdd = rgb(243,236,221); mix 15% cover / 85% linen.
+  const mix = (c, base) => Math.round(c * 0.15 + base * 0.85);
+  const r = mix(color.r, 243);
+  const g = mix(color.g, 236);
+  const b = mix(color.b, 221);
+  return `radial-gradient(ellipse 90% 60% at 50% 18%, rgba(${r}, ${g}, ${b}, 0.9) 0%, transparent 70%)`;
 };
 
 /**

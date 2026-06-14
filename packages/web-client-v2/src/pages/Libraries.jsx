@@ -133,10 +133,11 @@ const Libraries = () => {
           {/* Owned libraries */}
           {ownedLibraries.length > 0 && (
             <section>
-              <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                My Libraries
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="mb-3 flex items-center gap-3">
+                <h2 className="font-sans text-sm font-bold tracking-wide text-[var(--wood-d)]">My Libraries</h2>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <div className="space-y-3">
                 {ownedLibraries.map((library, idx) => (
                   <LibraryCard
                     key={library.id}
@@ -154,10 +155,11 @@ const Libraries = () => {
           {/* Shared libraries */}
           {sharedLibraries.length > 0 && (
             <section>
-              <h2 className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                Shared with me
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="mb-3 flex items-center gap-3">
+                <h2 className="font-sans text-sm font-bold tracking-wide text-[var(--wood-d)]">Shared with me</h2>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+              <div className="space-y-3">
                 {sharedLibraries.map((library, idx) => (
                   <LibraryCard
                     key={library.id}

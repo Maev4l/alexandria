@@ -13,6 +13,7 @@ import PullToRefresh from '@/components/PullToRefresh';
 import BookCard from '@/components/BookCard';
 import VideoCard from '@/components/VideoCard';
 import CollectionCard from '@/components/CollectionCard';
+import LetterHeader from '@/components/LetterHeader';
 import ItemActionsSheet from '@/components/ItemActionsSheet';
 import AddItemSheet from '@/components/AddItemSheet';
 import CollectionActionsSheet from '@/components/CollectionActionsSheet';
@@ -23,6 +24,20 @@ import { librariesApi } from '@/api';
 // Item type constants (matches backend domain.ItemType)
 const ITEM_TYPE_VIDEO = 1;
 const ITEM_TYPE_COLLECTION = 2;
+
+// First alphabetical "bucket" letter of an item's title (collections sort by name too).
+// Accents fold to their base letter (É → E, ê → E, ñ → N) by stripping diacritics before
+// the A–Z check; digits, symbols, and non-Latin scripts bucket under "#".
+const sortLetter = (title) => {
+  const c = (title || '')
+    .trim()
+    .charAt(0)
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // drop combining diacritical marks
+    .charAt(0)
+    .toUpperCase();
+  return c >= 'A' && c <= 'Z' ? c : '#';
+};
 
 const LibraryContent = () => {
   const { libraryId } = useParams();
@@ -405,10 +420,16 @@ const LibraryContent = () => {
         >
         <div className="p-4 space-y-2">
           {items.map((item, idx) => {
+            const letter = sortLetter(item.title);
+            const prevLetter = idx > 0 ? sortLetter(items[idx - 1].title) : null;
+            const showLetter = letter !== prevLetter;
+            const divider = showLetter ? <LetterHeader key={`letter-${letter}-${idx}`} letter={letter} /> : null;
             // Collections (type=2) have nested items array from backend
             if (item.type === ITEM_TYPE_COLLECTION) {
               return (
-                <CollectionCard
+                <div key={`collection-${item.id}`}>
+                  {divider}
+                  <CollectionCard
                   key={`collection-${item.id}`}
                   collection={{ id: item.id, name: item.title }}
                   items={item.items || []}
@@ -424,13 +445,16 @@ const LibraryContent = () => {
                   onMorePress={isSharedLibrary ? undefined : handleCollectionMore}
                   isSharedLibrary={isSharedLibrary}
                   index={idx}
-                />
+                  />
+                </div>
               );
             }
             // Render VideoCard for videos (type=1), BookCard for books (type=0)
             if (item.type === ITEM_TYPE_VIDEO) {
               return (
-                <VideoCard
+                <div key={item.id}>
+                  {divider}
+                  <VideoCard
                   key={item.id}
                   video={item}
                   onClick={(video) => {
@@ -440,11 +464,14 @@ const LibraryContent = () => {
                   isSharedLibrary={isSharedLibrary}
                   isSelected={selectedItem?.id === item.id && isActionsOpen}
                   index={idx}
-                />
+                  />
+                </div>
               );
             }
             return (
-              <BookCard
+              <div key={item.id}>
+                {divider}
+                <BookCard
                 key={item.id}
                 book={item}
                 onClick={(book) => {
@@ -454,7 +481,8 @@ const LibraryContent = () => {
                 isSharedLibrary={isSharedLibrary}
                 isSelected={selectedItem?.id === item.id && isActionsOpen}
                 index={idx}
-              />
+                />
+              </div>
             );
           })}
 

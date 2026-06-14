@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Alexandria — I · The Glass Shelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     DIRECTION I — "THE GLASS SHELF" v3  (modern · dark · both media)
+     E's layout, in edge-lit glass on the Nightstand canvas. No
+     medium glyph — the medium reads from the coloured kind label
+     (lime = book, coral = film), so books & films stay equal peers.
+       · standalone item = one cover STANDING on a short glass shelf,
+         title + author/director in the space beside it
+       · collection = covers with the title UNDERNEATH, which lifts
+         them to FLOAT just above a wide glass shelf; scrolls sideways
+         for big sets (empty glass slots = pending members)
+     ============================================================ */
+  :root{
+    --bg:#0d0d0f; --card:#161619; --card-2:#1d1d21; --ink:#f3f2ef; --muted:#8a8a92; --line:#2a2a30;
+    --acc:#cdf24a; --film:#ff7a59;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:"Inter Tight",system-ui,sans-serif; color:var(--ink); background:#050506; display:grid; place-items:center; padding:36px 14px; min-height:100vh;}
+  .device{width:392px; max-width:100%; height:812px; position:relative; border-radius:46px; overflow:hidden; background:var(--bg);
+    box-shadow:0 40px 90px -30px #000, 0 0 0 7px #000, 0 0 0 8px #202024;}
+  .screen{height:100%; overflow-y:auto; position:relative; z-index:1;}
+  .screen::-webkit-scrollbar{display:none;} .screen{scrollbar-width:none;}
+
+  .lamp{position:absolute; top:-120px; left:50%; width:540px; height:430px; pointer-events:none; z-index:0; transform:translateX(-50%);
+    background:radial-gradient(50% 50% at 50% 44%, #ffe49e6e 0%, #d8f24a45 22%, #cdf24a1c 44%, transparent 70%);
+    filter:blur(10px); animation:lamp 5.5s ease-in-out infinite;}
+  @keyframes lamp{0%,100%{opacity:.5; transform:translateX(-50%) scale(.93);}50%{opacity:1; transform:translateX(-50%) scale(1.1);}}
+  .device::after{content:""; position:absolute; inset:0; pointer-events:none; z-index:40; border-radius:46px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E"),
+      radial-gradient(120% 80% at 50% 22%, transparent 56%, #000a 100%);}
+
+  header{padding:54px 22px 12px; position:relative; z-index:2;}
+  .eyebrow{font-weight:600; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); display:flex; align-items:center; gap:8px;}
+  .eyebrow .lampdot{width:8px; height:8px; border-radius:50%; background:var(--acc); box-shadow:0 0 12px 1px var(--acc);}
+  h1{font-family:"Sora"; font-weight:800; font-size:38px; line-height:1; letter-spacing:-.03em; margin:9px 0 16px;}
+  h1 .acc{color:var(--acc); text-shadow:0 0 24px #cdf24a77;}
+  .pills{display:flex; gap:8px;}
+  .pill{display:flex; align-items:center; gap:7px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:8px 12px; font-size:12.5px; font-weight:500; color:var(--muted);}
+  .pill b{font-family:"Sora"; font-weight:700; color:var(--ink);}
+  .pill .dot{width:8px;height:8px;border-radius:50%;}
+  .pill .book{background:var(--acc); box-shadow:0 0 8px var(--acc);} .pill .film{background:var(--film); box-shadow:0 0 8px var(--film);} .pill .set{background:#5a5a64;}
+
+  .letter{position:sticky; top:0; z-index:25; background:linear-gradient(180deg,var(--bg) 80%, transparent); padding:18px 22px 8px; display:flex; align-items:center; gap:11px; overflow:hidden;}
+  .letter .L{font-family:"Sora"; font-weight:800; font-size:15px; position:relative; z-index:2;}
+  .letter .l{flex:1; height:1px; background:var(--line); position:relative; z-index:2;}
+  .letter::before{content:attr(data-l); position:absolute; right:16px; top:-22px; font-family:"Sora"; font-weight:800; font-size:74px; color:#ffffff08; z-index:1; pointer-events:none;}
+
+  .stream{padding:0 18px; position:relative; z-index:2;} .stream.last{padding-bottom:118px;}
+
+  /* a plain cover (the art). subtle diagonal sheen so placeholders read as covers */
+  .cov{position:relative; overflow:hidden; border-radius:9px 9px 2px 2px;
+    box-shadow:0 14px 22px -10px #000, 0 0 0 1px #ffffff12 inset, 0 6px 30px -10px var(--glow);}
+  .cov::before{content:""; position:absolute; inset:0; background:linear-gradient(135deg,#ffffff22 0%, transparent 38%);}
+  .c1{background:linear-gradient(150deg,#3a5bdc,#222a6b); --glow:#3a5bdc88;} .c2{background:linear-gradient(150deg,#ff7a4a,#a8331c); --glow:#ff7a4a88;}
+  .c3{background:linear-gradient(150deg,#14b8a6,#0a5f62); --glow:#14b8a688;} .c4{background:linear-gradient(150deg,#8b5cf0,#42277f); --glow:#8b5cf088;}
+  .c5{background:linear-gradient(150deg,#eab308,#8a5a0a); --glow:#eab30888;} .c6{background:linear-gradient(150deg,#f43f6e,#8f1d3e); --glow:#f43f6e88;}
+
+  /* the glass shelf */
+  .glass{height:16px; position:relative; border-radius:1px;
+    background:linear-gradient(180deg,#ffffff1c 0%, #ffffff0b 44%, #ffffff04 70%, transparent 100%);}
+  .glass::before{content:""; position:absolute; left:0; right:0; top:0; height:2px; border-radius:2px;
+    background:linear-gradient(90deg, transparent, #eaffa8d9 24%, #ffffffec 50%, #eaffa8d9 76%, transparent); box-shadow:0 0 11px #cdf24a66;}
+  .glass::after{content:""; position:absolute; left:6%; right:6%; top:17px; height:14px; border-radius:50%; background:#000; filter:blur(8px); opacity:.5;}
+
+  /* ---- standalone item: cover STANDS on a short shelf, info beside ---- */
+  .item{margin-bottom:22px; animation:rise .5s cubic-bezier(.2,.7,.3,1) backwards;}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .item .row{display:flex; gap:17px; align-items:flex-end;}
+  .item .cov{width:74px; aspect-ratio:5/7;}
+  .item .info{flex:1; min-width:0; padding-bottom:6px;}
+  .item .glass{margin-top:-1px;}                 /* full-width shelf runs under the whole row */
+  .kind{font-size:10.5px; font-weight:700; letter-spacing:.12em; text-transform:uppercase;}
+  .kind.book{color:var(--acc);} .kind.film{color:var(--film);}
+  .ttl{font-family:"Sora"; font-weight:700; font-size:20px; line-height:1.05; letter-spacing:-.02em; margin:6px 0 3px;}
+  .by{font-size:13.5px; color:var(--muted); font-weight:500;}
+  .meta{margin-top:10px; display:flex; gap:7px; align-items:center; flex-wrap:wrap;}
+  .chip{font-size:11px; font-weight:500; color:var(--muted); background:var(--card-2); border:1px solid var(--line); border-radius:8px; padding:3px 9px;}
+  .chip.lent{color:var(--bg); background:var(--film); border-color:var(--film); font-weight:600; box-shadow:0 0 16px -3px #ff7a59aa;}
+
+  /* ---- collection: covers + title UNDER, floating above a wide shelf ---- */
+  .coll{margin-bottom:24px; animation:rise .5s cubic-bezier(.2,.7,.3,1) backwards;}
+  .coll .head{display:flex; justify-content:space-between; align-items:center; margin-bottom:13px;}
+  .coll .name{font-family:"Sora"; font-weight:700; font-size:18px; letter-spacing:-.02em;}
+  .coll .sub{font-size:12px; color:var(--muted); margin-top:2px;}
+  .coll .cnt{display:flex; align-items:center; gap:6px; background:var(--acc); color:var(--bg); font-family:"Sora"; font-weight:800; font-size:12px; padding:6px 11px; border-radius:11px; white-space:nowrap; box-shadow:0 0 18px -3px #cdf24a99;}
+  .coll .books{display:flex; gap:16px; overflow-x:auto; align-items:flex-end; padding-bottom:0; scroll-snap-type:x mandatory;}
+  .coll .books::-webkit-scrollbar{height:0;} .coll .books{scrollbar-width:none;}
+  .coll .book{flex:0 0 86px; scroll-snap-align:start; text-align:center;}
+  .coll .cov{width:86px; aspect-ratio:5/7;}
+  .coll .cap{margin:9px 0 12px;}                  /* title under cover → lifts it to float */
+  .coll .cap .t{font-family:"Sora"; font-weight:600; font-size:11.5px; line-height:1.05; color:var(--ink);}
+  .coll .cap .a{font-size:10px; color:var(--muted); margin-top:2px;}
+  /* pending member = empty glass slot, also floating */
+  .slot{flex:0 0 86px; text-align:center;}
+  .slot .ph{width:86px; aspect-ratio:5/7; border-radius:9px 9px 2px 2px; border:1px dashed #ffffff24; background:#ffffff06; display:grid; place-items:center; font-family:"Sora"; font-weight:700; font-size:14px; color:var(--muted);}
+  .slot .cap{margin:9px 0 12px; font-size:10px; color:var(--muted);}
+  .coll .more{flex:0 0 auto; align-self:center; padding:0 6px 30px; font-weight:600; font-size:12.5px; color:var(--acc); white-space:nowrap;}
+
+  .loading{text-align:center; padding:4px 0;}
+  .loading .bar{display:inline-block; width:34px; height:5px; border-radius:3px; background:linear-gradient(90deg,#202024 25%,#cdf24a55 50%,#202024 75%); background-size:200% 100%; animation:sk 1.2s linear infinite;}
+  @keyframes sk{0%{background-position:150% 0}100%{background-position:-150% 0}}
+
+  .nav{position:absolute; left:50%; bottom:18px; transform:translateX(-50%); z-index:50; display:flex; gap:4px; background:#16161980; backdrop-filter:blur(14px); padding:6px; border-radius:20px; box-shadow:0 16px 30px -8px #000; border:1px solid var(--line);}
+  .nav a{font-weight:600; font-size:13px; color:var(--muted); text-decoration:none; padding:10px 18px; border-radius:14px;}
+  .nav a.on{background:var(--acc); color:var(--bg); box-shadow:0 0 20px -2px #cdf24a88;}
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="lamp"></div>
+  <div class="screen">
+
+  <header>
+    <div class="eyebrow"><span class="lampdot"></span> My Library</div>
+    <h1>On the <span class="acc">glass.</span></h1>
+    <div class="pills">
+      <span class="pill"><span class="dot book"></span><b>173</b> books</span>
+      <span class="pill"><span class="dot film"></span><b>75</b> films</span>
+      <span class="pill"><span class="dot set"></span><b>7</b> sets</span>
+    </div>
+  </header>
+
+  <!-- A: standalone item — cover stands on a short glass shelf, info beside -->
+  <div class="letter" data-l="A"><span class="L">A</span><span class="l"></span></div>
+  <div class="stream">
+    <div class="item">
+      <div class="row">
+        <div class="cov c2"></div>
+        <div class="info">
+          <div class="ttl">Akira</div>
+          <div class="by">dir. Katsuhiro Otomo</div>
+          <div class="meta"><span class="chip">1988</span><span class="chip">Restored</span></div>
+        </div>
+      </div>
+      <div class="glass"></div>
+    </div>
+  </div>
+
+  <!-- D: collection — titles under covers, floating above one wide shelf -->
+  <div class="letter" data-l="D"><span class="L">D</span><span class="l"></span></div>
+  <div class="stream">
+    <div class="coll">
+      <div class="head"><div><div class="name">Dune</div><div class="sub">novels &amp; films · 4 of 6</div></div><span class="cnt">⌗ 6</span></div>
+      <div class="books">
+        <div class="book"><div class="cov c1"></div><div class="cap"><div class="t">Dune</div><div class="a">Herbert</div></div></div>
+        <div class="book"><div class="cov c4"></div><div class="cap"><div class="t">Messiah</div><div class="a">Herbert</div></div></div>
+        <div class="book"><div class="cov c3"></div><div class="cap"><div class="t">Dune 2021</div><div class="a">Villeneuve</div></div></div>
+        <div class="book"><div class="cov c6"></div><div class="cap"><div class="t">Part Two</div><div class="a">Villeneuve</div></div></div>
+        <div class="slot"><div class="ph">5</div><div class="cap">—</div></div>
+        <div class="slot"><div class="ph">6</div><div class="cap">—</div></div>
+        <span class="more">more →</span>
+      </div>
+      <div class="glass"></div>
+    </div>
+  </div>
+
+  <!-- K: standalone -->
+  <div class="letter" data-l="K"><span class="L">K</span><span class="l"></span></div>
+  <div class="stream">
+    <div class="item">
+      <div class="row">
+        <div class="cov c1"></div>
+        <div class="info">
+          <div class="ttl">Kafka on the Shore</div>
+          <div class="by">Haruki Murakami</div>
+          <div class="meta"><span class="chip">2002</span><span class="chip">Paperback</span></div>
+        </div>
+      </div>
+      <div class="glass"></div>
+    </div>
+  </div>
+
+  <!-- N: standalone, lent -->
+  <div class="letter" data-l="N"><span class="L">N</span><span class="l"></span></div>
+  <div class="stream">
+    <div class="item">
+      <div class="row">
+        <div class="cov c5"></div>
+        <div class="info">
+          <div class="ttl">Norwegian Wood</div>
+          <div class="by">Haruki Murakami</div>
+          <div class="meta"><span class="chip lent">Lent · Marcus</span><span class="chip">1987</span></div>
+        </div>
+      </div>
+      <div class="glass"></div>
+    </div>
+  </div>
+
+  <!-- S: long set, continues -->
+  <div class="letter" data-l="S"><span class="L">S</span><span class="l"></span></div>
+  <div class="stream last">
+    <div class="coll">
+      <div class="head"><div><div class="name">Studio Ghibli</div><div class="sub">complete · continues below</div></div><span class="cnt">⌗ 11</span></div>
+      <div class="books">
+        <div class="book"><div class="cov c3"></div><div class="cap"><div class="t">Totoro</div><div class="a">Miyazaki</div></div></div>
+        <div class="book"><div class="cov c2"></div><div class="cap"><div class="t">Mononoke</div><div class="a">Miyazaki</div></div></div>
+        <div class="book"><div class="cov c5"></div><div class="cap"><div class="t">Spirited Away</div><div class="a">Miyazaki</div></div></div>
+        <div class="book"><div class="cov c6"></div><div class="cap"><div class="t">Howl</div><div class="a">Miyazaki</div></div></div>
+        <div class="slot"><div class="ph">+7</div><div class="cap">—</div></div>
+        <span class="more">+7 →</span>
+      </div>
+      <div class="glass"></div>
+    </div>
+    <div class="loading"><span class="bar"></span></div>
+  </div>
+
+  </div><!-- /screen -->
+
+  <nav class="nav">
+    <a class="on" href="#">Library</a>
+    <a href="#">Search</a>
+    <a href="#">Account</a>
+  </nav>
+</div>
+</body>
+</html>

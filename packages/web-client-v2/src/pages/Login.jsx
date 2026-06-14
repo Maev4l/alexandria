@@ -70,7 +70,7 @@ const Login = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {successMessage && (
-              <div className="flex items-center gap-2 p-3 rounded-md bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 text-sm">
+              <div className="flex items-center gap-2 p-3 rounded-md bg-secondary/10 text-secondary text-sm">
                 <CheckCircle className="h-4 w-4 flex-shrink-0" />
                 <span>{successMessage}</span>
               </div>

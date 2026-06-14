@@ -4,7 +4,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import Webcam from 'react-webcam';
-import { Camera, Search, VideoOff, Loader2, PenLine } from 'lucide-react';
+import { Camera, Search, CameraOff, Loader2, PenLine } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { detectionApi } from '@/api';
 import { Input } from '@/components/ui/Input';
@@ -143,7 +143,7 @@ const AddVideo = () => {
     if (cameraError) {
       return (
         <div className="h-48 w-full max-w-xs rounded-2xl bg-muted border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 p-4">
-          <VideoOff className="h-10 w-10 text-muted-foreground/50" />
+          <CameraOff className="h-10 w-10 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground text-center">{cameraError}</p>
           {cameraError === 'Camera permission denied' && (
             <p className="text-xs text-muted-foreground text-center">

@@ -16,7 +16,7 @@ const icons = {
 
 const styles = {
   error: 'bg-destructive text-destructive-foreground',
-  success: 'bg-green-600 text-white',
+  success: 'bg-secondary text-secondary-foreground',
   info: 'bg-primary text-primary-foreground',
 };
 

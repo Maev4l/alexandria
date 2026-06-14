@@ -33,11 +33,11 @@ const getInitials = (displayName, username) => {
 const CheckItem = ({ checked, label }) => (
   <div className="flex items-center gap-2">
     {checked ? (
-      <Check className="h-4 w-4 text-green-500" />
+      <Check className="h-4 w-4 text-secondary" />
     ) : (
       <X className="h-4 w-4 text-muted-foreground" />
     )}
-    <span className={`text-xs ${checked ? 'text-green-600' : 'text-muted-foreground'}`}>
+    <span className={`text-xs ${checked ? 'text-secondary' : 'text-muted-foreground'}`}>
       {label}
     </span>
   </div>
@@ -114,7 +114,7 @@ const Account = () => {
             >
               <span>{user?.email || '—'}</span>
               {copied ? (
-                <Check className="h-4 w-4 text-green-500" />
+                <Check className="h-4 w-4 text-secondary" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}

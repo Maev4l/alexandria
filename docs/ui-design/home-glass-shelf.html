@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Alexandria — I · Installed PWA (icon + splash)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     I — "THE GLASS SHELF" · installed-PWA identity
+     App icon = cover silhouettes on a glowing lime glass edge,
+     charcoal bg. Splash = charcoal + lamp glow, wordmark, lime.
+     ============================================================ */
+  :root{ --bg:#0d0d0f; --ink:#f3f2ef; --muted:#8a8a92; --acc:#cdf24a; --film:#ff7a59; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Inter Tight",sans-serif; background:#050506; color:#e9e6da; min-height:100vh; padding:42px 20px 60px;}
+  h2.page{font-family:"Sora"; font-weight:800; font-size:24px; text-align:center; margin-bottom:4px;}
+  p.page{font-family:"Sora"; font-weight:600; text-align:center; color:#7a7a82; font-size:13px; margin-bottom:30px;}
+  .stage{display:flex; gap:38px; justify-content:center; flex-wrap:wrap; align-items:flex-start;}
+  .col{display:flex; flex-direction:column; align-items:center; gap:14px;}
+  .cap{font-family:"Sora"; font-weight:600; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#7a7a82;}
+
+  .phone{width:300px; height:632px; border-radius:42px; overflow:hidden; position:relative; box-shadow:0 30px 60px -24px #000, 0 0 0 7px #000, 0 0 0 8px #202024;}
+
+  /* ---------- app icon mark ---------- */
+  .icon{position:relative; display:grid; place-items:center; overflow:hidden; background:
+      radial-gradient(120% 110% at 50% -10%, #1c1c22 0%, #121216 55%, #0c0c0e 100%);}
+  .icon .lampglow{position:absolute; top:-30%; left:50%; transform:translateX(-50%); width:130%; height:90%;
+    background:radial-gradient(50% 50% at 50% 50%, #ffe49e2e 0%, #cdf24a22 30%, transparent 70%); filter:blur(6px);}
+  .icon .mark{position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; width:62%; height:62%;}
+  .icon .spines{display:flex; align-items:flex-end; gap:9%; height:72%; width:100%; justify-content:center;}
+  .icon .sp{width:16%; border-radius:16% 16% 2% 2%; position:relative; box-shadow:0 5px 12px -4px var(--g, #000), inset 0 0 0 1px #ffffff14;}
+  .icon .s1{height:78%; background:linear-gradient(165deg,#ff8a5a,#a8331c); --g:#ff7a4a88;}
+  .icon .s2{height:100%; background:linear-gradient(165deg,#5f7bff,#2a3a8a); --g:#3a5bdc88;}
+  .icon .s3{height:64%; background:linear-gradient(165deg,#18c2ae,#0a5f62); --g:#14b8a688;}
+  /* the glowing glass edge */
+  .icon .edge{width:100%; height:5%; border-radius:3px; margin-top:2px; position:relative;
+    background:linear-gradient(90deg, transparent, #eaffa8 22%, #ffffff 50%, #eaffa8 78%, transparent);
+    box-shadow:0 0 14px 2px #cdf24abb;}
+
+  /* home screen */
+  .home{width:100%; height:100%; position:relative; background:
+      radial-gradient(120% 80% at 30% 8%, #2a2740 0%, #16151f 45%, #0a0a0e 100%);}
+  .home .status{position:absolute; top:0; left:0; right:0; height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-family:"Sora"; font-weight:700; font-size:13px; color:#fff;}
+  .grid{position:absolute; top:70px; left:0; right:0; padding:0 26px; display:grid; grid-template-columns:repeat(4,1fr); gap:22px 18px;}
+  .app{display:flex; flex-direction:column; align-items:center; gap:7px;}
+  .app .ic{width:54px; height:54px; border-radius:14px; box-shadow:0 8px 14px -8px #000b;}
+  .app .lbl{font-family:"Sora"; font-weight:600; font-size:10.5px; color:#fff; text-shadow:0 1px 2px #000a;}
+  .dummy1{background:linear-gradient(160deg,#6b7cff,#3b46b0);} .dummy2{background:linear-gradient(160deg,#33c2a0,#0d7a6a);}
+  .dummy3{background:linear-gradient(160deg,#ff7a7a,#c23b50);} .dummy4{background:linear-gradient(160deg,#ffd166,#e0a020);}
+  .dummy5{background:linear-gradient(160deg,#3a3a44,#16161a);} .dummy6{background:linear-gradient(160deg,#b0b0bb,#7a7a86);}
+  .dummy7{background:linear-gradient(160deg,#a06bff,#6a2fb0);}
+  .app.feature .ic{box-shadow:0 0 0 3px #cdf24acc, 0 0 22px -2px #cdf24a88, 0 10px 18px -6px #000;}
+  .dock{position:absolute; left:14px; right:14px; bottom:16px; height:84px; border-radius:30px; background:#ffffff14; backdrop-filter:blur(14px); display:flex; align-items:center; justify-content:space-around; padding:0 14px; border:1px solid #ffffff14;}
+  .dock .ic{width:54px; height:54px; border-radius:14px; box-shadow:0 8px 14px -8px #000b;}
+
+  /* splash */
+  .splash{width:100%; height:100%; position:relative; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden;}
+  .splash .lamp{position:absolute; top:-90px; left:50%; transform:translateX(-50%); width:420px; height:340px;
+    background:radial-gradient(50% 50% at 50% 44%, #ffe49e55 0%, #cdf24a2a 26%, transparent 70%); filter:blur(10px);}
+  .splash .grain{position:absolute; inset:0; background:radial-gradient(120% 80% at 50% 24%, transparent 56%, #000a 100%);}
+  .splash .lg{position:relative; width:96px; height:96px; border-radius:24px; overflow:hidden; margin-bottom:26px; box-shadow:0 0 30px -6px #cdf24a55, 0 18px 30px -16px #000;}
+  .splash .name{position:relative; font-family:"Sora"; font-weight:800; font-size:38px; letter-spacing:-.03em; color:var(--ink);}
+  .splash .name .d{color:var(--acc); text-shadow:0 0 22px #cdf24a88;}
+  .splash .edge2{position:relative; width:60px; height:3px; border-radius:2px; margin:15px 0 12px;
+    background:linear-gradient(90deg,transparent,#eaffa8,#fff,#eaffa8,transparent); box-shadow:0 0 12px #cdf24a99;}
+  .splash .tag{position:relative; font-size:14.5px; color:var(--muted); font-weight:500;}
+  .splash .foot{position:absolute; bottom:30px; font-family:"Sora"; font-weight:600; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:#5f5f68;}
+
+  .note{max-width:760px; margin:34px auto 0; background:#161619; border:1px solid #2a2a30; border-radius:14px; padding:18px 20px; font-size:13.5px; line-height:1.6; color:#bdbab2;}
+  .note b{color:#fff; font-family:"Sora";}
+  .note code{background:#0b0b0e; padding:1px 6px; border-radius:5px; font-size:12px;}
+  .sw{display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:-1px; margin-right:5px; border:1px solid #ffffff20;}
+</style>
+</head>
+<body>
+  <h2 class="page">Alexandria — installed app · “The Glass Shelf”</h2>
+  <p class="page">App icon (home screen) &amp; launch splash</p>
+
+  <div class="stage">
+    <div class="col">
+      <div class="phone"><div class="home">
+        <div class="status"><span>9:41</span><span>● ▮▮▮</span></div>
+        <div class="grid">
+          <div class="app"><div class="ic dummy1"></div><div class="lbl">Notes</div></div>
+          <div class="app"><div class="ic dummy2"></div><div class="lbl">Health</div></div>
+          <div class="app"><div class="ic dummy3"></div><div class="lbl">Photos</div></div>
+          <div class="app"><div class="ic dummy4"></div><div class="lbl">Weather</div></div>
+          <div class="app feature"><div class="ic icon" style="border-radius:14px"><div class="lampglow"></div><div class="mark"><div class="spines"><div class="sp s1"></div><div class="sp s2"></div><div class="sp s3"></div></div><div class="edge"></div></div></div><div class="lbl">Alexandria</div></div>
+          <div class="app"><div class="ic dummy5"></div><div class="lbl">Files</div></div>
+          <div class="app"><div class="ic dummy6"></div><div class="lbl">Settings</div></div>
+          <div class="app"><div class="ic dummy7"></div><div class="lbl">Music</div></div>
+        </div>
+        <div class="dock">
+          <div class="ic dummy3"></div><div class="ic dummy1"></div><div class="ic dummy2"></div><div class="ic dummy5"></div>
+        </div>
+      </div></div>
+      <div class="cap">Home screen</div>
+    </div>
+
+    <div class="col">
+      <div class="phone"><div class="splash">
+        <div class="lamp"></div><div class="grain"></div>
+        <div class="lg icon"><div class="lampglow"></div><div class="mark" style="width:62%;height:62%"><div class="spines"><div class="sp s1"></div><div class="sp s2"></div><div class="sp s3"></div></div><div class="edge"></div></div></div>
+        <div class="name">Alexan<span class="d">dria</span></div>
+        <div class="edge2"></div>
+        <div class="tag">Your personal wonder</div>
+      </div></div>
+      <div class="cap">Launch splash</div>
+    </div>
+
+    <div class="col">
+      <div style="display:flex; gap:18px; align-items:flex-end;">
+        <div style="text-align:center">
+          <div class="icon" style="width:104px;height:104px;border-radius:24px;overflow:hidden"><div class="lampglow"></div><div class="mark" style="width:62%;height:62%"><div class="spines"><div class="sp s1"></div><div class="sp s2"></div><div class="sp s3"></div></div><div class="edge"></div></div></div>
+          <div class="cap" style="margin-top:8px">iOS · rounded</div>
+        </div>
+        <div style="text-align:center">
+          <div class="icon" style="width:84px;height:84px;border-radius:50%;overflow:hidden"><div class="lampglow"></div><div class="mark" style="width:58%;height:58%"><div class="spines"><div class="sp s1"></div><div class="sp s2"></div><div class="sp s3"></div></div><div class="edge"></div></div></div>
+          <div class="cap" style="margin-top:8px">Android · maskable</div>
+        </div>
+      </div>
+      <div class="cap" style="margin-top:6px">Icon, both masks</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Manifest / install values — “The Glass Shelf”</b><br>
+    <code>name</code> Alexandria &nbsp;·&nbsp; <code>short_name</code> Alexandria<br>
+    <span class="sw" style="background:#0d0d0f"></span><code>background_color</code> #0d0d0f (splash bg) &nbsp;·&nbsp;
+    <span class="sw" style="background:#0d0d0f"></span><code>theme_color</code> #0d0d0f (dark status bar)<br>
+    <code>display</code> standalone &nbsp;·&nbsp; icons: 192 / 512 / <b>maskable 512</b> (charcoal fills the bleed, mark in centre 80% safe zone).<br>
+    The lime glass edge + glow are the brand signature — keep them on the dark icon. Splash: centre icon on <code>#0d0d0f</code> with the lamp glow + lime accent on the wordmark.
+  </div>
+</body>
+</html>

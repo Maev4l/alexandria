@@ -35,8 +35,8 @@ const Settings = () => {
             onClick={() => navigate('/settings/about')}
             className="w-full flex items-center gap-4 p-4 text-left hover:bg-accent/50 active:bg-accent transition-colors"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/10">
-              <Info className="h-5 w-5 text-blue-500" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Info className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium">About</p>

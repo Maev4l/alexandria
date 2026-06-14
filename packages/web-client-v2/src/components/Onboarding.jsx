@@ -2,7 +2,7 @@
 // Full-screen onboarding with swipeable cards and Lottie animations
 import { useState, useRef, useEffect } from 'react';
 import Lottie from 'lottie-react';
-import { Book, ScanBarcode, FolderOpen, Share2 } from 'lucide-react';
+import { BookOpen, BookPlus, Layers, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
@@ -16,25 +16,25 @@ const SLIDES = [
     id: 'welcome',
     title: 'Welcome to Alexandria',
     description: 'Your personal library to track books, videos, and manage lending.',
-    icon: Book,
+    icon: BookOpen,
     animationKey: '/src/assets/animations/welcome.json',
-    gradient: 'from-violet-500/20 to-purple-600/20',
+    gradient: 'from-[#bb5a33]/12 to-transparent',
   },
   {
     id: 'add',
     title: 'Add Items Easily',
     description: 'Scan ISBN barcodes for books, or snap a Blu-ray cover to auto-detect videos.',
-    icon: ScanBarcode,
+    icon: BookPlus,
     animationKey: '/src/assets/animations/add-item.json',
-    gradient: 'from-blue-500/20 to-cyan-500/20',
+    gradient: 'from-[#d09636]/14 to-transparent',
   },
   {
     id: 'collections',
     title: 'Organize with Collections',
     description: 'Group related items together. Create collections like "Favorites" or series.',
-    icon: FolderOpen,
+    icon: Layers,
     animationKey: '/src/assets/animations/collections.json',
-    gradient: 'from-emerald-500/20 to-teal-500/20',
+    gradient: 'from-[#3f6157]/14 to-transparent',
   },
   {
     id: 'share',
@@ -42,7 +42,7 @@ const SLIDES = [
     description: 'Share your library with friends and keep track of who borrowed what.',
     icon: Share2,
     animationKey: '/src/assets/animations/share.json',
-    gradient: 'from-amber-500/20 to-orange-500/20',
+    gradient: 'from-[#7c5d38]/16 to-transparent',
   },
 ];
 
@@ -177,8 +177,8 @@ const Onboarding = ({ onComplete }) => {
               className="h-full w-full"
             />
           ) : (
-            // Fallback: glassmorphism circle with icon
-            <div className="flex h-48 w-48 items-center justify-center rounded-full bg-[var(--glass-bg)] backdrop-blur-xl border border-[var(--glass-border)]">
+            // Fallback: cream medallion with icon
+            <div className="flex h-48 w-48 items-center justify-center rounded-full bg-card border border-[var(--wood)]/40 shadow-[var(--card-shadow)]">
               <Icon className="h-24 w-24 text-primary" strokeWidth={1.5} />
             </div>
           )}
@@ -194,8 +194,8 @@ const Onboarding = ({ onComplete }) => {
             transform: isDragging ? `translateX(${touchDelta * 0.2}px)` : undefined,
           }}
         >
-          <h1 className="mb-4 text-2xl font-bold text-foreground">{slide.title}</h1>
-          <p className="max-w-xs text-muted-foreground">{slide.description}</p>
+          <h1 className="mb-4 font-sans text-2xl font-extrabold text-foreground">{slide.title}</h1>
+          <p className="max-w-xs font-serif text-[15px] leading-relaxed text-muted-foreground">{slide.description}</p>
         </div>
       </div>
 

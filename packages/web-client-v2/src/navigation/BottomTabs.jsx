@@ -1,5 +1,5 @@
 // Edited by Claude.
-// Floating navigation pill with glassmorphism effect
+// Floating navigation pill (warm walnut)
 // Centered floating design with sliding active indicator
 import { useRef, useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -45,16 +45,15 @@ const BottomTabs = ({ tabs, className }) => {
         ref={navRef}
         className={cn(
           'relative flex items-center gap-1 px-2 py-2 pointer-events-auto',
-          // Glassmorphism pill
+          // Warm-dark walnut pill
           'rounded-2xl',
-          'bg-[var(--glass-bg)] backdrop-blur-xl',
-          'border border-[var(--glass-border)]',
-          'shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_0_var(--glass-border)]'
+          'bg-[#2c241b] text-[#f3ecdd]',
+          'shadow-[0_6px_20px_rgba(74,58,36,0.35)]'
         )}
       >
         {/* Sliding active indicator - behind buttons */}
         <div
-          className="absolute top-2 bottom-2 rounded-xl bg-primary/15 transition-all duration-300 ease-out"
+          className="absolute top-2 bottom-2 rounded-xl bg-[var(--primary)]/30 transition-all duration-300 ease-out"
           style={{
             left: indicatorStyle.left,
             width: indicatorStyle.width,
@@ -77,8 +76,8 @@ const BottomTabs = ({ tabs, className }) => {
                   'transition-colors duration-200',
                   'z-10', // Above the sliding indicator
                   isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground active:text-foreground'
+                    ? 'text-[#f3ecdd]'
+                    : 'text-[#f3ecdd]/55 hover:text-[#f3ecdd]/85 active:text-[#f3ecdd]'
                 )
               }
               aria-label={tab.label}

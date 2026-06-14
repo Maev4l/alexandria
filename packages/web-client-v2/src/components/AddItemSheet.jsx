@@ -1,6 +1,6 @@
 // Edited by Claude.
 // Action sheet for choosing item type when adding to library
-import { BookOpen, Film, FolderPlus } from 'lucide-react';
+import { Book, Film, Layers } from 'lucide-react';
 import BottomSheet from './BottomSheet';
 
 const AddItemSheet = ({ isOpen, onClose, onSelectBook, onSelectVideo, onSelectCollection }) => {
@@ -27,7 +27,7 @@ const AddItemSheet = ({ isOpen, onClose, onSelectBook, onSelectVideo, onSelectCo
           className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition-colors text-left"
         >
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <BookOpen className="h-5 w-5 text-primary" />
+            <Book className="h-5 w-5 text-primary" />
           </div>
           <div>
             <p className="font-medium">Book</p>
@@ -53,7 +53,7 @@ const AddItemSheet = ({ isOpen, onClose, onSelectBook, onSelectVideo, onSelectCo
           className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition-colors text-left"
         >
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <FolderPlus className="h-5 w-5 text-primary" />
+            <Layers className="h-5 w-5 text-primary" />
           </div>
           <div>
             <p className="font-medium">Collection</p>

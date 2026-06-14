@@ -1,7 +1,6 @@
 // Edited by Claude.
-// Video card component for library list display
-// Supports optional order number display for items within collections
-// Supports long press for actions
+// Video standalone card — poster standing on a full-width walnut ledge.
+// Presentation-only: navigation/edit routing lives in the parent (keyed on item.type).
 import { useRef, useCallback, useState } from 'react';
 import { Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -18,68 +17,41 @@ const VideoCard = ({ video, onClick, onLongPress, showOrder = false, compact = f
   const [isLifting, setIsLifting] = useState(false);
   const isLent = !!video.lentTo;
 
-  // picture is CloudFront URL (S3 thumbnail) - no fallback to external URL
   const cloudFrontUrl = video.picture
     ? `${video.picture}?v=${video.updatedAt ? new Date(video.updatedAt).getTime() : '0'}`
     : null;
   const hasImage = !!cloudFrontUrl;
-
-  // Card is lifted during long press OR while selected (action sheet open)
   const showLift = isLifting || isSelected;
 
   const handleTouchStart = useCallback(() => {
     isLongPress.current = false;
-
-    // Start lift animation early (visual feedback) - only for non-compact
     if (!compact && onLongPress) {
-      liftTimer.current = setTimeout(() => {
-        setIsLifting(true);
-      }, LIFT_DELAY);
+      liftTimer.current = setTimeout(() => setIsLifting(true), LIFT_DELAY);
     }
-
     pressTimer.current = setTimeout(() => {
       isLongPress.current = true;
-      setIsLifting(false); // Reset lift when action triggers
+      setIsLifting(false);
       onLongPress?.(video);
     }, LONG_PRESS_DURATION);
   }, [video, compact, onLongPress]);
 
   const handleTouchEnd = useCallback(() => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-      pressTimer.current = null;
-    }
-    if (liftTimer.current) {
-      clearTimeout(liftTimer.current);
-      liftTimer.current = null;
-    }
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
+    if (liftTimer.current) { clearTimeout(liftTimer.current); liftTimer.current = null; }
     setIsLifting(false);
   }, []);
 
   const handleClick = useCallback(() => {
-    if (!isLongPress.current) {
-      onClick?.(video);
-    }
+    if (!isLongPress.current) onClick?.(video);
   }, [video, onClick]);
 
-  const handleContextMenu = (e) => {
-    e.preventDefault();
-    if (onLongPress) {
-      onLongPress(video);
-    }
-  };
+  const handleContextMenu = (e) => { e.preventDefault(); if (onLongPress) onLongPress(video); };
 
-  // Build metadata line (directors, year)
   const metaParts = [];
-  if (video.directors?.length > 0) {
-    metaParts.push(video.directors[0]); // First director
-  }
-  if (video.releaseYear) {
-    metaParts.push(video.releaseYear);
-  }
+  if (video.directors?.length > 0) metaParts.push(`dir. ${video.directors[0]}`);
+  if (video.releaseYear) metaParts.push(video.releaseYear);
   const metaLine = metaParts.join(' · ');
 
-  // Staggered animation style - only apply to non-compact (top-level) cards
   const animationStyle = index != null && !compact
     ? { animationDelay: `${index * STAGGER_DELAY}ms` }
     : undefined;
@@ -92,80 +64,53 @@ const VideoCard = ({ video, onClick, onLongPress, showOrder = false, compact = f
       onTouchCancel={handleTouchEnd}
       onContextMenu={handleContextMenu}
       style={animationStyle}
+      aria-label={`${video.title}, film`}
       className={cn(
-        'w-full flex gap-3 text-left select-none',
-        'transition-[background-color,box-shadow,transform,border-color] duration-200',
-        compact
-          ? 'p-2 rounded-lg bg-muted/20 hover:bg-muted/40 active:bg-muted/50'
-          : [
-              // Glassmorphism styling for non-compact cards
-              'p-3 rounded-xl',
-              'bg-[var(--glass-bg)] backdrop-blur-xl',
-              'border border-[var(--glass-border)]',
-              'shadow-[var(--card-shadow),inset_0_1px_0_0_var(--glass-border)]',
-              !showLift && 'hover:shadow-[var(--card-shadow-hover),inset_0_1px_0_0_var(--glass-border)]',
-              !showLift && 'hover:border-primary/15',
-              !showLift && 'active:scale-[0.99]'
-            ],
-        // Long press lift state (during press or while action sheet open)
-        showLift && !compact && 'card-lifting',
-        // Staggered fade-in animation for non-compact cards
-        index != null && !compact && 'animate-fade-in-up'
+        'w-full text-left select-none',
+        'transition-[box-shadow,transform] duration-200',
+        index != null && !compact && 'animate-fade-in-up',
+        showLift && !compact && 'card-lifting'
       )}
     >
-      {/* Order number badge (for collection items) */}
-      {showOrder && video.order != null && (
-        <div className="shrink-0 w-6 flex items-center justify-center">
-          <span className="text-sm font-medium text-muted-foreground">
+      <div className="flex items-end gap-3 px-1">
+        {showOrder && video.order != null && (
+          <div className="shrink-0 w-5 self-center text-center text-sm font-medium text-muted-foreground">
             {video.order}
-          </span>
-        </div>
-      )}
-
-      {/* Poster */}
-      <div className="relative shrink-0">
+          </div>
+        )}
         <div
           className={cn(
-            'w-16 h-24 bg-muted/50 flex items-center justify-center overflow-hidden rounded-md',
-            // Subtle shadow to lift poster off the card
-            !compact && 'shadow-[2px_2px_8px_rgba(0,0,0,0.3)]'
+            'shrink-0 bg-muted flex items-center justify-center overflow-hidden rounded-[4px_4px_2px_2px]',
+            compact ? 'w-14 h-20' : 'w-16 h-24',
+            !compact && 'shadow-[var(--shelf-shadow)]'
           )}
         >
           {hasImage ? (
-            <FadeImage
-              src={cloudFrontUrl}
-              alt={video.title}
-              className="w-full h-full object-cover"
-              fallback={<Film className="h-6 w-6 text-muted-foreground/50" />}
-            />
+            <FadeImage src={cloudFrontUrl} alt={video.title} className="w-full h-full object-cover"
+              fallback={<Film className="h-6 w-6 text-muted-foreground/50" />} />
           ) : (
             <Film className="h-6 w-6 text-muted-foreground/50" />
           )}
         </div>
-        {/* Lent ribbon overlay - same as BookCard */}
-        {isLent && !compact && <div className="lent-ribbon" />}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <p className={cn('font-medium truncate', compact && 'text-sm')}>
-          {video.title}
-        </p>
-        {metaLine && (
-          <p className={cn(
-            'text-muted-foreground truncate',
-            compact ? 'text-xs' : 'text-sm'
-          )}>
-            {metaLine}
+        <div className="flex-1 min-w-0 pb-1.5">
+          <p className={cn('font-sans font-semibold text-foreground truncate', compact ? 'text-sm' : 'text-base')}>
+            {video.title}
           </p>
-        )}
-        {/* Show lent-to name as text - same style as BookCard */}
-        {isLent && !isSharedLibrary && (
-          <p className="text-xs text-amber-400 mt-0.5">
-            to {video.lentTo}
-          </p>
-        )}
+          {metaLine && (
+            <p className={cn('font-serif italic text-muted-foreground truncate', compact ? 'text-xs' : 'text-sm')}>
+              {metaLine}
+            </p>
+          )}
+          {isLent && !isSharedLibrary && (
+            <span className="lent-slip mt-1 text-[10px]">
+              <span className="ephemera-caps">Lent</span>
+              <span className="lent-slip__div" />
+              <span className="font-serif italic text-[12.5px] leading-none">{video.lentTo}</span>
+            </span>
+          )}
+        </div>
       </div>
+      {!compact && <div className="shelf-ledge mt-0 h-1.5 w-full rounded-[1px]" />}
     </button>
   );
 };

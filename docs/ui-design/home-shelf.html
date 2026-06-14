@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Alexandria — E · Installed PWA (icon + splash)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     E — "THE SHELF" · installed-PWA identity
+     App icon = three covers on a walnut shelf, warm cream bg.
+     Splash  = cream, wordmark + shelf rule, sienna accent.
+     ============================================================ */
+  :root{ --linen:#f3ecdd; --cream:#faf3e4; --ink:#2c2820; --muted:#7d7361;
+         --sienna:#bb5a33; --green:#3f6157; --ochre:#c0852f; --wood:#9a7647; --wood-d:#7c5d38; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:"Newsreader",serif; background:#1b1b1f; color:#e9e6da; min-height:100vh; padding:42px 20px 60px;}
+  h2.page{font-family:"Bricolage Grotesque"; font-weight:800; font-size:24px; text-align:center; margin-bottom:4px;}
+  p.page{font-family:"Bricolage Grotesque"; font-weight:600; text-align:center; color:#9a958a; font-size:13px; margin-bottom:30px;}
+  .stage{display:flex; gap:38px; justify-content:center; flex-wrap:wrap; align-items:flex-start;}
+  .col{display:flex; flex-direction:column; align-items:center; gap:14px;}
+  .cap{font-family:"Bricolage Grotesque"; font-weight:600; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#8a8579;}
+
+  /* phone */
+  .phone{width:300px; height:632px; border-radius:42px; overflow:hidden; position:relative; box-shadow:0 30px 60px -24px #000, 0 0 0 7px #000, 0 0 0 8px #2a2a2e;}
+
+  /* ---------- the app icon mark (reusable) ---------- */
+  .icon{position:relative; display:grid; place-items:center; background:
+      radial-gradient(120% 110% at 50% 0%, #fbf5e8 0%, #f0e6cf 60%, #e7d9ba 100%);}
+  .icon .mark{display:flex; flex-direction:column; align-items:center; justify-content:flex-end; width:62%; height:62%;}
+  .icon .spines{display:flex; align-items:flex-end; gap:9%; height:70%; width:100%; justify-content:center;}
+  .icon .sp{width:16%; border-radius:18% 18% 3% 3%; box-shadow:0 6px 10px -6px #0007, inset 0 0 0 1px #ffffff22; position:relative;}
+  .icon .sp::before{content:""; position:absolute; left:14%; top:8%; bottom:8%; width:9%; background:#ffffff2e; border-radius:2px;}
+  .icon .s1{height:78%; background:linear-gradient(165deg,#cf6a3c,#9a3f1f);}
+  .icon .s2{height:100%; background:linear-gradient(165deg,#4a6f5f,#274038);}
+  .icon .s3{height:64%; background:linear-gradient(165deg,#d09636,#9a6618);}
+  .icon .shelf{width:100%; height:10%; border-radius:3px; margin-top:-1px;
+    background:linear-gradient(180deg,#a9824f,var(--wood-d)); box-shadow:0 4px 8px -3px #0006, inset 0 1px 0 #ffffff44;}
+
+  /* home-screen context */
+  .home{width:100%; height:100%; position:relative; background:
+      radial-gradient(120% 80% at 70% 10%, #caa46e 0%, #9c7a4e 45%, #6f5638 100%);}
+  .home .status{position:absolute; top:0; left:0; right:0; height:44px; display:flex; align-items:center; justify-content:space-between; padding:0 22px; font-family:"Bricolage Grotesque"; font-weight:700; font-size:13px; color:#fff;}
+  .grid{position:absolute; top:70px; left:0; right:0; padding:0 26px; display:grid; grid-template-columns:repeat(4,1fr); gap:22px 18px;}
+  .app{display:flex; flex-direction:column; align-items:center; gap:7px;}
+  .app .ic{width:54px; height:54px; border-radius:14px; box-shadow:0 8px 14px -8px #0009;}
+  .app .lbl{font-family:"Bricolage Grotesque"; font-weight:600; font-size:10.5px; color:#fff; text-shadow:0 1px 2px #0007;}
+  .dummy1{background:linear-gradient(160deg,#6b7cff,#3b46b0);} .dummy2{background:linear-gradient(160deg,#33c2a0,#0d7a6a);}
+  .dummy3{background:linear-gradient(160deg,#ff7a7a,#c23b50);} .dummy4{background:linear-gradient(160deg,#ffd166,#e0a020);}
+  .dummy5{background:linear-gradient(160deg,#2a2a30,#0e0e10);} .dummy6{background:linear-gradient(160deg,#b0b0bb,#7a7a86);}
+  .dummy7{background:linear-gradient(160deg,#a06bff,#6a2fb0);}
+  .app.feature .ic{box-shadow:0 0 0 3px #ffffffcc, 0 10px 18px -6px #000;}
+  /* dock */
+  .dock{position:absolute; left:14px; right:14px; bottom:16px; height:84px; border-radius:30px; background:#ffffff2e; backdrop-filter:blur(14px); display:flex; align-items:center; justify-content:space-around; padding:0 14px;}
+  .dock .ic{width:54px; height:54px; border-radius:14px; box-shadow:0 8px 14px -8px #0009;}
+
+  /* splash */
+  .splash{width:100%; height:100%; position:relative; background:radial-gradient(120% 90% at 50% 0%, #f7f0e1 0%, #ece0c6 70%, #e0d1ad 100%); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;}
+  .splash .lg{width:96px; height:96px; border-radius:24px; box-shadow:0 18px 30px -16px #6a5a3a, 0 0 0 1px #00000010; overflow:hidden; margin-bottom:26px;}
+  .splash .name{font-family:"Bricolage Grotesque"; font-weight:800; font-size:38px; letter-spacing:-.02em; color:var(--ink);}
+  .splash .rule{width:54px; height:3px; border-radius:2px; background:linear-gradient(90deg,var(--wood),var(--wood-d)); margin:14px 0 12px;}
+  .splash .tag{font-family:"Newsreader"; font-style:italic; font-size:15px; color:var(--muted);}
+  .splash .foot{position:absolute; bottom:30px; font-family:"Bricolage Grotesque"; font-weight:600; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:#a8997b;}
+
+  .note{max-width:760px; margin:34px auto 0; background:#222228; border:1px solid #33333a; border-radius:14px; padding:18px 20px; font-size:13.5px; line-height:1.6; color:#c9c5ba;}
+  .note b{color:#fff; font-family:"Bricolage Grotesque";}
+  .note code{background:#15151a; padding:1px 6px; border-radius:5px; font-size:12px;}
+  .sw{display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:-1px; margin-right:5px;}
+</style>
+</head>
+<body>
+  <h2 class="page">Alexandria — installed app · “The Shelf”</h2>
+  <p class="page">App icon (home screen) &amp; launch splash</p>
+
+  <div class="stage">
+    <div class="col">
+      <div class="phone"><div class="home">
+        <div class="status"><span>9:41</span><span>● ▮▮▮</span></div>
+        <div class="grid">
+          <div class="app"><div class="ic dummy1"></div><div class="lbl">Notes</div></div>
+          <div class="app"><div class="ic dummy2"></div><div class="lbl">Health</div></div>
+          <div class="app"><div class="ic dummy3"></div><div class="lbl">Photos</div></div>
+          <div class="app"><div class="ic dummy4"></div><div class="lbl">Weather</div></div>
+          <div class="app feature"><div class="ic icon" style="border-radius:14px"><div class="mark"><div class="spines"><div class="sp s1"></div><div class="sp s2"></div><div class="sp s3"></div></div><div class="shelf"></div></div></div><div class="lbl">Alexandria</div></div>
+          <div class="app"><div class="ic dummy5"></div><div class="lbl">Files</div></div>
+          <div class="app"><div class="ic dummy6"></div><div class="lbl">Settings</div></div>
+          <div class="app"><div class="ic dummy7"></div><div class="lbl">Music</div></div>
+        </div>
+        <div class="dock">
+          <div class="ic dummy3"></div><div class="ic dummy1"></div><div class="ic dummy2"></div><div class="ic dummy5"></div>
+        </div>
+      </div></div>
+      <div class="cap">Home screen</div>
+    </div>
+
+    <div class="col">
+      <div class="phone"><div class="splash">
+        <div class="lg icon"><div class="mark" style="width:62%;height:62%"><div class="spines"><div class="sp s1"></div><div class="sp s2"></div><div class="sp s3"></div></div><div class="shelf"></div></div></div>
+        <div class="name">Alexandria</div>
+        <div class="rule"></div>
+        <div class="tag">Your personal wonder</div>
+      </div></div>
+      <div class="cap">Launch splash</div>
+    </div>
+
+    <div class="col">
+      <div style="display:flex; gap:18px; align-items:flex-end;">
+        <div style="text-align:center">
+          <div class="icon" style="width:104px;height:104px;border-radius:24px;overflow:hidden"><div class="mark" style="width:62%;height:62%"><div class="spines"><div class="sp s1"></div><div class="sp s2"></div><div class="sp s3"></div></div><div class="shelf"></div></div></div>
+          <div class="cap" style="margin-top:8px">iOS · rounded</div>
+        </div>
+        <div style="text-align:center">
+          <div class="icon" style="width:84px;height:84px;border-radius:50%;overflow:hidden"><div class="mark" style="width:58%;height:58%"><div class="spines"><div class="sp s1"></div><div class="sp s2"></div><div class="sp s3"></div></div><div class="shelf"></div></div></div>
+          <div class="cap" style="margin-top:8px">Android · maskable</div>
+        </div>
+      </div>
+      <div class="cap" style="margin-top:6px">Icon, both masks</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Manifest / install values — “The Shelf”</b><br>
+    <code>name</code> Alexandria &nbsp;·&nbsp; <code>short_name</code> Alexandria<br>
+    <span class="sw" style="background:#f3ecdd"></span><code>background_color</code> #f3ecdd (splash bg) &nbsp;·&nbsp;
+    <span class="sw" style="background:#bb5a33"></span><code>theme_color</code> #bb5a33 (status bar / address bar)<br>
+    <code>display</code> standalone &nbsp;·&nbsp; icons: 192 / 512 / <b>maskable 512</b> (keep the mark inside the centre 80% safe zone — see the circular preview).<br>
+    Export the rounded-square art as the iOS <code>apple-touch-icon</code> (180); supply a maskable variant for Android adaptive icons. Splash: centre the icon on <code>#f3ecdd</code>.
+  </div>
+</body>
+</html>

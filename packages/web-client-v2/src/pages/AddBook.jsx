@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/browser';
 import { DecodeHintType } from '@zxing/library';
-import { Camera, Search, PenLine, VideoOff } from 'lucide-react';
+import { Camera, Search, PenLine, CameraOff } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -245,7 +245,7 @@ const AddBook = () => {
     if (scannerStatus === 'permission-denied') {
       return (
         <div className="h-48 w-full max-w-xs rounded-2xl bg-muted border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 p-4">
-          <VideoOff className="h-10 w-10 text-muted-foreground/50" />
+          <CameraOff className="h-10 w-10 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground text-center">Camera access denied</p>
           <p className="text-xs text-muted-foreground text-center">Please enable camera permissions in your browser settings</p>
         </div>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Alexandria — Icon set proposals (Direction E · The Shelf)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --linen:#f3ecdd; --cream:#faf5ea; --ink:#2c2820; --muted:#7d7361;
+    --sienna:#bb5a33; --green:#3f6157; --border:#e0d6bf; --wood-d:#7c5d38;
+    --card-shadow:0 1px 2px rgba(74,58,36,.10), 0 2px 6px rgba(74,58,36,.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Bricolage Grotesque",system-ui,sans-serif; color:var(--ink);
+    background:
+      radial-gradient(ellipse 80% 50% at 12% 0%, rgba(208,150,54,.10) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 50% at 88% 100%, rgba(63,97,87,.08) 0%, transparent 55%),
+      linear-gradient(180deg,#f3ecdd 0%, #ead9b8 100%);
+    min-height:100vh; padding:40px 20px 80px;
+  }
+  .wrap{max-width:1000px; margin:0 auto;}
+  h1{font-weight:800; font-size:30px; letter-spacing:-.02em; margin-bottom:4px;}
+  .sub{font-family:"Newsreader",serif; font-style:italic; color:var(--muted); font-size:16px; margin-bottom:10px;}
+  .note{font-size:13.5px; color:var(--muted); line-height:1.55; max-width:760px; margin-bottom:8px;}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin:14px 0 8px;}
+  .legend b{color:var(--ink);}
+  .key{display:inline-flex; align-items:center; gap:6px;}
+  .dot{width:12px; height:12px; border-radius:3px; display:inline-block;}
+
+  h2{font-weight:700; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--wood-d); margin:34px 0 14px; display:flex; align-items:center; gap:12px;}
+  h2::after{content:""; flex:1; height:1px; background:var(--border);}
+
+  .row{display:flex; gap:16px; align-items:center; background:var(--cream); border-radius:14px; box-shadow:var(--card-shadow); padding:14px 16px; margin-bottom:12px; flex-wrap:wrap;}
+  .fn{width:230px; flex:none;}
+  .fn .name{font-weight:700; font-size:15px;}
+  .fn .where{font-family:"Newsreader",serif; font-style:italic; font-size:12.5px; color:var(--muted); margin-top:2px; line-height:1.35;}
+  .tiles{display:flex; gap:12px; flex-wrap:wrap;}
+  .tile{position:relative; width:96px; padding:12px 8px 8px; border-radius:11px; border:1px solid var(--border); background:#fff8ec; display:flex; flex-direction:column; align-items:center; gap:7px;}
+  .tile.cur{background:#f1e7d2;}
+  .tile.pick{border-color:var(--sienna); box-shadow:0 0 0 1.5px var(--sienna);}
+  .tile .ic{height:30px; display:flex; align-items:center; justify-content:center; color:var(--ink);}
+  .tile .ic svg{width:24px; height:24px; stroke-width:2;}
+  .tile.pick .ic{color:var(--sienna);}
+  .tile .nm{font-size:10.5px; color:var(--muted); text-align:center; word-break:break-word; line-height:1.2;}
+  .tag{position:absolute; top:-9px; font-size:8.5px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; padding:2px 6px; border-radius:20px;}
+  .tag-cur{background:var(--muted); color:#fff;}
+  .tag-pick{background:var(--sienna); color:#fff;}
+
+  /* kept-standard compact grid */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; background:var(--cream); border-radius:14px; box-shadow:var(--card-shadow); padding:16px;}
+  .gtile{display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px 4px;}
+  .gtile .ic{color:var(--ink);} .gtile .ic svg{width:22px; height:22px; stroke-width:2;}
+  .gtile .nm{font-size:10px; color:var(--muted); text-align:center;}
+  .gtile .fnlbl{font-size:11px; font-weight:600;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Icon set — “The Shelf” proposals</h1>
+  <p class="sub">A small circulation-and-paper icon family, narrating a real library’s life cycle.</p>
+  <p class="note">
+    The personality comes from a few <b>bookish accents</b> — <i>book / book-plus / book-up · book-down</i> (lend/return) /
+    <i>stamp</i> (the date-due history card) — plus a <b>“writing” pair</b> (<i>pen-line</i> manual entry, <i>pencil-line</i> edit).
+    Everything universal (chevrons, magnifier, trash, eye, spinner) stays conventional so the set reads instantly at 20px.
+    Icons below are rendered live from <b>lucide 0.469</b> (the app’s exact version). <i>(“books” was the ideal collection glyph but isn’t in 0.469, so it’s replaced by layers/library.)</i>
+  </p>
+  <div class="legend">
+    <span class="key"><span class="dot" style="background:var(--muted)"></span> <b>current</b> — in the app today</span>
+    <span class="key"><span class="dot" style="background:var(--sienna)"></span> <b>pick</b> — authority’s recommendation</span>
+    <span class="key">others = alternatives to compare</span>
+  </div>
+
+  <!-- ============ MEDIA / ENTITIES ============ -->
+  <h2>Media &amp; entities</h2>
+
+  <div class="row">
+    <div class="fn"><div class="name">Book</div><div class="where">cards, placeholders, detail</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="book-open"></i></span><span class="nm">book-open</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="book"></i></span><span class="nm">book</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="book-marked"></i></span><span class="nm">book-marked</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Film / video</div><div class="where">cards, placeholders, detail</div></div>
+    <div class="tiles">
+      <div class="tile cur pick"><span class="tag tag-pick">pick · current</span><span class="ic"><i data-lucide="film"></i></span><span class="nm">film</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="clapperboard"></i></span><span class="nm">clapperboard</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Collection</div><div class="where">picker sheet, onboarding · <b>books</b> n/a in 0.469</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="folder-open"></i></span><span class="nm">folder-open</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="layers"></i></span><span class="nm">layers</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="library"></i></span><span class="nm">library</span></div>
+    </div>
+  </div>
+
+  <!-- ============ PRIMARY ACTIONS ============ -->
+  <h2>Primary actions</h2>
+
+  <p class="note" style="margin:-2px 0 10px;">
+    <b>Add-Item sheet</b> is a <i>type picker</i> — its three rows should stay <b>parallel</b>.
+    lucide has no <i>film-plus</i>, so a “+”-family can’t be consistent; use plain <b>entity</b> icons and let the
+    AppBar “+” (which opens the sheet) and the “Add Item” title carry the “add”. (Reserve <i>book-plus</i> for
+    standalone add contexts like the onboarding slide.)
+  </p>
+  <div class="row">
+    <div class="fn"><div class="name">Sheet · Book</div><div class="where">choose type</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="book-open"></i></span><span class="nm">book-open</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="book"></i></span><span class="nm">book</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="book-plus"></i></span><span class="nm">book-plus<br>(breaks parity)</span></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="fn"><div class="name">Sheet · Video</div><div class="where">choose type</div></div>
+    <div class="tiles">
+      <div class="tile cur pick"><span class="tag tag-pick">pick · current</span><span class="ic"><i data-lucide="film"></i></span><span class="nm">film</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="clapperboard"></i></span><span class="nm">clapperboard</span></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="fn"><div class="name">Sheet · Collection</div><div class="where">choose type · drop the lone “+”</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="folder-plus"></i></span><span class="nm">folder-plus</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="folder-open"></i></span><span class="nm">folder-open</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="layers"></i></span><span class="nm">layers</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="library"></i></span><span class="nm">library</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Edit</div><div class="where">item / collection / library actions</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="pencil"></i></span><span class="nm">pencil</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="pencil-line"></i></span><span class="nm">pencil-line</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="square-pen"></i></span><span class="nm">square-pen</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Lend an item</div><div class="where">item actions · “check out”</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="arrow-right-from-line"></i></span><span class="nm">arrow-right-from-line</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="book-up"></i></span><span class="nm">book-up</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Return an item</div><div class="where">item actions · “check in”</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="undo-2"></i></span><span class="nm">undo-2</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="book-down"></i></span><span class="nm">book-down</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">View history</div><div class="where">detail AppBar · opens the date-due card</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="history"></i></span><span class="nm">history</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="stamp"></i></span><span class="nm">stamp</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="calendar-clock"></i></span><span class="nm">calendar-clock</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Share library</div><div class="where">library actions, onboarding</div></div>
+    <div class="tiles">
+      <div class="tile cur pick"><span class="tag tag-pick">pick · current</span><span class="ic"><i data-lucide="share-2"></i></span><span class="nm">share-2</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="send"></i></span><span class="nm">send</span></div>
+    </div>
+  </div>
+
+  <!-- ============ ADD / DETECT FLOWS ============ -->
+  <h2>Add &amp; detect flows</h2>
+
+  <div class="row">
+    <div class="fn"><div class="name">Camera unavailable</div><div class="where">scan/capture screens</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="video-off"></i></span><span class="nm">video-off</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="camera-off"></i></span><span class="nm">camera-off</span></div>
+    </div>
+  </div>
+
+  <!-- ============ ONBOARDING ============ -->
+  <h2>Onboarding slides</h2>
+
+  <div class="row">
+    <div class="fn"><div class="name">Welcome</div><div class="where">slide 1</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="book"></i></span><span class="nm">book</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="book-open"></i></span><span class="nm">book-open</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="book-marked"></i></span><span class="nm">book-marked</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Add items</div><div class="where">slide 2</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="scan-barcode"></i></span><span class="nm">scan-barcode</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="book-plus"></i></span><span class="nm">book-plus</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Collections</div><div class="where">slide 3</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="folder-open"></i></span><span class="nm">folder-open</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="layers"></i></span><span class="nm">layers</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="library"></i></span><span class="nm">library</span></div>
+    </div>
+  </div>
+
+  <!-- ============ METADATA CHIPS ============ -->
+  <h2>Metadata &amp; time chips</h2>
+
+  <div class="row">
+    <div class="fn"><div class="name">Recent searches</div><div class="where">Search · disambiguate from “duration”</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="clock"></i></span><span class="nm">clock</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="history"></i></span><span class="nm">history</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Pending approval</div><div class="where">PendingApproval · “waiting”</div></div>
+    <div class="tiles">
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="ic"><i data-lucide="clock"></i></span><span class="nm">clock</span></div>
+      <div class="tile pick"><span class="tag tag-pick">pick</span><span class="ic"><i data-lucide="hourglass"></i></span><span class="nm">hourglass</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Settings tab</div><div class="where">bottom tabs</div></div>
+    <div class="tiles">
+      <div class="tile cur pick"><span class="tag tag-pick">pick · current</span><span class="ic"><i data-lucide="sliders-horizontal"></i></span><span class="nm">sliders-horizontal</span></div>
+      <div class="tile"><span class="ic"><i data-lucide="settings-2"></i></span><span class="nm">settings-2</span></div>
+    </div>
+  </div>
+
+  <!-- ============ KEPT STANDARD ============ -->
+  <h2>Kept standard — universal affordances (no change)</h2>
+  <div class="grid">
+    <div class="gtile"><span class="fnlbl">Back</span><span class="ic"><i data-lucide="chevron-left"></i></span><span class="nm">chevron-left</span></div>
+    <div class="gtile"><span class="fnlbl">Row nav</span><span class="ic"><i data-lucide="chevron-right"></i></span><span class="nm">chevron-right</span></div>
+    <div class="gtile"><span class="fnlbl">Expand</span><span class="ic"><i data-lucide="chevron-down"></i></span><span class="nm">chevron-down</span></div>
+    <div class="gtile"><span class="fnlbl">Libraries tab</span><span class="ic"><i data-lucide="library"></i></span><span class="nm">library</span></div>
+    <div class="gtile"><span class="fnlbl">Search tab</span><span class="ic"><i data-lucide="search"></i></span><span class="nm">search</span></div>
+    <div class="gtile"><span class="fnlbl">Add</span><span class="ic"><i data-lucide="plus"></i></span><span class="nm">plus</span></div>
+    <div class="gtile"><span class="fnlbl">Add collection</span><span class="ic"><i data-lucide="folder-plus"></i></span><span class="nm">folder-plus</span></div>
+    <div class="gtile"><span class="fnlbl">Delete / clear</span><span class="ic"><i data-lucide="trash-2"></i></span><span class="nm">trash-2</span></div>
+    <div class="gtile"><span class="fnlbl">Unshare</span><span class="ic"><i data-lucide="user-minus"></i></span><span class="nm">user-minus</span></div>
+    <div class="gtile"><span class="fnlbl">Shared with</span><span class="ic"><i data-lucide="users"></i></span><span class="nm">users</span></div>
+    <div class="gtile"><span class="fnlbl">More</span><span class="ic"><i data-lucide="more-horizontal"></i></span><span class="nm">more-horizontal</span></div>
+    <div class="gtile"><span class="fnlbl">Scan</span><span class="ic"><i data-lucide="scan-barcode"></i></span><span class="nm">scan-barcode</span></div>
+    <div class="gtile"><span class="fnlbl">Camera</span><span class="ic"><i data-lucide="camera"></i></span><span class="nm">camera</span></div>
+    <div class="gtile"><span class="fnlbl">Manual entry</span><span class="ic"><i data-lucide="pen-line"></i></span><span class="nm">pen-line</span></div>
+    <div class="gtile"><span class="fnlbl">Lookup</span><span class="ic"><i data-lucide="search"></i></span><span class="nm">search</span></div>
+    <div class="gtile"><span class="fnlbl">Account</span><span class="ic"><i data-lucide="user"></i></span><span class="nm">user</span></div>
+    <div class="gtile"><span class="fnlbl">Sign out</span><span class="ic"><i data-lucide="log-out"></i></span><span class="nm">log-out</span></div>
+    <div class="gtile"><span class="fnlbl">Copy</span><span class="ic"><i data-lucide="copy"></i></span><span class="nm">copy</span></div>
+    <div class="gtile"><span class="fnlbl">About (brand)</span><span class="ic"><i data-lucide="library-big"></i></span><span class="nm">library-big</span></div>
+    <div class="gtile"><span class="fnlbl">Update</span><span class="ic"><i data-lucide="refresh-cw"></i></span><span class="nm">refresh-cw</span></div>
+    <div class="gtile"><span class="fnlbl">Release year</span><span class="ic"><i data-lucide="calendar"></i></span><span class="nm">calendar</span></div>
+    <div class="gtile"><span class="fnlbl">Duration</span><span class="ic"><i data-lucide="clock"></i></span><span class="nm">clock</span></div>
+    <div class="gtile"><span class="fnlbl">Count badge</span><span class="ic"><i data-lucide="hash"></i></span><span class="nm">hash</span></div>
+    <div class="gtile"><span class="fnlbl">Info</span><span class="ic"><i data-lucide="info"></i></span><span class="nm">info</span></div>
+    <div class="gtile"><span class="fnlbl">Success</span><span class="ic"><i data-lucide="check"></i></span><span class="nm">check</span></div>
+    <div class="gtile"><span class="fnlbl">Close</span><span class="ic"><i data-lucide="x"></i></span><span class="nm">x</span></div>
+    <div class="gtile"><span class="fnlbl">Error</span><span class="ic"><i data-lucide="circle-alert"></i></span><span class="nm">alert-circle</span></div>
+    <div class="gtile"><span class="fnlbl">Warning</span><span class="ic"><i data-lucide="triangle-alert"></i></span><span class="nm">alert-triangle</span></div>
+    <div class="gtile"><span class="fnlbl">Password</span><span class="ic"><i data-lucide="eye"></i></span><span class="nm">eye / eye-off</span></div>
+  </div>
+
+</div>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 // Spotlight-style search - full-screen overlay with floating input and instant results
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, X, Loader2, Clock, BookOpen, Film, Library, Users, ArrowRightFromLine } from 'lucide-react';
+import { Search as SearchIcon, X, Loader2, History, Book, Film, Library, Users } from 'lucide-react';
 
 const ITEM_TYPE_VIDEO = 1;
 const LONG_PRESS_DURATION = 500;
@@ -49,7 +49,7 @@ const clearRecentSearches = () => {
   }
 };
 
-// Search result card - glassmorphism style with long press support for owned items
+// Search result card - on-ledge style with long press support for owned items
 const SearchResultCard = ({ item, onClick, onLongPress, isShared, index }) => {
   const pressTimer = useRef(null);
   const isLongPress = useRef(false);
@@ -103,20 +103,20 @@ const SearchResultCard = ({ item, onClick, onLongPress, isShared, index }) => {
       onTouchCancel={handleTouchEnd}
       onContextMenu={handleContextMenu}
       style={{ animationDelay: `${index * STAGGER_DELAY}ms` }}
+      aria-label={`${item.title}, ${isVideo ? 'film' : 'book'}`}
       className={cn(
         'w-full flex gap-3 p-3 rounded-xl text-left select-none',
-        'bg-[var(--glass-bg)] backdrop-blur-xl',
-        'border border-[var(--glass-border)]',
-        'transition-all duration-200',
-        'hover:bg-accent/30 active:scale-[0.99]',
+        'bg-card shadow-[var(--card-shadow)]',
+        'transition-[box-shadow,transform] duration-200',
+        'hover:shadow-[var(--card-shadow-hover)] active:scale-[0.99]',
         'animate-fade-in-up'
       )}
     >
       {/* Cover/poster */}
       <div className={cn(
-        'shrink-0 w-12 h-16 bg-muted/50 flex items-center justify-center overflow-hidden',
-        'shadow-[2px_2px_8px_rgba(0,0,0,0.3)]',
-        isVideo ? 'rounded-md' : 'rounded-[2px_6px_6px_2px]'
+        'shrink-0 w-12 h-16 bg-muted flex items-center justify-center overflow-hidden',
+        'shadow-[var(--shelf-shadow)]',
+        'rounded-[4px_4px_2px_2px]'
       )}>
         {hasImage ? (
           <FadeImage
@@ -126,13 +126,13 @@ const SearchResultCard = ({ item, onClick, onLongPress, isShared, index }) => {
             fallback={
               isVideo
                 ? <Film className="h-5 w-5 text-muted-foreground/50" />
-                : <BookOpen className="h-5 w-5 text-muted-foreground/50" />
+                : <Book className="h-5 w-5 text-muted-foreground/50" />
             }
           />
         ) : isVideo ? (
           <Film className="h-5 w-5 text-muted-foreground/50" />
         ) : (
-          <BookOpen className="h-5 w-5 text-muted-foreground/50" />
+          <Book className="h-5 w-5 text-muted-foreground/50" />
         )}
       </div>
 
@@ -140,7 +140,7 @@ const SearchResultCard = ({ item, onClick, onLongPress, isShared, index }) => {
       <div className="flex-1 min-w-0 flex flex-col justify-center">
         <p className="font-medium truncate">{item.title}</p>
         {subtitle && (
-          <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
+          <p className="font-serif italic text-sm text-muted-foreground truncate">{isVideo ? `dir. ${subtitle}` : subtitle}</p>
         )}
         {item.libraryName && (
           <p className="text-xs text-muted-foreground/70 truncate mt-0.5 flex items-center gap-1">
@@ -152,12 +152,13 @@ const SearchResultCard = ({ item, onClick, onLongPress, isShared, index }) => {
             {item.libraryName}
           </p>
         )}
-        {/* Lent indicator */}
+        {/* Lent indicator — date-due slip */}
         {item.lentTo && (
-          <p className="text-xs text-amber-500 truncate mt-0.5 flex items-center gap-1">
-            <ArrowRightFromLine className="h-3 w-3 shrink-0" />
-            Lent to {item.lentTo}
-          </p>
+          <span className="lent-slip mt-1 text-[10px]">
+            <span className="ephemera-caps">Lent</span>
+            <span className="lent-slip__div" />
+            <span className="font-serif italic text-[12px] leading-none">{item.lentTo}</span>
+          </span>
         )}
       </div>
     </button>
@@ -342,20 +343,20 @@ const Search = () => {
       <div className="sticky top-0 z-10 px-4 pt-6 pb-4">
         <div className={cn(
           'relative rounded-2xl overflow-hidden',
-          'bg-[var(--glass-bg)] backdrop-blur-xl',
-          'border border-[var(--glass-border)]',
-          'shadow-[0_4px_24px_rgba(0,0,0,0.2)]'
+          'bg-card border border-border',
+          'shadow-[inset_0_1px_3px_rgba(74,58,36,0.08),var(--card-shadow)]',
+          'focus-within:ring-2 focus-within:ring-[var(--ring)]'
         )}>
-          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search books & videos..."
+            placeholder="Search your shelves…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className={cn(
               'w-full h-14 pl-12 pr-12 bg-transparent',
-              'text-lg text-foreground placeholder:text-muted-foreground',
+              'font-serif italic text-lg text-foreground placeholder:text-muted-foreground placeholder:italic',
               'focus:outline-none'
             )}
           />
@@ -405,7 +406,7 @@ const Search = () => {
           <div className="animate-fade-in">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" />
+                <History className="h-4 w-4" />
                 <span>Recent</span>
               </div>
               <button
@@ -421,12 +422,12 @@ const Search = () => {
                   key={index}
                   onClick={() => handleRecentClick(term)}
                   className={cn(
-                    'px-4 py-2 rounded-full text-sm',
-                    'bg-muted/30 hover:bg-muted/50',
-                    'border border-border/50',
+                    'flex items-center gap-1.5 px-4 py-2 rounded-full text-sm',
+                    'bg-card border border-border hover:border-primary/40',
                     'transition-colors'
                   )}
                 >
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                   {term}
                 </button>
               ))}
@@ -438,9 +439,9 @@ const Search = () => {
         {showEmptyState && (
           <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-              <SearchIcon className="h-10 w-10 text-primary/50" />
+              <SearchIcon className="h-10 w-10 text-primary" />
             </div>
-            <p className="text-xl font-medium">Search your library</p>
+            <p className="font-sans text-xl font-bold">Search your shelves</p>
             <p className="text-muted-foreground mt-1">
               Find books, videos, and more
             </p>
@@ -451,7 +452,7 @@ const Search = () => {
         {hasSearched && results.length === 0 && !isLoading && !error && (
           <div className="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
             <div className="w-20 h-20 rounded-full bg-muted/30 flex items-center justify-center mb-6">
-              <BookOpen className="h-10 w-10 text-muted-foreground/50" />
+              <Book className="h-10 w-10 text-muted-foreground/50" />
             </div>
             <p className="text-xl font-medium">No results found</p>
             <p className="text-muted-foreground mt-1">

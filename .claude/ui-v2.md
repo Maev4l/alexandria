@@ -40,6 +40,7 @@ See @authn-scheme.md for full authentication documentation (native + Google OAut
 | @zxing/library           | 0.21.3  |
 | react-webcam             | 7.2.0   |
 | lottie-react             | 2.4.0   |
+| Fonts (self-hosted)      | Bricolage Grotesque + Newsreader |
 
 ## Project structure
 
@@ -376,18 +377,23 @@ packages/web-client-v2/
 - [x] Account page: shows email from JWT (not username)
 - [x] Onboarding: swipeable story mode with Lottie animations for first-time users
 
-### UI Refresh
+### UI Revamp — Direction E "The Shelf"
 
-- [x] Dark theme: "Library at Twilight" deep blue-purple palette, dark-first design
-- [x] Glassmorphism cards: frosted glass effect with backdrop-blur on all cards
-- [x] Gradient mesh background: layered radial gradients (purple/blue glows)
-- [x] Floating nav pill: centered bottom tabs with sliding indicator
-- [x] Cover color extraction: `lib/colorExtractor.js` extracts dominant color from covers
-- [x] Detail page hero: gradient background from cover color, reflection effect
-- [x] Long press lift animation: cards rise with enhanced shadow
-- [x] Tab switch animations: directional slide between tabs
-- [x] Spotlight search: full-screen overlay, glassmorphism input, pill chips for recent
-- [x] Collection unfold animation: staggered item reveal (80ms delay)
+- [x] Light-only warm theme ("The Shelf"): linen canvas, burnt-sienna accent, deep-green secondary, walnut ledges
+- [x] Self-hosted fonts: Bricolage Grotesque (UI/display) + Newsreader (serif accents: authors, summaries, tagline)
+- [x] Token layer rewrite (`src/index.css`): retired dark "Library at Twilight" glass theme and `--glass-*` vars
+- [x] Library stream: standalone items on full-width walnut ledges; passive sticky A–Z letter headers with ghost letters
+- [x] Collections: wide wooden board, covers standing on the shelf, `⌗` count badge, hatched ghost covers for pending members
+- [x] BottomTabs: floating walnut pill; sheets: cream panels
+- [x] Libraries list: full-width "shelf-section" rows (deterministic `SpineCluster` per library, no cover art); deep-green sharing markers (see status markers below)
+- [x] Status markers ("Circulation Card" system): **lent** = amber perforated **date-due slip** (`LENT · <name>` inline, corner tab on thumbnails, tucked card on detail hero, `LENT · N days` in history); **shared out** = hollow green `SHARED · N` **stamp**; **shared with me** = green spine **ribbon** + "from <owner>'s library". Form carries meaning, colour reinforces; replaces the old chips/pills + lucide icons (`.lent-slip`/`.lent-tab`/`.lent-duecard`/`.share-stamp`/`.share-ribbon`/`.ephemera-caps`)
+- [x] Detail "reading table" hero: cover on a lit ledge + restrained linen-washed cover-color halo (no reflection/saturated band); cover "settle" load animation
+- [x] Search "card index": cream catalog-card input, catalog-tag recents, on-ledge results
+- [x] Item History "date-due card": lending events paired client-side into loans (out → back · duration), stamped rows on a checkout card; open loan = amber "Still out"; clear-confirm uses the cream BottomSheet (`Timeline` primitive now unused)
+- [x] Onboarding "turning pages": one warm tint-family across slides, cream icon medallion
+- [x] PWA identity: three-covers-on-a-walnut-shelf icon (SVG → sharp PNGs incl. maskable), cream splash, manifest `theme_color #bb5a33` / `background_color #f3ecdd`
+- [x] Accessibility: medium exposed via `aria-label`; passive letter dividers as separators; motion gated by `prefers-reduced-motion`
+- [x] Icon set retuned (lucide, bookish/circulation read): book entity `BookOpen`→`Book`; collection→`Layers` (unified); edit→`PencilLine`; lend→`BookUp`; return→`BookDown`; history→`Stamp`; camera-off; recent-searches→`History`; pending→`Hourglass`; onboarding welcome→`BookOpen`/add→`BookPlus`. Universal affordances kept standard.
 
 ## Future Enhancements
 

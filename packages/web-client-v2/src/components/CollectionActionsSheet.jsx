@@ -2,7 +2,7 @@
 // Bottom sheet for collection actions: Edit, Add book, Add video, Delete
 // Includes edit mode and two-step delete confirmation
 import { useState, useEffect, useRef } from 'react';
-import { BookOpen, Film, Trash2, AlertTriangle, Loader2, Pencil } from 'lucide-react';
+import { Book, Film, Trash2, AlertTriangle, Loader2, PencilLine } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
@@ -125,7 +125,7 @@ const CollectionActionsSheet = ({
   );
 
   const sheetClasses = cn(
-    'relative bg-background rounded-t-xl transition-all border border-white/10',
+    'relative bg-card rounded-t-2xl transition-all border-t border-border',
     isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
   );
 
@@ -260,7 +260,7 @@ const CollectionActionsSheet = ({
             className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition-colors text-left"
           >
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Pencil className="h-5 w-5 text-primary" />
+              <PencilLine className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="font-medium">Edit</p>
@@ -273,7 +273,7 @@ const CollectionActionsSheet = ({
             className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition-colors text-left"
           >
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <BookOpen className="h-5 w-5 text-primary" />
+              <Book className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="font-medium">Book</p>

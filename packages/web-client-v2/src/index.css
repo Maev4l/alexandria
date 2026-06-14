@@ -2,7 +2,46 @@
 /* Tailwind CSS v4 - import via CSS */
 @import "tailwindcss";
 
-/* shadcn/ui CSS variables for theming */
+/* ============================================================
+   Self-hosted fonts — Bricolage Grotesque (display/UI) + Newsreader (serif accent)
+   ============================================================ */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/bricolage-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/bricolage-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/bricolage-800.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Newsreader";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/newsreader-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/newsreader-italic-400.woff2") format("woff2");
+}
+
+/* shadcn/ui CSS variables for theming + font tokens */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -27,100 +66,72 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Typography: Bricolage for all UI, Newsreader for serif accents */
+  --font-sans: "Bricolage Grotesque", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
 }
 
 /* =============================================================================
-   "Library at Twilight" Theme - Dark-first design
-   Deep blue-purple palette that makes book/video covers pop like jewels
+   "The Shelf" — warm, light, tactile bookshelf theme (light-only)
    ============================================================================= */
-
 :root {
-  /* Deep twilight background with subtle blue undertone */
-  --background: oklch(0.14 0.02 270);
-  --foreground: oklch(0.93 0.01 270);
+  /* Linen canvas */
+  --background: #f3ecdd;
+  --foreground: #2c2820;
 
-  /* Cards: semi-transparent for glassmorphism effect */
-  --card: oklch(0.18 0.025 270 / 0.85);
-  --card-foreground: oklch(0.93 0.01 270);
-  --popover: oklch(0.20 0.025 270 / 0.95);
-  --popover-foreground: oklch(0.93 0.01 270);
+  /* Cards: opaque cream (no glass) */
+  --card: #faf5ea;
+  --card-foreground: #2c2820;
+  --popover: #faf5ea;
+  --popover-foreground: #2c2820;
 
-  /* Primary: soft violet accent */
-  --primary: oklch(0.75 0.12 280);
-  --primary-foreground: oklch(0.14 0.02 270);
+  /* Primary: burnt sienna */
+  --primary: #bb5a33;
+  --primary-foreground: #faf5ea;
 
-  /* Secondary: muted purple-grey */
-  --secondary: oklch(0.25 0.03 270);
-  --secondary-foreground: oklch(0.90 0.01 270);
+  /* Secondary: deep green */
+  --secondary: #3f6157;
+  --secondary-foreground: #faf5ea;
 
-  /* Muted: for subtle backgrounds and disabled states */
-  --muted: oklch(0.22 0.02 270);
-  --muted-foreground: oklch(0.60 0.02 270);
+  /* Muted: warm sand */
+  --muted: #ece2cc;
+  --muted-foreground: #7d7361;
 
-  /* Accent: slightly brighter for hover states */
-  --accent: oklch(0.26 0.04 275);
-  --accent-foreground: oklch(0.93 0.01 270);
+  /* Accent: warm hover tint */
+  --accent: #ece2cc;
+  --accent-foreground: #2c2820;
 
-  /* Destructive: warm red that works on dark */
-  --destructive: oklch(0.55 0.2 25);
-  --destructive-foreground: oklch(0.98 0 0);
+  /* Destructive: warm red that reads on linen */
+  --destructive: #b23a23;
+  --destructive-foreground: #faf5ea;
 
-  /* Borders: subtle glow effect */
-  --border: oklch(0.30 0.03 270 / 0.6);
-  --input: oklch(0.25 0.02 270);
-  --ring: oklch(0.65 0.12 280);
+  /* Borders / inputs / focus ring */
+  --border: #e0d6bf;
+  --input: #e7ddc7;
+  --ring: #bb5a33;
 
-  --radius: 0.75rem;
+  --radius: 1rem;
 
-  /* Accent colors for UI elements */
-  --accent-wood: oklch(0.55 0.10 70);
-  --accent-glow: oklch(0.65 0.15 280 / 0.2);
+  /* Walnut shelf ledge */
+  --wood: #a07c4f;
+  --wood-d: #7c5d38;
+  --wood-edge: #c8a877; /* front-edge highlight */
 
-  /* Card shadows: softer, with subtle color */
-  --card-shadow: 0 2px 8px oklch(0 0 0 / 0.3), 0 1px 3px oklch(0 0 0 / 0.2);
-  --card-shadow-hover: 0 8px 24px oklch(0 0 0 / 0.4), 0 4px 8px oklch(0.5 0.1 280 / 0.1);
+  /* Lent accent (amber-on-linen) */
+  --lent: #b9762a;
+  --lent-bg: #f3e3c8;
 
-  /* Glassmorphism: for frosted glass effect */
-  --glass-bg: oklch(0.20 0.03 270 / 0.6);
-  --glass-border: oklch(1 0 0 / 0.08);
-  --glass-blur: 16px;
-}
-
-/* Light mode: warm paper-like aesthetic (optional, toggle with .light class) */
-.light {
-  --background: oklch(0.98 0.006 85);
-  --foreground: oklch(0.18 0.02 60);
-  --card: oklch(0.995 0.004 85);
-  --card-foreground: oklch(0.18 0.02 60);
-  --popover: oklch(0.995 0.004 85);
-  --popover-foreground: oklch(0.18 0.02 60);
-  --primary: oklch(0.45 0.12 280);
-  --primary-foreground: oklch(0.98 0.006 85);
-  --secondary: oklch(0.96 0.008 80);
-  --secondary-foreground: oklch(0.25 0.02 60);
-  --muted: oklch(0.95 0.008 80);
-  --muted-foreground: oklch(0.45 0.02 60);
-  --accent: oklch(0.94 0.01 80);
-  --accent-foreground: oklch(0.25 0.02 60);
-  --destructive: oklch(0.55 0.22 27);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.88 0.01 80);
-  --input: oklch(0.90 0.01 80);
-  --ring: oklch(0.55 0.12 280);
-  --accent-wood: oklch(0.55 0.12 70);
-  --accent-glow: oklch(0.5 0.1 280 / 0.1);
-  --card-shadow: 0 1px 3px oklch(0.20 0.02 60 / 0.08), 0 1px 2px oklch(0.20 0.02 60 / 0.06);
-  --card-shadow-hover: 0 4px 12px oklch(0.20 0.02 60 / 0.12), 0 2px 4px oklch(0.20 0.02 60 / 0.08);
-  --glass-bg: oklch(1 0 0 / 0.7);
-  --glass-border: oklch(0 0 0 / 0.06);
-  --glass-blur: 12px;
+  /* Soft warm low shadows (replace cool glass shadows) */
+  --card-shadow: 0 1px 2px rgba(74, 58, 36, 0.10), 0 2px 6px rgba(74, 58, 36, 0.07);
+  --card-shadow-hover: 0 6px 18px rgba(74, 58, 36, 0.16), 0 2px 6px rgba(74, 58, 36, 0.10);
+  --shelf-shadow: 2px 4px 10px rgba(74, 58, 36, 0.22);
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-  /* PWA viewport fix: prevent overflow and ensure proper sizing */
   html {
     overflow-x: hidden;
     overflow-y: auto;
@@ -128,17 +139,15 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-      Roboto, sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
     min-height: 100%;
     overflow-x: hidden;
-    /* Prevent pull-to-refresh on PWA interfering with our custom one */
     overscroll-behavior-y: contain;
   }
-  /* Gradient mesh background - "Library at Twilight" ambient glow */
+  /* Warm linen → oat ambient mesh */
   body::before {
     content: '';
     position: fixed;
@@ -146,19 +155,9 @@
     z-index: -1;
     pointer-events: none;
     background:
-      /* Top-left purple glow */
-      radial-gradient(ellipse 80% 50% at 10% 0%, oklch(0.30 0.12 280 / 0.4) 0%, transparent 50%),
-      /* Bottom-right blue glow */
-      radial-gradient(ellipse 60% 40% at 90% 100%, oklch(0.25 0.08 240 / 0.3) 0%, transparent 50%),
-      /* Center subtle warm accent */
-      radial-gradient(ellipse 50% 50% at 50% 50%, oklch(0.20 0.04 300 / 0.15) 0%, transparent 60%);
-  }
-  /* Light mode: softer, warmer gradients */
-  .light body::before {
-    background:
-      radial-gradient(ellipse 80% 50% at 10% 0%, oklch(0.85 0.08 280 / 0.2) 0%, transparent 50%),
-      radial-gradient(ellipse 60% 40% at 90% 100%, oklch(0.88 0.06 200 / 0.15) 0%, transparent 50%),
-      radial-gradient(ellipse 50% 50% at 50% 50%, oklch(0.92 0.03 60 / 0.1) 0%, transparent 60%);
+      radial-gradient(ellipse 80% 50% at 12% 0%, rgba(208, 150, 54, 0.10) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 50% at 88% 100%, rgba(63, 97, 87, 0.08) 0%, transparent 55%),
+      linear-gradient(180deg, #f3ecdd 0%, #ead9b8 100%);
   }
   #root {
     min-height: 100svh;
@@ -166,172 +165,172 @@
   }
 }
 
+/* The walnut ledge — drawn under standalone items, collections, library cards */
+.shelf-ledge {
+  background: linear-gradient(180deg, var(--wood) 0%, var(--wood-d) 100%);
+  box-shadow: inset 0 1px 0 var(--wood-edge), 0 2px 5px rgba(74, 58, 36, 0.20);
+}
+
+/* ============================================================
+   Status markers — the "Circulation Card" system
+   Library ephemera applied to a shelved object: an amber date-due SLIP (lent),
+   a hollow green STAMP (shared out), a green spine RIBBON (shared with me).
+   Shared type system: micro-caps + the human/name part in Newsreader italic +
+   a faint "placed by hand" tilt; form (not colour) carries the meaning.
+   ============================================================ */
+.ephemera-caps {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Lent — amber date-due slip (inline, in a meta line) */
+.lent-slip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--lent);
+  background: var(--lent-bg);
+  border-radius: 2px;
+  padding: 3px 8px;
+  border-top: 1.5px dashed rgba(185, 118, 42, 0.5);
+  transform: rotate(-1.5deg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+.lent-slip__div {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(185, 118, 42, 0.4);
+}
+
+/* Lent — corner tab variant that overhangs a small cover thumbnail */
+.lent-tab {
+  position: absolute;
+  top: -2px;
+  left: 6px;
+  color: var(--lent);
+  background: var(--lent-bg);
+  border-radius: 2px;
+  padding: 2px 5px;
+  border-bottom: 1.5px dashed rgba(185, 118, 42, 0.5);
+  transform: rotate(-1.5deg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* Lent — full date-due card, tucked at a detail-hero cover's lower edge */
+.lent-duecard {
+  color: var(--lent);
+  background: var(--lent-bg);
+  border-radius: 3px;
+  padding: 12px 16px 9px;
+  text-align: center;
+  border-bottom: 1px solid rgba(185, 118, 42, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+  transform: rotate(-1.2deg);
+}
+
+/* Shared out — a hollow green ink stamp */
+.share-stamp {
+  display: inline-flex;
+  align-items: center;
+  color: var(--secondary);
+  background: transparent;
+  border: 1.5px solid var(--secondary);
+  border-radius: 4px;
+  padding: 3px 8px;
+  transform: rotate(-2deg);
+  opacity: 0.92;
+}
+
+/* Shared with me — a green spine ribbon with a notched/forked tail */
+.share-ribbon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: var(--secondary);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%);
+}
+
+/* Ghost cover (pending collection members) — hatched placeholder */
+.ghost-cover {
+  background-color: #ece2cc;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(124, 93, 56, 0.12) 0px,
+    rgba(124, 93, 56, 0.12) 2px,
+    transparent 2px,
+    transparent 7px
+  );
+  border: 1px dashed rgba(124, 93, 56, 0.35);
+}
+
 /* Staggered list animations - fade in + slide up */
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+.animate-fade-in-up { animation: fade-in-up 0.3s ease-out forwards; opacity: 0; }
 
-.animate-fade-in-up {
-  animation: fade-in-up 0.3s ease-out forwards;
-  opacity: 0;
-}
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.animate-fade-in { animation: fade-in 0.25s ease-out forwards; }
 
-/* Page fade transition */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
+@keyframes page-enter { from { opacity: 0; } to { opacity: 1; } }
+.animate-page-enter { animation: page-enter 0.2s ease-out forwards; }
 
-.animate-fade-in {
-  animation: fade-in 0.25s ease-out forwards;
-}
+@keyframes slide-from-right { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes slide-from-left { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+.animate-slide-from-right { animation: slide-from-right 0.25s ease-out forwards; }
+.animate-slide-from-left { animation: slide-from-left 0.25s ease-out forwards; }
 
-/* Page transition - slightly faster for snappy navigation */
-@keyframes page-enter {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* Detail hero: cover "settles" onto the shelf */
+@keyframes cover-settle {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
-
-.animate-page-enter {
-  animation: page-enter 0.2s ease-out forwards;
-}
-
-/* Tab slide animations - directional based on navigation */
-@keyframes slide-from-right {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slide-from-left {
-  from {
-    opacity: 0;
-    transform: translateX(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-slide-from-right {
-  animation: slide-from-right 0.25s ease-out forwards;
-}
-
-.animate-slide-from-left {
-  animation: slide-from-left 0.25s ease-out forwards;
-}
-
-/* Lent ribbon indicator - diagonal ribbon on book cover */
-.lent-ribbon {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.lent-ribbon::before {
-  content: 'LENT';
-  position: absolute;
-  top: 6px;
-  right: -20px;
-  width: 60px;
-  padding: 2px 0;
-  background: oklch(0.60 0.18 45); /* Warm amber - works on dark */
-  color: white;
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-align: center;
-  transform: rotate(45deg);
-  box-shadow: 0 1px 2px oklch(0 0 0 / 0.3);
-}
-
-.light .lent-ribbon::before {
-  background: oklch(0.65 0.18 45);
-}
+.animate-cover-settle { animation: cover-settle 0.25s ease-out forwards; }
 
 /* Hide scrollbar but keep functionality */
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
 
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
-
-/* Long press "lift" state - card rises with enhanced shadow */
+/* Long press "lift" — card rises with warm shadow */
 .card-lifting {
   transform: scale(1.03) translateY(-4px) !important;
-  box-shadow: 0 12px 32px oklch(0 0 0 / 0.4), 0 0 24px var(--accent-glow) !important;
+  box-shadow: 0 12px 28px rgba(74, 58, 36, 0.24) !important;
   z-index: 10;
   position: relative;
 }
 
-/* Haptic pulse - subtle scale pulse for feedback */
-@keyframes haptic-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(0.97); }
-}
+@keyframes haptic-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.97); } }
+.animate-haptic-pulse { animation: haptic-pulse 0.15s ease-in-out; }
 
-.animate-haptic-pulse {
-  animation: haptic-pulse 0.15s ease-in-out;
-}
-
-/* Shimmer loading effect for skeletons */
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
+/* Shimmer loading (warm) */
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 .animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--muted) 0%,
-    oklch(0.30 0.02 270) 50%,
-    var(--muted) 100%
-  );
+  background: linear-gradient(90deg, var(--muted) 0%, #f5ecd9 50%, var(--muted) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
 }
 
-/* Collection unfold animation - items slide in from left like pages fanning out */
-@keyframes unfold-item {
-  0% {
-    opacity: 0;
-    transform: translateX(-20px) scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-}
+/* Collection unfold */
+@keyframes unfold-item { 0% { opacity: 0; transform: translateX(-20px) scale(0.9); } 100% { opacity: 1; transform: translateX(0) scale(1); } }
+.animate-unfold-item { animation: unfold-item 0.35s ease-out forwards; opacity: 0; }
 
-.animate-unfold-item {
-  animation: unfold-item 0.35s ease-out forwards;
-  opacity: 0;
+/* Respect reduced motion: disable entry/unfold/settle, keep static states */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in,
+  .animate-page-enter,
+  .animate-slide-from-right,
+  .animate-slide-from-left,
+  .animate-cover-settle,
+  .animate-unfold-item,
+  .animate-shimmer {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

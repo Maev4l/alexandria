@@ -1,0 +1,24 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#fbf5e8"/>
+      <stop offset="60%" stop-color="#f0e6cf"/>
+      <stop offset="100%" stop-color="#e7d9ba"/>
+    </radialGradient>
+    <linearGradient id="s1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#cf6a3c"/><stop offset="100%" stop-color="#9a3f1f"/></linearGradient>
+    <linearGradient id="s2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4a6f5f"/><stop offset="100%" stop-color="#274038"/></linearGradient>
+    <linearGradient id="s3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d09636"/><stop offset="100%" stop-color="#9a6618"/></linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a9824f"/><stop offset="100%" stop-color="#7c5d38"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- mark grouped + scaled to ~70% around centre for maskable safe zone -->
+  <g transform="translate(256,256) scale(0.7) translate(-256,-256)">
+    <ellipse cx="256" cy="356" rx="150" ry="16" fill="#7c5d38" opacity="0.18"/>
+    <rect x="171" y="180" width="46" height="160" rx="7" fill="url(#s1)"/>
+    <rect x="233" y="150" width="46" height="190" rx="7" fill="url(#s2)"/>
+    <rect x="271" y="158" width="5" height="174" rx="2" fill="#ffffff" opacity="0.28"/>
+    <rect x="295" y="205" width="46" height="135" rx="7" fill="url(#s3)"/>
+    <rect x="150" y="340" width="212" height="26" rx="6" fill="url(#wood)"/>
+    <rect x="150" y="340" width="212" height="5" rx="2.5" fill="#c8a877" opacity="0.8"/>
+  </g>
+</svg>

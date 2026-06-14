@@ -3,7 +3,7 @@
 // User selects a book -> creates it directly via context
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, AlertCircle, BookOpen, Check } from 'lucide-react';
+import { Loader2, AlertCircle, Book, Check } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { detectionApi } from '@/api';
 import { useLibraries } from '@/state';
@@ -185,7 +185,7 @@ const BookDetectionResults = () => {
       <div className="flex flex-col flex-1 min-h-0">
         {renderAppBar()}
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
-          <BookOpen className="h-10 w-10 text-muted-foreground/50" />
+          <Book className="h-10 w-10 text-muted-foreground/50" />
           <div>
             <p className="font-medium">No books found</p>
             <p className="text-sm text-muted-foreground">
@@ -256,7 +256,7 @@ const BookDetectionResults = () => {
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <BookOpen className="h-6 w-6 text-muted-foreground/50" />
+                    <Book className="h-6 w-6 text-muted-foreground/50" />
                   </div>
                 )}
               </div>

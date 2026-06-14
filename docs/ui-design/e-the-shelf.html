@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Alexandria — E · The Shelf</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     DIRECTION E — "THE SHELF"  (books + film, equal peers)
+     Concept: one warm shelf that holds everything. A cover is a
+     cover — book or film share ONE card; medium is just a glyph
+     (open-book vs disc) + creator role (by / dir.). Collections
+     can MIX media. Covers rest on drawn wooden ledges. Warm,
+     tactile, modern-literary. Encompasses both, costume-free.
+     ============================================================ */
+  :root{
+    --bg:#efe7d6; --card:#faf5ea; --ink:#2c2820; --ink-soft:#7d7361;
+    --line:#e0d6bf; --wood:#a07c4f; --wood-d:#7c5d38; --accent:#bb5a33; --accent-2:#3f6157;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{font-family:"Newsreader",Georgia,serif; color:var(--ink);
+    background:radial-gradient(120% 90% at 50% 0%, #f3ecdd 0%, #e6dcc4 70%, #d9cdb0 100%); display:grid; place-items:center; padding:36px 14px; min-height:100vh;}
+  .device{width:392px; max-width:100%; height:812px; position:relative; border-radius:46px; overflow:hidden; background:var(--bg);
+    box-shadow:0 40px 80px -34px #5a4a2e, 0 0 0 7px #fbf7ef, 0 0 0 9px #d2c19c;}
+  .screen{height:100%; overflow-y:auto;}
+  .screen::-webkit-scrollbar{display:none;} .screen{scrollbar-width:none;}
+
+  .ic{width:1em; height:1em; display:inline-block; vertical-align:-.12em; stroke:currentColor; stroke-width:1.7; fill:none;}
+
+  header{padding:54px 22px 14px; position:relative;}
+  .eyebrow{font-family:"Bricolage Grotesque"; font-weight:700; font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--accent);}
+  h1{font-family:"Bricolage Grotesque"; font-weight:800; font-size:48px; line-height:.9; letter-spacing:-.025em; margin:7px 0 6px;}
+  h1 em{font-family:"Newsreader"; font-style:italic; font-weight:400; color:var(--ink-soft); letter-spacing:0;}
+  .sub{font-size:14.5px; color:var(--ink-soft);}
+  .sub b{color:var(--ink); font-weight:500;}
+  .chips-h{display:flex; gap:8px; margin-top:12px;}
+  .mchip{font-family:"Bricolage Grotesque"; font-weight:500; font-size:11px; letter-spacing:.02em; color:var(--ink); background:var(--card); border:1px solid var(--line); padding:6px 11px; border-radius:20px; display:flex; align-items:center; gap:6px;}
+  .mchip .ic{color:var(--accent-2);} .mchip.film .ic{color:var(--accent);}
+
+  /* sticky letter */
+  .letter{position:sticky; top:0; z-index:20; background:linear-gradient(180deg,var(--bg) 72%, transparent); padding:14px 22px 7px; display:flex; align-items:center; gap:11px;}
+  .letter .L{font-family:"Bricolage Grotesque"; font-weight:800; font-size:22px; color:var(--ink);}
+  .letter .l{flex:1; height:2px; background:var(--line); border-radius:2px;}
+
+  .stream{padding:0 18px;} .stream.last{padding-bottom:122px;}
+
+  /* shared item card (book OR film) */
+  .item{display:flex; gap:15px; align-items:flex-end; padding:10px 12px 0; margin-bottom:8px; background:var(--card); border:1px solid var(--line);
+    border-radius:16px 16px 4px 4px; position:relative; box-shadow:0 16px 26px -24px #5a4a2e; animation:rise .5s ease backwards;}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  /* the wooden ledge the cover stands on */
+  .item::after{content:""; position:absolute; left:0; right:0; bottom:0; height:7px; border-radius:0 0 4px 4px;
+    background:linear-gradient(180deg,var(--wood),var(--wood-d)); box-shadow:0 1px 0 #00000022 inset;}
+  .cover{width:66px; aspect-ratio:5/7; border-radius:4px 4px 2px 2px; flex:0 0 auto; position:relative; overflow:hidden; transform:translateY(-1px);
+    box-shadow:0 10px 14px -8px #00000088, inset 0 0 0 1px #ffffff33;}
+  .cover::before{content:""; position:absolute; left:5px; top:0; bottom:0; width:2px; background:#ffffff30;} /* spine sheen */
+  .glyph{position:absolute; left:5px; bottom:5px; width:21px; height:21px; border-radius:50%; background:#fff; color:var(--ink);
+    display:grid; place-items:center; box-shadow:0 1px 3px #0005;} .glyph .ic{width:13px;height:13px;}
+  .info{flex:1; min-width:0; padding-bottom:16px;}
+  .kind{font-family:"Bricolage Grotesque"; font-weight:500; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); display:flex; align-items:center; gap:5px;}
+  .kind .ic{width:12px;height:12px; color:var(--accent-2);} .kind.film .ic{color:var(--accent);}
+  .ttl{font-family:"Bricolage Grotesque"; font-weight:700; font-size:21px; line-height:1; letter-spacing:-.01em; margin:4px 0 2px;}
+  .by{font-family:"Newsreader"; font-style:italic; font-size:14px; color:var(--ink-soft);}
+  .meta{margin-top:8px; font-size:12px; color:var(--ink-soft); display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .lent{font-family:"Bricolage Grotesque"; font-weight:600; font-size:10px; letter-spacing:.04em; color:#fff; background:var(--accent); padding:3px 9px; border-radius:20px;}
+
+  .b1{background:linear-gradient(155deg,#3f6157,#22382f);} .b2{background:linear-gradient(155deg,#bb5a33,#7e3318);}
+  .b3{background:linear-gradient(155deg,#c79238,#8a5e18);} .b4{background:linear-gradient(155deg,#46607c,#28384b);}
+  .b5{background:linear-gradient(155deg,#6a4a6a,#3f2a40);} .b6{background:linear-gradient(155deg,#5a6a3a,#384324);}
+
+  /* collection = a shelf board with horizontal scroll; MAY mix media */
+  .board{margin-bottom:10px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:15px 0 0 16px; position:relative;
+    box-shadow:0 18px 30px -26px #5a4a2e; animation:rise .5s ease backwards; overflow:hidden;}
+  .board .head{display:flex; justify-content:space-between; align-items:center; padding-right:16px; margin-bottom:12px;}
+  .board .name{font-family:"Bricolage Grotesque"; font-weight:800; font-size:20px; letter-spacing:-.01em;}
+  .board .sub{font-size:12.5px; color:var(--ink-soft); font-style:italic; margin-top:1px;}
+  .board .cnt{font-family:"Bricolage Grotesque"; font-weight:700; font-size:12px; color:var(--ink); background:#efe6d2; border:1px solid var(--line); padding:5px 11px; border-radius:20px; white-space:nowrap; display:flex; gap:5px; align-items:center;}
+  .row{display:flex; gap:12px; overflow-x:auto; padding:0 16px 12px 0; scroll-snap-type:x mandatory; position:relative;}
+  .row::-webkit-scrollbar{height:0;} .row{scrollbar-width:none;}
+  .bk{flex:0 0 64px; position:relative; scroll-snap-align:start;}
+  .bk .c{width:64px; aspect-ratio:5/7; border-radius:4px; position:relative; overflow:hidden; box-shadow:0 9px 13px -8px #00000088, inset 0 0 0 1px #ffffff33; display:flex; align-items:flex-end; padding:7px;}
+  .bk .c::before{content:""; position:absolute; left:5px; top:0; bottom:0; width:2px; background:#ffffff30;}
+  .bk .t{font-family:"Bricolage Grotesque"; font-weight:700; font-size:9.5px; line-height:.95; color:#fff; text-shadow:0 1px 3px #0008; position:relative; z-index:2;}
+  .bk .g{position:absolute; top:5px; right:5px; width:17px; height:17px; border-radius:50%; background:#fff; color:var(--ink); display:grid; place-items:center; z-index:3;} .bk .g .ic{width:10px;height:10px;}
+  .bk .g.film .ic{color:var(--accent);} .bk .g.book .ic{color:var(--accent-2);}
+  /* the board's wooden ledge under the row */
+  .ledge{height:9px; background:linear-gradient(180deg,var(--wood),var(--wood-d)); margin-right:0;}
+  .bk.ghost .c{background:repeating-linear-gradient(135deg,#ece2cc,#ece2cc 7px,#e2d7bc 7px,#e2d7bc 14px); box-shadow:inset 0 0 0 1px #00000012; display:grid; place-items:center; padding:0;}
+  .bk.ghost .t{color:var(--ink-soft); font-style:normal;}
+  .more{flex:0 0 auto; align-self:center; padding-left:4px; font-family:"Newsreader"; font-style:italic; font-size:12px; color:var(--accent); white-space:nowrap;}
+
+  .loading{font-family:"Newsreader"; font-style:italic; font-size:13px; color:var(--ink-soft); text-align:center; padding:18px 0 6px;}
+
+  .nav{position:absolute; left:50%; bottom:20px; transform:translateX(-50%); z-index:50; display:flex; gap:5px; background:var(--ink); padding:6px; border-radius:24px; box-shadow:0 16px 30px -12px #2c2820;}
+  .nav a{font-family:"Bricolage Grotesque"; font-weight:600; font-size:12px; color:#cbbfa6; text-decoration:none; padding:9px 17px; border-radius:18px; display:flex; align-items:center; gap:7px;}
+  .nav a.on{background:var(--bg); color:var(--ink);}
+</style>
+</head>
+<body>
+
+<!-- shared medium glyphs: a cover is a cover; only this little badge differs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="ic-book" viewBox="0 0 24 24"><path d="M12 6C9.5 4.3 6 4.2 3.5 5V19C6 18.2 9.5 18.3 12 20C14.5 18.3 18 18.2 20.5 19V5C18 4.2 14.5 4.3 12 6Z"/><path d="M12 6V20"/></symbol>
+  <symbol id="ic-disc" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3.6C13.8 6 14.6 8.8 14.4 11.4"/></symbol>
+</defs></svg>
+
+<div class="device"><div class="screen">
+
+  <header>
+    <div class="eyebrow">My Collection</div>
+    <h1>The Shelf,<br><em>everything on it.</em></h1>
+    <div class="sub"><b>248</b> books &amp; films · <b>19</b> on loan</div>
+    <div class="chips-h">
+      <span class="mchip">173 books</span>
+      <span class="mchip film">75 films</span>
+      <span class="mchip">7 sets</span>
+    </div>
+  </header>
+
+  <!-- ONE alphabetical stream, books & films side by side -->
+  <div class="letter"><span class="L">A</span><span class="l"></span></div>
+  <div class="stream">
+    <div class="item">
+      <div class="cover b3"></div>
+      <div class="info"><div class="ttl">Akira</div><div class="by">dir. Katsuhiro Otomo</div>
+        <div class="meta">1988 · restored</div></div>
+    </div>
+  </div>
+
+  <div class="letter"><span class="L">D</span><span class="l"></span></div>
+  <div class="stream">
+    <div class="board">
+      <div class="head"><div><div class="name">Dune</div><div class="sub">novels &amp; films together · 4 of 6</div></div>
+        <span class="cnt">⌗ 6</span></div>
+      <div class="row">
+        <div class="bk"><div class="c b2"><span class="t">Dune</span></div></div>
+        <div class="bk"><div class="c b4"><span class="t">Messiah</span></div></div>
+        <div class="bk"><div class="c b1"><span class="t">Dune 2021</span></div></div>
+        <div class="bk"><div class="c b5"><span class="t">Part Two</span></div></div>
+        <div class="bk ghost"><div class="c"><span class="t">?</span></div></div>
+        <div class="bk ghost"><div class="c"><span class="t">?</span></div></div>
+        <span class="more">swipe →</span>
+      </div>
+      <div class="ledge"></div>
+    </div>
+  </div>
+
+  <div class="letter"><span class="L">K</span><span class="l"></span></div>
+  <div class="stream">
+    <div class="item">
+      <div class="cover b1"></div>
+      <div class="info"><div class="ttl">Kafka on the Shore</div><div class="by">Haruki Murakami</div>
+        <div class="meta">2002 · paperback</div></div>
+    </div>
+  </div>
+
+  <div class="letter"><span class="L">N</span><span class="l"></span></div>
+  <div class="stream">
+    <div class="item">
+      <div class="cover b5"></div>
+      <div class="info"><div class="ttl">Norwegian Wood</div><div class="by">Haruki Murakami</div>
+        <div class="meta"><span class="lent">Lent to Marcus</span> 1987</div></div>
+    </div>
+  </div>
+
+  <div class="letter"><span class="L">S</span><span class="l"></span></div>
+  <div class="stream last">
+    <div class="board">
+      <div class="head"><div><div class="name">Studio Ghibli</div><div class="sub">complete · 1986–2014 · continues below</div></div>
+        <span class="cnt">⌗ 11</span></div>
+      <div class="row">
+        <div class="bk"><div class="c b1"><span class="t">Totoro</span></div></div>
+        <div class="bk"><div class="c b2"><span class="t">Mononoke</span></div></div>
+        <div class="bk"><div class="c b3"><span class="t">Spirited Away</span></div></div>
+        <div class="bk"><div class="c b6"><span class="t">Howl</span></div></div>
+        <div class="bk ghost"><div class="c"><span class="t">+7</span></div></div>
+        <span class="more">+7 more →</span>
+      </div>
+      <div class="ledge"></div>
+    </div>
+    <div class="loading">reaching for the next shelf…</div>
+  </div>
+
+  <nav class="nav">
+    <a class="on" href="#">Library</a>
+    <a href="#">⌕ Search</a>
+    <a href="#">✦ Account</a>
+  </nav>
+
+</div></div>
+</body>
+</html>

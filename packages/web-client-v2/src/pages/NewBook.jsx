@@ -3,7 +3,7 @@
 // Uses LibrariesContext to create items
 import { useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
+import { Book } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useLibraries } from '@/state';
 import { useToast } from '@/components/Toast';
@@ -113,7 +113,7 @@ const NewBook = () => {
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2">
-                  <BookOpen className="h-8 w-8 text-muted-foreground/50" />
+                  <Book className="h-8 w-8 text-muted-foreground/50" />
                   <span className="text-xs text-muted-foreground">
                     {coverError ? 'Invalid URL' : 'No cover'}
                   </span>

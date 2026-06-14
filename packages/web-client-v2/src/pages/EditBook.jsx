@@ -3,7 +3,7 @@
 // Uses LibrariesContext to update items, allows collection assignment
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, ChevronDown } from 'lucide-react';
+import { Book, ChevronDown } from 'lucide-react';
 import { AppBar } from '@/navigation';
 import { useLibraries } from '@/state';
 import { useItemData } from '@/hooks';
@@ -184,7 +184,7 @@ const EditBook = () => {
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2">
-                  <BookOpen className="h-8 w-8 text-muted-foreground/50" />
+                  <Book className="h-8 w-8 text-muted-foreground/50" />
                   <span className="text-xs text-muted-foreground">
                     {coverError ? 'Invalid URL' : 'No cover'}
                   </span>

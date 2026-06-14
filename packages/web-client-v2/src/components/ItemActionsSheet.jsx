@@ -3,7 +3,7 @@
 // Includes inline lend form and two-step delete confirmation
 // Supports enter/exit fade animations
 import { useState, useEffect, useRef } from 'react';
-import { Pencil, ArrowRightFromLine, Undo2, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { PencilLine, BookUp, BookDown, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ANIMATION_DURATION = 250; // ms
@@ -114,7 +114,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
   );
 
   const sheetClasses = cn(
-    'relative bg-background rounded-t-xl transition-all border border-white/10',
+    'relative bg-card rounded-t-2xl transition-all border-t border-border',
     isAnimating ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
   );
 
@@ -270,7 +270,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
             className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition-colors text-left"
           >
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Pencil className="h-5 w-5 text-primary" />
+              <PencilLine className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="font-medium">Edit</p>
@@ -291,7 +291,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 text-primary animate-spin" />
                 ) : (
-                  <Undo2 className="h-5 w-5 text-primary" />
+                  <BookDown className="h-5 w-5 text-primary" />
                 )}
               </div>
               <div>
@@ -305,7 +305,7 @@ const ItemActionsSheet = ({ item, isOpen, onClose, onAction, isLoading = false }
               className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-muted transition-colors text-left"
             >
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <ArrowRightFromLine className="h-5 w-5 text-primary" />
+                <BookUp className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="font-medium">Lend</p>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Alexandria — Custom signature icons (preview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --linen:#f3ecdd; --cream:#faf5ea; --ink:#2c2820; --muted:#7d7361;
+    --sienna:#bb5a33; --green:#3f6157; --border:#e0d6bf; --wood-d:#7c5d38;
+    --card-shadow:0 1px 2px rgba(74,58,36,.10), 0 2px 6px rgba(74,58,36,.07);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Bricolage Grotesque",system-ui,sans-serif; color:var(--ink);
+    background:
+      radial-gradient(ellipse 80% 50% at 12% 0%, rgba(208,150,54,.10) 0%, transparent 55%),
+      radial-gradient(ellipse 70% 50% at 88% 100%, rgba(63,97,87,.08) 0%, transparent 55%),
+      linear-gradient(180deg,#f3ecdd 0%, #ead9b8 100%);
+    min-height:100vh; padding:40px 20px 80px;
+  }
+  .wrap{max-width:940px; margin:0 auto;}
+  h1{font-weight:800; font-size:30px; letter-spacing:-.02em; margin-bottom:4px;}
+  .sub{font-family:"Newsreader",serif; font-style:italic; color:var(--muted); font-size:16px; margin-bottom:10px;}
+  .note{font-size:13.5px; color:var(--muted); line-height:1.55; max-width:760px; margin-bottom:8px;}
+  h2{font-weight:700; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--wood-d); margin:34px 0 14px; display:flex; align-items:center; gap:12px;}
+  h2::after{content:""; flex:1; height:1px; background:var(--border);}
+
+  .legend{display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin:8px 0 0;}
+  .key{display:inline-flex; align-items:center; gap:6px;} .dot{width:12px;height:12px;border-radius:3px;}
+
+  /* icon sizing */
+  .s32 svg{width:32px;height:32px;} .s20 svg{width:20px;height:20px;} .s24 svg{width:24px;height:24px;}
+  .ink{color:var(--ink);} .sienna{color:var(--sienna);}
+
+  /* family strips */
+  .strip{display:flex; align-items:center; gap:22px; background:var(--cream); border-radius:14px; box-shadow:var(--card-shadow); padding:18px 22px; flex-wrap:wrap;}
+  .strip .lbl{font-family:"Newsreader",serif; font-style:italic; color:var(--muted); font-size:13px; width:100%; margin-bottom:-4px;}
+  .icowrap{display:flex; flex-direction:column; align-items:center; gap:6px;}
+  .icowrap .nm{font-size:10.5px; color:var(--muted);}
+
+  /* appbar context */
+  .appbar{display:flex; align-items:center; justify-content:space-between; background:var(--cream); border-bottom:1px solid var(--border); border-radius:12px 12px 0 0; padding:0 12px; height:52px; box-shadow:var(--card-shadow);}
+  .appbar .ttl{font-weight:700; font-size:16px;}
+  .appbar .btn{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--ink);}
+  .appbar .btn.accent{color:var(--sienna);}
+
+  /* comparison rows */
+  .row{display:flex; gap:16px; align-items:center; background:var(--cream); border-radius:14px; box-shadow:var(--card-shadow); padding:14px 16px; margin-bottom:12px; flex-wrap:wrap;}
+  .fn{width:190px; flex:none;}
+  .fn .name{font-weight:700; font-size:15px;}
+  .fn .where{font-family:"Newsreader",serif; font-style:italic; font-size:12.5px; color:var(--muted); margin-top:2px;}
+  .tiles{display:flex; gap:12px; flex-wrap:wrap;}
+  .tile{position:relative; width:120px; padding:14px 8px 9px; border-radius:11px; border:1px solid var(--border); background:#fff8ec; display:flex; flex-direction:column; align-items:center; gap:9px;}
+  .tile.cur{background:#f1e7d2;}
+  .tile.pick{border-color:var(--sienna); box-shadow:0 0 0 1.5px var(--sienna);}
+  .tile .big{height:34px; display:flex; align-items:flex-end; gap:14px;}
+  .tile .big .small{align-self:flex-end;}
+  .tile .nm{font-size:10.5px; color:var(--muted); text-align:center; line-height:1.25;}
+  .tag{position:absolute; top:-9px; font-size:8.5px; letter-spacing:.08em; text-transform:uppercase; font-weight:700; padding:2px 6px; border-radius:20px;}
+  .tag-cur{background:var(--muted); color:#fff;} .tag-pick{background:var(--sienna); color:#fff;} .tag-cus{background:var(--green); color:#fff;}
+</style>
+</head>
+<body>
+<!-- ===== custom icon symbols (24x24, stroke 2, round, currentColor) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- book (entity): standing cover + spine + shelf foot -->
+  <symbol id="ci-book" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="3.5" width="12" height="16" rx="1.5"/>
+      <line x1="9" y1="3.5" x2="9" y2="19.5"/>
+      <line x1="4" y1="21" x2="20" y2="21"/>
+    </g>
+  </symbol>
+  <!-- book-up: lend / check out -->
+  <symbol id="ci-book-up" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="7" width="10" height="12.5" rx="1.5"/>
+      <line x1="6.5" y1="7" x2="6.5" y2="19.5"/>
+      <line x1="3" y1="21" x2="15" y2="21"/>
+      <line x1="18" y1="5" x2="18" y2="13"/>
+      <polyline points="15.5 7.5 18 5 20.5 7.5"/>
+    </g>
+  </symbol>
+  <!-- book-down: return / check in -->
+  <symbol id="ci-book-down" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="7" width="10" height="12.5" rx="1.5"/>
+      <line x1="6.5" y1="7" x2="6.5" y2="19.5"/>
+      <line x1="3" y1="21" x2="15" y2="21"/>
+      <line x1="18" y1="5" x2="18" y2="13"/>
+      <polyline points="15.5 10.5 18 13 20.5 10.5"/>
+    </g>
+  </symbol>
+  <!-- collection: three+ spines on a ledge (the brand mark) -->
+  <symbol id="ci-collection" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="6" y1="10" x2="6" y2="19"/>
+      <line x1="10" y1="5" x2="10" y2="19"/>
+      <line x1="14" y1="12" x2="14" y2="19"/>
+      <line x1="17.6" y1="8" x2="18.6" y2="19"/>
+      <line x1="4" y1="20.5" x2="20.5" y2="20.5"/>
+    </g>
+  </symbol>
+  <!-- stamp: pressed date-due mark on a card -->
+  <symbol id="ci-stamp" viewBox="0 0 24 24">
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="4" width="12" height="7" rx="1.5"/>
+      <line x1="9" y1="6.6" x2="15" y2="6.6"/>
+      <line x1="9" y1="8.6" x2="13" y2="8.6"/>
+      <line x1="12" y1="11" x2="12" y2="14"/>
+      <line x1="4" y1="17.5" x2="20" y2="17.5"/>
+    </g>
+  </symbol>
+</svg>
+
+<div class="wrap">
+  <h1>Custom signature icons — preview</h1>
+  <p class="sub">Bespoke “covers standing on a ledge”, drawn on lucide’s 24/2px grid.</p>
+  <p class="note">
+    Five custom glyphs for the bookish/circulation functions; everything universal stays lucide. The family is tied
+    together by a <b>shelf-baseline</b> (a hairline ledge that overhangs its content) and a <b>spine line</b> on every cover.
+    Compare each below against the current lucide icon and lucide alternatives, at both <b>32px</b> and the real <b>20px</b>.
+  </p>
+  <div class="legend">
+    <span class="key"><span class="dot" style="background:var(--green)"></span> <b>custom</b> (hand-drawn SVG)</span>
+    <span class="key"><span class="dot" style="background:var(--muted)"></span> current (lucide, in app today)</span>
+    <span class="key">others = lucide alternatives</span>
+  </div>
+
+  <!-- FAMILY -->
+  <h2>The custom family together</h2>
+  <div class="strip sienna">
+    <span class="lbl ink">At 32px — do they read as one set? (note the shared ledge + spine)</span>
+    <div class="icowrap"><span class="s32"><svg><use href="#ci-book"/></svg></span><span class="nm">book</span></div>
+    <div class="icowrap"><span class="s32"><svg><use href="#ci-book-up"/></svg></span><span class="nm">book-up · lend</span></div>
+    <div class="icowrap"><span class="s32"><svg><use href="#ci-book-down"/></svg></span><span class="nm">book-down · return</span></div>
+    <div class="icowrap"><span class="s32"><svg><use href="#ci-collection"/></svg></span><span class="nm">collection</span></div>
+    <div class="icowrap"><span class="s32"><svg><use href="#ci-stamp"/></svg></span><span class="nm">stamp · history</span></div>
+  </div>
+  <div class="strip ink" style="margin-top:12px;">
+    <span class="lbl">At 20px — and mixed with retained lucide universals, to check they sit together</span>
+    <div class="icowrap"><span class="s20"><svg><use href="#ci-book"/></svg></span><span class="nm">book*</span></div>
+    <div class="icowrap"><span class="s20"><svg><use href="#ci-book-up"/></svg></span><span class="nm">book-up*</span></div>
+    <div class="icowrap"><span class="s20"><svg><use href="#ci-collection"/></svg></span><span class="nm">collection*</span></div>
+    <div class="icowrap"><span class="s20"><svg><use href="#ci-stamp"/></svg></span><span class="nm">stamp*</span></div>
+    <div class="icowrap"><span class="s20 ink"><i data-lucide="chevron-left"></i></span><span class="nm">chevron</span></div>
+    <div class="icowrap"><span class="s20 ink"><i data-lucide="search"></i></span><span class="nm">search</span></div>
+    <div class="icowrap"><span class="s20 ink"><i data-lucide="trash-2"></i></span><span class="nm">trash-2</span></div>
+    <div class="icowrap"><span class="s20 ink"><i data-lucide="plus"></i></span><span class="nm">plus</span></div>
+  </div>
+
+  <!-- IN AN APPBAR -->
+  <h2>In context — detail AppBar (history button)</h2>
+  <div class="appbar">
+    <div class="btn"><span class="s20"><i data-lucide="chevron-left"></i></span></div>
+    <div class="ttl">Dune</div>
+    <div class="btn accent"><span class="s20"><svg><use href="#ci-stamp"/></svg></span></div>
+  </div>
+
+  <!-- COMPARISONS -->
+  <h2>Custom vs lucide — function by function</h2>
+
+  <div class="row">
+    <div class="fn"><div class="name">Collection</div><div class="where">the brand mark, in-app</div></div>
+    <div class="tiles">
+      <div class="tile pick"><span class="tag tag-cus">custom</span><span class="big sienna"><span class="s32"><svg><use href="#ci-collection"/></svg></span><span class="s20 small"><svg><use href="#ci-collection"/></svg></span></span><span class="nm">custom</span></div>
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="big ink"><span class="s32"><i data-lucide="folder-open"></i></span><span class="s20 small"><i data-lucide="folder-open"></i></span></span><span class="nm">folder-open</span></div>
+      <div class="tile"><span class="big ink"><span class="s32"><i data-lucide="layers"></i></span><span class="s20 small"><i data-lucide="layers"></i></span></span><span class="nm">layers</span></div>
+      <div class="tile"><span class="big ink"><span class="s32"><i data-lucide="library"></i></span><span class="s20 small"><i data-lucide="library"></i></span></span><span class="nm">library</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Lend · check out</div><div class="where">item actions</div></div>
+    <div class="tiles">
+      <div class="tile pick"><span class="tag tag-cus">custom</span><span class="big sienna"><span class="s32"><svg><use href="#ci-book-up"/></svg></span><span class="s20 small"><svg><use href="#ci-book-up"/></svg></span></span><span class="nm">custom</span></div>
+      <div class="tile"><span class="big ink"><span class="s32"><i data-lucide="book-up"></i></span><span class="s20 small"><i data-lucide="book-up"></i></span></span><span class="nm">lucide book-up</span></div>
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="big ink"><span class="s32"><i data-lucide="arrow-right-from-line"></i></span><span class="s20 small"><i data-lucide="arrow-right-from-line"></i></span></span><span class="nm">arrow-right-from-line</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Return · check in</div><div class="where">item actions</div></div>
+    <div class="tiles">
+      <div class="tile pick"><span class="tag tag-cus">custom</span><span class="big sienna"><span class="s32"><svg><use href="#ci-book-down"/></svg></span><span class="s20 small"><svg><use href="#ci-book-down"/></svg></span></span><span class="nm">custom</span></div>
+      <div class="tile"><span class="big ink"><span class="s32"><i data-lucide="book-down"></i></span><span class="s20 small"><i data-lucide="book-down"></i></span></span><span class="nm">lucide book-down</span></div>
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="big ink"><span class="s32"><i data-lucide="undo-2"></i></span><span class="s20 small"><i data-lucide="undo-2"></i></span></span><span class="nm">undo-2</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">History</div><div class="where">detail AppBar · date-due card</div></div>
+    <div class="tiles">
+      <div class="tile pick"><span class="tag tag-cus">custom</span><span class="big sienna"><span class="s32"><svg><use href="#ci-stamp"/></svg></span><span class="s20 small"><svg><use href="#ci-stamp"/></svg></span></span><span class="nm">custom</span></div>
+      <div class="tile"><span class="big ink"><span class="s32"><i data-lucide="stamp"></i></span><span class="s20 small"><i data-lucide="stamp"></i></span></span><span class="nm">lucide stamp</span></div>
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="big ink"><span class="s32"><i data-lucide="history"></i></span><span class="s20 small"><i data-lucide="history"></i></span></span><span class="nm">history</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fn"><div class="name">Book · entity</div><div class="where">placeholders, add-item sheet</div></div>
+    <div class="tiles">
+      <div class="tile pick"><span class="tag tag-cus">custom</span><span class="big sienna"><span class="s32"><svg><use href="#ci-book"/></svg></span><span class="s20 small"><svg><use href="#ci-book"/></svg></span></span><span class="nm">custom</span></div>
+      <div class="tile"><span class="big ink"><span class="s32"><i data-lucide="book"></i></span><span class="s20 small"><i data-lucide="book"></i></span></span><span class="nm">lucide book</span></div>
+      <div class="tile cur"><span class="tag tag-cur">current</span><span class="big ink"><span class="s32"><i data-lucide="book-open"></i></span><span class="s20 small"><i data-lucide="book-open"></i></span></span><span class="nm">book-open</span></div>
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:24px;">
+    These are first-pass drafts straight from the geometry spec — easy to refine (stroke weight, the collection “comb” spacing,
+    the stamp’s two inner lines at 20px). Tell me which silhouettes work and I’ll tune them, then wire the set in as
+    <code>src/components/icons/*.jsx</code> SVG components.
+  </p>
+</div>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>

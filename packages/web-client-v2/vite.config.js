@@ -40,13 +40,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "logo144.png", "logo180.png", "logo192.png", "logo512.png"],
+      includeAssets: ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "logo144.png", "logo180.png", "logo192.png", "logo512.png", "logo512-maskable.png"],
       manifest: {
         name: "Alexandria",
         short_name: "Alexandria",
         description: "Manage your libraries and books",
-        theme_color: "#1a1a2e",
-        background_color: "#1a1a2e",
+        theme_color: "#bb5a33",
+        background_color: "#f3ecdd",
         display: "standalone",
         orientation: "portrait",
         scope: "/",
@@ -73,7 +73,7 @@ export default defineConfig({
             type: "image/png",
           },
           {
-            src: "logo512.png",
+            src: "logo512-maskable.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
@@ -93,6 +93,14 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      // lottie-web's player ships an eval() — Rollup emits an EVAL warning for it on
+      // every build. It's third-party and not actionable, so silence ONLY that case
+      // (lottie-web) while surfacing every other warning normally.
+      onwarn(warning, warn) {
+        const file = warning.id || warning.loc?.file || '';
+        if (warning.code === 'EVAL' && file.includes('lottie-web')) return;
+        warn(warning);
+      },
       output: {
         // Split large vendor libraries into separate chunks
         manualChunks: {

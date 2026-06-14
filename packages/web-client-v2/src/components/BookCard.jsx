@@ -1,9 +1,9 @@
 // Edited by Claude.
-// Card component for displaying a book in the library detail list
-// Supports optional order number display for items within collections
-// Supports long press for actions
+// Book standalone card — cover standing on a full-width walnut ledge.
+// Media-equality layout shared in spirit with VideoCard. Presentation-only:
+// navigation/edit routing lives in the parent (keyed on item.type).
 import { useRef, useCallback, useState } from 'react';
-import { BookOpen } from 'lucide-react';
+import { Book } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import FadeImage from './FadeImage';
 
@@ -12,7 +12,6 @@ const LIFT_DELAY = 150;
 const STAGGER_DELAY = 50;
 
 const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = false, isSharedLibrary = false, isSelected = false, index }) => {
-  // picture is CloudFront URL (S3 thumbnail) - no fallback to external URL
   const cloudFrontUrl = book.picture
     ? `${book.picture}?v=${book.updatedAt ? new Date(book.updatedAt).getTime() : '0'}`
     : null;
@@ -24,47 +23,30 @@ const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = fal
   const liftTimer = useRef(null);
   const isLongPress = useRef(false);
   const [isLifting, setIsLifting] = useState(false);
-
-  // Card is lifted during long press OR while selected (action sheet open)
   const showLift = isLifting || isSelected;
 
   const handleTouchStart = useCallback(() => {
     isLongPress.current = false;
-
-    // Start lift animation early (visual feedback) - only for non-compact
     if (!compact && onLongPress) {
-      liftTimer.current = setTimeout(() => {
-        setIsLifting(true);
-      }, LIFT_DELAY);
+      liftTimer.current = setTimeout(() => setIsLifting(true), LIFT_DELAY);
     }
-
     pressTimer.current = setTimeout(() => {
       isLongPress.current = true;
-      setIsLifting(false); // Reset lift when action triggers
+      setIsLifting(false);
       onLongPress?.(book);
     }, LONG_PRESS_DURATION);
   }, [book, compact, onLongPress]);
 
   const handleTouchEnd = useCallback(() => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-      pressTimer.current = null;
-    }
-    if (liftTimer.current) {
-      clearTimeout(liftTimer.current);
-      liftTimer.current = null;
-    }
+    if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
+    if (liftTimer.current) { clearTimeout(liftTimer.current); liftTimer.current = null; }
     setIsLifting(false);
   }, []);
 
   const handleClick = useCallback(() => {
-    // Don't trigger click if it was a long press
-    if (!isLongPress.current) {
-      onClick?.(book);
-    }
+    if (!isLongPress.current) onClick?.(book);
   }, [book, onClick]);
 
-  // Staggered animation style - only apply to non-compact (top-level) cards
   const animationStyle = index != null && !compact
     ? { animationDelay: `${index * STAGGER_DELAY}ms` }
     : undefined;
@@ -75,90 +57,58 @@ const BookCard = ({ book, onClick, onLongPress, showOrder = false, compact = fal
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchEnd}
-      onContextMenu={(e) => {
-        // Prevent context menu on long press, trigger action instead
-        if (onLongPress) {
-          e.preventDefault();
-          onLongPress(book);
-        }
-      }}
+      onContextMenu={(e) => { if (onLongPress) { e.preventDefault(); onLongPress(book); } }}
       style={animationStyle}
+      aria-label={`${book.title}, book`}
       className={cn(
-        'w-full flex gap-3 text-left select-none',
-        'transition-[background-color,box-shadow,transform,border-color] duration-200',
-        compact
-          ? 'p-2 rounded-lg bg-muted/20 hover:bg-muted/40 active:bg-muted/50'
-          : [
-              // Glassmorphism styling for non-compact cards
-              'p-3 rounded-xl',
-              'bg-[var(--glass-bg)] backdrop-blur-xl',
-              'border border-[var(--glass-border)]',
-              'shadow-[var(--card-shadow),inset_0_1px_0_0_var(--glass-border)]',
-              !showLift && 'hover:shadow-[var(--card-shadow-hover),inset_0_1px_0_0_var(--glass-border)]',
-              !showLift && 'hover:border-primary/15',
-              !showLift && 'active:scale-[0.99]'
-            ],
-        // Long press lift state (during press or while action sheet open)
-        showLift && !compact && 'card-lifting',
-        // Staggered fade-in animation for non-compact cards
-        index != null && !compact && 'animate-fade-in-up'
+        'w-full text-left select-none',
+        'transition-[box-shadow,transform] duration-200',
+        index != null && !compact && 'animate-fade-in-up',
+        showLift && !compact && 'card-lifting'
       )}
     >
-      {/* Order number badge (for collection items) */}
-      {showOrder && book.order != null && (
-        <div className="shrink-0 w-6 flex items-center justify-center">
-          <span className="text-sm font-medium text-muted-foreground">
+      {/* Cover + info row */}
+      <div className={cn('flex items-end gap-3', compact ? 'px-1' : 'px-1')}>
+        {showOrder && book.order != null && (
+          <div className="shrink-0 w-5 self-center text-center text-sm font-medium text-muted-foreground">
             {book.order}
-          </span>
-        </div>
-      )}
-
-      {/* Book cover or placeholder - asymmetric radius mimics real book (spine left, pages right) */}
-      <div className="relative shrink-0">
+          </div>
+        )}
         <div
           className={cn(
-            'w-16 h-24 bg-muted/50 flex items-center justify-center overflow-hidden',
-            // Realistic book corners: 2px spine (left), 6px pages (right)
-            'rounded-[2px_6px_6px_2px]',
-            // Subtle shadow to lift cover off the card
-            !compact && 'shadow-[2px_2px_8px_rgba(0,0,0,0.3)]'
+            'shrink-0 bg-muted flex items-center justify-center overflow-hidden',
+            'rounded-[4px_4px_2px_2px]',
+            compact ? 'w-14 h-20' : 'w-16 h-24',
+            !compact && 'shadow-[var(--shelf-shadow)]'
           )}
         >
           {hasImage ? (
-            <FadeImage
-              src={cloudFrontUrl}
-              alt={book.title}
-              className="w-full h-full object-cover"
-              fallback={<BookOpen className="h-6 w-6 text-muted-foreground/50" />}
-            />
+            <FadeImage src={cloudFrontUrl} alt={book.title} className="w-full h-full object-cover"
+              fallback={<Book className="h-6 w-6 text-muted-foreground/50" />} />
           ) : (
-            <BookOpen className="h-6 w-6 text-muted-foreground/50" />
+            <Book className="h-6 w-6 text-muted-foreground/50" />
           )}
         </div>
-        {/* Lent ribbon overlay */}
-        {isLent && !compact && <div className="lent-ribbon" />}
-      </div>
-
-      {/* Book info */}
-      <div className="flex-1 min-w-0 flex flex-col justify-center">
-        <p className={cn('font-medium truncate', compact && 'text-sm')}>
-          {book.title}
-        </p>
-        {authors && (
-          <p className={cn(
-            'text-muted-foreground truncate',
-            compact ? 'text-xs' : 'text-sm'
-          )}>
-            {authors}
+        <div className="flex-1 min-w-0 pb-1.5">
+          <p className={cn('font-sans font-semibold text-foreground truncate', compact ? 'text-sm' : 'text-base')}>
+            {book.title}
           </p>
-        )}
-        {/* Show lent-to name as text (ribbon already shows "LENT" on cover) */}
-        {isLent && !isSharedLibrary && (
-          <p className="text-xs text-amber-400 mt-0.5">
-            to {book.lentTo}
-          </p>
-        )}
+          {authors && (
+            <p className={cn('font-serif italic text-muted-foreground truncate', compact ? 'text-xs' : 'text-sm')}>
+              {authors}
+            </p>
+          )}
+          {isLent && !isSharedLibrary && (
+            <span className="lent-slip mt-1 text-[10px]">
+              <span className="ephemera-caps">Lent</span>
+              <span className="lent-slip__div" />
+              <span className="font-serif italic text-[12.5px] leading-none">{book.lentTo}</span>
+            </span>
+          )}
+        </div>
       </div>
+      {/* Walnut ledge under the cover (full width) */}
+      {!compact && <div className="shelf-ledge mt-0 h-1.5 w-full rounded-[1px]" />}
     </button>
   );
 };
