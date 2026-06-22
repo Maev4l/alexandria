@@ -2,6 +2,8 @@
 // Reusable image component with fade-in on load
 // Provides smooth loading experience for covers and posters
 // Supports fallbackSrc to try alternative URL before showing fallback component
+// While the image downloads, an animated warm shimmer skeleton (.animate-shimmer)
+// fills the slot so the shelf never shows an empty box before the cover settles.
 import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -38,19 +40,27 @@ const FadeImage = ({
 
   const currentSrc = useFallbackSrc ? fallbackSrc : src;
 
+  // Wrapper is its own positioning context so the skeleton overlays the image
+  // regardless of whether the parent box is `relative`. It fills the parent slot
+  // (callers size that slot); the image keeps the caller's className (object-cover, etc.).
   return (
-    <img
-      src={currentSrc}
-      alt={alt}
-      onLoad={handleLoad}
-      onError={handleError}
-      className={cn(
-        'transition-opacity duration-300',
-        loaded ? 'opacity-100' : 'opacity-0',
-        className
+    <span className="relative block w-full h-full overflow-hidden">
+      {!loaded && (
+        <span aria-hidden="true" className="absolute inset-0 animate-shimmer" />
       )}
-      {...props}
-    />
+      <img
+        src={currentSrc}
+        alt={alt}
+        onLoad={handleLoad}
+        onError={handleError}
+        className={cn(
+          'relative transition-opacity duration-300',
+          loaded ? 'opacity-100' : 'opacity-0',
+          className
+        )}
+        {...props}
+      />
+    </span>
   );
 };
 

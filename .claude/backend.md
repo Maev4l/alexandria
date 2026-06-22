@@ -120,7 +120,7 @@ The infrastrucuture is hosted on AWS and everything is deployed via Terraform @.
 
 | Issue                         | Details                                                                |
 | ----------------------------- | ---------------------------------------------------------------------- |
-| Mixed null/optional handling  | `Picture` (base64) vs `PictureUrl` represent same concept differently  |
+| Mixed null/optional handling  | `Picture` (CloudFront thumbnail URL, served from S3) vs `PictureUrl` (external source URL from detection APIs) represent the cover image differently |
 | Collection/Order invariant    | Both required if either set, but validation only at handler level      |
 | Inconsistent pagination token | Internal `continuationToken` vs API `nextToken`                        |
 | Video field optionality       | `ReleaseYear`/`Duration` non-optional in models but optional in domain |
