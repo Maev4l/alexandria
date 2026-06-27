@@ -85,6 +85,28 @@ Related to the search feature: @search.md.
 
 The infrastrucuture is hosted on AWS and everything is deployed via Terraform @../packages/infrastrucure
 
+## Access logging (CloudFront standard logging v2)
+
+Every request to `alexandria.isnan.eu` is logged at the CloudFront edge and delivered as
+**Parquet** to the dedicated bucket `alexandria-cloudfront-logs-<account-id>` (eu-central-1), retained
+**90 days**. Defined in `packages/infrastructure/s3.tf` (bucket + policy + lifecycle) and
+`packages/infrastructure/logs.tf` (delivery wiring).
+
+- **Why:** observe/historize client IPs for security investigation + light analytics
+  (geo via `c-country`, network via `asn`). Observe-only — no WAF/blocking.
+- **Delivery (v2):** 3 CloudWatch-Logs "vended log" resources — delivery *source*
+  (the distribution), *destination* (the bucket, Parquet), and *delivery* (the pipe +
+  field selection). All three live in **us-east-1** (CloudFront API requirement) via the
+  `aws.us_east_1` provider alias. CloudWatch stores nothing — logs land as Parquet in S3.
+- **Fields (14):** `date, time, c-ip, c-country, asn, cs-method, cs-protocol, cs(Host),
+  cs-uri-stem, cs-uri-query, sc-status, x-edge-result-type, x-edge-location,
+  cs(User-Agent)`.
+- **Path:** flat under `s3://alexandria-cloudfront-logs-<account-id>/raw/` (one prefix, no
+  partitioning; AWS generates the per-file names). The 90-day S3 lifecycle prunes them.
+- **Querying / dashboards:** intentionally not set up. The Parquet data can be queried
+  later (e.g. Athena) or fed to a dashboard if ever wanted, but nothing is provisioned or
+  documented here.
+
 ## Code Improvements Backlog
 
 ### Critical Issues
