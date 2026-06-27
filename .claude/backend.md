@@ -101,8 +101,15 @@ Every request to `alexandria.isnan.eu` is logged at the CloudFront edge and deli
 - **Fields (14):** `date, time, c-ip, c-country, asn, cs-method, cs-protocol, cs(Host),
   cs-uri-stem, cs-uri-query, sc-status, x-edge-result-type, x-edge-location,
   cs(User-Agent)`.
-- **Path:** flat under `s3://alexandria-cloudfront-logs-<account-id>/raw/` (one prefix, no
-  partitioning; AWS generates the per-file names). The 90-day S3 lifecycle prunes them.
+- **Path:** Hive-partitioned under
+  `s3://alexandria-cloudfront-logs-<account-id>/raw/app/year=YYYY/month=MM/day=DD/`
+  (AWS generates the per-file names). The `app` segment namespaces this distribution so
+  future sources can use sibling prefixes; the `year=/month=/day=` partitions are
+  Athena/Glue-readable. Set via `s3_delivery_configuration` on the delivery with
+  `suffix_path = "{yyyy}/{MM}/{dd}"` and `enable_hive_compatible_path = true` (the hive flag
+  is required — it both permits the `key=value` layout and auto-expands the bare
+  placeholders into `year=`/`month=`/`day=`; literal `year={yyyy}` is rejected). The 90-day
+  S3 lifecycle prunes them.
 - **Querying / dashboards:** intentionally not set up. The Parquet data can be queried
   later (e.g. Athena) or fed to a dashboard if ever wanted, but nothing is provisioned or
   documented here.

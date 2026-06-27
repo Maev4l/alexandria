@@ -93,7 +93,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "cloudfront_logs" 
 }
 
 # Whole-bucket 90-day expiry, no prefix filter. The bucket is dedicated to these logs
-# (everything lands under raw/), so expiring all objects is correct and simplest.
+# (everything lands under raw/app/), so expiring all objects is correct and simplest.
 resource "aws_s3_bucket_lifecycle_configuration" "cloudfront_logs" {
   bucket = aws_s3_bucket.cloudfront_logs.id
 

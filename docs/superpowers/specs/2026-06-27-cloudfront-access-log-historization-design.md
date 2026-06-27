@@ -4,6 +4,14 @@
 **Status:** Approved (design)
 **Scope:** `packages/infrastructure` only. No application/Lambda/frontend changes.
 
+> **Amendment (later):** the S3 prefix was changed from `raw/` to `raw/app/` to
+> namespace this distribution so future log sources can use sibling prefixes. References to
+> `raw/` below should be read as `raw/app/`. Delivery was also switched from flat to
+> Hive-partitioned via `s3_delivery_configuration` with `suffix_path = "{yyyy}/{MM}/{dd}"`
+> and `enable_hive_compatible_path = true`, so objects now land at
+> `raw/app/year=YYYY/month=MM/day=DD/`. The "flat under raw/" / "no partitioning" / "no
+> `s3_delivery_configuration` block" statements below are superseded.
+
 ## Goal
 
 Capture the client IP and request metadata of every request to `alexandria.isnan.eu`
