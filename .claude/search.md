@@ -61,7 +61,7 @@ Event handling:
    - [x] Archive index directory as `global-index.tar.gz`
    - [x] On SHARED_LIBRARY INSERT/REMOVE, update `shared-libraries.json`
    - [x] Upload to S3
-   - [x] Full resync via `yarn resync-index`
+   - [x] Full resync via `make resync-index`
 
 2. **Storage layer** (`packages/functions/api/repositories/s3/s3.go`)
    - [x] `GetBlugeIndex()` - download and extract index to /tmp
