@@ -1,6 +1,6 @@
 // Edited by Claude.
 // Display TMDB search results and allow user to select one to add
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Film, Check } from 'lucide-react';
 import { AppBar } from '@/navigation';
@@ -15,9 +15,11 @@ const VideoDetectionResults = () => {
   const { createVideo } = useLibraries();
   const toast = useToast();
 
-  // Get data from location state
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- videos always provided via navigation state
-  const videos = location.state?.videos || [];
+  // Get data from location state. Memoize `videos` so its reference is stable across
+  // renders — the `|| []` fallback would otherwise mint a new array every render and
+  // re-fire the effect/callback hooks below that depend on it. `collection`/`order`
+  // are already stable (same ref straight off the location state object).
+  const videos = useMemo(() => location.state?.videos || [], [location.state]);
   const collection = location.state?.collection || null;
   const order = location.state?.order || null;
 
