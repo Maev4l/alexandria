@@ -20,12 +20,14 @@ func main() {
 		// and `go mod tidy` keeps the Format field available.
 		return &notifications.Message{
 			Source:            "alexandria-onboard-users",
-			SourceDescription: "Alexandria user sign up (pre)",
+			// Empty: the Markdown header already carries the app name, so a context
+			// line would just duplicate it.
+			SourceDescription: "",
 			Target:            "slack",
-			Content:           fmt.Sprintf("Awaiting registration for %s", event.Email),
-			// Pin plain rendering: the email is literal text (may contain _ etc.)
-			// and the alerter now defaults to Markdown.
-			Format: "plain",
+			// Markdown: header + bullets (mirrors the idp access-request layout).
+			// The email is fenced as inline code (may contain _).
+			Content: fmt.Sprintf("# 🔐 Access Request\n\n- **User:** `%s`\n- **App:** Alexandria", event.Email),
+			Format:  "markdown",
 		}, true
 	}
 

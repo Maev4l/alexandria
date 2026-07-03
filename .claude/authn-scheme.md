@@ -229,7 +229,7 @@ New user signs up (native or federated)
    SNS notification sent
          │
          ▼
-   Slack message: "Awaiting registration for user@example.com"
+   Slack message (Markdown): "🔐 Access Request — User: user@example.com, App: Alexandria"
          │
          ▼
    Admin uses CLI to approve:
