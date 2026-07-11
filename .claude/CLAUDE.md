@@ -21,7 +21,7 @@ Architecture diagram, see: @../documentation/architecture.jpg (or @../documentat
 - The backend is AWS Lamdba written in Golang, see @backend.md file
 - Everything is deployed on AWS.
 - The project is a monorepo. Each JS package installs independently via `yarn --cwd <package>` (no yarn workspaces; one `yarn.lock` per package).
-- In addition, there is an administrative CLI tool here: @../packages/cli
+- In addition, there is an administrative CLI tool, see: @cli.md (source: @../packages/cli)
 
 ## Instructions
 
