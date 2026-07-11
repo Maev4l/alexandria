@@ -3,7 +3,7 @@ module alexandria.isnan.eu/functions
 go 1.25.0
 
 require (
-	github.com/Maev4l/platform/notifications v1.1.0
+	github.com/Maev4l/platform/notifications v1.2.0
 	github.com/Maev4l/platform/users-management v1.3.0
 	github.com/aereal/go-dynamodb-attribute-conversions/v2 v2.0.24
 	github.com/aws/aws-lambda-go v1.47.0
@@ -17,6 +17,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.30.4
 	github.com/aws/aws-sdk-go-v2/service/rekognition v1.51.16
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
+	github.com/aws/aws-sdk-go-v2/service/sns v1.33.7
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.1
 	github.com/blugelabs/bluge v0.2.2
 	github.com/corpix/uarand v0.2.0
@@ -51,7 +52,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.9.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sns v1.33.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.2 // indirect

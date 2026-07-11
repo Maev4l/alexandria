@@ -3,7 +3,8 @@ locals {
   apiFilename            = "../functions/api/dist/api.zip"
   indexerFilename        = "../functions/index-items/dist/indexer.zip"
   consistencyMgrFilename = "../functions/consistency-manager/dist/consistency-mgr.zip"
-  userManagementFilename = "../functions/user-management/dist/user-management.zip"
+  userOnboardingFilename = "../functions/user-onboarding/dist/user-onboarding.zip"
+  userApprovalFilename   = "../functions/user-approval/dist/user-approval.zip"
 
   globalIndexFilename     = "global-index.tar.gz"
   sharedLibrariesFilename = "shared-libraries.json"
@@ -16,7 +17,7 @@ locals {
 }
 
 module "api" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.7.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.8.1"
 
   function_name = "alexandria-api"
   architecture  = "arm64"
@@ -57,7 +58,7 @@ module "api" {
 }
 
 module "api_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-apigw?ref=v1.7.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-apigw?ref=v1.8.1"
 
   # The module appends "-http-api" to api_name when naming the HTTP API
   # resource. v1.6.0 derived "alexandria-api-http-api" from function_name;
@@ -91,7 +92,7 @@ module "api_trigger" {
 }
 
 module "indexer" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.7.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.8.1"
 
   function_name                  = "alexandria-indexer"
   architecture                   = "arm64"
@@ -117,7 +118,7 @@ module "indexer" {
 }
 
 module "indexer_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.7.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.8.1"
 
   function_name = module.indexer.function_name
   function_arn  = module.indexer.function_arn
@@ -166,7 +167,7 @@ module "indexer_trigger" {
 }
 
 module "consistency_manager" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.7.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.8.1"
 
   function_name = "alexandria-consistency-manager"
   architecture  = "arm64"
@@ -188,7 +189,7 @@ module "consistency_manager" {
 }
 
 module "consistency_manager_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.7.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-dynamodb?ref=v1.8.1"
 
   function_name = module.consistency_manager.function_name
   function_arn  = module.consistency_manager.function_arn
@@ -224,20 +225,20 @@ module "consistency_manager_trigger" {
   ]
 }
 
-module "user_management" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.7.1"
+module "user_onboarding" {
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.8.1"
 
-  function_name = "alexandria-user-management"
+  function_name = "alexandria-user-onboarding"
   architecture  = "arm64"
   memory_size   = 128
 
-  additional_policy_arns = [aws_iam_policy.user_management.arn]
+  additional_policy_arns = [aws_iam_policy.user_onboarding.arn]
 
   zip = {
-    filename = local.userManagementFilename
+    filename = local.userOnboardingFilename
     runtime  = "provided.al2023"
     handler  = "bootstrap"
-    hash     = filebase64sha256("../functions/user-management/bin/bootstrap")
+    hash     = filebase64sha256("../functions/user-onboarding/bin/bootstrap")
   }
 
   environment_variables = {
@@ -246,18 +247,53 @@ module "user_management" {
   }
 }
 
-module "user_management_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-cognito?ref=v1.7.1"
+module "user_onboarding_trigger" {
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-cognito?ref=v1.8.1"
 
-  function_name = module.user_management.function_name
-  function_arn  = module.user_management.function_arn
+  function_name = module.user_onboarding.function_name
+  function_arn  = module.user_onboarding.function_arn
 
   user_pool_id = aws_cognito_user_pool.alexandria_user_pool.id
 }
 
+module "user_approval" {
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.8.1"
+
+  function_name = "alexandria-user-approval"
+  architecture  = "arm64"
+  memory_size   = 128
+
+  additional_policy_arns = [aws_iam_policy.user_approval.arn]
+
+  zip = {
+    filename = local.userApprovalFilename
+    runtime  = "provided.al2023"
+    handler  = "bootstrap"
+    hash     = filebase64sha256("../functions/user-approval/bin/bootstrap")
+  }
+
+  environment_variables = {
+    REGION        = var.region
+    USER_POOL_ID  = aws_cognito_user_pool.alexandria_user_pool.id
+    SNS_TOPIC_ARN = data.aws_sns_topic.alerting.arn
+  }
+}
+
+# Subscribes user-approval to the alerter's alerting-responses topic. The filter
+# policy matches the "source" message attribute the responder sets, so this
+# lambda only sees decisions originating from Alexandria signup alerts.
+module "user_approval_trigger" {
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-sns?ref=v1.8.1"
+
+  function_name = module.user_approval.function_name
+  function_arn  = module.user_approval.function_arn
+  topic_arn     = data.aws_sns_topic.alerting_responses.arn
+  filter_policy = jsonencode({ source = ["alexandria-onboard-users"] })
+}
+
 
 module "image_processor" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.7.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.8.1"
 
   function_name = "alexandria-image-processor"
   architecture  = "arm64"
@@ -276,7 +312,7 @@ module "image_processor" {
 }
 
 module "image_processor_trigger" {
-  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-s3?ref=v1.7.1"
+  source = "github.com/Maev4l/terraform-modules//modules/lambda-trigger-s3?ref=v1.8.1"
 
   function_name = module.image_processor.function_name
   function_arn  = module.image_processor.function_arn

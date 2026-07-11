@@ -23,7 +23,7 @@ output "api_endpoint" {
 }
 
 output "region" {
-  value = data.aws_region.current.id
+  value = data.aws_region.current.region
 }
 
 output "authentication_domain" {

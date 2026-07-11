@@ -151,9 +151,9 @@ resource "aws_iam_policy" "index_items" {
 }
 
 #
-# User Management Policy (role managed by lambda-function module)
+# User Onboarding Policy (role managed by lambda-function module)
 #
-data "aws_iam_policy_document" "user_management" {
+data "aws_iam_policy_document" "user_onboarding" {
   statement {
     effect    = "Allow"
     actions   = ["sns:Publish"]
@@ -172,9 +172,35 @@ data "aws_iam_policy_document" "user_management" {
   }
 }
 
-resource "aws_iam_policy" "user_management" {
-  name   = "alexandria-user-management"
-  policy = data.aws_iam_policy_document.user_management.json
+resource "aws_iam_policy" "user_onboarding" {
+  name   = "alexandria-user-onboarding"
+  policy = data.aws_iam_policy_document.user_onboarding.json
+}
+
+#
+# User Approval Policy (applies Slack approve/reject decisions)
+#
+data "aws_iam_policy_document" "user_approval" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "cognito-idp:AdminGetUser",
+      "cognito-idp:AdminUpdateUserAttributes",
+      "cognito-idp:AdminDeleteUser",
+    ]
+    resources = [aws_cognito_user_pool.alexandria_user_pool.arn]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["sns:Publish"]
+    resources = [data.aws_sns_topic.alerting.arn]
+  }
+}
+
+resource "aws_iam_policy" "user_approval" {
+  name   = "alexandria-user-approval"
+  policy = data.aws_iam_policy_document.user_approval.json
 }
 
 #

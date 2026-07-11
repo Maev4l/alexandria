@@ -1,6 +1,6 @@
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/Maev4l/platform/notifications v1.1.0 h1:k5AbcCCv7jGRALsaSMIShyWMtUNdyctymZhHSzl1geE=
-github.com/Maev4l/platform/notifications v1.1.0/go.mod h1:+P2IYhheFNlj9Ox01plobsdMJrDAka+eG/5VSk43YWM=
+github.com/Maev4l/platform/notifications v1.2.0 h1:MxZPd7BznzkO9hP0qbn49trHPuyLvVe8X2jJ1uTLjUE=
+github.com/Maev4l/platform/notifications v1.2.0/go.mod h1:+P2IYhheFNlj9Ox01plobsdMJrDAka+eG/5VSk43YWM=
 github.com/Maev4l/platform/users-management v1.3.0 h1:iewBTy6Z0WZRFQJtllBulSzM4XScNsz0GbLkV7jRTh4=
 github.com/Maev4l/platform/users-management v1.3.0/go.mod h1:EMgQskblBpbzipxC5TngyJZ9GY698iefM+siiPPPqEY=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=

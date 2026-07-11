@@ -38,12 +38,25 @@ Features:
 
 It is written in Golang.
 
-### User management
+### User onboarding
 
-Source code: @../packages/functions/user-management
+Source code: @../packages/functions/user-onboarding
 
 New users that want to signup must be approved by an application admin. The admins are aware of the pending approval via Slack notifications.
 This function is wired with a new user signup event in Cognito, so it sends an SNS notification, that is relayed by an external system (not depicted in this project) to a Slack channel.
+
+It is written in Golang.
+
+### User approval
+
+Source code: @../packages/functions/user-approval
+
+SNS-triggered Golang Lambda. Consumes admin approve/reject decisions that the
+`platform/alerter` responder republishes to the `alerting-responses` topic
+(subscription filtered to `source = "alexandria-onboard-users"`). On **approve**
+it sets `custom:Approved="true"`; on **reject** it deletes the pending Cognito
+user (guarded: skips deletion + alerts if the user was already approved via
+another path). Cognito failures are surfaced as `alerting-events` alerts.
 
 It is written in Golang.
 

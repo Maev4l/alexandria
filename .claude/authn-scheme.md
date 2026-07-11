@@ -12,7 +12,7 @@ All users require admin approval before accessing the application.
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────────────┐
-│   Frontend      │────▶│  AWS Cognito    │────▶│  user-management Lambda │
+│   Frontend      │────▶│  AWS Cognito    │────▶│  user-onboarding Lambda │
 │   (React)       │     │  User Pool      │     │  (PreSignUp, PostConfirm)│
 └─────────────────┘     └─────────────────┘     └─────────────────────────┘
                                │
@@ -22,6 +22,11 @@ All users require admin approval before accessing the application.
                         │  (via Cognito)  │
                         └─────────────────┘
 ```
+
+The sibling `user-approval` Lambda is not wired to Cognito triggers directly; it
+consumes the admin's Slack approve/reject decision (via SNS, see Admin Approval
+Flow below) and applies it with `AdminUpdateUserAttributes` /
+`AdminDeleteUser`.
 
 ## Custom Attributes
 
@@ -232,6 +237,23 @@ New user signs up (native or federated)
    Slack message (Markdown): "🔐 Access Request — User: user@example.com, App: Alexandria"
          │
          ▼
+   Admin approves/rejects via either route:
+
+   A. Slack buttons (on the Access Request alert)
+         │
+         ▼
+   platform/alerter responder republishes the decision to the
+   alerting-responses SNS topic (filtered to source = "alexandria-onboard-users")
+         │
+         ▼
+   user-approval Lambda consumes the decision:
+     - Approve → sets custom:Approved = "true" (AdminUpdateUserAttributes)
+     - Reject  → deletes the pending Cognito user (AdminDeleteUser)
+                 (skipped + re-alerted if already approved via another path)
+
+   B. CLI (unchanged)
+         │
+         ▼
    Admin uses CLI to approve:
    $ alexandria users approve user@example.com
          │
@@ -264,8 +286,8 @@ ID token claims used by the application:
 # User Pool with Lambda triggers
 resource "aws_cognito_user_pool" "alexandria_user_pool" {
   lambda_config {
-    pre_sign_up       = aws_lambda_function.user_management.arn
-    post_confirmation = aws_lambda_function.user_management.arn
+    pre_sign_up       = module.user_onboarding.function_arn
+    post_confirmation = module.user_onboarding.function_arn
   }
 }
 

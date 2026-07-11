@@ -1,4 +1,4 @@
-.PHONY: build build-api build-indexer build-consistency-manager build-user-management package package-api package-indexer package-user-management clean lint format run-api-local
+.PHONY: build build-api build-indexer build-consistency-manager build-user-onboarding build-user-approval package package-api package-indexer package-user-onboarding package-user-approval clean lint format run-api-local
 # Build settings for AWS Lambda (ARM64)
 GOOS := linux
 GOARCH := arm64
@@ -21,11 +21,14 @@ build-indexer:
 build-consistency-manager:
 	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o consistency-manager/$(BIN_DIR)/bootstrap ./consistency-manager/cmd
 
-build-user-management:
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o user-management/$(BIN_DIR)/bootstrap ./user-management/cmd
+build-user-onboarding:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o user-onboarding/$(BIN_DIR)/bootstrap ./user-onboarding/cmd
+
+build-user-approval:
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="$(LDFLAGS)" -o user-approval/$(BIN_DIR)/bootstrap ./user-approval/cmd
 
 # Build all Lambda binaries
-build: build-api build-indexer build-consistency-manager build-user-management
+build: build-api build-indexer build-consistency-manager build-user-onboarding build-user-approval
 
 package-api: build-api
 	mkdir -p api/$(PACKAGE_DIR)
@@ -39,12 +42,16 @@ package-consistency-manager: build-consistency-manager
 	mkdir -p consistency-manager/$(PACKAGE_DIR)
 	cd consistency-manager/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/consistency-mgr.zip bootstrap
 
-package-user-management: build-user-management
-	mkdir -p user-management/$(PACKAGE_DIR)
-	cd user-management/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/user-management.zip bootstrap
+package-user-onboarding: build-user-onboarding
+	mkdir -p user-onboarding/$(PACKAGE_DIR)
+	cd user-onboarding/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/user-onboarding.zip bootstrap
+
+package-user-approval: build-user-approval
+	mkdir -p user-approval/$(PACKAGE_DIR)
+	cd user-approval/$(BIN_DIR) && zip ../$(PACKAGE_DIR)/user-approval.zip bootstrap
 
 # Package all Lambdas
-package: package-api package-indexer package-consistency-manager package-user-management
+package: package-api package-indexer package-consistency-manager package-user-onboarding package-user-approval
 
 # Lint all Go code
 lint:
@@ -69,6 +76,8 @@ clean:
 	rm -rf index-items/$(PACKAGE_DIR)
 	rm -rf consistency-manager/$(BIN_DIR)
 	rm -rf consistency-manager/$(PACKAGE_DIR)
-	rm -rf user-management/$(BIN_DIR)
-	rm -rf user-management/$(PACKAGE_DIR)
+	rm -rf user-onboarding/$(BIN_DIR)
+	rm -rf user-onboarding/$(PACKAGE_DIR)
+	rm -rf user-approval/$(BIN_DIR)
+	rm -rf user-approval/$(PACKAGE_DIR)
 	rm -rf .serverless
