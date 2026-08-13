@@ -43,6 +43,8 @@ Every task's requirements implicitly include this section.
 - **The client never sorts.** It renders the server's order and computes bucket labels only. `localeCompare` is forbidden on the item stream.
 - **Nothing is labelled twice.** A fact appears in exactly one place.
 - **Read-only means absent, not disabled.** A reader is never offered an action they cannot perform.
+- **An edge rule never displaces content.** The `--out` and `--shared` left edges are drawn as an absolutely positioned `::before`, never as `border-left`, which would add to the box and push every marked row 4px out of alignment with its unmarked neighbours down the whole stream.
+- **Count plates sit in a fixed 56px column, figure centred.** Plates sized to their content make a list ragged, because a 3-digit and a 2-digit count start their titles at different x positions.
 - Motion: 80ms state swap, 160ms route shift, 200ms sheet rise, 160ms collection expand — all linear, no springs, all gated by `prefers-reduced-motion`.
 
 **API facts that constrain the code**
@@ -2127,10 +2129,17 @@ describe('LibraryRow', () => {
 
   it('carries the green left edge only when sharing is involved', () => {
     const { container: plain } = render(<LibraryRow library={owned} />);
-    expect(plain.firstChild.className).not.toContain('border-l-4');
+    expect(plain.querySelector('[data-edge]')).toBeNull();
 
     const { container: shared } = render(<LibraryRow library={sharedOut} />);
-    expect(shared.firstChild.className).toContain('border-shared');
+    expect(shared.querySelector('[data-edge="shared"]')).not.toBeNull();
+  });
+
+  it('draws that edge without displacing the row, so frames stay aligned down the stream', () => {
+    // border-left would add to the box and push marked rows 4px right of unmarked ones.
+    const { container } = render(<LibraryRow library={sharedOut} />);
+    expect(container.firstChild.className).not.toMatch(/\bborder-l-4\b/);
+    expect(container.querySelector('[data-edge="shared"]').className).toContain('absolute');
   });
 
   it('labels the row for assistive technology without repeating the visible text', () => {
@@ -2285,18 +2294,21 @@ const LibraryRow = ({ library, onLongPress }) => {
   const longPress = useLongPress(onLongPress ? () => onLongPress(library) : undefined);
 
   return (
-    <div
-      className={cn(
-        'border-b-2 border-ink',
-        (sharedOutCount > 0 || isSharedWithMe) && 'border-l-4 border-l-shared',
+    <div className="relative border-b-2 border-ink">
+      {/* Absolutely positioned, never a border: a border would add to the box and push this
+          row 4px right of its unmarked neighbours all the way down the stream. */}
+      {(sharedOutCount > 0 || isSharedWithMe) && (
+        <span data-edge="shared" className="absolute inset-y-0 left-0 w-1 bg-shared" />
       )}
-    >
       <Link
         to={`/libraries/${library.id}`}
         className="flex items-start gap-4 p-4"
         {...longPress}
       >
-        <VolumePlate aria-label={`${library.totalItems} volumes`}>{library.totalItems}</VolumePlate>
+        {/* Fixed 56px column so a 3-digit and a 2-digit count leave titles on one left edge. */}
+        <VolumePlate className="min-w-14 text-center" aria-label={`${library.totalItems} volumes`}>
+          {library.totalItems}
+        </VolumePlate>
         <span className="min-w-0 flex-1">
           {/* Content title — authored case, never uppercased. */}
           <span className="block text-[22px] font-bold leading-[1.15]">{library.name}</span>
@@ -2805,10 +2817,14 @@ Read both images. Walk this checklist against comp 1 and fix every mismatch in t
 3. Section head: 11px/800 caps at `+.16em`, `16px 16px 4px` padding, 1px bottom rule, mono
    count right-aligned in `--ink-soft`.
 4. Rows: 2px bottom rule, 16px padding, 16px gap, plate and body top-aligned.
-5. Plate: mono 12px/700, `2px 8px` padding, chrome yellow, ink figures.
+5. Plate: mono 12px/700, `2px 8px` padding, chrome yellow, ink figures, in a **fixed 56px
+   column with the figure centred** — every title starts on the same left edge regardless of
+   whether the count is 2 or 3 digits.
 6. Library name 22px/700 at `line-height: 1.15`; sub-line mono 11px caps `+.06em` in
    `--ink-soft`, 4px above.
-7. Shared rows carry a 4px `--shared` left rule; unshared rows carry none.
+7. Shared rows carry a 4px `--shared` left rule; unshared rows carry none. **Check the frames
+   line up:** the edge must be an absolutely positioned element, so a marked row's content
+   starts at the same x as an unmarked row's. If they are 4px apart, it was built as a border.
 8. Footer: 2px top rule, 16px padding, one chrome-yellow plate button.
 9. No radius, no shadow, no serif anywhere.
 
@@ -4430,7 +4446,9 @@ const FILM = 1;
 // turning the stream into a polling loop.
 const RETRY_MS = 4000;
 
-const VolumeFrame = ({ item, className }) => {
+// `hero` is the item-detail size on the inverted cover: same 2:3 ratio and same spine rule,
+// ruled in paper instead of ink because the ground is black there.
+const VolumeFrame = ({ item, hero = false, className }) => {
   const src = pictureSrc(item);
   const [failed, setFailed] = useState(false);
 
@@ -4443,7 +4461,10 @@ const VolumeFrame = ({ item, className }) => {
   return (
     <div
       className={cn(
-        'relative h-[72px] w-12 shrink-0 border-2 border-ink bg-paper-deep',
+        'relative shrink-0 border-2',
+        hero
+          ? 'h-[198px] w-[132px] border-paper bg-cover-rule'
+          : 'h-[72px] w-12 border-ink bg-paper-deep',
         className,
       )}
     >
@@ -4459,10 +4480,18 @@ const VolumeFrame = ({ item, className }) => {
       )}
       {item.type === FILM && (
         // The wrap of a keep case: where a real DVD spine falls, over the artwork's left edge.
-        <span data-spine className="absolute inset-y-0 left-[6px] w-[3px] bg-ink" />
+        <span
+          data-spine
+          className={cn(
+            'absolute inset-y-0 w-[3px]',
+            hero ? 'left-[10px] bg-paper' : 'left-[6px] bg-ink',
+          )}
+        />
       )}
       {item.collectionId && item.order != null && (
-        <VolumePlate className="absolute bottom-0 left-0 px-[3px] py-px text-[9px]">
+        // Bottom-RIGHT: the spine rule owns the left edge, and a bottom-left plate would sit
+        // on top of it on every film frame.
+        <VolumePlate className="absolute bottom-0 right-0 px-[3px] py-px text-[9px]">
           {String(item.order).padStart(2, '0')}
         </VolumePlate>
       )}
@@ -4616,12 +4645,15 @@ describe('ItemRow', () => {
     expect(screen.getByLabelText(/on loan/i)).toBeInTheDocument();
   });
 
-  it('carries the red left edge only when the item is out', () => {
+  it('carries the red left edge only when the item is out, without displacing the row', () => {
     const { container: lent } = renderRow(lentBook);
-    expect(lent.firstChild.className).toContain('border-l-out');
+    const edge = lent.querySelector('[data-edge="out"]');
+    expect(edge).not.toBeNull();
+    expect(edge.className).toContain('absolute');
+    expect(lent.firstChild.className).not.toMatch(/\bborder-l-4\b/);
 
     const { container: home } = renderRow(film);
-    expect(home.firstChild.className).not.toContain('border-l-out');
+    expect(home.querySelector('[data-edge="out"]')).toBeNull();
   });
 
   it('does not uppercase the title', () => {
@@ -4658,7 +4690,9 @@ const ItemRow = ({ item, libraryId, onLongPress, className }) => {
   const longPress = useLongPress(onLongPress ? () => onLongPress(item) : undefined);
 
   return (
-    <div className={cn('border-b border-ink', item.lentTo && 'border-l-4 border-l-out', className)}>
+    <div className={cn('relative border-b border-ink', className)}>
+      {/* Pseudo-element, not a border: a marked row must not shift 4px out of alignment. */}
+      {item.lentTo && <span data-edge="out" className="absolute inset-y-0 left-0 w-1 bg-out" />}
       <Link
         to={`/libraries/${libraryId}/items/${item.id}`}
         className="flex items-start gap-4 p-4"
@@ -5151,10 +5185,13 @@ Check against comp 2, fixing each mismatch in source:
    plate line mono 11px `--ink-soft` 3px below.
 7. Stamp reads `OUT` alone on a row, rotated −4°, `opacity: .92`, 2px `--out` outline, ink caps,
    8px above the title block.
-8. Lent rows carry a 4px `--out` left rule.
+8. Lent rows carry a 4px `--out` left rule, drawn as a positioned element so the row's frame
+   stays aligned with its unmarked neighbours. Sight down the left edge of the frames: any
+   4px step means it was built as a border.
 9. Board: 3px ink frame, 16px margin, head padded 8px over a 2px rule, `SERIES ORDER` under the
    name, `⌗ 12` plate right, members inset 8px, last member's bottom rule removed, member frames
-   carrying their order plate bottom-left.
+   carrying their order plate **bottom-right** — the spine rule owns the left edge, and a
+   bottom-left plate collides with it on every film frame.
 
 - [ ] **Step 3: Commit**
 
@@ -5789,6 +5826,11 @@ const ItemDetail = () => {
 
       {status === 'ready' && (
         <div className="px-4 py-6">
+          {/* Detail is the one screen where artwork earns real space: the reader is looking
+              at a single object, not scanning a thousand. Same 2:3 frame and spine rule as
+              the stream, at hero scale, ruled in paper on the cover. */}
+          <VolumeFrame item={item} hero className="mb-6" />
+
           {/* A plate only when there is a real order to carry. */}
           {item.collectionId && item.order != null && (
             <VolumePlate className="mb-4">{String(item.order).padStart(2, '0')}</VolumePlate>
@@ -5799,13 +5841,10 @@ const ItemDetail = () => {
 
           <div className="my-4 h-1 bg-imprint" />
 
+          {/* The stamp is the only statement of loan state here. A "Currently out" label
+              above it would say the same thing twice. */}
           {item.lentTo && (
-            <>
-              <p className="num text-xs text-cover-soft">Currently out</p>
-              <div className="mt-2">
-                <OverprintStamp inverted name={item.lentTo} days={openLoan?.days} />
-              </div>
-            </>
+            <OverprintStamp inverted name={item.lentTo} days={openLoan?.days} />
           )}
 
           {item.summary && <p className="mt-4 text-sm text-cover-body">{item.summary}</p>}
@@ -5907,17 +5946,28 @@ Against comp 3:
 2. The header carries no title and no pinned search field — only back and the yellow search
    plate.
 3. Body padding `24px 16px`.
-4. Title 32px/800 at `line-height: 1.06`, flush to the top of the body.
-5. Plate line mono 12px in `--cover-soft`, reading `AUTHOR · ISBN · LIBRARY`.
-6. A 4px `--imprint` rule with 16px above and below.
-7. `Currently out` in `--cover-soft`, then the stamp reading `OUT · MARIE · 6 DAYS` in
-   `--paper` caps inside a 2px `--out` outline, rotated −4°.
-8. Summary 14px in `--cover-body`, 16px below.
-9. `THE RECORD` 10px/800 caps `+.16em` in `--imprint`, 24px above; ledger under a 2px
-   `--paper` top rule; each row mono 11px, `8px 0` padding, 1px `--cover-rule` bottom rule, the
-   open row in `--paper` and durations in `--cover-soft`.
-10. Actions 24px below: a yellow plate button then a ruled one, 8px apart.
-11. No frame and no volume plate on this screen — a standalone item carries neither.
+4. **The cover artwork frame**, 132x198 (the same 2:3), ruled 2px in `--paper` on a
+   `--cover-rule` ground, with the film spine rule at `left: 10px` in `--paper`. 24px below it
+   before the title. With no artwork it stays the ruled empty frame.
+5. Title 32px/800 at `line-height: 1.06`.
+6. Plate line mono 12px in `--cover-soft`, reading `AUTHOR · ISBN · LIBRARY`.
+7. A 4px `--imprint` rule with 16px above and below.
+8. The stamp reading `OUT · MARIE · 6 DAYS` in `--paper` caps inside a 2px `--out` outline,
+   rotated −4°. **No "Currently out" label above it** — that would state loan status twice,
+   and the stamp already says it.
+9. Summary 14px in `--cover-body`, 16px below.
+10. `THE RECORD` 10px/800 caps `+.16em` in `--imprint`, 24px above; ledger under a 2px
+    `--paper` top rule; each row mono 11px, `8px 0` padding, 1px `--cover-rule` bottom rule, the
+    open row in `--paper` and durations in `--cover-soft`.
+11. Actions 24px below: a yellow plate button then a ruled one, 8px apart.
+12. No volume plate unless the item is a collection member with a real `order` — a standalone
+    item carries none. The artwork frame, unlike the plate, is always present.
+
+**Two comp artefacts that are not design, and must not be reproduced:** the cover has dead
+space at the bottom because the comp frame is a fixed 780px and the demo content does not fill
+it — real content fills and scrolls. And the hero frame renders as an empty rectangle because
+the comp has no image in it; that is the missing-artwork state, which is worth seeing, but a
+real cover goes there.
 
 - [ ] **Step 3: Commit**
 
