@@ -43,6 +43,11 @@ Every task's requirements implicitly include this section.
 - **The client never sorts.** It renders the server's order and computes bucket labels only. `localeCompare` is forbidden on the item stream.
 - **Nothing is labelled twice.** A fact appears in exactly one place.
 - **Read-only means absent, not disabled.** A reader is never offered an action they cannot perform.
+- **The action slot never holds an inert control** (`DESIGN.md` §6). Reserve the slot's height across every state so nothing jumps, and fill it with whichever of these fits:
+  - *The reason is visible* — a required field sitting empty right above: the action renders as the **ruled outline** and fills to a plate on validity. No words; the outline-to-fill change is the affordance. Never a faded plate — a half-strength `--imprint` is a new colour meaning "disabled", which palette law forbids, and its label falls under the contrast floor.
+  - *The reason is not visible* — a limit exceeded, a constraint that cannot be inferred: the slot carries the reason in `--ink-soft` caps **instead of** the control, in the control's own position.
+  - A **disabled destructive** action has no treatment, because the case must not exist: a destructive button is already an outline and has nowhere to go. Replace it with the reason instead.
+- **Refuse native control chrome the design never authored** (`DESIGN.md` §9) — a `textarea` resize grabber is a rounded diagonal handle in a system with no radii and no diagonals. Same for select arrows, number spinners, date pickers and the search input's clear button. Style it or remove it; do not ship the platform default.
 - **An edge rule never displaces content.** The `--out` and `--shared` left edges are drawn as an absolutely positioned `::before`, never as `border-left`, which would add to the box and push every marked row 4px out of alignment with its unmarked neighbours down the whole stream.
 - **Count plates sit in a fixed 56px column, figure centred.** Plates sized to their content make a list ragged, because a 3-digit and a 2-digit count start their titles at different x positions.
 - Motion: 80ms state swap, 160ms route shift, 200ms sheet rise, 160ms collection expand — all linear, no springs, all gated by `prefers-reduced-motion`.
