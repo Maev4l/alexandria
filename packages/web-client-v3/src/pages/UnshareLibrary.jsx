@@ -44,7 +44,13 @@ const UnshareLibrary = () => {
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper">
-      <AppHeader title="Unshare" onBack={() => navigate(-1)} search={false} />
+      {/* The library is named here, not just implied by where the reader came from: this
+          route survives a refresh and a PWA restart, and it is a destructive screen. */}
+      <AppHeader
+        title={library ? `Unshare ${library.name}` : 'Unshare'}
+        onBack={() => navigate(-1)}
+        search={false}
+      />
 
       <div className="flex-1">
         {error && (
@@ -83,16 +89,20 @@ const UnshareLibrary = () => {
         })}
       </div>
 
-      <div className="pad-bottom-safe border-t-2 border-ink p-4">
-        {tooMany && (
-          <p role="alert" className="mb-4 text-sm">
-            {selected.length} selected — the API removes 10 at a time. Deselect{' '}
+      {/* The bar keeps its height whether or not there is an action in it, so the content
+          above never jumps. "Absent, not disabled" is about what a reader MAY not do; here
+          they may act and simply have not chosen yet, so the space says what to do next
+          rather than sitting empty and reading as a rendering failure. */}
+      <div className="pad-bottom-safe flex min-h-20 flex-col justify-center border-t-2 border-ink p-4">
+        {recipients.length === 0 ? null : selected.length === 0 ? (
+          <p className="caps text-[11px] text-ink-soft">Select who to remove</p>
+        ) : tooMany ? (
+          <p role="alert" className="text-sm">
+            {selected.length} selected — the API removes {MAX_PER_REQUEST} at a time. Deselect{' '}
             {selected.length - MAX_PER_REQUEST} and repeat for the rest.
           </p>
-        )}
-        {/* With nothing selected the action is absent, not disabled. */}
-        {selected.length > 0 && (
-          <PlateButton variant="danger" disabled={isBusy || tooMany} onClick={onSubmit}>
+        ) : (
+          <PlateButton variant="danger" disabled={isBusy} onClick={onSubmit} className="self-start">
             {isBusy ? 'Removing' : `Remove ${selected.length}`}
           </PlateButton>
         )}

@@ -10,14 +10,19 @@ const VARIANTS = {
   danger: 'bg-transparent text-out border-2 border-out',
 };
 
-const PlateButton = ({ variant = 'primary', className, children, ...props }) => (
+// A disabled primary is drawn as the ruled outline, never as a faded plate. Half-strength
+// --imprint would be a new colour meaning "disabled", which palette law forbids, and it drags
+// its own label under the contrast floor. The outline filling in IS the affordance that says
+// the form is now valid.
+const PlateButton = ({ variant = 'primary', disabled = false, className, children, ...props }) => (
   <button
     type="button"
+    disabled={disabled}
     className={cn(
       'caps min-h-12 px-4 py-2 text-xs tracking-[0.12em]',
       'transition-colors duration-[var(--press-fast)] ease-linear',
-      'disabled:opacity-40',
-      VARIANTS[variant],
+      disabled && variant === 'primary' ? VARIANTS.secondary : VARIANTS[variant],
+      disabled && 'cursor-not-allowed',
       className,
     )}
     {...props}

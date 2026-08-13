@@ -77,15 +77,19 @@ Each colour has exactly one job. A colour used for anything else is a bug.
 
 ### Contrast
 
-Intent, to be verified against the built surface:
+**Measured** from the built stylesheet by `src/tokens.test.js`, which asserts every one of these on
+each run. These are facts, not intentions; earlier drafts of this table carried my estimates, which
+were out by up to 0.7.
 
-| Pair | Use | Expectation |
+| Pair | Use | Measured |
 |---|---|---|
-| `--ink` on `--paper` | all body text | ~19:1, far above AA |
-| `--ink-soft` on `--paper` | metadata | ~6.5:1, AA body |
-| `--ink` on `--imprint` | plate caps, primary action labels | ~11:1 |
-| `--shared` on `--paper` | tags, ribbons | ~5.3:1, AA body |
-| `--out` on `--paper` | **stamps and rules only** | ~3.9:1 — below AA for small text, so red is restricted to ≥18px bold, rules, and stamp outlines. Never small red body text. |
+| `--ink` on `--paper` | all body text | 18.18:1 |
+| `--ink-soft` on `--paper` | metadata | 6.39:1, AA body |
+| `--ink` on `--imprint` | plate caps, primary action labels | 11.71:1 |
+| `--shared` on `--paper` | tags, ribbons | 5.99:1, AA body |
+| `--out` on `--paper` | **stamps and rules only** | 4.11:1 — under the 4.5 AA floor, so red stays restricted to ≥18px bold, rules and stamp outlines. Never small red body text. |
+| `--cover-body` on `--ink` | summary on the cover | 14.58:1 |
+| `--cover-soft` on `--ink` | plate line, durations on the cover | 9.99:1 |
 
 That restriction is not a workaround; it is the Iridescent Edge discipline enforced by
 arithmetic. State lives on edges.
@@ -297,7 +301,7 @@ all sort below `a` contiguously, so one bucket is truthful and ten near-empty on
 | **Collection Board** | A grouped collection: 3px frame, member count in a plate, members inset by one division. Server-grouped, expandable in place. **The head carries a `SERIES ORDER` caps label**, because the board is filed alphabetically under the collection's name while its members run in `order`, not by title — so a board under "S" may legitimately open with *Aliens*. Without that label the correct behaviour reads as a sorting bug. Each member's plate carries its order, which reinforces the sequence. |
 | **Search Field** | Header-pinned. Opens the full-screen search surface and returns the reader exactly where they were. |
 | **Sheet** | Bottom sheet on `--paper-deep` with a 3px top rule. Square corners. |
-| **Plate Button** | Primary action: `--imprint` plate, black caps. Secondary: 2px ruled outline, no fill. Destructive: 2px `--out` outline, `--out` caps. |
+| **Plate Button** | Primary action: `--imprint` plate, black caps. Secondary: 2px ruled outline, no fill. Destructive: 2px `--out` outline, `--out` caps. **A disabled primary renders as the ruled outline, never as a tinted plate** — a 50% `--imprint` is a new colour meaning "disabled", which palette law forbids, and it drags its own label under the contrast floor. Becoming a filled plate the moment the form is valid is itself the affordance saying so. |
 | **Field** | Form input: no radius, 2px bottom rule, caps label above, no floating label. |
 | **Ledger Row** | One loan pairing: `out → back · duration`, or `still out · N days` when open. |
 | **Row Actions** | The visible duplicate of long-press, at the right of any row that has a sheet behind it. **Three 3px ink squares** — not round dots, not a text ellipsis: the world has no radii, and a glyph falls back to junk. 48px target, negative-margined so it does not inflate the row. Absent on rows with no actions, which is how a read-only shared library declares itself. |
@@ -377,6 +381,10 @@ becomes an instant swap. This austerity is also cheap, which suits a PWA on a ph
 
 Recorded so later work does not quietly reintroduce it:
 
+- **Native control chrome this world has no vocabulary for.** A `<textarea>` resize grabber is a
+  rounded diagonal handle drawn by the browser, in a system with no radii and no diagonals; suppress
+  it and let `rows` govern height. The same applies to any default the platform draws that the
+  design never authored.
 - Warm cream or linen grounds, serif display faces, terracotta accents, wooden or shelf
   materials — the category default, and v2's identity.
 - Rounded corners, drop shadows, glassmorphism, gradient fills.

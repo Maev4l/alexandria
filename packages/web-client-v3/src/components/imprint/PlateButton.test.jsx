@@ -38,4 +38,21 @@ describe('PlateButton', () => {
     render(<PlateButton>Lend</PlateButton>);
     expect(screen.getByRole('button').className).toContain('min-h-12');
   });
+
+  it('draws a disabled primary as the ruled outline, never as a faded plate', () => {
+    render(<PlateButton disabled>Create library</PlateButton>);
+    const cls = screen.getByRole('button').className;
+    // A half-strength --imprint would be a new colour meaning "disabled", which palette law
+    // forbids, and its label would fall under the contrast floor.
+    expect(cls).not.toContain('bg-imprint');
+    expect(cls).not.toContain('opacity');
+    expect(cls).toContain('border-2');
+  });
+
+  it('fills the plate in the moment it becomes usable', () => {
+    const { rerender } = render(<PlateButton disabled>Create library</PlateButton>);
+    expect(screen.getByRole('button').className).not.toContain('bg-imprint');
+    rerender(<PlateButton>Create library</PlateButton>);
+    expect(screen.getByRole('button').className).toContain('bg-imprint');
+  });
 });
