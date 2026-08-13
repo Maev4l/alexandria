@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* Task 2 replaces this stub with the full token layer from DESIGN.md. */
+:root {
+  --paper: #f6f6f3;
+  --ink: #0b0b0b;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}

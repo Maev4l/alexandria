@@ -13,7 +13,8 @@ TF           := terraform -chdir=packages/infrastructure
 .DEFAULT_GOAL := help
 .PHONY: help cli-build infra-apply infra-output backend-build backend-deploy \
         frontend-build frontend-sync frontend-invalidate frontend-deploy \
-        frontend-serve resync-index
+        frontend-serve resync-index \
+        frontend-v3-build frontend-v3-serve frontend-v3-preview
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -26,7 +27,7 @@ infra-apply: ## Terraform apply (was infra:apply)
 	$(TF) apply -auto-approve
 
 infra-output: ## Export Terraform outputs to client/CLI configs (was infra:output)
-	$(TF) output -json | jq '{alexandriaUserPoolId: .cognito_user_pool_id.value, alexandriaClientId: .cognito_user_pool_client_id.value, apiEndpoint: .api_endpoint.value}' | tee ./packages/web-client-v2/output.json ./packages/cli/bin/config.json > /dev/null
+	$(TF) output -json | jq '{alexandriaUserPoolId: .cognito_user_pool_id.value, alexandriaClientId: .cognito_user_pool_client_id.value, apiEndpoint: .api_endpoint.value}' | tee ./packages/web-client-v2/output.json ./packages/web-client-v3/output.json ./packages/cli/bin/config.json > /dev/null
 
 backend-build: ## Build backend functions + images-processing arm64 image (was backend:build)
 	make -C packages/functions build
@@ -57,6 +58,21 @@ frontend-deploy: ## Build, sync and invalidate the web client (was frontend:depl
 
 frontend-serve: ## Run the Vite dev server (was frontend:serve)
 	yarn --cwd packages/web-client-v2 dev
+
+# v3 targets are build/preview only on purpose. There is exactly one web-client bucket and one
+# distribution, so any S3 sync IS the cutover — see frontend-v3-cutover, added deliberately last.
+# v3 shares port 5173 with v2 (the port Cognito registers as an OAuth callback), so only one
+# dev server runs at a time.
+frontend-v3-build: ## Sync configs then build the v3 web client
+	$(MAKE) infra-output
+	yarn --cwd packages/web-client-v3 build
+
+frontend-v3-serve: ## Run the v3 Vite dev server (port 5173)
+	yarn --cwd packages/web-client-v3 dev
+
+frontend-v3-preview: ## Build and serve v3 locally against fixtures, no AWS required
+	VITE_MOCK=1 yarn --cwd packages/web-client-v3 build
+	VITE_MOCK=1 yarn --cwd packages/web-client-v3 preview
 
 resync-index: ## Trigger a full search-index resync (was resync-index)
 	aws lambda invoke --function-name alexandria-index-items --payload '{"action":"fullResync"}' --cli-binary-format raw-in-base64-out /dev/stdout

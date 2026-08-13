@@ -17,5 +17,8 @@ dist/
 # Drawio
 *.bkp
 
+# Design-review screenshots (build artefacts from packages/web-client-v3/scripts/shoot.mjs)
+.impeccable/review/
+
 # Local dev env files (per-developer secrets)
 **/.env.local
