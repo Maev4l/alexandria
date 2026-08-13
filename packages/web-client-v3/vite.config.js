@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { mockApi } from './tools/vite-plugin-mock-api.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,7 +53,12 @@ export default defineConfig(() => {
           : { '/api': { target: output.apiEndpoint, changeOrigin: true, secure: true } },
     },
     preview: { port: 5173, strictPort: true },
-    plugins: [react(), tailwindcss(), VitePWA({ registerType: 'prompt' })],
+    plugins: [
+      react(),
+      tailwindcss(),
+      VitePWA({ registerType: 'prompt' }),
+      ...(isMock ? [mockApi()] : []),
+    ],
     resolve: { alias: { '@': path.resolve(__dirname, './src') } },
     build: {
       rollupOptions: {
