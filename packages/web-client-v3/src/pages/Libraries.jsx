@@ -4,6 +4,7 @@ import LibraryRow from '@/components/LibraryRow.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import PullToRefresh from '@/components/PullToRefresh.jsx';
 import { useLibraries } from '@/state/LibrariesContext.jsx';
+import { useAuth } from '@/auth/AuthContext.jsx';
 
 // Index letters are separators, not headings; so are these section heads. Exposing them as
 // separators keeps the screen's heading outline honest.
@@ -30,6 +31,7 @@ const SkeletonRow = () => (
 
 const Libraries = () => {
   const { owned, sharedWithMe, isLoading, error, refresh } = useLibraries();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -37,12 +39,13 @@ const Libraries = () => {
       <AppHeader
         wordmark
         right={
+          // A tap, not a label, so it takes the 48px minimum like the search field.
           <Link
             to="/settings"
-            aria-label="Account and settings"
-            className="caps on-imprint flex min-h-12 items-center bg-imprint px-2 text-[11px] text-ink"
+            aria-label={`Account — ${user?.email ?? 'signed in'}`}
+            className="caps on-imprint flex min-h-12 min-w-12 items-center justify-center bg-imprint px-2 text-[11px] text-ink"
           >
-            JR
+            {user?.initials ?? '—'}
           </Link>
         }
       />

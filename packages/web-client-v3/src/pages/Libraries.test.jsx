@@ -5,6 +5,10 @@ import { libraries } from '@/test/fixtures';
 import Libraries from './Libraries.jsx';
 import { LibrariesProvider } from '@/state/LibrariesContext.jsx';
 
+vi.mock('@/auth/AuthContext.jsx', () => ({
+  useAuth: () => ({ user: { initials: 'JR', email: 'jr@example.com' } }),
+}));
+
 const renderPage = () =>
   render(
     <MemoryRouter>

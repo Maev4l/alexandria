@@ -187,8 +187,9 @@ which is where drift is visible and compounding.
 | Gutter | 1 division (8px) |
 | Phone grid | 4 columns |
 | Tablet grid | 8 columns, 3-division margin |
-| Minimum touch target | 6 divisions (48px) |
-| Row height (item) | 10 divisions (80px) |
+| Minimum touch target | 6 divisions (48px) — applies to the search field and the account plate too; both are taps, not labels |
+| Row height, with a sub-line | 10 divisions (80px) |
+| Row height, without | 8 divisions (64px) — **not 60**, which is 7.5 divisions and off the scale |
 
 ### Rule weights
 
@@ -299,6 +300,7 @@ all sort below `a` contiguously, so one bucket is truthful and ten near-empty on
 | **Plate Button** | Primary action: `--imprint` plate, black caps. Secondary: 2px ruled outline, no fill. Destructive: 2px `--out` outline, `--out` caps. |
 | **Field** | Form input: no radius, 2px bottom rule, caps label above, no floating label. |
 | **Ledger Row** | One loan pairing: `out → back · duration`, or `still out · N days` when open. |
+| **Row Actions** | The visible duplicate of long-press, at the right of any row that has a sheet behind it. **Three 3px ink squares** — not round dots, not a text ellipsis: the world has no radii, and a glyph falls back to junk. 48px target, negative-margined so it does not inflate the row. Absent on rows with no actions, which is how a read-only shared library declares itself. |
 | **Marks** | The few universal affordances left after the no-icons-for-state rule — back, add, search, close and the like. **Hand-authored SVG at 2px stroke on the division scale; no icon library.** An imported set would arrive at someone else's stroke weights and optical sizes and quietly break the rule system, to carry perhaps eight marks. State is never a mark; state is a stamp, a ribbon or a rule. |
 
 ---

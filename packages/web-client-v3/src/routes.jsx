@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { useAuth } from '@/auth/AuthContext.jsx';
 
 // Route-level code splitting. The capture routes are the reason this matters: @zxing and
 // react-webcam must never be in the entry bundle for a reader who only ever looks things up.
@@ -29,36 +30,47 @@ const About = lazy(() => import('@/pages/About.jsx'));
 // The ground, at full height, so the layout does not jump when the route lands.
 const RouteFallback = () => <div className="min-h-dvh bg-paper" aria-busy="true" />;
 
+// Sends an unauthenticated visitor to /login while remembering where they were headed, so a
+// hard token expiry costs them the session but not their place.
+const RequireAuth = ({ children }) => {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
+  return children;
+};
+
+const guard = (element) => <RequireAuth>{element}</RequireAuth>;
+
 const AppRoutes = () => (
   <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
 
-      <Route path="/libraries" element={<Libraries />} />
-      <Route path="/libraries/new" element={<NewLibrary />} />
-      <Route path="/libraries/:libraryId" element={<LibraryBrowse />} />
-      <Route path="/libraries/:libraryId/edit" element={<EditLibrary />} />
-      <Route path="/libraries/:libraryId/unshare" element={<UnshareLibrary />} />
-      <Route path="/libraries/:libraryId/collections/new" element={<NewCollection />} />
+      <Route path="/libraries" element={guard(<Libraries />)} />
+      <Route path="/libraries/new" element={guard(<NewLibrary />)} />
+      <Route path="/libraries/:libraryId" element={guard(<LibraryBrowse />)} />
+      <Route path="/libraries/:libraryId/edit" element={guard(<EditLibrary />)} />
+      <Route path="/libraries/:libraryId/unshare" element={guard(<UnshareLibrary />)} />
+      <Route path="/libraries/:libraryId/collections/new" element={guard(<NewCollection />)} />
       <Route
         path="/libraries/:libraryId/collections/:collectionId/edit"
-        element={<EditCollection />}
+        element={guard(<EditCollection />)}
       />
-      <Route path="/libraries/:libraryId/add/book" element={<AddBook />} />
-      <Route path="/libraries/:libraryId/add/book/results" element={<BookDetectionResults />} />
-      <Route path="/libraries/:libraryId/add/video" element={<AddVideo />} />
-      <Route path="/libraries/:libraryId/add/video/results" element={<VideoDetectionResults />} />
-      <Route path="/libraries/:libraryId/items/new/book" element={<NewBook />} />
-      <Route path="/libraries/:libraryId/items/new/video" element={<NewVideo />} />
-      <Route path="/libraries/:libraryId/items/:itemId" element={<ItemDetail />} />
-      <Route path="/libraries/:libraryId/items/:itemId/edit" element={<EditItem />} />
-      <Route path="/libraries/:libraryId/items/:itemId/history" element={<ItemHistory />} />
+      <Route path="/libraries/:libraryId/add/book" element={guard(<AddBook />)} />
+      <Route path="/libraries/:libraryId/add/book/results" element={guard(<BookDetectionResults />)} />
+      <Route path="/libraries/:libraryId/add/video" element={guard(<AddVideo />)} />
+      <Route path="/libraries/:libraryId/add/video/results" element={guard(<VideoDetectionResults />)} />
+      <Route path="/libraries/:libraryId/items/new/book" element={guard(<NewBook />)} />
+      <Route path="/libraries/:libraryId/items/new/video" element={guard(<NewVideo />)} />
+      <Route path="/libraries/:libraryId/items/:itemId" element={guard(<ItemDetail />)} />
+      <Route path="/libraries/:libraryId/items/:itemId/edit" element={guard(<EditItem />)} />
+      <Route path="/libraries/:libraryId/items/:itemId/history" element={guard(<ItemHistory />)} />
 
-      <Route path="/search" element={<Search />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="/settings/account" element={<Account />} />
-      <Route path="/settings/about" element={<About />} />
+      <Route path="/search" element={guard(<Search />)} />
+      <Route path="/settings" element={guard(<Settings />)} />
+      <Route path="/settings/account" element={guard(<Account />)} />
+      <Route path="/settings/about" element={guard(<About />)} />
 
       <Route path="*" element={<Navigate to="/libraries" replace />} />
     </Routes>

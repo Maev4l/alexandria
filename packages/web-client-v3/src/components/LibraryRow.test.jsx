@@ -38,13 +38,23 @@ describe('LibraryRow', () => {
   });
 
   it('names the owner on a library shared with me', () => {
-    renderRow(sharedIn);
-    expect(screen.getByText(/from marie/i)).toBeInTheDocument();
+    renderRow({ ...sharedIn, sharedFrom: 'marie@example.com' });
+    expect(screen.getByText('From')).toBeInTheDocument();
+    expect(screen.getByText(/marie@example\.com/)).toBeInTheDocument();
   });
 
-  it('declares a shared-with-me row as read only', () => {
+  it('leaves the owner address in its own case, because an address is content', () => {
+    renderRow({ ...sharedIn, sharedFrom: 'marie@example.com' });
+    // §3: interface labels are uppercase, content never is. An email is content.
+    expect(screen.getByText(/marie@example\.com/).className).not.toContain('uppercase');
+  });
+
+  it('declares read-only by absence rather than by printing the words', () => {
     renderRow(sharedIn);
-    expect(screen.getByText(/read only/i)).toBeInTheDocument();
+    // Read-only is declared by the green FROM tag and by the absent row actions, not by
+    // printing the words as well — that would say one fact three times.
+    expect(screen.queryByText(/read only/i)).toBeNull();
+    expect(screen.getByText(/from/i)).toBeInTheDocument();
   });
 
   it('carries the green left edge only when sharing is involved', () => {
