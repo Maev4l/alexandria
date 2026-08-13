@@ -531,6 +531,32 @@ func (h *HTTPHandler) ListLibraryItems(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// GetLibraryItem returns a single item, in the same shape the library listing
+// uses, so a client can render a detail view without holding the whole list.
+func (h *HTTPHandler) GetLibraryItem(c *gin.Context) {
+	libraryId := c.Param("libraryId")
+	itemId := c.Param("itemId")
+
+	t := h.getTokenInfo(c)
+
+	item, err := h.s.GetLibraryItem(t.userId, libraryId, itemId)
+	if err != nil {
+		// A missing row is a client-visible outcome, not a server failure.
+		if errors.Is(err, domain.ErrItemNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{
+				"message": "Item not found",
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to get item",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, h.buildItemResponse(item))
+}
+
 // buildItemResponse converts a domain.LibraryItem to the appropriate GetItemResponse
 // Picture field contains CloudFront URL (if item has a thumbnail in S3)
 func (h *HTTPHandler) buildItemResponse(i *domain.LibraryItem) GetItemResponse {

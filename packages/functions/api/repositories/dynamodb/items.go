@@ -251,8 +251,9 @@ func (d *dynamo) GetLibraryItem(ownerId string, libraryId string, itemId string)
 	}
 
 	if output.Item == nil {
-		log.Error().Str("id", itemId).Msgf("Item %s does not exist for owner %s", libraryId, ownerId)
-		return nil, errors.New("unknown item")
+		// Not a fault: callers decide what a missing item means (e.g. a 404).
+		log.Info().Str("id", itemId).Msgf("Item %s does not exist for owner %s", libraryId, ownerId)
+		return nil, domain.ErrItemNotFound
 	}
 
 	record := persistence.LibraryItem{}

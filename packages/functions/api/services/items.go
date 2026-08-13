@@ -10,6 +10,23 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// GetLibraryItem reads a single item. Recipients of a shared library read it
+// under the sharer's owner id, mirroring how the library listing resolves
+// ownership, so a shared item is reachable by the same users who can list it.
+func (s *services) GetLibraryItem(ownerId string, libraryId string, itemId string) (*domain.LibraryItem, error) {
+	sharedLibraryOwnerId, err := s.db.GetSharedLibrary(ownerId, libraryId)
+	if err != nil {
+		return nil, err
+	}
+
+	libraryOwnerId := ownerId
+	if sharedLibraryOwnerId != "" {
+		libraryOwnerId = sharedLibraryOwnerId
+	}
+
+	return s.db.GetLibraryItem(libraryOwnerId, libraryId, itemId)
+}
+
 func (s *services) DeleteLibraryItemHistory(ownerId string, libraryId string, itemId string) error {
 	item, err := s.db.GetLibraryItem(ownerId, libraryId, itemId)
 	if err != nil {

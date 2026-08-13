@@ -1164,6 +1164,39 @@ paths:
         schema:
           type: string
 
+    get:
+      summary: Get item
+      description: |
+        Get a single item (book or video) by ID.
+        Readable by the library owner and by users the library is shared with.
+        Returns the same item shape as the library listing, so a client can render
+        a detail view without loading the whole library (deep link, page refresh).
+        Collections are not items: use `/libraries/{libraryId}/collections/{collectionId}`.
+      operationId: getLibraryItem
+      tags:
+        - Items
+      responses:
+        "200":
+          description: Item details
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/GetBookResponse"
+                  - $ref: "#/components/schemas/GetVideoResponse"
+        "404":
+          description: Item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
     delete:
       summary: Delete item
       description: Delete an item from a library

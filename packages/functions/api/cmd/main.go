@@ -47,6 +47,7 @@ func main() {
 	g.PUT("/libraries/:libraryId/books/:bookId", h.UpdateBook)
 	g.POST("/libraries/:libraryId/videos", h.CreateVideo)
 	g.PUT("/libraries/:libraryId/videos/:videoId", h.UpdateVideo)
+	g.GET("/libraries/:libraryId/items/:itemId", h.GetLibraryItem)
 	g.DELETE("/libraries/:libraryId/items/:itemId", h.DeleteItem)
 	g.POST("/libraries/:libraryId/share", h.ShareLibrary)
 	g.POST("/libraries/:libraryId/unshare", h.UnshareLibrary)
