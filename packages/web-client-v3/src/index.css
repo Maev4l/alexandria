@@ -1,12 +1,162 @@
 @import "tailwindcss";
 
-/* Task 2 replaces this stub with the full token layer from DESIGN.md. */
-:root {
-  --paper: #f6f6f3;
-  --ink: #0b0b0b;
+/* Self-hosted variable faces, Latin + Latin Extended-A. Archivo covers condensed plate
+   lettering and normal-width body from one file; Chivo Mono gives tabular figures. The
+   Latin Extended-A cut is not optional: the index alphabet depends on OE and AE rendering. */
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 400 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url("/fonts/archivo-var.woff2") format("woff2");
 }
 
-body {
-  background: var(--paper);
-  color: var(--ink);
+@font-face {
+  font-family: "Chivo Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/chivo-mono-var.woff2") format("woff2");
+}
+
+/* Palette law: each colour means exactly one thing. No hex literal belongs anywhere else in
+   the codebase — a colour spent decoratively is a bug, not a style choice. */
+:root {
+  --paper: #f6f6f3;
+  --paper-deep: #ecece7;
+  --ink: #0b0b0b;
+  --ink-soft: #5a5a57;
+  --imprint: #f2c200;
+  --out: #d8412f;
+  --shared: #0f6b4f;
+
+  /* The black cover, and only the black cover. --ink-soft on --ink measures ~1.9:1, so the
+     inverted surface genuinely cannot borrow the paper set. Any of these three used on paper
+     is a bug. */
+  --cover-body: #deded9;
+  --cover-soft: #b9b9b4;
+  --cover-rule: #3a3a38;
+
+  /* The division governs layout — block padding, gaps, insets, row heights, margins between
+     blocks. Typographic interiors use the base unit and may take optical 1-3px adjustments:
+     a plate padded to a full 8px vertically stops reading as a plate and starts reading as a
+     button. What the rule forbids is spacing by eye at layout scale, where drift compounds. */
+  --u: 4px;
+  --d: 8px;
+
+  /* Elevation is rule weight and ground shift. There is no shadow token because there are
+     no shadows, and no radius token because every radius is 0. */
+  --rule-hair: 1px;
+  --rule-frame: 2px;
+  --rule-block: 3px;
+  --rule-index: 4px;
+
+  /* Every transition is declared through these, so prefers-reduced-motion retires all
+     motion in one place. */
+  --press-fast: 80ms;
+  --press-route: 160ms;
+  --press-sheet: 200ms;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-imprint: var(--imprint);
+  --color-out: var(--out);
+  --color-shared: var(--shared);
+  --color-cover-body: var(--cover-body);
+  --color-cover-soft: var(--cover-soft);
+  --color-cover-rule: var(--cover-rule);
+
+  --font-sans: "Archivo", system-ui, sans-serif;
+  --font-mono: "Chivo Mono", ui-monospace, monospace;
+
+  --spacing: var(--u);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.4;
+    /* The imprint has no soft edges; disable the platform's tap tint too. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Print does not ease, and it does not bounce. */
+  * {
+    border-radius: 0;
+  }
+
+  /* --imprint owns the active/selected state, so it owns the focus ring. An outline, never a
+     shadow: the no-shadow law is mechanically checkable and a shadow-shaped ring defeats the
+     check. On a yellow ground the ring flips to ink, where yellow-on-yellow would vanish. */
+  :focus-visible {
+    outline: 3px solid var(--imprint);
+    outline-offset: 2px;
+  }
+
+  .on-imprint:focus-visible {
+    outline-color: var(--ink);
+  }
+}
+
+@layer utilities {
+  /* Interface labels only — never a content title (DESIGN.md section 3). */
+  .caps {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Safe-area padding for the notch, required by the PWA guidelines. */
+  .pad-top-safe {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .pad-bottom-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  @keyframes sheet-rise {
+    from {
+      transform: translateY(100%);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --press-fast: 0ms;
+    --press-route: 0ms;
+    --press-sheet: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
 }

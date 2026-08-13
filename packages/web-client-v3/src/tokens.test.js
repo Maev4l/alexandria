@@ -1,0 +1,119 @@
+import fs from 'fs';
+import path from 'path';
+import { describe, expect, it } from 'vitest';
+import { contrastRatio } from './lib/contrast.js';
+
+// Neither __dirname (the package is "type": "module") nor import.meta.url (Vitest rewrites it
+// to an http:// URL under the jsdom transform) works here. Vitest runs with cwd at the package
+// root, so resolve from there.
+const css = fs.readFileSync(path.resolve(process.cwd(), 'src/index.css'), 'utf8');
+
+const tokenValue = (name) => {
+  const match = css.match(new RegExp(`--${name}:\\s*([^;]+);`));
+  if (!match) throw new Error(`token --${name} is not declared in index.css`);
+  return match[1].trim();
+};
+
+const PALETTE = {
+  paper: '#f6f6f3',
+  'paper-deep': '#ecece7',
+  ink: '#0b0b0b',
+  'ink-soft': '#5a5a57',
+  imprint: '#f2c200',
+  out: '#d8412f',
+  shared: '#0f6b4f',
+  'cover-body': '#deded9',
+  'cover-soft': '#b9b9b4',
+  'cover-rule': '#3a3a38',
+};
+
+describe('token layer', () => {
+  it.each(Object.entries(PALETTE))('declares --%s as %s', (name, value) => {
+    expect(tokenValue(name).toLowerCase()).toBe(value);
+  });
+
+  it('declares the division scale', () => {
+    expect(tokenValue('u')).toBe('4px');
+    expect(tokenValue('d')).toBe('8px');
+  });
+
+  it('declares the four rule weights', () => {
+    expect(tokenValue('rule-hair')).toBe('1px');
+    expect(tokenValue('rule-frame')).toBe('2px');
+    expect(tokenValue('rule-block')).toBe('3px');
+    expect(tokenValue('rule-index')).toBe('4px');
+  });
+});
+
+describe('contrast, as promised by DESIGN.md section 2', () => {
+  const paper = PALETTE.paper;
+
+  it('ink on paper clears AAA body text', () => {
+    expect(contrastRatio(PALETTE.ink, paper)).toBeGreaterThanOrEqual(7);
+  });
+
+  it('ink-soft on paper clears AA body text', () => {
+    expect(contrastRatio(PALETTE['ink-soft'], paper)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('ink on imprint clears AA body text, for plate caps', () => {
+    expect(contrastRatio(PALETTE.ink, PALETTE.imprint)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('shared on paper clears AA body text, for ribbons and tags', () => {
+    expect(contrastRatio(PALETTE.shared, paper)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('out on paper clears only the large-text threshold, which is why it is edges-only', () => {
+    const ratio = contrastRatio(PALETTE.out, paper);
+    expect(ratio).toBeGreaterThanOrEqual(3);
+    // Documents the restriction rather than merely describing it: if a future palette change
+    // lifted --out above 4.5 this would fail, and the edges-only rule could then be revisited.
+    expect(ratio).toBeLessThan(4.5);
+  });
+
+  it('paper on ink clears AAA, for the item-detail black cover', () => {
+    expect(contrastRatio(paper, PALETTE.ink)).toBeGreaterThanOrEqual(7);
+  });
+});
+
+describe('the inverted surface, which cannot borrow the paper palette', () => {
+  it('proves why: ink-soft on ink is unreadable, which is the reason the cover set exists', () => {
+    expect(contrastRatio(PALETTE['ink-soft'], PALETTE.ink)).toBeLessThan(3);
+  });
+
+  it('cover-body clears AAA on ink, for the summary', () => {
+    expect(contrastRatio(PALETTE['cover-body'], PALETTE.ink)).toBeGreaterThanOrEqual(7);
+  });
+
+  it('cover-soft clears AA on ink, for the plate line and loan durations', () => {
+    expect(contrastRatio(PALETTE['cover-soft'], PALETTE.ink)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('imprint clears AA on ink, for the title rule and the ledger head', () => {
+    expect(contrastRatio(PALETTE.imprint, PALETTE.ink)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('the focus ring', () => {
+  it('is drawn with an outline, never a shadow', () => {
+    expect(css).toMatch(/:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--imprint\)/);
+  });
+
+  it('flips to ink on a yellow ground, where a yellow ring would vanish', () => {
+    expect(css).toMatch(/outline-color:\s*var\(--ink\)/);
+  });
+});
+
+describe('the system refuses', () => {
+  it('declares no border radius other than the zero that enforces its absence', () => {
+    const declarations = css.match(/border-radius:\s*[^;]+;/g) ?? [];
+    expect(declarations.filter((d) => !/border-radius:\s*0\s*;/.test(d))).toEqual([]);
+    expect(css).not.toMatch(/--radius/);
+  });
+
+  it('declares no shadow', () => {
+    expect(css).not.toMatch(/box-shadow\s*:/);
+    expect(css).not.toMatch(/text-shadow\s*:/);
+  });
+});
