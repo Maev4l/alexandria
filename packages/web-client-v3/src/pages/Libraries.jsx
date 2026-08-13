@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import LibraryRow from '@/components/LibraryRow.jsx';
+import LibraryActionsSheet from '@/components/LibraryActionsSheet.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import PullToRefresh from '@/components/PullToRefresh.jsx';
 import { useLibraries } from '@/state/LibrariesContext.jsx';
@@ -32,6 +34,7 @@ const SkeletonRow = () => (
 const Libraries = () => {
   const { owned, sharedWithMe, isLoading, error, refresh } = useLibraries();
   const { user } = useAuth();
+  const [actionsFor, setActionsFor] = useState(null);
   const navigate = useNavigate();
 
   return (
@@ -75,7 +78,7 @@ const Libraries = () => {
               </p>
             )}
             {owned.map((library) => (
-              <LibraryRow key={library.id} library={library} onActions={() => {}} />
+              <LibraryRow key={library.id} library={library} onActions={setActionsFor} />
             ))}
 
             {sharedWithMe.length > 0 && (
@@ -94,6 +97,15 @@ const Libraries = () => {
       <div className="pad-bottom-safe border-t-2 border-ink bg-paper p-4">
         <PlateButton onClick={() => navigate('/libraries/new')}>New library</PlateButton>
       </div>
+
+      {actionsFor && (
+        <LibraryActionsSheet
+          library={actionsFor}
+          open
+          onClose={() => setActionsFor(null)}
+          onChanged={refresh}
+        />
+      )}
     </div>
   );
 };

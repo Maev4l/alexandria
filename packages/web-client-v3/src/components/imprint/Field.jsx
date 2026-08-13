@@ -17,6 +17,9 @@ const Field = ({ label, error, hint, counter, className, as = 'input', ...props 
         aria-describedby={error || hint ? `${id}-note` : undefined}
         className={cn(
           'min-h-12 w-full border-b-2 bg-transparent px-0 py-2 text-base text-ink outline-none',
+          // The browser's resize grabber is a rounded, diagonal piece of chrome this world
+          // has no vocabulary for. Height comes from rows instead.
+          as === 'textarea' && 'resize-none',
           error ? 'border-out' : 'border-ink',
         )}
         {...props}
