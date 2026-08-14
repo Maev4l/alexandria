@@ -30,6 +30,7 @@ Every task's requirements implicitly include this section.
 - All identifiers and comments in English. UI strings are English; item content is mixed English and French.
 - Lint with Oxlint after changes: `yarn --cwd packages/web-client-v3 lint`.
 - Never commit or push outside the explicit `git commit` steps in this plan. Never push at all.
+- **Never stop, kill or restart the dev server on :5173.** It belongs to whoever is working, it may be running against the real backend rather than fixtures, and it is `strictPort` and shared with v2 — a stop meant as momentary can fail to come back. If you need something only read at config load (`vite.config.js`, `output.json`), **ask the user to restart**. To look at your own work, start a server on a **private port** and stop only that: `VITE_MOCK=1 yarn --cwd packages/web-client-v3 exec vite --port 5199 --strictPort`. `yarn check:browser` already does this itself and refuses to touch a server it did not start.
 
 **Design system — non-negotiable, from `DESIGN.md`**
 - **Palette law.** Ten tokens, each with exactly one meaning: `--paper #F6F6F3`, `--paper-deep #ECECE7`, `--ink #0B0B0B`, `--ink-soft #5A5A57`, `--imprint #F2C200`, `--out #D8412F` (on loan, nothing else), `--shared #0F6B4F` (shared, nothing else), plus the inverted-surface set `--cover-body #DEDED9`, `--cover-soft #B9B9B4`, `--cover-rule #3A3A38` (black cover only; on paper they are a bug). **No hex literal appears anywhere outside `src/index.css`.**
@@ -1538,10 +1539,10 @@ and change the `plugins` array to:
 - [ ] **Step 11: Verify the mock server answers**
 
 ```bash
-VITE_MOCK=1 yarn --cwd packages/web-client-v3 dev &
+VITE_MOCK=1 yarn --cwd packages/web-client-v3 exec vite --port 5199 --strictPort &
 sleep 4
-curl -s http://localhost:5173/api/v1/libraries | head -c 200
-kill %1
+curl -s http://localhost:5199/api/v1/libraries | head -c 200
+kill %1   # only the server this snippet started
 ```
 Expected: JSON beginning `{"libraries":[{"id":"lib-fiction"`.
 
@@ -2804,12 +2805,13 @@ yarn --cwd packages/web-client-v3 shoot \
 - [ ] **Step 2: Capture the build**
 
 ```bash
-VITE_MOCK=1 yarn --cwd packages/web-client-v3 dev &
+# A private port: :5173 belongs to the user and is strictPort.
+VITE_MOCK=1 yarn --cwd packages/web-client-v3 exec vite --port 5199 --strictPort &
 sleep 5
 yarn --cwd packages/web-client-v3 shoot \
-  --target http://localhost:5173/libraries \
+  --target http://localhost:5199/libraries \
   --viewport phone --wait "text=Fiction" --out .impeccable/review/mobile.png
-kill %1
+kill %1   # only the server this snippet started
 ```
 
 `--wait` takes a CSS selector, so use a stable one such as `[data-testid="libraries-stream"]`;
@@ -5213,13 +5215,14 @@ yarn --cwd packages/web-client-v3 shoot \
   --target "file:///Users/jrsue/dev/repos/alexandria/docs/ui-design/ui-v3-mockup.html" \
   --viewport 1600x1200 --clip ".comp:nth-of-type(2) .screen" --out .impeccable/review/comp-browse.png
 
-VITE_MOCK=1 yarn --cwd packages/web-client-v3 dev &
+# A private port: :5173 belongs to the user and is strictPort.
+VITE_MOCK=1 yarn --cwd packages/web-client-v3 exec vite --port 5199 --strictPort &
 sleep 5
 yarn --cwd packages/web-client-v3 shoot \
-  --target http://localhost:5173/libraries/lib-fiction \
+  --target http://localhost:5199/libraries/lib-fiction \
   --viewport phone --wait "[data-testid='browse-stream']" \
   --out .impeccable/review/browse.png
-kill %1
+kill %1   # only the server this snippet started
 ```
 
 - [ ] **Step 2: Compare and fix**
@@ -5981,12 +5984,13 @@ yarn --cwd packages/web-client-v3 shoot \
   --target "file:///Users/jrsue/dev/repos/alexandria/docs/ui-design/ui-v3-mockup.html" \
   --viewport 1600x1200 --clip ".comp:nth-of-type(3) .screen" --out .impeccable/review/comp-detail.png
 
-VITE_MOCK=1 yarn --cwd packages/web-client-v3 dev &
+# A private port: :5173 belongs to the user and is strictPort.
+VITE_MOCK=1 yarn --cwd packages/web-client-v3 exec vite --port 5199 --strictPort &
 sleep 5
 yarn --cwd packages/web-client-v3 shoot \
-  --target http://localhost:5173/libraries/lib-fiction/items/item-lent \
+  --target http://localhost:5199/libraries/lib-fiction/items/item-lent \
   --viewport phone --wait "h1" --out .impeccable/review/detail.png
-kill %1
+kill %1   # only the server this snippet started
 ```
 
 - [ ] **Step 2: Compare and fix**
@@ -6817,8 +6821,9 @@ frontend-v3-cutover is the single deliberate switch; the v2 targets are untouche
 Report to the user:
 1. What is built and what is not.
 2. The reconciliation list sent to the design session.
-3. The two things needing their decision: adding `http://localhost:5173/` to the Cognito
-   callback URLs, and whether to run `frontend-v3-cutover`.
+3. The one thing needing their decision: whether to run `frontend-v3-cutover`, which replaces
+   production v2. (The Cognito callback URL is moot — `cognito.tf` already registers
+   `http://localhost:5173/`, which is why v3 took that port.)
 
 ---
 
@@ -6833,7 +6838,8 @@ carry every rule that is easy to get subtly wrong — the server's fold, the ind
 and tail, partial-collection merging, loan pairing, the collection/order pair. Write their tests
 first and let them fail first. A component built on a wrong fold looks fine and is wrong.
 
-**Mock mode is how you look at your work.** `VITE_MOCK=1 yarn dev` needs no AWS, no Cognito and
+**Mock mode is how you look at your work**, on a private port — never :5173, which is the
+user's. `VITE_MOCK=1 yarn exec vite --port 5199 --strictPort` needs no AWS, no Cognito and
 no seeded data, and its fixtures deliberately contain the awkward cases. If a screen only looks
 right on the happy path, the fixtures will tell you.
 
