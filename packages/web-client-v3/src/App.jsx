@@ -1,6 +1,7 @@
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/auth/AuthContext.jsx';
 import { LibrariesProvider } from '@/state/LibrariesContext.jsx';
+import { ToastProvider } from '@/state/ToastContext.jsx';
 import PendingApproval from '@/pages/PendingApproval.jsx';
 import AppRoutes from './routes.jsx';
 
@@ -25,9 +26,11 @@ const Gate = () => {
 
   return (
     <LibrariesProvider>
-      <Column>
-        <AppRoutes />
-      </Column>
+      <ToastProvider>
+        <Column>
+          <AppRoutes />
+        </Column>
+      </ToastProvider>
     </LibrariesProvider>
   );
 };

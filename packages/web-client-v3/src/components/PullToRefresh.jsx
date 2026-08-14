@@ -13,6 +13,12 @@ const MAX_OFFSET_PX = 96;
 
 // Transform-based so the browser never repaints the list while the reader pulls. The ref is
 // forwarded to the scrolling element, because tapping the header title scrolls it to top.
+// Mouse only: touch is handled by native listeners below, and letting both paths run would
+// double-count a single pull.
+const ifMouse = (handler) => (event) => {
+  if (event.pointerType === 'mouse') handler(event.clientY);
+};
+
 const PullToRefresh = forwardRef(({ onRefresh, className, children }, ref) => {
   const [offset, setOffset] = useState(0);
   const [isArmed, setIsArmed] = useState(false);
@@ -96,11 +102,6 @@ const PullToRefresh = forwardRef(({ onRefresh, className, children }, ref) => {
       node.removeEventListener('touchcancel', end);
     };
   }, [begin, move, end]);
-
-  // Mouse only: touch is handled above, and letting both paths run would double-count a pull.
-  const ifMouse = (handler) => (event) => {
-    if (event.pointerType === 'mouse') handler(event.clientY);
-  };
 
   return (
     <div

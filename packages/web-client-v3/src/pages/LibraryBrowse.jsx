@@ -7,6 +7,8 @@ import ItemRow from '@/components/ItemRow.jsx';
 import PullToRefresh from '@/components/PullToRefresh.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import AddItemSheet from '@/components/AddItemSheet.jsx';
+import ItemActionsSheet from '@/components/ItemActionsSheet.jsx';
+import CollectionActionsSheet from '@/components/CollectionActionsSheet.jsx';
 import { Plus } from '@/components/icons';
 import { useLibraries } from '@/state/LibrariesContext.jsx';
 import { useStream } from '@/state/StreamContext.jsx';
@@ -33,6 +35,8 @@ const LibraryBrowse = () => {
   const { runs, isLoading, isAppending, isComplete, error, loadMore, refresh } =
     useStream(libraryId);
   const [isAdding, setIsAdding] = useState(false);
+  const [actionsFor, setActionsFor] = useState(null);
+  const [boardActionsFor, setBoardActionsFor] = useState(null);
   const sentinel = useRef(null);
   const scroller = useRef(null);
 
@@ -126,14 +130,15 @@ const LibraryBrowse = () => {
                     key={entry.id}
                     board={entry}
                     libraryId={libraryId}
-                    onItemActions={isReadOnly ? undefined : () => {}}
+                    onItemActions={isReadOnly ? undefined : setActionsFor}
+                    onBoardActions={isReadOnly ? undefined : setBoardActionsFor}
                   />
                 ) : (
                   <ItemRow
                     key={entry.id}
                     item={entry}
                     libraryId={libraryId}
-                    onActions={isReadOnly ? undefined : () => {}}
+                    onActions={isReadOnly ? undefined : setActionsFor}
                   />
                 ),
               )}
@@ -156,6 +161,26 @@ const LibraryBrowse = () => {
       </PullToRefresh>
 
       <AddItemSheet open={isAdding} onClose={() => setIsAdding(false)} libraryId={libraryId} />
+
+      {boardActionsFor && (
+        <CollectionActionsSheet
+          board={boardActionsFor}
+          libraryId={libraryId}
+          open
+          onClose={() => setBoardActionsFor(null)}
+          onChanged={refresh}
+        />
+      )}
+
+      {actionsFor && (
+        <ItemActionsSheet
+          item={actionsFor}
+          libraryId={libraryId}
+          open
+          onClose={() => setActionsFor(null)}
+          onChanged={refresh}
+        />
+      )}
     </div>
   );
 };

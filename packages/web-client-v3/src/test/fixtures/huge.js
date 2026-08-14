@@ -49,7 +49,7 @@ const board = (members, partial) => ({
 // Sorted so the stream is monotonic, matching what the server would return.
 const alphabetical = (a, b) => (a.title < b.title ? -1 : 1);
 
-const standalone = Array.from({ length: 940 }, (_, i) => book(i)).sort(alphabetical);
+const standalone = Array.from({ length: 940 }, (_, i) => book(i)).toSorted(alphabetical);
 
 // The board sits EARLY, at index 2, so that when its continuation arrives on page 2 the board
 // is already far above the viewport — which is the only arrangement in which scroll drift can

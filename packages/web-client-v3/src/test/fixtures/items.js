@@ -61,8 +61,8 @@ export const fictionItems = [
     itemCount: 4,
     updatedAt: '2026-07-22T18:40:00Z',
     items: [
-      film('item-bob', 'Bob le flambeur', inCollection(1)),
-      film('item-doulos', 'Le Doulos', inCollection(2)),
+      film('item-bob', 'Bob le flambeur', { ...inCollection(1), releaseYear: 1956, duration: 102 }),
+      film('item-doulos', 'Le Doulos', { ...inCollection(2), releaseYear: 1962, duration: 108 }),
     ],
   },
   book('item-mendiant', 'Le Mendiant de Jérusalem', { authors: ['Elie Wiesel'] }),
@@ -87,8 +87,8 @@ export const fictionItems = [
     partial: true,
     updatedAt: '2026-07-22T18:40:00Z',
     items: [
-      film('item-samourai', 'Le Samouraï', inCollection(3)),
-      film('item-cercle', 'Le Cercle rouge', inCollection(4)),
+      film('item-samourai', 'Le Samouraï', { ...inCollection(3), releaseYear: 1967, duration: 105 }),
+      film('item-cercle', 'Le Cercle rouge', { ...inCollection(4), releaseYear: 1970, duration: 140 }),
     ],
   },
   book('item-voyage', 'Voyage au bout de la nuit', { authors: ['Louis-Ferdinand Céline'] }),
@@ -100,7 +100,12 @@ export const fictionItems = [
 export const itemsByLibrary = {
   'lib-fiction': fictionItems,
   'lib-films': [
-    film('item-armee', 'L’Armée des ombres', { libraryId: 'lib-films', libraryName: 'Films' }),
+    film('item-armee', 'L’Armée des ombres', {
+      libraryId: 'lib-films',
+      libraryName: 'Films',
+      releaseYear: 1969,
+      duration: 145,
+    }),
     film('item-chinatown', 'Chinatown', {
       libraryId: 'lib-films',
       libraryName: 'Films',
