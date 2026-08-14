@@ -33,6 +33,19 @@ describe('Sheet', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it('does not uppercase its title, which is usually a content name', () => {
+    render(
+      <Sheet open title="Bandes dessinées">
+        <p>Body</p>
+      </Sheet>,
+    );
+    // The rule exists because this collection's titles are mixed English and French, and a
+    // library name shouted in caps is exactly the case §3 was written for.
+    const heading = screen.getByRole('heading', { name: 'Bandes dessinées' });
+    expect(heading.className).not.toContain('caps');
+    expect(heading.className).not.toContain('uppercase');
+  });
+
   it('closes when the scrim is clicked', async () => {
     const onClose = vi.fn();
     render(

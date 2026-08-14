@@ -37,7 +37,11 @@ const Sheet = ({ open, title, onClose, children }) => {
         // 448px column would be a different app at 1440px.
         className="pad-bottom-safe mx-auto max-h-[80dvh] w-full max-w-md overflow-y-auto border-t-[3px] border-ink bg-paper-deep p-4 motion-safe:animate-[sheet-rise_var(--press-sheet)_linear]"
       >
-        <h2 id={titleId} className="caps mb-4 text-[11px] text-ink-soft">
+        {/* No `caps` here. A sheet's title is usually a content name — the library or item
+            being acted on — and content is never uppercased (§3): the rule exists because
+            this collection's titles are mixed English and French, and "BANDES DESSINÉES"
+            set in caps is exactly what it forbids. */}
+        <h2 id={titleId} className="mb-4 text-[15px] font-semibold text-ink">
           {title}
         </h2>
         {children}

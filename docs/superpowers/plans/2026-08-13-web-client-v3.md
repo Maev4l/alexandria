@@ -3956,12 +3956,12 @@ has the box, the placeholder grey and the magnifier, and accepts no keystroke. M
 `<input>` that types in place and navigates to `/search` carrying its value, and give it the
 `--imprint` ground so it is the loudest mark on the home screen. It is the dominant job.
 
-**B1 — `Sheet` shouts French titles.** `Sheet.jsx` puts `className="caps"` on its title, and the
-library actions sheet passes `library.name` — so "Bandes dessinées" is currently uppercased, in
-direct violation of the §3 rule that exists for exactly that reason. A caps *label* is right for
-a sheet heading; the fix is to pass an interface label and render the content name separately,
-not to uppercase content. One-line class change plus a caller change. **Do this first — it is a
-live violation of a rule the rest of the build is holding.**
+**~~B1 — `Sheet` shouts French titles.~~ Done before slice B** (`Sheet.jsx`). Fixed ahead of the
+slice on the design session's ruling, with the precedent recorded: bringing code into
+conformance with a rule *already in force* is not new work and is not scope creep. A one-line
+contradiction of §3 left standing in a reviewed build teaches the wrong thing to whoever reads
+it next. A sheet's title is a content name, so it is set at 15px semibold in `--ink`, in
+authored case; a test asserts "Bandes dessinées" is never uppercased.
 
 **B1 — the authenticated app has no landmarks.** No `<main>`, no `<h1>` on any authenticated
 screen, and `<html lang="en">` sits over mixed English/French content. Add `<main>` and a
