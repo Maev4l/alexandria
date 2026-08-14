@@ -5212,7 +5212,7 @@ reproducible across machines. 4x throttling is reported as information about a s
 not as pass/fail. p50 is 8.3ms in every condition ever measured, and the outliers sit at page
 boundaries and nowhere else.
 
-- [ ] **Step 10b: the original gate wording, for the record**
+---
 
 Temporarily extend the fixture generator so `lib-fiction` holds 1000 entries (loop
 `book(...)` with generated titles across the alphabet). Then:
