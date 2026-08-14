@@ -1,0 +1,866 @@
+<title>The Noir Imprint</title>
+<style>
+  /* ------------------------------------------------------------------
+     THE NOIR IMPRINT — Alexandria v3 spec sheet + comps.
+     Single-theme by decision, not omission: this world is the imprint's
+     paper stock. Every colour is painted explicitly so the page holds on
+     either host ground. No media query, no [data-theme] block.
+     ------------------------------------------------------------------ */
+  :root {
+    --paper: #F6F6F3;
+    --paper-deep: #ECECE7;
+    --ink: #0B0B0B;
+    --ink-soft: #5A5A57;
+    --imprint: #F2C200;
+    --out: #D8412F;
+    --shared: #0F6B4F;
+
+    /* Inverted surface only. --ink-soft on --ink measures ~1.9:1, so the cover
+       cannot borrow the paper set. Using any of these on paper is a bug. */
+    --cover-body: #DEDED9;
+    --cover-soft: #B9B9B4;
+    --cover-rule: #3A3A38;
+
+    --u: 4px;
+    --d: 8px;
+
+    --sans: "Archivo", ui-sans-serif, -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --mono: "Chivo Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* no radius, no shadow, anywhere — print has neither */
+  a, button, input, div, section, span { border-radius: 0; }
+
+  /* --imprint owns the active/selected state, so it owns the focus ring too.
+     --out means on loan and nothing else; a red ring would make every focused
+     element read as lent. On a yellow ground the ring flips to ink, because
+     yellow on yellow vanishes. No box-shadow ring — the no-shadow law is
+     mechanically checkable and a shadow-shaped outline defeats the check. */
+  :focus-visible { outline: 3px solid var(--imprint); outline-offset: 2px; }
+  .plate:focus-visible, .btn-plate:focus-visible, .acct:focus-visible, .detail-plate:focus-visible {
+    outline-color: var(--ink);
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 calc(var(--d) * 3); }
+
+  /* ---------- masthead ---------- */
+  .masthead { border-bottom: 4px solid var(--ink); padding: calc(var(--d) * 5) 0 calc(var(--d) * 3); }
+  .imprint-mark {
+    display: inline-block; background: var(--imprint); color: var(--ink);
+    font-weight: 800; font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    padding: var(--u) var(--d); margin-bottom: calc(var(--d) * 2);
+  }
+  h1 {
+    font-size: clamp(44px, 9vw, 92px); line-height: .94; margin: 0 0 var(--d);
+    font-weight: 900; font-stretch: 87.5%; letter-spacing: -.02em; text-wrap: balance;
+  }
+  .standfirst { font-size: 19px; max-width: 62ch; color: var(--ink); margin: 0; }
+  .standfirst strong { font-weight: 700; }
+  .meta-line {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-soft);
+    margin-top: calc(var(--d) * 3); display: flex; flex-wrap: wrap; gap: var(--d) calc(var(--d) * 3);
+  }
+
+  /* ---------- sections ---------- */
+  section { padding: calc(var(--d) * 7) 0 0; }
+  .sec-head { display: flex; align-items: baseline; gap: var(--d); border-bottom: 3px solid var(--ink); padding-bottom: var(--d); margin-bottom: calc(var(--d) * 4); }
+  .sec-num { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  h2 { font-size: 13px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; margin: 0; }
+  h3 { font-size: 17px; font-weight: 700; margin: 0 0 var(--d); }
+  p { max-width: 68ch; }
+  .note { font-size: 14px; color: var(--ink-soft); max-width: 68ch; }
+
+  /* ---------- comps ---------- */
+  .comp-rail { display: flex; gap: calc(var(--d) * 4); overflow-x: auto; padding-bottom: calc(var(--d) * 2); }
+  .comp { flex: 0 0 auto; width: 390px; }
+  .comp-label { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-bottom: var(--d); }
+  .screen {
+    width: 390px; height: 780px; border: 3px solid var(--ink); background: var(--paper);
+    overflow: hidden; display: flex; flex-direction: column;
+  }
+  .screen.cover { background: var(--ink); color: var(--paper); }
+
+  /* app chrome */
+  .appbar { border-bottom: 2px solid var(--ink); padding: calc(var(--d) * 2) calc(var(--d) * 2) var(--d); }
+  .appbar-top { display: flex; align-items: center; justify-content: space-between; gap: var(--d); }
+  .wordmark { font-size: 12px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+  /* 48px minimum touch target — both of these are taps, not labels. */
+  .acct {
+    background: var(--imprint); color: var(--ink); font-size: 11px; font-weight: 800;
+    letter-spacing: .08em; padding: 0 var(--d);
+    min-width: 48px; min-height: 48px; display: flex; align-items: center; justify-content: center;
+  }
+  .backrow { display: flex; align-items: center; gap: var(--d); font-size: 20px; font-weight: 800; }
+  .backrow .chev { font-family: var(--mono); font-size: 15px; color: var(--ink-soft); }
+  .searchfield {
+    margin-top: calc(var(--d) * 1.5); border: 2px solid var(--ink); background: var(--paper-deep);
+    padding: 0 var(--d); min-height: 48px; font-size: 13px; color: var(--ink-soft);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  /* Marks are hand-authored SVG at 2px stroke on the division scale — never a
+     text glyph, which font-fallback renders as junk, and never an icon library,
+     which arrives at someone else's stroke weights. */
+  .mark { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none;
+          stroke-linecap: square; display: block; }
+  .mark-sm { width: 16px; height: 16px; }
+  .body { flex: 1; overflow: hidden; }
+
+  /* section header inside app */
+  .stream-head {
+    font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+    padding: calc(var(--d) * 2) calc(var(--d) * 2) var(--u);
+    border-bottom: 1px solid var(--ink);
+    display: flex; justify-content: space-between;
+  }
+  .stream-head .n { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-soft); letter-spacing: 0; }
+
+  /* library volume row */
+  /* Edge rules are drawn as pseudo-elements, never as border-left: a border
+     displaces the row's content by its own width, so marked rows would sit
+     4px out of alignment with unmarked ones down the whole stream. */
+  .vol {
+    position: relative; min-height: 64px;   /* 8 divisions; 10 with a sub-line */
+    border-bottom: 2px solid var(--ink); padding: calc(var(--d) * 2);
+    display: flex; gap: calc(var(--d) * 2); align-items: flex-start;
+  }
+  /* The visible duplicate of long-press. Three 2px squares, not round dots and
+     not a text ellipsis: the world has no radii and no glyph fallbacks. */
+  .row-actions {
+    flex: 0 0 auto; width: 48px; min-height: 48px; margin: -8px -8px -8px 0;
+    display: flex; align-items: center; justify-content: center; gap: 3px;
+    background: none; border: 0; cursor: pointer;
+  }
+  .row-actions i { display: block; width: 3px; height: 3px; background: var(--ink); }
+  .vol.ribbon-out::before, .vol.ribbon-in::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px; background: var(--shared);
+  }
+  .plate {
+    background: var(--imprint); color: var(--ink); font-family: var(--mono);
+    font-size: 12px; font-weight: 700; padding: 2px var(--d); font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+  }
+  /* Fixed column so a 3-digit count and a 2-digit count leave titles on one
+     left edge. Variable-width plates make the whole list ragged. */
+  .vol .plate { min-width: 56px; text-align: center; }
+  .vol-body { min-width: 0; flex: 1; }
+  .vol-name { font-size: 22px; font-weight: 700; line-height: 1.15; }
+  .vol-sub {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-soft);
+    text-transform: uppercase; letter-spacing: .06em; margin-top: var(--u);
+    font-variant-numeric: tabular-nums;
+  }
+  .tag-shared { color: var(--shared); font-weight: 700; }
+
+  /* index letter */
+  .index-letter {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    border-bottom: 4px solid var(--ink); padding: 0 calc(var(--d) * 2);
+    background: var(--paper);
+  }
+  .index-letter .glyph {
+    font-size: 76px; font-weight: 900; font-stretch: 62.5%; line-height: .82;
+    letter-spacing: -.03em; color: var(--imprint); -webkit-text-stroke: 2px var(--ink);
+  }
+  .index-letter .count { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); padding-bottom: var(--d); font-variant-numeric: tabular-nums; }
+
+  /* item row */
+  .item { position: relative; display: flex; gap: calc(var(--d) * 2); padding: calc(var(--d) * 2); border-bottom: 1px solid var(--ink); align-items: flex-start; }
+  .item.lent::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 4px; background: var(--out);
+  }
+  .frame { border: 2px solid var(--ink); background: var(--paper-deep); flex: 0 0 auto; position: relative; }
+  /* One ratio for every item: portrait 2:3. Book covers and TMDB posters are
+     both that shape, so nothing is cropped. Films are marked by the spine
+     rule — the wrap of a DVD / Blu-ray keep case — never by proportion. */
+  .frame.book, .frame.film { width: 48px; height: 72px; }
+  .frame.film::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 6px;
+    width: 3px; background: var(--ink);
+  }
+  /* Bottom-RIGHT: the spine rule owns the left edge, and a bottom-left plate
+     would sit on top of it on every film frame. */
+  .frame .fnum {
+    position: absolute; inset: auto 0 0 auto; background: var(--imprint); color: var(--ink);
+    font-family: var(--mono); font-size: 9px; padding: 1px 3px; font-variant-numeric: tabular-nums;
+  }
+  .item-body { min-width: 0; flex: 1; }
+  .type-tag { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }
+  .item-title { font-size: 17px; font-weight: 600; line-height: 1.25; margin-top: 2px; }
+  .plate-line { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); margin-top: 3px; }
+  .stamp {
+    display: inline-block; margin-top: var(--d);
+    border: 2px solid var(--out); color: var(--ink);
+    font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+    padding: 2px 6px; transform: rotate(-4deg); opacity: .92;
+  }
+
+  /* collection board */
+  .board { border: 3px solid var(--ink); margin: calc(var(--d) * 2); }
+  .board-head { display: flex; justify-content: space-between; align-items: center; gap: var(--d); padding: var(--d); border-bottom: 2px solid var(--ink); }
+  .board-name { font-size: 17px; font-weight: 700; }
+  .board-members { padding-left: var(--d); }
+  .board-members .item:last-child { border-bottom: 0; }
+
+  /* detail cover */
+  .cover .appbar { border-color: var(--paper); }
+  .cover .backrow .chev { color: var(--imprint); }
+  .detail { padding: calc(var(--d) * 3) calc(var(--d) * 2); }
+  /* Detail is the one screen where artwork earns real space: the reader is
+     looking at a single object, not scanning a thousand. Same 2:3 frame and
+     spine rule as the stream, at hero scale, ruled in paper on the cover. */
+  .detail-frame {
+    width: 132px; height: 198px; border: 2px solid var(--paper);
+    background: var(--cover-rule); position: relative; margin-bottom: calc(var(--d) * 3);
+  }
+  .detail-frame.film::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 10px;
+    width: 3px; background: var(--paper);
+  }
+  .detail-plate { background: var(--imprint); color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 2px var(--d); display: inline-block; }
+  .detail-title { font-size: 32px; font-weight: 800; line-height: 1.06; margin: calc(var(--d) * 2) 0 var(--d); }
+  .detail-rule { height: 4px; background: var(--imprint); margin: calc(var(--d) * 2) 0; }
+  .detail-line { font-family: var(--mono); font-size: 12px; color: var(--cover-soft); }
+  .detail-sum { font-size: 14px; color: var(--cover-body); margin: calc(var(--d) * 2) 0 0; }
+  .ledger-head { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--imprint); margin-top: calc(var(--d) * 3); }
+  .ledger { border-top: 2px solid var(--paper); margin-top: var(--d); }
+  .ledger-row { display: flex; justify-content: space-between; gap: var(--d); font-family: var(--mono); font-size: 11px; padding: var(--d) 0; border-bottom: 1px solid var(--cover-rule); font-variant-numeric: tabular-nums; color: var(--cover-soft); }
+  .ledger-row.open { color: var(--paper); }
+  .ledger-row .dur { color: var(--cover-soft); }
+  .stamp-open { border: 2px solid var(--out); color: var(--paper); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; padding: 1px 5px; transform: rotate(-4deg); display: inline-block; }
+  .cover-actions { display: flex; gap: var(--d); margin-top: calc(var(--d) * 3); }
+
+  /* buttons */
+  .btn-plate { background: var(--imprint); color: var(--ink); border: 2px solid var(--imprint); font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: var(--d) calc(var(--d) * 2); cursor: pointer; }
+  .btn-ruled { background: transparent; color: currentColor; border: 2px solid currentColor; font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: var(--d) calc(var(--d) * 2); cursor: pointer; }
+  .btn-danger { background: transparent; color: var(--out); border: 2px solid var(--out); font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: var(--d) calc(var(--d) * 2); cursor: pointer; }
+  .footer-action { border-top: 2px solid var(--ink); padding: calc(var(--d) * 2); }
+
+  /* ---------- spec blocks ---------- */
+  .grid { display: grid; gap: calc(var(--d) * 3); }
+  .grid.two { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .grid.three { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+  .swatch { border: 2px solid var(--ink); }
+  .swatch .chip { height: 92px; }
+  .swatch .info { padding: var(--d); border-top: 2px solid var(--ink); }
+  .swatch .tok { font-family: var(--mono); font-size: 12px; font-weight: 700; }
+  .swatch .val { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); }
+  .swatch .means { font-size: 13px; margin-top: var(--u); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tablewrap { overflow-x: auto; }
+  th, td { text-align: left; padding: var(--d); border-bottom: 1px solid var(--ink); vertical-align: top; }
+  th { font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; border-bottom: 2px solid var(--ink); white-space: nowrap; }
+  td.mono, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .typerow { border-bottom: 1px solid var(--ink); padding: calc(var(--d) * 2) 0; display: flex; gap: calc(var(--d) * 3); align-items: baseline; flex-wrap: wrap; }
+  .typerow .spec { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); flex: 0 0 190px; }
+  .t-index { font-size: 76px; font-weight: 900; font-stretch: 62.5%; line-height: 1; letter-spacing: -.03em; }
+  .t-hero { font-size: 32px; font-weight: 800; line-height: 1.06; }
+  .t-lib { font-size: 24px; font-weight: 700; }
+  .t-row { font-size: 17px; font-weight: 600; }
+  .t-meta { font-size: 14px; }
+  .t-caps { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .t-num { font-family: var(--mono); font-size: 13px; }
+
+  .rules-demo { display: flex; flex-direction: column; gap: calc(var(--d) * 2); }
+  .rule-item { display: flex; align-items: center; gap: calc(var(--d) * 2); }
+  .rule-item .lbl { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); flex: 0 0 148px; }
+  .rule-item .bar { background: var(--ink); flex: 1; }
+
+  .refuse { list-style: none; padding: 0; margin: 0; }
+  .refuse li { border-bottom: 1px solid var(--ink); padding: var(--d) 0 var(--d) calc(var(--d) * 4); position: relative; max-width: 74ch; }
+  .refuse li::before { content: "✕"; position: absolute; left: 0; color: var(--out); font-weight: 800; }
+
+  .callout { border: 3px solid var(--ink); border-left-width: 12px; padding: calc(var(--d) * 2); background: var(--paper-deep); max-width: 74ch; }
+  .callout h3 { margin-top: 0; }
+  .callout.warn { border-left-color: var(--out); }
+
+  footer { border-top: 4px solid var(--ink); margin-top: calc(var(--d) * 8); padding: calc(var(--d) * 4) 0 calc(var(--d) * 8); }
+  footer p { font-size: 13px; color: var(--ink-soft); }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 0 calc(var(--d) * 2); }
+    .typerow .spec { flex: 0 0 100%; }
+    .t-index { font-size: 56px; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="imprint-mark">Alexandria&nbsp;·&nbsp;Web client v3</div>
+    <h1>The Noir Imprint</h1>
+    <p class="standfirst">
+      Every book and film in the collection is a <strong>numbered volume in one imprint</strong>.
+      Built on the imprint's text block — cool paper stock — with black and chrome yellow held back
+      for framing rules, volume plates, index letters and the stamp that marks what has left the shelf.
+    </p>
+    <div class="meta-line">
+      <span>Lineage · Gallimard, Série Noire</span>
+      <span>Mode · Operate</span>
+      <span>Seed · 484df7fc</span>
+      <span>Candidate 4 of 7 · re-roll 2</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>The comps</h2></div>
+    <p>
+      Three screens at phone viewport. The first two sit on the paper stock; item detail is the
+      single surface that inverts to the black cover, because it is the one place you read one
+      thing instead of scanning a thousand.
+    </p>
+    <div class="comp-rail">
+
+      <!-- ============ COMP 1 — LIBRARIES ROOT ============ -->
+      <div class="comp">
+        <div class="comp-label">01 · /libraries — root</div>
+        <div class="screen">
+          <div class="appbar">
+            <div class="appbar-top">
+              <span class="wordmark">Alexandria</span>
+              <span class="acct">JR</span>
+            </div>
+            <div class="searchfield">
+              <span>Search every library</span>
+              <svg class="mark mark-sm" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 L14.5 14.5"/></svg>
+            </div>
+          </div>
+          <div class="body">
+            <div class="stream-head"><span>Mine</span><span class="n">3</span></div>
+
+            <div class="vol ribbon-out">
+              <span class="plate">412</span>
+              <div class="vol-body">
+                <div class="vol-name">Romans</div>
+                <div class="vol-sub"><span class="tag-shared">Shared · 2</span></div>
+              </div>
+              <button class="row-actions" type="button" aria-label="Library actions"><i></i><i></i><i></i></button>
+            </div>
+
+            <div class="vol">
+              <span class="plate">268</span>
+              <div class="vol-body">
+                <div class="vol-name">Films</div>
+              </div>
+              <button class="row-actions" type="button" aria-label="Library actions"><i></i><i></i><i></i></button>
+            </div>
+
+            <div class="vol">
+              <span class="plate">77</span>
+              <div class="vol-body">
+                <div class="vol-name">Bandes dessinées</div>
+              </div>
+              <button class="row-actions" type="button" aria-label="Library actions"><i></i><i></i><i></i></button>
+            </div>
+
+            <div class="stream-head"><span>Shared with me</span><span class="n">1</span></div>
+
+            <div class="vol ribbon-in">
+              <span class="plate">96</span>
+              <div class="vol-body">
+                <div class="vol-name">Polars</div>
+                <div class="vol-sub"><span class="tag-shared">From</span> <span style="text-transform:none">marie@example.com</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="footer-action">
+            <button class="btn-plate" type="button">New library</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ COMP 2 — LIBRARY BROWSE ============ -->
+      <div class="comp">
+        <div class="comp-label">02 · /libraries/:id — browse</div>
+        <div class="screen">
+          <div class="appbar">
+            <div class="appbar-top">
+              <span class="backrow"><span class="chev"><svg class="mark" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4 L6 10 L12 16"/></svg></span>Romans</span>
+              <span class="acct"><svg class="mark" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4 V16 M4 10 H16"/></svg></span>
+            </div>
+            <div class="searchfield">
+              <span>Search every library</span>
+              <svg class="mark mark-sm" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 L14.5 14.5"/></svg>
+            </div>
+          </div>
+          <div class="body">
+            <div class="index-letter">
+              <span class="glyph">C</span>
+              <span class="count">14 volumes</span>
+            </div>
+
+            <div class="item lent">
+              <div class="frame book"></div>
+              <div class="item-body">
+                <div class="type-tag">Book</div>
+                <div class="item-title">Le Grand Sommeil</div>
+                <div class="plate-line">Raymond Chandler · 9782070404209</div>
+                <span class="stamp">Out</span>
+              </div>
+            </div>
+
+            <div class="item">
+              <div class="frame film"></div>
+              <div class="item-body">
+                <div class="type-tag">Film</div>
+                <div class="item-title">Chinatown</div>
+                <div class="plate-line">Roman Polanski · 1974 · 130′</div>
+              </div>
+            </div>
+
+            <div class="board">
+              <div class="board-head">
+                <div>
+                  <div class="board-name">La Série Noire</div>
+                  <div class="type-tag" style="margin-top:2px">Series order</div>
+                </div>
+                <span class="plate">⌗ 12</span>
+              </div>
+              <div class="board-members">
+                <div class="item">
+                  <div class="frame book"><span class="fnum">01</span></div>
+                  <div class="item-body">
+                    <div class="type-tag">Book</div>
+                    <div class="item-title">Nada</div>
+                    <div class="plate-line">Jean-Patrick Manchette</div>
+                  </div>
+                </div>
+                <div class="item">
+                  <div class="frame film"><span class="fnum">02</span></div>
+                  <div class="item-body">
+                    <div class="type-tag">Film</div>
+                    <div class="item-title">Le Samouraï</div>
+                    <div class="plate-line">Jean-Pierre Melville · 1967 · 105′</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tail run: still filling, so no count. A run's count appears only
+                 once a different letter has appeared after it. -->
+            <div class="index-letter">
+              <span class="glyph">D</span>
+              <span class="count"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ COMP 3 — ITEM DETAIL (COVER) ============ -->
+      <div class="comp">
+        <div class="comp-label">03 · /libraries/:id/items/:itemId — the cover</div>
+        <div class="screen cover">
+          <div class="appbar">
+            <div class="appbar-top">
+              <span class="backrow"><span class="chev"><svg class="mark" viewBox="0 0 20 20" aria-hidden="true"><path d="M12 4 L6 10 L12 16"/></svg></span></span>
+              <span class="acct"><svg class="mark" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.5 12.5 L17 17"/></svg></span>
+            </div>
+          </div>
+          <div class="body">
+            <div class="detail">
+              <div class="detail-frame"></div>
+              <div class="detail-title" style="margin-top:0">Le Grand Sommeil</div>
+              <div class="detail-line">Raymond Chandler · 9782070404209 · Romans</div>
+              <div class="detail-rule"></div>
+              <div><span class="stamp-open">Out · Marie · 6 days</span></div>
+
+              <p class="detail-sum">
+                Le général Sternwood engage Philip Marlowe pour régler une affaire de chantage.
+                Deux filles, un maître chanteur, un chauffeur noyé : la première enquête de Marlowe
+                donne le ton de tout ce qui suivra.
+              </p>
+
+              <div class="ledger-head">The record</div>
+              <div class="ledger">
+                <div class="ledger-row open">
+                  <span>07 Aug 2026 → still out</span>
+                  <span class="dur">6 days</span>
+                </div>
+                <div class="ledger-row">
+                  <span>02 Mar 2026 → 19 Mar 2026</span>
+                  <span class="dur">17 days</span>
+                </div>
+                <div class="ledger-row">
+                  <span>11 Nov 2025 → 25 Nov 2025</span>
+                  <span class="dur">14 days</span>
+                </div>
+              </div>
+
+              <div class="cover-actions">
+                <button class="btn-plate" type="button">Mark returned</button>
+                <button class="btn-ruled" type="button">Edit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <p class="note" style="margin-top:16px">
+      Every frame is portrait 2:3 — a book cover and a TMDB poster are both that shape, so nothing
+      gets cropped and the stream keeps one row height. A film is marked by the <strong>spine
+      rule</strong>: a 3px vertical rule inset one division from the left edge, where the
+      wrap-around spine of a DVD or Blu-ray keep case actually falls. Backed by the
+      <span class="mono">FILM</span> tag and by a runtime in the plate line, which only films have.
+      All three layers survive with no artwork at all.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>Palette law</h2></div>
+    <p>
+      Each colour has exactly one job. A colour used for anything else is a bug, not a variation.
+      This is what keeps a two-accent system legible at a thousand items.
+    </p>
+    <div class="grid three">
+      <div class="swatch">
+        <div class="chip" style="background: var(--paper)"></div>
+        <div class="info">
+          <div class="tok">--paper</div><div class="val">#F6F6F3</div>
+          <div class="means">The ground. Cool off-white — deliberately not cream.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: var(--paper-deep)"></div>
+        <div class="info">
+          <div class="tok">--paper-deep</div><div class="val">#ECECE7</div>
+          <div class="means">Recessed field: search, sheets, form wells.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: var(--ink)"></div>
+        <div class="info">
+          <div class="tok">--ink</div><div class="val">#0B0B0B</div>
+          <div class="means">Content and structure: text, rules, frames.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: var(--imprint)"></div>
+        <div class="info">
+          <div class="tok">--imprint</div><div class="val">#F2C200</div>
+          <div class="means">The imprint's mark: plates, index letters, active state, primary action.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: var(--out)"></div>
+        <div class="info">
+          <div class="tok">--out</div><div class="val">#D8412F</div>
+          <div class="means">On loan. Nothing else, ever. Edges and stamp outlines only.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: var(--shared)"></div>
+        <div class="info">
+          <div class="tok">--shared</div><div class="val">#0F6B4F</div>
+          <div class="means">Shared, in or out. Nothing else, ever.</div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="margin-top:32px">The inverted surface has its own three</h3>
+    <p>
+      <span class="mono">--ink-soft</span> on <span class="mono">--ink</span> measures about 1.9:1,
+      so the black cover genuinely cannot borrow the paper set. These three exist for the cover
+      alone; using any of them on paper is a bug. They are named for the surface they belong to
+      rather than their brightness — a soft/dim pair would invite the wrong guess, since the body
+      tone is the brighter of the two.
+    </p>
+    <div class="grid three">
+      <div class="swatch">
+        <div class="chip" style="background: var(--ink); display:flex; align-items:center; justify-content:center; color: var(--cover-body); font-size:14px">Summary copy</div>
+        <div class="info">
+          <div class="tok">--cover-body</div><div class="val">#DEDED9</div>
+          <div class="means">Body copy on the inverted surface.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: var(--ink); display:flex; align-items:center; justify-content:center; color: var(--cover-soft); font-family: var(--mono); font-size:12px">Chandler · 1939</div>
+        <div class="info">
+          <div class="tok">--cover-soft</div><div class="val">#B9B9B4</div>
+          <div class="means">Secondary content: plate line, loan duration.</div>
+        </div>
+      </div>
+      <div class="swatch">
+        <div class="chip" style="background: var(--ink); display:flex; align-items:center; justify-content:center"><span style="display:block;width:70%;height:1px;background:var(--cover-rule)"></span></div>
+        <div class="info">
+          <div class="tok">--cover-rule</div><div class="val">#3A3A38</div>
+          <div class="means">Hairline separators. Structure only, never text.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:32px">
+      <h3>The focus ring is yellow, not red</h3>
+      <p style="margin-bottom:0">
+        <span class="mono">--imprint</span> already owns the active and selected state, so it owns
+        the focus ring: 3px at 2px offset, flipping to <span class="mono">--ink</span> on any
+        element whose own ground is yellow. <span class="mono">--out</span> must never be spent
+        here — it means on loan, and a red ring makes every focused element momentarily read as
+        lent. No <span class="mono">box-shadow</span> ring either: the no-shadow law is mechanically
+        checkable, and a shadow-shaped outline defeats the check.
+      </p>
+    </div>
+
+    <div class="callout warn" style="margin-top:32px">
+      <h3>Why the stamp's text is black, not red</h3>
+      <p style="margin-bottom:0">
+        Red on paper measures roughly 3.9:1 — fine for rules and large bold text, short of the 4.5:1
+        that small text needs. So the overprint stamp draws its <em>outline</em> in red and sets its
+        caps in ink. Red stays an edge colour, which is exactly the discipline the direction
+        borrowed from a challenger it beat, now enforced by arithmetic rather than taste.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>Type scale</h2></div>
+    <p>
+      Two families, no serif. A book subject reaching for a serif is the association this direction
+      exists to refuse — Série Noire is a sans-and-rules identity.
+      <strong>Archivo</strong> (variable: weight 400–900, width 62–125) covers condensed plate
+      lettering and normal-width body from one file; <strong>Chivo Mono</strong> sets catalogue
+      numerals, ISBNs, runtimes and dates with tabular figures.
+    </p>
+
+    <div class="typerow"><span class="spec">Index letter · 96–120 · w900 wd62</span><span class="t-index">C</span></div>
+    <div class="typerow"><span class="spec">Volume title · 32 · w800</span><span class="t-hero">Le Grand Sommeil</span></div>
+    <div class="typerow"><span class="spec">Library name · 24 · w700</span><span class="t-lib">Bandes dessinées</span></div>
+    <div class="typerow"><span class="spec">Row title · 17 · w600</span><span class="t-row">Le Samouraï</span></div>
+    <div class="typerow"><span class="spec">Metadata · 14 · w400</span><span class="t-meta">Jean-Pierre Melville</span></div>
+    <div class="typerow"><span class="spec">Tag &amp; plate caps · 11 · w700 · +.08em</span><span class="t-caps">Film · Shared · Out</span></div>
+    <div class="typerow"><span class="spec">Numerals · mono 13 · tabular</span><span class="t-num">0147 · 9782070404209 · 130′</span></div>
+
+    <div class="callout" style="margin-top:32px">
+      <h3>The uppercase rule</h3>
+      <p style="margin-bottom:0">
+        Uppercase is for interface labels only — tags, plates, section headers, buttons, all of which
+        are English UI strings. <strong>Content titles are never uppercased.</strong> Long French
+        titles set in caps lose readability, and this collection's titles are mixed English and
+        French. That single rule is the difference between an imprint and a poster.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>Division scale &amp; rules</h2></div>
+    <p>
+      One visible scale. Base unit 4px, division 8px; every dimension, gap and inset is a whole
+      number of divisions. Nothing is spaced by eye. Elevation is expressed by rule weight —
+      <strong>there are no shadows anywhere, and every radius is zero.</strong>
+    </p>
+    <div class="grid two">
+      <div>
+        <h3>Rule weights</h3>
+        <div class="rules-demo">
+          <div class="rule-item"><span class="lbl">1px · hairline</span><span class="bar" style="height:1px"></span></div>
+          <div class="rule-item"><span class="lbl">2px · volume frame</span><span class="bar" style="height:2px"></span></div>
+          <div class="rule-item"><span class="lbl">3px · block frame</span><span class="bar" style="height:3px"></span></div>
+          <div class="rule-item"><span class="lbl">4px · index rule</span><span class="bar" style="height:4px"></span></div>
+        </div>
+      </div>
+      <div>
+        <h3>Measures</h3>
+        <div class="tablewrap">
+          <table>
+            <tbody>
+              <tr><td>Phone margin</td><td class="mono">2 div · 16px</td></tr>
+              <tr><td>Gutter</td><td class="mono">1 div · 8px</td></tr>
+              <tr><td>Phone grid</td><td class="mono">4 columns</td></tr>
+              <tr><td>Tablet grid</td><td class="mono">8 columns</td></tr>
+              <tr><td>Touch target, min</td><td class="mono">6 div · 48px</td></tr>
+              <tr><td>Item row height</td><td class="mono">10 div · 80px</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><h2>Component vocabulary</h2></div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Rendered</th><th>Rule</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Volume Frame</td>
+            <td><span style="display:inline-flex;gap:8px;align-items:flex-start"><span class="frame book"></span><span class="frame film"></span></span></td>
+            <td>2px rule, portrait 2:3 for every item. With no artwork it stays a ruled empty frame — no number, no placeholder icon, no apology. <em>Book left, film right.</em></td>
+          </tr>
+          <tr>
+            <td>Spine Rule</td>
+            <td><span class="frame film"></span></td>
+            <td>3px vertical rule inset one division from the left edge. Marks a film — the wrap of a DVD or Blu-ray keep case. Drawn on empty frames as well as artwork.</td>
+          </tr>
+          <tr>
+            <td>Volume Plate</td>
+            <td><span style="display:inline-flex;gap:8px;flex-wrap:wrap"><span class="plate">412</span><span class="plate">⌗ 12</span><span class="plate">01</span></span></td>
+            <td>Solid chrome yellow, mono figures. Carries <strong>only a real count or order</strong>: a library's <span class="mono">totalItems</span>, a collection's <span class="mono">itemCount</span>, or a member's <span class="mono">order</span>. Standalone items get no plate — see the note below.</td>
+          </tr>
+          <tr>
+            <td>Plate Line</td>
+            <td><span class="plate-line">Roman Polanski · 1974 · 130′</span></td>
+            <td>Book: author · ISBN. Film: director · year · runtime. Fields differ by type; position does not.</td>
+          </tr>
+          <tr>
+            <td>Type Tag</td>
+            <td><span class="type-tag">Book</span> &nbsp; <span class="type-tag">Film</span></td>
+            <td>11px caps at the row head. Type is never encoded by colour.</td>
+          </tr>
+          <tr>
+            <td>Index Letter</td>
+            <td><span class="t-index" style="font-size:44px">D</span></td>
+            <td>Monumental, sticky, 4px rule. A separator, not a heading. Carries the reader's alphabetical position.</td>
+          </tr>
+          <tr>
+            <td>Overprint Stamp</td>
+            <td><span style="display:inline-flex;gap:10px;flex-wrap:wrap;align-items:center"><span class="stamp">Out</span><span class="stamp">Out · Marie · 6 days</span></span></td>
+            <td>Red outline, ink caps, rotated −4°. Marks a lent item; carries words, never colour alone. <strong>On a row it reads <span class="mono">OUT</span> alone; the borrower and duration belong to detail.</strong> <span class="mono">lentTo</span> permits 50 characters, which no row can hold — so nothing truncates.</td>
+          </tr>
+          <tr>
+            <td>Shared Ribbon</td>
+            <td><span style="border-left:4px solid var(--shared);padding-left:8px" class="tag-shared t-caps">Shared · 2</span></td>
+            <td>4px green edge rule plus caps tag. <span class="mono">SHARED · N</span> outbound, <span class="mono">FROM &lt;owner&gt;</span> inbound.</td>
+          </tr>
+          <tr>
+            <td>Plate Button</td>
+            <td><span style="display:inline-flex;gap:8px;flex-wrap:wrap"><button class="btn-plate" type="button">Lend</button><button class="btn-ruled" type="button">Edit</button><button class="btn-danger" type="button">Delete</button></span></td>
+            <td>Primary is a yellow plate; secondary is ruled outline; destructive is a red outline. Never three fills competing.</td>
+          </tr>
+          <tr>
+            <td>Ledger Row</td>
+            <td><span class="mono" style="font-size:11px">02 Mar → 19 Mar · 17 days</span></td>
+            <td>One loan pairing, derived client-side from lend/return events. An open loan is stamped.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn" style="margin-top:32px">
+      <h3>Why standalone items carry no plate</h3>
+      <p>
+        There is no item ordinal anywhere in the API — no index, no <span class="mono">createdAt</span>,
+        and listing pages are alphabetical behind an opaque token. A per-item sequence number would
+        therefore be invented data wearing the imprint's clothes, and it would renumber itself as you
+        paginate. So the plate carries only real quantities: a library's item count, a collection's
+        member count, a member's order within the series.
+      </p>
+      <p style="margin-bottom:0">
+        An item's genuine catalogue identity is its ISBN or TMDB id, and that already reads in the
+        plate line. Fewer plates on the stream is the right outcome rather than a loss — a number
+        that means something beats a number on everything.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">06</span><h2>One left edge per element</h2></div>
+    <p>
+      Two edge rules exist — <span class="mono">--out</span> for on loan and
+      <span class="mono">--shared</span> for sharing — and they can never collide, because they
+      address different scopes. Sharing is a <strong>library-level</strong> fact in this API; items
+      are never individually shared. So <span class="mono">--shared</span> marks library rows and
+      <span class="mono">--out</span> marks item rows.
+    </p>
+    <p>
+      Inside a shared library, an item on loan takes the red edge while the header carries the
+      provenance — declared once, not repeated on every row. On a search row, where the library name
+      genuinely <em>is</em> new information, a shared library is named with an inline green tag,
+      keeping the left edge free. Should the two ever meet on one element, the state the reader can
+      act on wins.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">07</span><h2>The index alphabet is not A–Z</h2></div>
+    <p>
+      The stream's order is the server's, and the server folds it — NFD, strip combining marks, NFC,
+      lowercase — before the title becomes a sort key. The client reproduces that fold to derive
+      bucket labels and <strong>never sorts</strong>: <span class="mono">localeCompare</span> would
+      disagree with the paginated server order and make the sticky letters non-monotonic.
+    </p>
+    <p>
+      Because NFD strips only <em>combining</em> marks, <span class="mono">Œ</span> and
+      <span class="mono">Æ</span> survive it and sort after <span class="mono">z</span>; digits and
+      ASCII punctuation sort before <span class="mono">a</span>. So the alphabet has a head and a
+      tail beyond the letters.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Folded first character</th><th>Letter shows</th><th>Lands</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">a–z</td><td>the uppercase letter</td><td>A–Z, in order</td></tr>
+          <tr><td class="mono">digit or ASCII punctuation</td><td class="mono">#</td><td>head of the stream, before A</td></tr>
+          <tr><td class="mono">œ, æ, «, …</td><td>the character itself</td><td>tail of the stream, after Z</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:32px;align-items:flex-end;margin-top:24px;flex-wrap:wrap">
+      <span class="t-index" style="font-size:64px">#</span>
+      <span class="t-index" style="font-size:64px">E</span>
+      <span class="t-index" style="font-size:64px">Œ</span>
+    </div>
+    <p class="note" style="margin-top:16px">
+      <strong>The count appears only on a closed run.</strong> A run closes the instant a different
+      letter appears after it, and at that moment its number is final and correct. The run at the
+      tail of the loaded stream shows no count and no placeholder — the API has no facets or
+      aggregates, so counting only what is loaded would produce a number that grows while you look
+      at it, which is worse than no number. The count is items: standalone entries plus each board's
+      <span class="mono">itemCount</span>, counting a board once and ignoring its
+      <span class="mono">partial</span> continuation.
+    </p>
+    <p class="note">
+      <em>Élan</em> folds to <span class="mono">e</span> and files under E — correct.
+      <em>Œuvres complètes</em> sits after every A–Z entry, so it gets an honest monumental
+      <span class="mono">Œ</span>; showing it as "O" would send a reader to the Os, where it is not.
+    </p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">08</span><h2>What this system refuses</h2></div>
+    <ul class="refuse">
+      <li>Warm cream or linen grounds, serif display faces, terracotta accents, wooden or shelf materials — the category default, and what v2 already is.</li>
+      <li>Rounded corners, drop shadows, glassmorphism, gradient fills.</li>
+      <li>Cover-art grids as the primary browse structure — artwork is not reliably available.</li>
+      <li>Colour used to distinguish item <em>type</em>; colour is legislated for state alone.</li>
+      <li>Icons standing in for state without words.</li>
+      <li>Any UI implying data the API does not have: genres, tags, ratings, due dates, date sorting, watched status.</li>
+      <li>Read-only mode drawn as a screen of disabled buttons; on a shared library, actions are absent and provenance is declared.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <p>
+      <strong>Two honest disclosures.</strong>
+      The titles, counts, dates and summary above are illustrative content authored for this comp,
+      not real catalogue data — replace them with your own before treating any screen as final.
+      And unless Archivo and Chivo Mono are installed locally, this page falls back to a system
+      grotesque: no webfont is linked, because the built client self-hosts both faces as subset
+      woff2 rather than fetching them. Weight, width and tracking here approximate the specified
+      faces; the real app will read tighter and more condensed in the plates and index letters.
+    </p>
+    <p style="margin-bottom:0">
+      Specification of record: <span class="mono">packages/web-client-v3/DESIGN.md</span> ·
+      <span class="mono">.claude/ui-v3.md</span> · <span class="mono">PRODUCT.md</span><br>
+      This comp: <span class="mono">docs/ui-design/ui-v3-mockup.html</span> — the pixel target for
+      the three screens it covers.
+    </p>
+  </footer>
+</div>
