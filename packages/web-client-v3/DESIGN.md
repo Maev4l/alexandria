@@ -257,6 +257,24 @@ thumbnails arrive asynchronously.
 > document framed films landscape at 16:9, which described the medium rather than the object on
 > the shelf, and would have forced a crop on every 2:3 poster.
 
+### The row carries recognition; detail carries identification
+
+A row exists to be recognised in a scan, so it earns only the fields that help a reader know what
+they are looking at. An identifier does not: `9780451524935` occupies as much of the line as
+"George Orwell", sets in mono so the eye goes to it first, and tells a human nothing. Runtime is
+the same class of thing on a row — real information, but for deciding what to watch tonight, which
+is not what this product is for.
+
+| Field | Row | Detail |
+|---|---|---|
+| Author, director | yes | yes |
+| Film's year | yes — it disambiguates remakes and situates the film | yes |
+| ISBN, TMDB id | **no** | yes — an edition matters when you are examining one object |
+| Runtime | **no** | yes |
+
+The test for a row field is whether it helps someone recognise a thing they already own, not
+whether it is true or available.
+
 ### What a plate carries
 
 The plate is the imprint's mark, and it carries **only quantities the API actually returns**.
@@ -365,7 +383,7 @@ grows every time the data surprises you.
 | **Spine Rule** | 3px vertical rule inset one division from a frame's left edge. Marks a film — the wrap of a DVD or Blu-ray keep case. Drawn on empty frames as well as artwork. |
 | **Volume Plate** | A 2px ruled rectangle with `--ink` mono figures, **no fill** — counts are inventory, not apparatus (§4, *Where the yellow goes*). Carries only a real count or order — see §4, *What a plate carries*. Absent on standalone items. |
 | **Search Field** | A **real text input**, never a link costumed as one: it takes the `--imprint` ground and is the loudest mark on any screen carrying it, because finding is the job this product exists for. Pinned in the header on list screens; the cover carries search in the right slot instead. |
-| **Plate Line** | The engraved metadata line. Book: `AUTHOR · ISBN`. Film: `DIRECTOR · 1974 · 118′`. Fields differ by type; the line's position does not. |
+| **Plate Line** | The engraved line under a title. Book: `AUTHOR`. Film: `DIRECTOR · 1974`. Fields differ by type; the line's position does not. Names are set in the sans; only figures take the mono, so a film's year is mono and a person's name is not — §3 reserves mono for numerals, and a name in mono is a category error that digits beside it used to disguise. |
 | **Type Tag** | 11px caps, `BOOK` or `FILM`, at the row head. |
 | **Index Letter** | Monumental sticky letter with a 4px rule, marking the reader's position in the stream. Its label comes from the server's fold — see §4, *The index alphabet* — so it is not always A–Z. **Its count appears only on a closed run.** A run closes the instant a different letter appears after it in the stream, at which point the number is final; the run at the tail of the loaded stream shows no count at all, and no placeholder. A number that grows while the reader looks at it is worse than no number. The count is items — standalone entries plus each board's `itemCount`, counting a board once and ignoring its `partial` continuation. |
 | **Overprint Stamp** | Rotated −4°, 0.9 opacity to read as ink over paper. **Outline 2px `--out`; caps set in `--ink`.** Red measures ~3.9:1 on paper — sound for rules and outlines, short of AA for small text — so the stamp's colour lives on its edge and its words stay in ink. Marks a lent item, and carries words, never colour alone. **On a row it reads `OUT` alone; the borrower and duration belong to item detail** (`OUT · MARIE · 6 DAYS`). `lentTo` permits 50 characters, which no row can hold, and the split follows the labelled-twice rule — the row answers *is it out*, the detail answers *who has it and how long*. Nothing is ever truncated. |
