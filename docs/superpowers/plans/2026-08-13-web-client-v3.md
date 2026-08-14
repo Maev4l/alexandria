@@ -30,6 +30,7 @@ Every task's requirements implicitly include this section.
 - All identifiers and comments in English. UI strings are English; item content is mixed English and French.
 - Lint with Oxlint after changes: `yarn --cwd packages/web-client-v3 lint`.
 - Never commit or push outside the explicit `git commit` steps in this plan. Never push at all.
+- **Stage explicit paths, never `git add -A <dir>`.** `packages/web-client-v3/DESIGN.md` is owned by the design session and is *tracked*, so no `.gitignore` can protect it — a wide add inside the package sweeps their amendments into an implementation commit. That has already happened once. Add the files the task actually touched, and if `git status` shows something you did not write, leave it.
 - **Never stop, kill or restart the dev server on :5173.** It belongs to whoever is working, it may be running against the real backend rather than fixtures, and it is `strictPort` and shared with v2 — a stop meant as momentary can fail to come back. If you need something only read at config load (`vite.config.js`, `output.json`), **ask the user to restart**. To look at your own work, start a server on a **private port** and stop only that: `VITE_MOCK=1 yarn --cwd packages/web-client-v3 exec vite --port 5199 --strictPort`. `yarn check:browser` already does this itself and refuses to touch a server it did not start.
 
 **Design system — non-negotiable, from `DESIGN.md`**
