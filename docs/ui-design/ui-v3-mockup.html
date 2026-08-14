@@ -140,7 +140,8 @@
   /* The visible duplicate of long-press. Three 2px squares, not round dots and
      not a text ellipsis: the world has no radii and no glyph fallbacks. */
   .row-actions {
-    flex: 0 0 auto; width: 48px; min-height: 48px; margin: -8px -8px -8px 0;
+    /* Centred: the affordance belongs to the whole row, not to its first line. */
+    flex: 0 0 auto; align-self: center; width: 48px; min-height: 48px; margin: -8px -8px -8px 0;
     display: flex; align-items: center; justify-content: center; gap: 3px;
     background: none; border: 0; cursor: pointer;
   }
@@ -423,6 +424,7 @@
                 <div class="plate-line">Raymond Chandler</div>
                 <span class="stamp">Out</span>
               </div>
+              <button class="row-actions" type="button" aria-label="Item actions"><i></i><i></i><i></i></button>
             </div>
 
             <div class="item">
@@ -432,6 +434,7 @@
                 <div class="item-title">Chinatown</div>
                 <div class="plate-line">Roman Polanski · <span class="num">1974</span></div>
               </div>
+              <button class="row-actions" type="button" aria-label="Item actions"><i></i><i></i><i></i></button>
             </div>
 
             <div class="board">
@@ -450,6 +453,7 @@
                     <div class="item-title">Nada</div>
                     <div class="plate-line">Jean-Patrick Manchette</div>
                   </div>
+                  <button class="row-actions" type="button" aria-label="Item actions"><i></i><i></i><i></i></button>
                 </div>
                 <div class="item">
                   <div class="frame film"><span class="fnum">02</span></div>
@@ -458,6 +462,7 @@
                     <div class="item-title">Le Samouraï</div>
                     <div class="plate-line">Jean-Pierre Melville · <span class="num">1967</span></div>
                   </div>
+                  <button class="row-actions" type="button" aria-label="Item actions"><i></i><i></i><i></i></button>
                 </div>
               </div>
             </div>
