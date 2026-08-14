@@ -382,7 +382,10 @@ behind real Cognito auth, with library CRUD and sharing. 99 tests, Oxlint clean.
 - [x] Fixture API served by a local Vite plugin under `VITE_MOCK=1`, so every screen is
       buildable and screenshot-able without AWS
 - [x] Shared deterministic screenshot tool (`scripts/shoot.mjs`, puppeteer-core)
-- [x] Auth: Cognito native + Google, PendingApproval, OAuth callback outcomes
+- [x] Auth: Cognito native + Google, PendingApproval, OAuth callback outcomes — **verified
+      end to end against the live Cognito pool by the user**, with the session-reconciliation
+      fix in place (Amplify holds two independent notions of signed-in and nothing reconciled
+      them; a record without tokens produced "There is already a signed in user")
 - [x] App shell: header with pinned search and a per-screen right slot, single stack, no tab bar
 - [x] Libraries root with two sections, actions sheet, share/unshare, delete
 - [ ] Component vocabulary — partial: Volume Plate, Shared Ribbon, Row Actions, Sheet,
