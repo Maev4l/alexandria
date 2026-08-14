@@ -35,10 +35,34 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(!config.isMock);
   const [oauthMessage, setOauthMessage] = useState(null);
 
+  // Amplify v6 has two independent notions of "signed in": fetchAuthSession() asks whether
+  // usable tokens exist, getCurrentUser() asks whether a user record exists. They can
+  // disagree — a stale record with no tokens — and nothing reconciles them. The UI then
+  // renders Login while the SDK still believes someone is authenticated, so signIn() throws
+  // UserAlreadyAuthenticatedException at a reader who can do nothing about it.
+  //
+  // This is a permanent condition, not a one-off: v2 and v3 share an origin and a Cognito
+  // client id, so they share Amplify's token store and a stale v2 session surfaces here.
+  const discardStaleSession = useCallback(async () => {
+    try {
+      await getCurrentUser();
+    } catch {
+      // No user record either — already consistent, nothing to discard.
+      return;
+    }
+    try {
+      // Resolve the disagreement in favour of what the UI is about to claim anyway.
+      await cognitoSignOut();
+    } catch {
+      // Best effort. The sign-in path reconciles again if this did not take.
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
       const session = await fetchAuthSession();
       if (!session?.tokens) {
+        await discardStaleSession();
         setUser(null);
         return;
       }
@@ -56,9 +80,10 @@ export const AuthProvider = ({ children }) => {
         initials: initialsOf(displayName, email),
       });
     } catch {
+      await discardStaleSession();
       setUser(null);
     }
-  }, []);
+  }, [discardStaleSession]);
 
   useEffect(() => {
     if (config.isMock) return undefined;
@@ -94,7 +119,20 @@ export const AuthProvider = ({ children }) => {
       oauthMessage,
       clearOauthMessage: () => setOauthMessage(null),
       signIn: async (email, password) => {
-        await cognitoSignIn({ username: email, password });
+        try {
+          await cognitoSignIn({ username: email, password });
+        } catch (err) {
+          if (err?.name !== 'UserAlreadyAuthenticatedException') throw err;
+          // "There is already a signed in user" is an SDK statement about SDK state; it
+          // tells someone staring at a login form nothing they can act on. Resolve it
+          // instead of reporting it.
+          //
+          // Always sign out and retry with the credentials that were actually typed, even
+          // when the existing session is usable: adopting it would sign the reader into
+          // whichever account the stale session belongs to, which may not be theirs.
+          await cognitoSignOut().catch(() => {});
+          await cognitoSignIn({ username: email, password });
+        }
         await refresh();
       },
       signInWithGoogle: () => signInWithRedirect({ provider: 'Google' }),

@@ -28,9 +28,23 @@ const loadOutput = () => {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 };
 
-export default defineConfig(() => {
+export default defineConfig(({ command }) => {
   const output = loadOutput();
   const isMock = process.env.VITE_MOCK === '1';
+
+  // A production bundle with no pool id cannot authenticate anyone, and the failure only
+  // surfaces when a reader submits the login form. `frontend-v3-build` runs `infra-output`
+  // first, so empty config at build time means that step failed — fail here rather than ship
+  // it. Dev and mock builds are exempt: dev shows the same message in the page (main.jsx),
+  // and mock mode never reaches Cognito.
+  if (command === 'build' && !isMock && (!output.alexandriaUserPoolId || !output.alexandriaClientId)) {
+    throw new Error(
+      'Refusing to build: packages/web-client-v3/output.json has no Cognito user pool id or ' +
+        'client id, so the bundle could not authenticate anyone.\n' +
+        '  aws sso login && make infra-output\n' +
+        'Or build the fixture-backed app with VITE_MOCK=1.',
+    );
+  }
 
   return {
     define: {

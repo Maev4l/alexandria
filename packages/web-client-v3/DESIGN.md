@@ -325,6 +325,22 @@ all sort below `a` contiguously, so one bucket is truthful and ten near-empty on
 | Error | Inline, in place, on `--paper-deep` with a 2px `--out` top rule. Never a toast alone for anything destructive or retryable. |
 | Offline | Declared honestly; the app is online-only by decision (see `/PRODUCT.md`) |
 
+**The action slot never holds an inert control.** A reserved slot always carries the most useful
+thing for the current state, and which of the two forms it takes depends on whether the reader can
+already see why:
+
+- **The reason is visible** — a required field sitting empty directly above. The action renders as
+  the ruled outline and fills to a plate the moment the form is valid. No words are needed; the
+  outline-to-fill change says it.
+- **The reason is not visible** — a limit exceeded, a constraint the reader cannot infer. The slot
+  carries the reason in `--ink-soft` caps *instead of* the control, in the control's own position,
+  which is the best possible place for the explanation.
+
+So a disabled destructive action has no treatment, because the case does not exist: a destructive
+button is already an outline and has nowhere to go. Unshare's bar therefore has exactly three
+states — hint, action, reason — and never a greyed control. Reserve the slot's height across all
+three so nothing jumps.
+
 **An edge rule never displaces content.** Draw it as an absolutely positioned pseudo-element, not
 as `border-left`: a border adds its own width to the box, so a lent or shared row sits 4px out of
 alignment with every unmarked row beside it. This is invisible in source and obvious in a

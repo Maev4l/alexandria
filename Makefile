@@ -26,8 +26,44 @@ cli-build: ## Build the admin CLI (was cli:build)
 infra-apply: ## Terraform apply (was infra:apply)
 	$(TF) apply -auto-approve
 
+# Captures to temp files and validates BEFORE installing anything.
+#
+# The previous `terraform output | jq | tee a b c` was destructive on failure: tee truncates
+# all three destinations before terraform has produced a byte, so an expired SSO session left
+# every config empty. An empty web-client config does not fail at startup — it fails at
+# sign-in, with an Amplify internal error, which is a miserable way to discover it.
+#
+# There is no pipeline here at all, which is a stronger guard than `set -o pipefail`: every
+# command's exit status is checked directly and nothing masks terraform's.
+#
+# The CLI takes a DIFFERENT shape ({userPoolId, region, tableName, bucketName} — see
+# packages/cli/internal/config/config.go). The old line wrote the web-client shape into it,
+# so every run silently broke the admin CLI. Its Cognito and region values are refreshed here
+# and any tableName/bucketName already in the file are preserved, because terraform does not
+# output either one.
 infra-output: ## Export Terraform outputs to client/CLI configs (was infra:output)
-	$(TF) output -json | jq '{alexandriaUserPoolId: .cognito_user_pool_id.value, alexandriaClientId: .cognito_user_pool_client_id.value, apiEndpoint: .api_endpoint.value}' | tee ./packages/web-client-v2/output.json ./packages/web-client-v3/output.json ./packages/cli/bin/config.json > /dev/null
+	@set -e; \
+	raw=$$(mktemp); web=$$(mktemp); cli=$$(mktemp); \
+	trap 'rm -f "$$raw" "$$web" "$$cli"' EXIT; \
+	if ! $(TF) output -json > "$$raw"; then \
+		echo "make: terraform output failed — every config left untouched. Try: aws sso login" >&2; \
+		exit 1; \
+	fi; \
+	if ! jq -e '{alexandriaUserPoolId: .cognito_user_pool_id.value, alexandriaClientId: .cognito_user_pool_client_id.value, apiEndpoint: .api_endpoint.value} | select((.alexandriaUserPoolId // "") != "" and (.alexandriaClientId // "") != "")' "$$raw" > "$$web"; then \
+		echo "make: terraform output was empty or missing the Cognito ids — every config left untouched" >&2; \
+		exit 1; \
+	fi; \
+	pool=$$(jq -r '.cognito_user_pool_id.value' "$$raw"); \
+	region=$$(jq -r '.region.value // "$(REGION)"' "$$raw"); \
+	prev=$$(jq -c '{tableName: (.tableName // ""), bucketName: (.bucketName // "")}' ./packages/cli/bin/config.json 2>/dev/null || echo '{"tableName":"","bucketName":""}'); \
+	echo "$$prev" | jq --arg pool "$$pool" --arg region "$$region" '. + {userPoolId: $$pool, region: $$region}' > "$$cli"; \
+	cp "$$web" ./packages/web-client-v2/output.json; \
+	cp "$$web" ./packages/web-client-v3/output.json; \
+	cp "$$cli" ./packages/cli/bin/config.json; \
+	if [ -z "$$(jq -r '.tableName' "$$cli")" ] || [ -z "$$(jq -r '.bucketName' "$$cli")" ]; then \
+		echo "make: note — packages/cli/bin/config.json still needs tableName and bucketName; terraform outputs neither, so set them by hand." >&2; \
+	fi; \
+	echo "make: wrote web-client-v2, web-client-v3 and cli configs"
 
 backend-build: ## Build backend functions + images-processing arm64 image (was backend:build)
 	make -C packages/functions build
