@@ -136,6 +136,17 @@
     padding-bottom: max(1rem, env(safe-area-inset-bottom));
   }
 
+  /* Skips layout and paint for rows outside the viewport, which is what keeps a 1000-item
+     stream responsive. Applied to ROWS ONLY, never to an ancestor of a sticky index letter:
+     containment on the wrong element kills position: sticky, and the letters are load-bearing
+     wayfinding rather than decoration. Collection boards are deliberately left uncontained —
+     they are variable-height and a wrong contain-intrinsic-size on them drifts the scroll
+     position when a continuation page merges into one. */
+  .row-skip {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 104px;
+  }
+
   @keyframes sheet-rise {
     from {
       transform: translateY(100%);
