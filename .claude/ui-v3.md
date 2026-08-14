@@ -355,6 +355,14 @@ write any.
 only by the capture routes. Virtualize the library stream, which must hold 1000+ items. Two
 self-hosted variable fonts, subset to Latin + Latin Extended-A.
 
+**Page size is a network knob as well as a rendering one, and the network side wins.** Frame-time
+jank in the stream occurs at page-commit boundaries, so a smaller `limit` is the obvious lever
+against it — but `limit` also sets how many round trips a full library costs, and the product's
+stated operating context is a bookshop on poor signal. At 1000 items, 30 per page is ~34 requests
+and 10 per page is ~100. Trading three times the requests for smoothing a boundary the reader
+cannot perceive is the wrong direction. Measure the lever, then weigh it against request count;
+the prior is that the page size stays and a handful of long frames at page boundaries is accepted.
+
 **PWA identity.** New icon set in the imprint's language — chrome yellow on black, a numbered
 volume — including a maskable variant. Manifest `theme_color` `#0B0B0B`, `background_color`
 `#F6F6F3`.
