@@ -12,9 +12,8 @@
 //
 // Starts its own fixture server on a private port. Never touches :5173.
 import fs from 'fs';
-import net from 'net';
-import { spawn } from 'child_process';
 import puppeteer from 'puppeteer-core';
+import { startFixtureServer, stopFixtureServer } from './fixture-server.mjs';
 
 const PORT = Number(process.env.PROFILE_PORT ?? 5198);
 const BASE = `http://localhost:${PORT}`;
@@ -28,39 +27,6 @@ const resolveChrome = () => {
   throw new Error(`No Chrome found at ${candidate}. Set CHROME_PATH.`);
 };
 
-const isPortFree = () =>
-  new Promise((resolve) => {
-    const socket = net
-      .connect({ port: PORT, host: '127.0.0.1' })
-      .on('connect', () => {
-        socket.destroy();
-        resolve(false);
-      })
-      .on('error', () => resolve(true));
-  });
-
-const startServer = async () => {
-  if (!(await isPortFree())) {
-    throw new Error(`port ${PORT} is in use. Set PROFILE_PORT — this script will not touch a
-server it did not start.`);
-  }
-  const child = spawn(
-    'node',
-    ['node_modules/vite/bin/vite.js', '--port', String(PORT), '--strictPort'],
-    { env: { ...process.env, VITE_MOCK: '1' }, stdio: 'ignore' },
-  );
-  const deadline = Date.now() + 40_000;
-  while (Date.now() < deadline) {
-    try {
-      if ((await fetch(`${BASE}${ROUTE}`)).ok) return child;
-    } catch {
-      /* not up yet */
-    }
-    await new Promise((r) => setTimeout(r, 250));
-  }
-  child.kill('SIGTERM');
-  throw new Error('profile server did not start');
-};
 
 // Scrolls the stream to the bottom in rAF steps, appending pages as the sentinel comes into
 // view, and records every frame interval on the way.
@@ -109,7 +75,7 @@ const summarise = (frames) => {
   };
 };
 
-const server = await startServer();
+const server = await startFixtureServer({ port: PORT, readyPath: ROUTE });
 const browser = await puppeteer.launch({ executablePath: resolveChrome(), headless: true });
 const failures = [];
 
@@ -273,7 +239,7 @@ try {
   }
 } finally {
   await browser.close();
-  server.kill('SIGTERM');
+  await stopFixtureServer(server);
 }
 
 if (failures.length > 0) {
