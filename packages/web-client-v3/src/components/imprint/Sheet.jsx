@@ -40,8 +40,12 @@ const Sheet = ({ open, title, onClose, children }) => {
         {/* No `caps` here. A sheet's title is usually a content name — the library or item
             being acted on — and content is never uppercased (§3): the rule exists because
             this collection's titles are mixed English and French, and "BANDES DESSINÉES"
-            set in caps is exactly what it forbids. */}
-        <h2 id={titleId} className="mb-4 text-[15px] font-semibold text-ink">
+            set in caps is exactly what it forbids.
+
+            Set at the Row Title step, 17/600, because the sheet is about the row it was
+            opened from: the reader's eye lands on the same object at the same volume, and the
+            sheet reads as that row expanded rather than as a screen with its own typography. */}
+        <h2 id={titleId} className="mb-4 text-[17px] font-semibold text-ink">
           {title}
         </h2>
         {children}

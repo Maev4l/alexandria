@@ -112,11 +112,14 @@
 }
 
 @layer utilities {
-  /* Interface labels only — never a content title (DESIGN.md section 3). */
+  /* Interface labels only — never a content title (DESIGN.md section 3).
+     Carries CASE and TRACKING, never weight: weight is stated at the point of use. When this
+     utility also set font-weight: 700, the instruction "this is content, stop uppercasing it"
+     silently removed the emphasis too, and the result still looked deliberate — so the next
+     person to follow that instruction would not notice what else they had changed. */
   .caps {
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    font-weight: 700;
   }
 
   .num {

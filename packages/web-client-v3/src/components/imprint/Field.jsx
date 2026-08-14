@@ -8,7 +8,7 @@ const Field = ({ label, error, hint, counter, className, as = 'input', ...props 
   const Tag = as;
   return (
     <div className={cn('mb-6', className)}>
-      <label htmlFor={id} className="caps mb-1 block text-[11px] text-ink-soft">
+      <label htmlFor={id} className="caps mb-1 block text-[11px] font-bold text-ink-soft">
         {label}
       </label>
       <Tag

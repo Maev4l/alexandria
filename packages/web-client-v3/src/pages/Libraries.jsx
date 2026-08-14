@@ -46,7 +46,7 @@ const Libraries = () => {
           <Link
             to="/settings"
             aria-label={`Account — ${user?.email ?? 'signed in'}`}
-            className="caps on-imprint flex min-h-12 min-w-12 items-center justify-center bg-imprint px-2 text-[11px] text-ink"
+            className="caps on-imprint flex min-h-12 min-w-12 items-center justify-center bg-imprint px-2 text-[11px] font-extrabold text-ink"
           >
             {user?.initials ?? '—'}
           </Link>
@@ -73,7 +73,7 @@ const Libraries = () => {
           <>
             <StreamHead label="Mine" count={owned.length} />
             {owned.length === 0 && (
-              <p className="caps border-b-2 border-ink p-4 text-xs text-ink-soft">
+              <p className="caps border-b-2 border-ink p-4 text-xs font-bold text-ink-soft">
                 No libraries yet — start one below
               </p>
             )}

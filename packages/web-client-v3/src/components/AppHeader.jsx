@@ -38,7 +38,7 @@ const AppHeader = ({
             <ChevronLeft />
           </button>
         )}
-        {wordmark && <span className="caps truncate text-xs tracking-[0.2em]">Alexandria</span>}
+        {wordmark && <span className="caps truncate text-xs font-extrabold tracking-[0.2em]">Alexandria</span>}
         {title && (
           // Content title: never uppercased, because it may be a long French name.
           <button

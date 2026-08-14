@@ -7,7 +7,7 @@ const PendingApproval = () => {
   const { signOut } = useAuth();
   return (
     <div className="pad-top-safe flex min-h-dvh flex-col bg-paper px-4 pb-8">
-      <span className="caps mt-8 inline-block self-start border-2 border-out px-2 py-1 text-[11px] tracking-[0.14em] text-ink">
+      <span className="caps mt-8 inline-block self-start border-2 border-out px-2 py-1 text-[11px] font-extrabold tracking-[0.14em] text-ink">
         Pending approval
       </span>
       <h1 className="mt-4 text-[32px] font-extrabold leading-[1.06]">

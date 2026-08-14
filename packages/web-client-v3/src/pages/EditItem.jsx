@@ -4,7 +4,7 @@ import AppHeader from '@/components/AppHeader.jsx';
 const EditItem = () => (
   <div className="min-h-dvh bg-paper">
     <AppHeader wordmark search={false} />
-    <p className="caps p-4 text-xs text-ink-soft">EditItem — not built</p>
+    <p className="caps p-4 text-xs font-bold text-ink-soft">EditItem — not built</p>
   </div>
 );
 

@@ -19,7 +19,7 @@ const PlateButton = ({ variant = 'primary', disabled = false, className, childre
     type="button"
     disabled={disabled}
     className={cn(
-      'caps min-h-12 px-4 py-2 text-xs tracking-[0.12em]',
+      'caps min-h-12 px-4 py-2 text-xs font-extrabold tracking-[0.12em]',
       'transition-colors duration-[var(--press-fast)] ease-linear',
       disabled && variant === 'primary' ? VARIANTS.secondary : VARIANTS[variant],
       disabled && 'cursor-not-allowed',

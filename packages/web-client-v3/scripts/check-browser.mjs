@@ -67,6 +67,28 @@ try {
     );
   }
 
+  // ---- The `caps` utility must carry case and tracking, never weight ----
+  // It used to set font-weight: 700 as well, so "this is content, stop uppercasing it" also
+  // silently removed the emphasis. Asserted as a computed property rather than a pixel value,
+  // so restyling the heading cannot break the check and cannot hide the defect either.
+  console.log('sheet heading is emphasised without being uppercased');
+  await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('[aria-label^="Actions for Bandes"]');
+  await page.click('[aria-label^="Actions for Bandes"]');
+  await page.waitForSelector('[role=dialog] h2');
+  const heading = await page.evaluate(() => {
+    const el = document.querySelector('[role=dialog] h2');
+    const s = getComputedStyle(el);
+    return { transform: s.textTransform, weight: parseInt(s.fontWeight, 10), text: el.textContent };
+  });
+  record(heading.transform === 'none', 'a French library name is not uppercased', heading.transform);
+  record(heading.weight > 400, 'the heading still carries emphasis', `font-weight: ${heading.weight}`);
+  record(
+    heading.text.trim() === 'Bandes dessinées',
+    'the accented name renders intact',
+    heading.text,
+  );
+
   // ---- Pinch-zoom must not be disabled: WCAG 1.4.4, and this app is used in poor light ----
   console.log('viewport permits zoom');
   await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });

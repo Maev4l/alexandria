@@ -54,7 +54,7 @@ const PullToRefresh = forwardRef(({ onRefresh, className, children }, ref) => {
         className="transition-transform duration-[var(--press-fast)] ease-linear"
       >
         {isRefreshing && (
-          <p role="status" className="caps p-2 text-center text-[11px] text-ink-soft">
+          <p role="status" className="caps p-2 text-center text-[11px] font-bold text-ink-soft">
             Refreshing
           </p>
         )}

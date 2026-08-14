@@ -60,7 +60,7 @@ const UnshareLibrary = () => {
         )}
 
         {recipients.length === 0 && (
-          <p className="caps p-4 text-xs text-ink-soft">This library is not shared with anyone</p>
+          <p className="caps p-4 text-xs font-bold text-ink-soft">This library is not shared with anyone</p>
         )}
 
         {recipients.map((email) => {
@@ -95,7 +95,7 @@ const UnshareLibrary = () => {
           rather than sitting empty and reading as a rendering failure. */}
       <div className="pad-bottom-safe flex min-h-20 flex-col justify-center border-t-2 border-ink p-4">
         {recipients.length === 0 ? null : selected.length === 0 ? (
-          <p className="caps text-[11px] text-ink-soft">Select who to remove</p>
+          <p className="caps text-[11px] font-bold text-ink-soft">Select who to remove</p>
         ) : tooMany ? (
           <p role="alert" className="text-sm">
             {selected.length} selected — the API removes {MAX_PER_REQUEST} at a time. Deselect{' '}

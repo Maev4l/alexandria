@@ -46,7 +46,7 @@ const SignUp = () => {
 
   return (
     <div className="pad-top-safe min-h-dvh bg-paper px-4 pb-8">
-      <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-[11px] tracking-[0.16em] text-ink">
+      <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-[11px] font-extrabold tracking-[0.16em] text-ink">
         Alexandria
       </span>
       <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Create an account</h1>

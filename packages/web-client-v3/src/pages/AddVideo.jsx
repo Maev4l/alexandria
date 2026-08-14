@@ -4,7 +4,7 @@ import AppHeader from '@/components/AppHeader.jsx';
 const AddVideo = () => (
   <div className="min-h-dvh bg-paper">
     <AppHeader wordmark search={false} />
-    <p className="caps p-4 text-xs text-ink-soft">AddVideo — not built</p>
+    <p className="caps p-4 text-xs font-bold text-ink-soft">AddVideo — not built</p>
   </div>
 );
 

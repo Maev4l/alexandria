@@ -163,6 +163,23 @@ black, and it is the reason it can sit at 76px rather than 96–120: a stroked y
 larger than its size. Earlier drafts of this table gave the size range and omitted the treatment
 entirely.
 
+### The caps utility carries case, never weight
+
+A `caps` utility that also sets `font-weight` cannot be removed safely: taking the uppercase off a
+string silently takes its emphasis with it, and the element lands at whatever the base weight is —
+quieter than it was, for a reason nobody wrote down. That is exactly how a sheet heading dropped
+from a readable label to 11px at weight 400 while the only stated intent was "stop shouting a
+French name".
+
+So `caps` sets **`text-transform` and `letter-spacing` only**. Weight is always set alongside it,
+explicitly, at the point of use. Any rule of the form "this is content, stop uppercasing it" must
+then be a one-property change with no second-order effect.
+
+Corollary for the type scale: there is no 15px step. When a role turns out to be content rather
+than a label, move it onto the nearest **existing** step — a sheet heading naming a library is the
+**Row Title** role, 17/600, the same size and weight that name had in the list it was opened from.
+Continuity is the argument, not just scale hygiene: the sheet is about that row.
+
 ### The uppercase rule
 
 Uppercase is for **interface labels only** — tags, plates, section headers, button labels, all
