@@ -412,7 +412,7 @@ grows every time the data surprises you.
 | Empty | A ruled frame with a caps invitation, at the same weight as a full block |
 | Loading | Ruled skeleton frames at correct ratio — the layout does not move when content lands |
 | Artwork present but unavailable | `picture` is synthesised from a URL template whenever `pictureUrl` exists (`handlers/search.go`), without checking S3 — and thumbnails are produced asynchronously, so a freshly added item returns a URL that 404s for a while. The frame degrades to the ruled empty frame, **never a broken-image glyph**, and re-polls once on a delay. This applies to every frame in the stream, not only item detail. |
-| Error | Inline, in place, on `--paper-deep` with a 2px `--out` top rule. Never a toast alone for anything destructive or retryable. |
+| Error | Inline, in place, on `--paper-deep` with a 2px `--out` top rule. Never a toast alone for anything destructive or retryable. **Recovery is a control, never an instruction to perform a gesture.** "Pull down to try again" is a sentence telling a keyboard or mouse user to do something they cannot do; the block carries a `Try again` action instead, and pull-to-refresh remains the touch shortcut for the same thing rather than its only route. |
 | Offline | Declared honestly; the app is online-only by decision (see `/PRODUCT.md`) |
 
 **The action slot never holds an inert control.** A reserved slot always carries the most useful
