@@ -1,36 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { bookPlateLine, filmPlateLine } from './format.js';
+import { plateLineParts } from './format.js';
 
-describe('bookPlateLine', () => {
-  it('reads author then ISBN', () => {
-    expect(bookPlateLine({ authors: ['Raymond Chandler'], isbn: '9782070404209' })).toBe(
-      'Raymond Chandler · 9782070404209',
-    );
+const book = (extra) => ({ type: 0, title: 'x', ...extra });
+const film = (extra) => ({ type: 1, title: 'x', ...extra });
+
+describe('plateLineParts', () => {
+  it('gives a book its author and nothing else', () => {
+    expect(plateLineParts(book({ authors: ['George Orwell'], isbn: '9780451524935' }))).toEqual({
+      names: 'George Orwell',
+      year: null,
+    });
   });
 
-  it('joins several authors', () => {
-    expect(bookPlateLine({ authors: ['A', 'B'], isbn: '1' })).toBe('A, B · 1');
+  it('never surfaces an ISBN on a row — it aids identification, not recognition', () => {
+    const parts = plateLineParts(book({ authors: ['A'], isbn: '9780451524935' }));
+    expect(JSON.stringify(parts)).not.toContain('978');
   });
 
-  it('omits an absent field rather than printing an empty separator', () => {
-    expect(bookPlateLine({ authors: [], isbn: '9782070404209' })).toBe('9782070404209');
-    expect(bookPlateLine({ authors: ['A'] })).toBe('A');
-    expect(bookPlateLine({})).toBe('');
-  });
-});
-
-describe('filmPlateLine', () => {
-  it('reads director, year and runtime with a prime mark', () => {
+  it('gives a film its director and its year', () => {
     expect(
-      filmPlateLine({ directors: ['Roman Polanski'], releaseYear: 1974, duration: 130 }),
-    ).toBe('Roman Polanski · 1974 · 130′');
+      plateLineParts(film({ directors: ['Roman Polanski'], releaseYear: 1974, duration: 130 })),
+    ).toEqual({ names: 'Roman Polanski', year: '1974' });
   });
 
-  it('omits a runtime of zero, which means unknown rather than instant', () => {
-    expect(filmPlateLine({ directors: ['X'], releaseYear: 1974, duration: 0 })).toBe('X · 1974');
+  it('never surfaces a runtime on a row — it decides what to watch, not what you own', () => {
+    const parts = plateLineParts(film({ directors: ['X'], releaseYear: 1974, duration: 130 }));
+    expect(JSON.stringify(parts)).not.toContain('130');
   });
 
-  it('survives a film with nothing but a title', () => {
-    expect(filmPlateLine({})).toBe('');
+  it('joins several names', () => {
+    expect(plateLineParts(book({ authors: ['A', 'B'] })).names).toBe('A, B');
+    expect(plateLineParts(film({ directors: ['A', 'B'] })).names).toBe('A, B');
+  });
+
+  it('reports an absent field as null rather than an empty string', () => {
+    expect(plateLineParts(book({}))).toEqual({ names: null, year: null });
+    expect(plateLineParts(film({ directors: [] }))).toEqual({ names: null, year: null });
   });
 });

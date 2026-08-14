@@ -5,6 +5,7 @@ import {
   searchResults,
 } from '../src/test/fixtures/items.js';
 import { eventsByItem } from '../src/test/fixtures/events.js';
+import { hugeItems } from '../src/test/fixtures/huge.js';
 
 const COLLECTION = 2;
 
@@ -26,7 +27,8 @@ export const handleMockRequest = (method, url) => {
 
   const itemsMatch = path.match(/^\/libraries\/([^/]+)\/items$/);
   if (method === 'GET' && itemsMatch) {
-    const all = itemsByLibrary[itemsMatch[1]] ?? [];
+    // lib-huge exists for the scale profile only and is absent from the library list.
+    const all = itemsMatch[1] === 'lib-huge' ? hugeItems : (itemsByLibrary[itemsMatch[1]] ?? []);
     const limit = Math.min(Number(searchParams.get('limit') ?? 10), 50);
     const offset = searchParams.has('nextToken') ? decodeToken(searchParams.get('nextToken')) : 0;
     const page = all.slice(offset, offset + limit);

@@ -35,7 +35,15 @@ describe('ItemRow', () => {
     const { container } = renderRow(film);
     expect(screen.getByText('Film')).toBeInTheDocument();
     expect(container.querySelector('[data-spine]')).not.toBeNull();
-    expect(screen.getByText(/130′/)).toBeInTheDocument();
+    // The plate line's FIELDS differ by type: a film has a year, a book does not.
+    expect(screen.getByText('1974')).toBeInTheDocument();
+  });
+
+  it('keeps identification off the row — no ISBN, no runtime', () => {
+    renderRow(lentBook);
+    expect(screen.queryByText(/9782070404209/)).toBeNull();
+    renderRow(film);
+    expect(screen.queryByText(/130/)).toBeNull();
   });
 
   it('reads OUT alone on a row, never the borrower', () => {

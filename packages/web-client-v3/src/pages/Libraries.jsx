@@ -38,7 +38,7 @@ const Libraries = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       <AppHeader
         wordmark
         right={
@@ -53,11 +53,15 @@ const Libraries = () => {
         }
       />
 
-      <PullToRefresh onRefresh={refresh} className="flex-1">
+      <PullToRefresh onRefresh={refresh} className="min-h-0 flex-1">
         {error && (
-          <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm">
-            {error} Pull down to try again.
-          </p>
+          // Recovery is a control, not an instruction to perform a gesture.
+          <div role="alert" className="border-t-2 border-out bg-paper-deep p-4">
+            <p className="text-sm">{error}</p>
+            <PlateButton variant="secondary" className="mt-4" onClick={refresh}>
+              Try again
+            </PlateButton>
+          </div>
         )}
 
         {isLoading && !error && (

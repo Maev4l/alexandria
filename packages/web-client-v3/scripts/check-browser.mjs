@@ -124,6 +124,81 @@ try {
     );
   }
 
+  // ---- Pull to refresh actually fires, at the right amount of finger travel ----
+  // A whole class of defect no screenshot and no unit test can see. This one shipped: the
+  // trigger was written against the damped offset rather than the travel, so it needed 160px;
+  // and on touch the browser claimed the gesture and fired pointercancel after one move, so it
+  // never fired at any distance. Both are asserted here, on touch, because touch is the target.
+  console.log('pull to refresh');
+  {
+    const touch = await browser.newPage();
+    try {
+      await touch.emulate({
+        viewport: { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+        userAgent:
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+      });
+      await touch.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
+      await touch.waitForSelector('[data-stream-scroller]');
+      const client = await touch.createCDPSession();
+
+      // Instrumented ONCE. Wrapping window.fetch inside pull() double-wrapped it on the second
+      // call, so every request was counted twice and a correct single refresh reported as two —
+      // a bug in the harness that looked exactly like a bug in the product.
+      await touch.evaluate(() => {
+        window.__reqs = 0;
+        window.__cancels = 0;
+        document
+          .querySelector('[data-stream-scroller]')
+          .addEventListener('pointercancel', () => {
+            window.__cancels += 1;
+          });
+        const inner = window.fetch;
+        window.fetch = (...args) => {
+          if (String(args[0]).includes('/libraries')) window.__reqs += 1;
+          return inner(...args);
+        };
+      });
+
+      const pull = async (distance) => {
+        await touch.evaluate(() => {
+          window.__reqs = 0;
+          window.__cancels = 0;
+        });
+        const x = 195;
+        const y0 = 300;
+        await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: y0 }] });
+        let armed = false;
+        for (let i = 1; i <= 12; i += 1) {
+          await client.send('Input.dispatchTouchEvent', {
+            type: 'touchMove',
+            touchPoints: [{ x, y: y0 + (distance * i) / 12 }],
+          });
+          await new Promise((r) => setTimeout(r, 16));
+          if (await touch.$('[data-ptr-status="armed"]')) armed = true;
+        }
+        await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await new Promise((r) => setTimeout(r, 500));
+        return {
+          ...(await touch.evaluate(() => ({ reqs: window.__reqs, cancels: window.__cancels }))),
+          armed,
+        };
+      };
+
+      const short = await pull(48);
+      record(short.reqs === 0, 'a 48px pull does not refresh', `${short.reqs} request(s)`);
+      record(!short.armed, 'a 48px pull never shows "release to refresh"', `armed: ${short.armed}`);
+
+      const long = await pull(96);
+      record(long.reqs === 1, 'a 96px pull refreshes exactly once', `${long.reqs} request(s)`);
+      record(long.armed, 'a 96px pull announces "release to refresh" first', `armed: ${long.armed}`);
+      // The browser stealing the gesture is what made this dead on touch at ANY distance.
+      record(long.cancels === 0, 'the browser does not steal the gesture', `${long.cancels} pointercancel(s)`);
+    } finally {
+      await touch.close();
+    }
+  }
+
   // ---- The `caps` utility must carry case and tracking, never weight ----
   // It used to set font-weight: 700 as well, so "this is content, stop uppercasing it" also
   // silently removed the emphasis. Asserted as a computed property rather than a pixel value,

@@ -9,7 +9,7 @@ import RowActions from './RowActions.jsx';
 // Deliberately NOT given row-skip: boards are variable-height, and a wrong intrinsic size
 // drifts the scroll position when a continuation page merges members into one mid-scroll.
 const CollectionBoard = ({ board, libraryId, onItemActions, onBoardActions }) => (
-  <div className="m-4 border-[3px] border-ink">
+  <div data-board={board.id} className="m-4 border-[3px] border-ink">
     <div className="flex items-center justify-between gap-2 border-b-2 border-ink p-2">
       <div className="min-w-0">
         {/* Content name — authored case. */}

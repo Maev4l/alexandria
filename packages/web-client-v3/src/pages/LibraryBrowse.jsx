@@ -5,6 +5,7 @@ import IndexLetter from '@/components/imprint/IndexLetter.jsx';
 import CollectionBoard from '@/components/imprint/CollectionBoard.jsx';
 import ItemRow from '@/components/ItemRow.jsx';
 import PullToRefresh from '@/components/PullToRefresh.jsx';
+import PlateButton from '@/components/imprint/PlateButton.jsx';
 import AddItemSheet from '@/components/AddItemSheet.jsx';
 import { Plus } from '@/components/icons';
 import { useLibraries } from '@/state/LibrariesContext.jsx';
@@ -51,7 +52,7 @@ const LibraryBrowse = () => {
   }, [loadMore]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       <AppHeader
         title={library?.name ?? (librariesLoading ? '' : 'Library')}
         onBack={() => navigate('/libraries')}
@@ -80,14 +81,21 @@ const LibraryBrowse = () => {
         </p>
       )}
 
-      <PullToRefresh onRefresh={refresh} className="flex-1" ref={scroller}>
+      <PullToRefresh onRefresh={refresh} className="min-h-0 flex-1" ref={scroller}>
         <main>
           <h1 className="sr-only">{library?.name ?? 'Library'}</h1>
 
           {error && (
-            <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm">
-              {error} Pull down to try again.
-            </p>
+            // Recovery is a CONTROL, never an instruction to perform a gesture: "pull down to
+            // try again" tells a keyboard or mouse reader to do something they cannot do, on
+            // the one screen state whose whole purpose is recovery. The gesture remains as the
+            // touch shortcut for the same action rather than being its only route.
+            <div role="alert" className="border-t-2 border-out bg-paper-deep p-4">
+              <p className="text-sm">{error}</p>
+              <PlateButton variant="secondary" className="mt-4" onClick={refresh}>
+                Try again
+              </PlateButton>
+            </div>
           )}
 
           {isLoading && !error && (

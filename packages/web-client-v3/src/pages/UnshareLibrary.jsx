@@ -43,7 +43,7 @@ const UnshareLibrary = () => {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       {/* The library is named here, not just implied by where the reader came from: this
           route survives a refresh and a PWA restart, and it is a destructive screen. */}
       <AppHeader
@@ -52,7 +52,7 @@ const UnshareLibrary = () => {
         search={false}
       />
 
-      <div className="flex-1">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {error && (
           <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm">
             {error}
