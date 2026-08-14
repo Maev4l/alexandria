@@ -63,7 +63,8 @@ describe('toLetterRuns', () => {
   ];
 
   it('groups consecutive entries under one letter, head and tail included', () => {
-    expect(toLetterRuns(stream).map((r) => r.letter)).toEqual(['#', 'A', 'M', 'Z', 'Œ']);
+    // 1984 files under 1, not a collapsed # bucket: nothing is collapsed.
+    expect(toLetterRuns(stream).map((r) => r.letter)).toEqual(['1', 'A', 'M', 'Z', 'Œ']);
   });
 
   it('files a board under its own name, not its members', () => {

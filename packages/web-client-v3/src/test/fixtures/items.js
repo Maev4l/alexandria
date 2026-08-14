@@ -92,6 +92,9 @@ export const fictionItems = [
     ],
   },
   book('item-voyage', 'Voyage au bout de la nuit', { authors: ['Louis-Ferdinand Céline'] }),
+  // A self-crossing title-initial character is a real possibility in a collection, so the
+  // solid-ink fallback is visible in mock mode rather than theoretical.
+  book('item-ampersand', '&Sons', { authors: ['David Gilbert'] }),
 ];
 
 export const itemsByLibrary = {

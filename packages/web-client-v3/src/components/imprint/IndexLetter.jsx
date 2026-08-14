@@ -1,8 +1,18 @@
+import { cn } from '@/lib/cn';
+import { isAlphanumericLabel } from '@/lib/sort';
+
 // A separator, not a heading: it marks position in the stream, it does not title a section.
-// Chrome yellow filled with a 2px ink stroke, which is why 76px reads as monumental — a
-// stroked yellow letter reads larger than its size.
 //
-// Yellow belongs here: an index letter is the apparatus of finding, not inventory.
+// Yellow belongs here — an index letter is the apparatus of finding, not inventory. But
+// --imprint on --paper measures 1.55:1, so yellow cannot describe a shape on paper at all: it
+// can only be a ground with ink on it, or a fill inside an ink outline. The 2px ink stroke is
+// therefore the entire contrast mechanism, not decoration, which is why 76px reads as
+// monumental — a stroked yellow letter reads larger than its size.
+//
+// The treatment is bounded by the glyph rather than patched per symbol. Alphanumerics are
+// single-outline shapes and take the stroke cleanly. Anything else — &, @, %, *, « — crosses
+// itself, and the stroke collides with itself in the counters, so those render solid ink at
+// 18:1 instead. Solid ink holds for any character the data can ever produce.
 const IndexLetter = ({ letter, count }) => (
   <div
     role="separator"
@@ -11,7 +21,12 @@ const IndexLetter = ({ letter, count }) => (
   >
     <span
       aria-hidden="true"
-      className="text-[76px] font-black leading-[0.82] tracking-[-0.03em] text-imprint [font-stretch:62.5%] [-webkit-text-stroke:2px_var(--ink)]"
+      className={cn(
+        'text-[76px] font-black leading-[0.82] tracking-[-0.03em] [font-stretch:62.5%]',
+        isAlphanumericLabel(letter)
+          ? 'text-imprint [-webkit-text-stroke:2px_var(--ink)]'
+          : 'text-ink',
+      )}
     >
       {letter}
     </span>

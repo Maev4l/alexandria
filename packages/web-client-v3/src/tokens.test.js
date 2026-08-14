@@ -75,6 +75,14 @@ describe('contrast, as promised by DESIGN.md section 2', () => {
   it('paper on ink clears AAA, for the item-detail black cover', () => {
     expect(contrastRatio(paper, PALETTE.ink)).toBeGreaterThanOrEqual(7);
   });
+
+  it('imprint on paper is far too low to describe a shape, which is why ink carries it', () => {
+    // 1.55:1. This one number explains the whole system: yellow can only ever be a ground
+    // with ink on it, or a fill inside an ink outline. It is why the plate has ink figures,
+    // why the index letter is stroked in ink, and why a primary action sets its caps in ink.
+    // An unstroked yellow glyph on paper would be a ghost, not a simplification.
+    expect(contrastRatio(PALETTE.imprint, paper)).toBeLessThan(2);
+  });
 });
 
 describe('the inverted surface, which cannot borrow the paper palette', () => {

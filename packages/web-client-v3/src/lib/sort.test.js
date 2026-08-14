@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { foldForSort, indexLetterFor } from './sort.js';
+import { foldForSort, indexLetterFor, isAlphanumericLabel } from './sort.js';
 
 describe('foldForSort', () => {
   it('reproduces the server fold: strip diacritics, lowercase', () => {
@@ -32,13 +32,16 @@ describe('indexLetterFor', () => {
     expect(indexLetterFor('Île')).toBe('I');
   });
 
-  it('collapses digits and ASCII punctuation into one head bucket', () => {
-    // They all sort below "a" contiguously, so one bucket is truthful and ten near-empty
-    // ones are noise.
-    expect(indexLetterFor('1984')).toBe('#');
-    expect(indexLetterFor('2001: A Space Odyssey')).toBe('#');
-    expect(indexLetterFor('"Nightfall"')).toBe('#');
-    expect(indexLetterFor("'Tis")).toBe('#');
+  it('collapses nothing — a digit files under that digit', () => {
+    // The label is always the real first character. A single # bucket saved a few rows and
+    // cost the reader the one thing the letter is for, and invented an undrawable glyph.
+    expect(indexLetterFor('1984')).toBe('1');
+    expect(indexLetterFor('2001: A Space Odyssey')).toBe('2');
+  });
+
+  it('files punctuation under that punctuation', () => {
+    expect(indexLetterFor('"Nightfall"')).toBe('"');
+    expect(indexLetterFor('&Sons')).toBe('&');
   });
 
   it('shows a non-decomposing character as itself, because it sorts after Z', () => {
@@ -47,8 +50,29 @@ describe('indexLetterFor', () => {
     expect(indexLetterFor('Æneid')).toBe('Æ');
   });
 
-  it('buckets an empty or absent title at the head rather than throwing', () => {
-    expect(indexLetterFor('')).toBe('#');
-    expect(indexLetterFor(undefined)).toBe('#');
+  it('returns no label for an empty title rather than inventing a bucket', () => {
+    // The API requires a title, so this is defensive: bad data shows as blank rather than
+    // being disguised as a real letter.
+    expect(indexLetterFor('')).toBe('');
+    expect(indexLetterFor(undefined)).toBe('');
+  });
+});
+
+describe('isAlphanumericLabel', () => {
+  it('accepts letters, digits and ligatures — all single-outline glyphs', () => {
+    ['A', 'Z', 'É', 'Œ', 'Æ', '1', '9'].forEach((label) => {
+      expect(isAlphanumericLabel(label)).toBe(true);
+    });
+  });
+
+  it('rejects every character that crosses itself and would collide under a stroke', () => {
+    ['#', '&', '@', '%', '*', '«', '"'].forEach((label) => {
+      expect(isAlphanumericLabel(label)).toBe(false);
+    });
+  });
+
+  it('rejects an absent label', () => {
+    expect(isAlphanumericLabel('')).toBe(false);
+    expect(isAlphanumericLabel(undefined)).toBe(false);
   });
 });
