@@ -379,10 +379,18 @@ Nothing is built. No application code exists in `packages/web-client-v3`.
 - [x] Design system (`packages/web-client-v3/DESIGN.md`)
 - [x] IA, routes, screen and flow specification (this file)
 
-**Build — slice A complete** (`docs/superpowers/plans/2026-08-13-web-client-v3.md`)
+**Build — slices A and B complete** (`docs/superpowers/plans/2026-08-13-web-client-v3.md`)
 
-Slice A delivers a running, reviewable app: the libraries root reproduced against the comp,
-behind real Cognito auth, with library CRUD and sharing. 99 tests, Oxlint clean.
+Slice A: the libraries root reproduced against the comp, behind real Cognito auth (verified
+against the live pool by the user), with library CRUD and sharing.
+
+Slice B: the browse stream reproduced against comp 2 — alphabetical, sticky index letters,
+collection boards with server-grouped members, invisible pagination — plus item actions and
+collections CRUD. 184 unit tests, 19 browser checks, Oxlint clean.
+
+Two suites, with a division that matters: `yarn test` asserts rules are DECLARED,
+`yarn check:browser` asserts they SURVIVE the cascade and that gestures actually fire.
+`yarn profile:stream` measures the stream at 1000 items against a pinned baseline.
 
 - [x] Scaffold: Vite + React + Tailwind + PWA, fixed port 5173, `output.json` wiring
 - [x] Token layer and font hosting from `DESIGN.md` — contrast asserted from the real
@@ -399,8 +407,11 @@ behind real Cognito auth, with library CRUD and sharing. 99 tests, Oxlint clean.
 - [ ] Component vocabulary — partial: Volume Plate, Shared Ribbon, Row Actions, Sheet,
       Plate Button, Field, Marks done. Volume Frame, Spine Rule, Plate Line, Type Tag,
       Index Letter, Overprint Stamp, Collection Board, Ledger Row arrive with slices B and C
-- [ ] LibraryBrowse: alphabetical stream, sticky index letters, collection boards,
-      partial-collection continuation
+- [x] LibraryBrowse: alphabetical stream, sticky index letters, collection boards,
+      partial-collection continuation — measured at 1000 items: 0.0px scroll drift when a
+      continuation board merges above the viewport, sticky letters hold, p95 26.3ms
+- [x] Lend / return / delete, with the toast primitive (confirmations only, never failures)
+- [x] Collections: create, edit, delete-as-orphaning
 - [ ] ItemDetail on the black cover, deep-linkable, inline loan ledger
 - [ ] Add flows: ISBN scan, cover OCR, manual paths, preview-before-commit
 - [ ] Edit forms with the collection/order invariant
