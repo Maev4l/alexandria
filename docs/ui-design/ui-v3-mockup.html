@@ -104,9 +104,11 @@
   }
   .backrow { display: flex; align-items: center; gap: var(--d); font-size: 20px; font-weight: 800; }
   .backrow .chev { font-family: var(--mono); font-size: 15px; color: var(--ink-soft); }
+  /* The dominant job gets the loudest mark. --imprint ground with ink text and
+     ink mark: yellow is 1.55:1 on paper and can only ever be a ground. */
   .searchfield {
-    margin-top: calc(var(--d) * 1.5); border: 2px solid var(--ink); background: var(--paper-deep);
-    padding: 0 var(--d); min-height: 48px; font-size: 13px; color: var(--ink-soft);
+    margin-top: calc(var(--d) * 1.5); border: 2px solid var(--ink); background: var(--imprint);
+    padding: 0 var(--d); min-height: 48px; font-size: 13px; color: var(--ink);
     display: flex; justify-content: space-between; align-items: center;
   }
   /* Marks are hand-authored SVG at 2px stroke on the division scale — never a
@@ -147,11 +149,16 @@
     content: ""; position: absolute; left: 0; top: 0; bottom: 0;
     width: 4px; background: var(--shared);
   }
+  /* Counts are inventory, not apparatus: a ruled plate with ink figures and no
+     fill. The filled --imprint plate is reserved for the active state and for
+     primary actions. See DESIGN.md section 4, "Where the yellow goes". */
   .plate {
-    background: var(--imprint); color: var(--ink); font-family: var(--mono);
-    font-size: 12px; font-weight: 700; padding: 2px var(--d); font-variant-numeric: tabular-nums;
+    background: transparent; color: var(--ink); border: 2px solid var(--ink);
+    font-family: var(--mono);
+    font-size: 12px; font-weight: 700; padding: 0 var(--d); font-variant-numeric: tabular-nums;
     flex: 0 0 auto;
   }
+  .plate-active { background: var(--imprint); border-color: var(--imprint); }
   /* Fixed column so a 3-digit count and a 2-digit count leave titles on one
      left edge. Variable-width plates make the whole list ragged. */
   .vol .plate { min-width: 56px; text-align: center; }
@@ -194,13 +201,17 @@
   /* Bottom-RIGHT: the spine rule owns the left edge, and a bottom-left plate
      would sit on top of it on every film frame. */
   .frame .fnum {
-    position: absolute; inset: auto 0 0 auto; background: var(--imprint); color: var(--ink);
-    font-family: var(--mono); font-size: 9px; padding: 1px 3px; font-variant-numeric: tabular-nums;
+    position: absolute; inset: auto 0 0 auto; background: var(--paper); color: var(--ink);
+    border: 1px solid var(--ink);
+    font-family: var(--mono); font-size: 9px; padding: 0 3px; font-variant-numeric: tabular-nums;
   }
   .item-body { min-width: 0; flex: 1; }
   .type-tag { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }
   .item-title { font-size: 17px; font-weight: 600; line-height: 1.25; margin-top: 2px; }
-  .plate-line { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); margin-top: 3px; }
+  /* A name is content and belongs in the sans; section 3 reserves the mono for
+     numerals, so only a film's year is set in it. */
+  .plate-line { font-size: 14px; color: var(--ink-soft); margin-top: 3px; }
+  .plate-line .num { font-family: var(--mono); font-size: 12px; }
   .stamp {
     display: inline-block; margin-top: var(--d);
     border: 2px solid var(--out); color: var(--ink);
@@ -333,7 +344,7 @@
           <div class="appbar">
             <div class="appbar-top">
               <span class="wordmark">Alexandria</span>
-              <span class="acct">JR</span>
+              <span class="acct plate-active">JR</span>
             </div>
             <div class="searchfield">
               <span>Search every library</span>
@@ -409,7 +420,7 @@
               <div class="item-body">
                 <div class="type-tag">Book</div>
                 <div class="item-title">Le Grand Sommeil</div>
-                <div class="plate-line">Raymond Chandler · 9782070404209</div>
+                <div class="plate-line">Raymond Chandler</div>
                 <span class="stamp">Out</span>
               </div>
             </div>
@@ -419,7 +430,7 @@
               <div class="item-body">
                 <div class="type-tag">Film</div>
                 <div class="item-title">Chinatown</div>
-                <div class="plate-line">Roman Polanski · 1974 · 130′</div>
+                <div class="plate-line">Roman Polanski · <span class="num">1974</span></div>
               </div>
             </div>
 
@@ -445,7 +456,7 @@
                   <div class="item-body">
                     <div class="type-tag">Film</div>
                     <div class="item-title">Le Samouraï</div>
-                    <div class="plate-line">Jean-Pierre Melville · 1967 · 105′</div>
+                    <div class="plate-line">Jean-Pierre Melville · <span class="num">1967</span></div>
                   </div>
                 </div>
               </div>
@@ -570,6 +581,19 @@
           <div class="means">Shared, in or out. Nothing else, ever.</div>
         </div>
       </div>
+    </div>
+
+    <div class="callout warn" style="margin-top:32px">
+      <h3>Where the yellow goes</h3>
+      <p style="margin-bottom:0">
+        An earlier draft spent <span class="mono">--imprint</span> on counts, and rendered, that
+        inverted the product's first principle: every loud mark on the home screen served
+        <em>browsing</em> while search — the dominant job — was the quietest element on the page.
+        Placement is not prominence. So yellow now marks <strong>the apparatus of finding and
+        acting</strong>: the search field, the index letters, the active state, primary actions.
+        Counts are inventory and take a ruled plate. Yellow is how you find and how you act; ink is
+        what you own.
+      </p>
     </div>
 
     <h3 style="margin-top:32px">The inverted surface has its own three</h3>
@@ -712,12 +736,12 @@
           <tr>
             <td>Volume Plate</td>
             <td><span style="display:inline-flex;gap:8px;flex-wrap:wrap"><span class="plate">412</span><span class="plate">⌗ 12</span><span class="plate">01</span></span></td>
-            <td>Solid chrome yellow, mono figures. Carries <strong>only a real count or order</strong>: a library's <span class="mono">totalItems</span>, a collection's <span class="mono">itemCount</span>, or a member's <span class="mono">order</span>. Standalone items get no plate — see the note below.</td>
+            <td><strong>Ruled, not filled</strong>: a 2px ink rule with ink mono figures. Counts are inventory, not apparatus. Carries <strong>only a real count or order</strong> — a library's <span class="mono">totalItems</span>, a collection's <span class="mono">itemCount</span>, or a member's <span class="mono">order</span>. The filled yellow plate is reserved for the active state and for primary actions. Standalone items get no plate.</td>
           </tr>
           <tr>
             <td>Plate Line</td>
-            <td><span class="plate-line">Roman Polanski · 1974 · 130′</span></td>
-            <td>Book: author · ISBN. Film: director · year · runtime. Fields differ by type; position does not.</td>
+            <td><span class="plate-line">Roman Polanski · <span class="num">1974</span></span></td>
+            <td>Book: <strong>author</strong>. Film: <strong>director · year</strong>. ISBN, TMDB id and runtime are identification and live on item detail, not on a row — a row exists to be recognised in a scan. Names set in the sans; only figures take the mono.</td>
           </tr>
           <tr>
             <td>Type Tag</td>
