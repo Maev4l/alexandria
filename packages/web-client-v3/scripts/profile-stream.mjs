@@ -26,8 +26,19 @@ const BASE = `http://localhost:${PORT}`;
 const ROUTE = '/libraries/lib-huge';
 const MAC_CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const FRAME_BUDGET_MS = 50;
-// Gates, measured at 1x. p95 26.7ms and 0.5% of frames over budget at PAGE_SIZE 30; these
-// leave headroom without leaving room for a regression to hide.
+// Gates, measured at 1x. A percentile is only comparable against the same workload, so the
+// baseline it came from is pinned here rather than left implicit — otherwise a future run
+// compares against different work and the gate silently becomes meaningless.
+//
+// BASELINE: src/test/fixtures/huge.js, 942 top-level entries / 1000 items, PAGE_SIZE 30,
+// viewport 390x844 at deviceScaleFactor 2, headless Chrome, unthrottled. Observed p95 26.3-26.7ms
+// and 0.5% of frames over 50ms.
+//
+// This fixture carries almost NO artwork. When the real-image fixture lands, image decode enters
+// the measurement and these numbers will move. That is a DELIBERATE RE-BASELINE with the reason
+// recorded next to it — never a quiet adjustment to keep the gate green. If real thumbnails push
+// p95 past 34ms, the honest response is a new baseline plus a note that decode is now included,
+// not a larger number with no explanation.
 const P95_BUDGET_MS = 34;
 const MAX_OVER_BUDGET_SHARE = 0.01;
 

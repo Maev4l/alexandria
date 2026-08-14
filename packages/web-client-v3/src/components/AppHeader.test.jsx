@@ -17,17 +17,29 @@ describe('AppHeader', () => {
     expect(screen.getByText('Alexandria')).toBeInTheDocument();
   });
 
-  it('pins the search field by default and links it to the search surface', () => {
+  it('pins a REAL search input, not a link costumed as one', () => {
     renderHeader({ wordmark: true });
-    expect(screen.getByRole('link', { name: /search every library/i })).toHaveAttribute(
-      'href',
-      '/search',
-    );
+    // It was a <Link> with the box, the placeholder and the magnifier, accepting no keystroke —
+    // which inverted the product's first principle: the front door did not open.
+    const field = screen.getByRole('searchbox', { name: /search every library/i });
+    expect(field.tagName).toBe('INPUT');
+    expect(screen.queryByRole('link', { name: /search every library/i })).toBeNull();
+  });
+
+  it('gives the field the imprint ground, because finding is the dominant job', () => {
+    const { container } = renderHeader({ wordmark: true });
+    expect(container.querySelector('[role=search]').className).toContain('bg-imprint');
+  });
+
+  it('does not embolden the placeholder, which would read as a button rather than a field', () => {
+    renderHeader({ wordmark: true });
+    const field = screen.getByRole('searchbox', { name: /search every library/i });
+    expect(field.className).toContain('font-normal');
   });
 
   it('drops the pinned search field on the inverted cover', () => {
     renderHeader({ inverted: true, onBack: () => {} });
-    expect(screen.queryByRole('link', { name: /search every library/i })).toBeNull();
+    expect(screen.queryByRole('searchbox')).toBeNull();
   });
 
   it('renders a back control when onBack is given', async () => {

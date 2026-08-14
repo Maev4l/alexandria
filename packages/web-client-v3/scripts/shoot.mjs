@@ -7,6 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import puppeteer from 'puppeteer-core';
+import { startFixtureServer, stopFixtureServer } from './fixture-server.mjs';
 
 const VIEWPORTS = {
   // 390 is the comp's own frame width, so crops line up against it without scaling.
@@ -43,6 +44,9 @@ const USAGE = [
   '  --clip      CSS selector; capture only that element',
   '  --wait      CSS selector to await before capturing',
   '  --scale     device pixel ratio               (default: 2)',
+  '  --serve     start a fixture server on a private port and shoot a PATH target,',
+  '              stopping it afterwards. Removes all manual server juggling — and with',
+  '              it the orphaned-port problem that juggling kept creating.',
 ].join('\n');
 
 const parseArgs = (argv) => {
@@ -56,6 +60,7 @@ const parseArgs = (argv) => {
     else if (flag === '--clip') args.clip = argv[++i];
     else if (flag === '--wait') args.wait = argv[++i];
     else if (flag === '--scale') args.scale = Number(argv[++i]);
+    else if (flag === '--serve') args.serve = true;
     else throw new Error(`Unknown flag ${flag}\n\n${USAGE}`);
   }
   if (!args.target) throw new Error(USAGE);
@@ -73,6 +78,14 @@ const args = parseArgs(process.argv.slice(2));
 const viewport = resolveViewport(args.viewport);
 const out = path.resolve(args.out ?? DEFAULT_OUT[args.viewport] ?? 'shot.png');
 
+// With --serve the target is a PATH, and the server it is shot against is started and stopped
+// here. Every orphaned port in this project came from starting one by hand in a shell.
+const SERVE_PORT = Number(process.env.SHOOT_PORT ?? 5190);
+const server = args.serve
+  ? await startFixtureServer({ port: SERVE_PORT, readyPath: args.target })
+  : null;
+const target = args.serve ? `http://localhost:${SERVE_PORT}${args.target}` : args.target;
+
 const browser = await puppeteer.launch({
   executablePath: resolveChrome(),
   headless: true,
@@ -85,7 +98,7 @@ try {
   // Motion off at the engine level, so no transition is ever caught mid-flight.
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
 
-  await page.goto(args.target, { waitUntil: 'networkidle0', timeout: 60_000 });
+  await page.goto(target, { waitUntil: 'networkidle0', timeout: 60_000 });
   if (args.wait) await page.waitForSelector(args.wait, { timeout: 30_000 });
   // Webfonts swap late; capturing before they settle compares two different typefaces.
   await page.evaluate(() => document.fonts.ready);
@@ -94,11 +107,12 @@ try {
 
   // Element clipping is what makes a region-by-region review possible: a single full-page
   // thumbnail hides exactly the failures worth finding.
-  const target = args.clip ? await page.$(args.clip) : page;
-  if (args.clip && !target) throw new Error(`No element matches ${args.clip}`);
-  await target.screenshot({ path: out, fullPage: args.clip ? undefined : args.full });
+  const shotTarget = args.clip ? await page.$(args.clip) : page;
+  if (args.clip && !shotTarget) throw new Error(`No element matches ${args.clip}`);
+  await shotTarget.screenshot({ path: out, fullPage: args.clip ? undefined : args.full });
 
   console.log(`${out}  ${args.viewport} @${args.scale}x${args.full ? ' full-page' : ''}`);
 } finally {
   await browser.close();
+  if (server) await stopFixtureServer(server);
 }

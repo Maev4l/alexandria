@@ -58,7 +58,10 @@ const VolumeFrame = ({ item, hero = false, className }) => {
       {item.collectionId && item.order != null && (
         // Bottom-RIGHT: the spine rule owns the left edge, and a bottom-left plate would sit
         // on top of it on every film frame.
-        <VolumePlate className="absolute bottom-0 right-0 border px-[3px] py-0 text-[9px]">
+        // A 1px rule here, not 2: 2px around a 9px figure is mud. A size-dependent exception
+        // to the ruled plate, not a different component. --paper ground so it reads over
+        // artwork.
+        <VolumePlate className="absolute bottom-0 right-0 border bg-paper px-[3px] py-0 text-[9px]">
           {String(item.order).padStart(2, '0')}
         </VolumePlate>
       )}

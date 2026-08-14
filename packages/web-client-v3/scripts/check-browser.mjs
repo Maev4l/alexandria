@@ -55,7 +55,7 @@ try {
     ['/login', 'button[type=submit]', 'login submit (imprint plate)'],
     ['/libraries/new', 'input', 'new-library name input'],
     ['/libraries/new', 'textarea', 'new-library description textarea'],
-    ['/libraries', 'a[href="/search"]', 'pinned search field'],
+    ['/libraries', 'input[type=search]', 'pinned search field (a real input)'],
   ]) {
     await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
     await page.waitForSelector(selector, { timeout: 10_000 });

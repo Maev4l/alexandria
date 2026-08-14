@@ -10,10 +10,10 @@ const PlateLine = ({ item, className }) => {
   if (!names && !year) return null;
 
   return (
-    <span className={cn('mt-[3px] block text-[11px] text-ink-soft', className)}>
+    <span className={cn('mt-[3px] block text-[14px] text-ink-soft', className)}>
       {names}
       {names && year && ' · '}
-      {year && <span className="num">{year}</span>}
+      {year && <span className="num text-[12px]">{year}</span>}
     </span>
   );
 };

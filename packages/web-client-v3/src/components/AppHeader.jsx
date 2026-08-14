@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
-import { ChevronLeft, Search } from '@/components/icons';
+import { ChevronLeft } from '@/components/icons';
+import SearchField from '@/components/imprint/SearchField.jsx';
 
 // The header carries three things and never a tab bar: identity or a way back, the pinned
 // search field, and one right-hand plate whose contents change per screen — account initials
@@ -53,15 +53,7 @@ const AppHeader = ({
       {right}
     </div>
 
-    {search && !inverted && (
-      <Link
-        to="/search"
-        className="mt-3 flex min-h-12 items-center justify-between border-2 border-ink bg-paper-deep p-2 text-[13px] text-ink-soft"
-      >
-        <span>Search every library</span>
-        <Search size={16} />
-      </Link>
-    )}
+    {search && !inverted && <SearchField />}
   </header>
 );
 
