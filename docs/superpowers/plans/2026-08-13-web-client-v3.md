@@ -32,7 +32,10 @@ Every task's requirements implicitly include this section.
 - Never commit or push outside the explicit `git commit` steps in this plan. Never push at all.
 
 **Design system — non-negotiable, from `DESIGN.md`**
-- **Palette law.** Seven tokens, each with exactly one meaning: `--paper #F6F6F3`, `--paper-deep #ECECE7`, `--ink #0B0B0B`, `--ink-soft #5A5A57`, `--imprint #F2C200`, `--out #D8412F` (on loan, nothing else), `--shared #0F6B4F` (shared, nothing else). **No hex literal appears anywhere outside `src/index.css`.**
+- **Palette law.** Ten tokens, each with exactly one meaning: `--paper #F6F6F3`, `--paper-deep #ECECE7`, `--ink #0B0B0B`, `--ink-soft #5A5A57`, `--imprint #F2C200`, `--out #D8412F` (on loan, nothing else), `--shared #0F6B4F` (shared, nothing else), plus the inverted-surface set `--cover-body #DEDED9`, `--cover-soft #B9B9B4`, `--cover-rule #3A3A38` (black cover only; on paper they are a bug). **No hex literal appears anywhere outside `src/index.css`.**
+- **Yellow is how you find and how you act; ink is what you own.** `--imprint` marks the **apparatus of finding and acting** — the search field, index letters, the active/selected state, primary actions. It does **not** mark inventory. Counts are inventory: the library row plate, a collection board's count and a member's order plate are **2px ruled plates with `--ink` figures and no fill**. (Changed after slice A: rendered, the home screen made search the quietest element while every loud mark served browsing, which inverts `PRODUCT.md`'s first principle. Placement is not prominence.)
+- **Accessibility floors that a stylesheet test cannot see.** Pinch-zoom stays enabled — no `maximum-scale`, no `user-scalable=no`. The focus ring must actually paint: never apply `outline-none` to a focusable element, because Tailwind utilities outrank the `:focus-visible` base rule and kill `outline-style` while leaving colour and width intact. Verify with `yarn check:browser`, which computes resolved styles in real Chrome; `yarn test` asserts only that rules are *declared*.
+- **Desktop is one constrained column**, `max-w-md` (448px, 56 divisions), centred — including sheets. No breakpoints, no second layout.
 - **No rounded corners** — every radius is 0. **No shadows.** No gradients, no glassmorphism.
 - **No serif.** Archivo (variable) for everything; Chivo Mono for numerals, ISBN, runtime, dates.
 - **Division scale.** Base unit 4px, division 8px. Every dimension, gap, inset and rule offset is a whole number of divisions. Phone margin 16px, gutter 8px, minimum touch target 48px, item row height 80px.
@@ -3936,6 +3939,50 @@ by a visible affordance on every owned row."
 ---
 
 # Slice B — the library browse stream
+
+## Carried into slice B from the slice A critique
+
+Decided before slice B starts so they are built in rather than retrofitted. The first two are
+design rulings; the rest are defects found by rendering slice A.
+
+**B0-1 — the yellow moves.** Apply the apparatus-not-inventory rule above while building the
+stream, not afterwards. `VolumePlate` gains a ruled variant (2px `--ink` rule, `--ink` mono
+figures, no fill) which becomes the default for counts and orders; the filled `--imprint` plate
+is reserved for the active state. Index letters and primary actions are unchanged. `LibraryRow`,
+`CollectionBoard` and `VolumeFrame`'s order plate all take the ruled variant.
+
+**B0-2 — the search field becomes a real input.** Today it is a `<Link>` costumed as one: it
+has the box, the placeholder grey and the magnifier, and accepts no keystroke. Make it an
+`<input>` that types in place and navigates to `/search` carrying its value, and give it the
+`--imprint` ground so it is the loudest mark on the home screen. It is the dominant job.
+
+**B1 — `Sheet` shouts French titles.** `Sheet.jsx` puts `className="caps"` on its title, and the
+library actions sheet passes `library.name` — so "Bandes dessinées" is currently uppercased, in
+direct violation of the §3 rule that exists for exactly that reason. A caps *label* is right for
+a sheet heading; the fix is to pass an interface label and render the content name separately,
+not to uppercase content. One-line class change plus a caller change. **Do this first — it is a
+live violation of a rule the rest of the build is holding.**
+
+**B1 — the authenticated app has no landmarks.** No `<main>`, no `<h1>` on any authenticated
+screen, and `<html lang="en">` sits over mixed English/French content. Add `<main>` and a
+per-screen `<h1>` as the stream is built, and mark French content with `lang="fr"` where the
+language of an item is known — which, since the API does not record language, means the
+document stays `en` and only known-French UI strings get marked. Do not fake a language field.
+
+**B1 — no mutation is confirmed and there is no toast primitive.** `DESIGN.md` reserves toasts
+for confirmations; none exists. Slice B introduces lend, return and delete, so build the toast
+primitive with the first of them, and keep the rule: a toast never carries a failure, and never
+carries the only report of a destructive action.
+
+**B1 — unshare commits on a single tap while delete gets two steps.** Unshare is destructive and
+irreversible for the recipient. Give it the same in-place confirmation the delete flow has.
+
+**B1 — offline and 401 have no state.** A dropped connection currently renders
+"Failed to fetch Pull down to try again." Give `ApiError` a recognisable network case and a 401
+case: the first says the connection is gone and the app is online-only; the second returns to
+`/login` without losing the route. `PRODUCT.md` requires offline to be honest rather than stale.
+
+**B2 — `Sheet` has no focus trap.** Focus escapes to the page behind it.
 
 ---
 
