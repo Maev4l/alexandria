@@ -90,6 +90,14 @@ were out by up to 0.7.
 | `--out` on `--paper` | **stamps and rules only** | 4.11:1 — under the 4.5 AA floor, so red stays restricted to ≥18px bold, rules and stamp outlines. Never small red body text. |
 | `--cover-body` on `--ink` | summary on the cover | 14.58:1 |
 | `--cover-soft` on `--ink` | plate line, durations on the cover | 9.99:1 |
+| `--imprint` on `--paper` | **never text, never a shape** | ~1.55:1 — yellow on paper is invisible on its own |
+
+**Yellow never carries a shape by itself.** At ~1.55:1 against paper, `--imprint` cannot describe a
+form; it can only be a *ground* with ink on top of it, or a *fill* inside an ink outline. That single
+fact explains the whole system: the plate works because ink figures sit on yellow (11.71:1), the
+monumental index letter works because a 2px ink stroke traces it, and a primary action works because
+its caps are ink. Any future use of yellow that has no ink doing the describing is unreadable, not
+subtle.
 
 That restriction is not a workaround; it is the Iridescent Edge discipline enforced by
 arithmetic. State lives on edges.
@@ -314,16 +322,38 @@ The alphabet is therefore **not A–Z**, because NFD only strips *combining* mar
 no canonical decomposition, so they survive the fold and sort after `z`; ASCII digits and
 punctuation sort before `a`. The label is derived from the folded first character by position:
 
-| Folded first character | Index Letter shows | Where it lands |
-|---|---|---|
-| `a`–`z` | the uppercase letter | A–Z, in order |
-| ASCII digit or ASCII punctuation | `#`, one bucket | head of the stream, before A |
-| anything else (`œ`, `æ`, `«`, …) | **the character itself**, uppercased | tail of the stream, after Z |
+**Nothing is collapsed.** The label is always the actual folded first character, uppercased —
+letters, digits, ligatures, punctuation alike. `1984` files under `1`, `Œuvres complètes` under `Œ`,
+`Élan` under `E`. An earlier draft collapsed digits and ASCII punctuation into a single `#` bucket to
+avoid near-empty headers; that bought a handful of saved rows and cost the one thing the letter is
+for, which is telling the reader exactly where they are. Near-empty head buckets are rare, truthful,
+and cheap.
 
-Folding `Œuvres complètes` to a display "O" would be a lie: it sits after Z, not among the Os, and
-a reader sent to the Os would not find it. An honest `Œ` at 900 weight and 96–120px is also a better
-piece of lettering than a fake O. Digits and ASCII punctuation collapse to a single `#` because they
-all sort below `a` contiguously, so one bucket is truthful and ten near-empty ones are noise.
+Folding `Œuvres complètes` to a display "O" would be a lie: it sits after Z, not among the Os, and a
+reader sent to the Os would not find it. Rendered, the honest `Œ` also turned out to be the best
+piece of lettering in the set.
+
+### The stroke cannot cross itself
+
+`-webkit-text-stroke` traces every stroke of a glyph independently, so wherever two strokes cross,
+the two outlines collide. In a glyph with one closed outline — every letter, every digit — this is
+invisible. In `#`, which is four strokes crossing twice, at wght 900 and wdth 62.5% the counters are
+narrower than 2px of stroke on each side, and the character resolves into nine separate yellow
+quadrilaterals. It is not a legibility compromise; it stops being a character.
+
+So the treatment is bounded by the glyph, not patched per symbol:
+
+| Label | Treatment |
+|---|---|
+| Alphanumeric (`A`–`Z`, `0`–`9`, `Œ`, `Æ`, accented caps) | `--imprint` fill with a 2px `--ink` text-stroke, as specified in §3 |
+| Anything else (`"`, `(`, `&`, `@`, `*`, …) | **solid `--ink`, unstroked** |
+
+The second row is a legibility carve-out with a stated reason, not an aesthetic exception: solid ink
+is 18:1 on paper, has no outline to collide with itself, and holds at any weight or width for any
+glyph the data can produce. It also reads as structurally different, which is true — that bucket is
+not a letter. Do not reach for a lighter stroke or a wider glyph instead: 1px still collides in the
+same counters, and per-symbol width overrides are a special case per symbol, which is a rule that
+grows every time the data surprises you.
 
 ---
 
