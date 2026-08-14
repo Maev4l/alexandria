@@ -13,7 +13,8 @@
     "test:watch": "vitest",
     "shoot": "node scripts/shoot.mjs",
     "fonts": "node scripts/fetch-fonts.mjs",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "check:browser": "node scripts/check-browser.mjs"
   },
   "dependencies": {
     "aws-amplify": "6.16.2",

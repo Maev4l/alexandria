@@ -33,7 +33,9 @@ const Sheet = ({ open, title, onClose, children }) => {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="pad-bottom-safe max-h-[80dvh] overflow-y-auto border-t-[3px] border-ink bg-paper-deep p-4 outline-none motion-safe:animate-[sheet-rise_var(--press-sheet)_linear]"
+        // Constrained and centred like the column it belongs to: a full-bleed sheet under a
+        // 448px column would be a different app at 1440px.
+        className="pad-bottom-safe mx-auto max-h-[80dvh] w-full max-w-md overflow-y-auto border-t-[3px] border-ink bg-paper-deep p-4 motion-safe:animate-[sheet-rise_var(--press-sheet)_linear]"
       >
         <h2 id={titleId} className="caps mb-4 text-[11px] text-ink-soft">
           {title}

@@ -71,7 +71,7 @@ Each colour has exactly one job. A colour used for anything else is a bug.
 | `--paper-deep` | `#ECECE7` | A recessed field: search surface, sheets, form wells. |
 | `--ink` | `#0B0B0B` | Content and structure: text, rules, frames. |
 | `--ink-soft` | `#5A5A57` | Secondary content only (metadata lines, counts). Never structure. |
-| `--imprint` | `#F2C200` | The imprint's own mark: volume plates, index letters, the active/selected state, primary actions. |
+| `--imprint` | `#F2C200` | **The apparatus of finding and acting**: the search field, index letters, the active/selected state, primary actions. Never the inventory itself. |
 | `--out` | `#D8412F` | On loan. Nothing else, ever. |
 | `--shared` | `#0F6B4F` | Shared — outbound or inbound. Nothing else, ever. |
 
@@ -191,6 +191,7 @@ which is where drift is visible and compounding.
 | Gutter | 1 division (8px) |
 | Phone grid | 4 columns |
 | Tablet grid | 8 columns, 3-division margin |
+| Column max-width | **56 divisions (448px), centred.** The app is phone-first and gets no second layout, but a full-bleed phone column stretched across 1440px is not "sane and usable" — it drags a 56px plate and a right-edge affordance to opposite ends of the viewport. Constraining and centring the column is the whole desktop provision. |
 | Minimum touch target | 6 divisions (48px) — applies to the search field and the account plate too; both are taps, not labels |
 | Row height, with a sub-line | 10 divisions (80px) |
 | Row height, without | 8 divisions (64px) — **not 60**, which is 7.5 divisions and off the scale |
@@ -254,6 +255,29 @@ Fewer plates on the browse stream is the correct outcome, not a loss: a number t
 something is worth more than a number on everything. Chrome yellow still carries the index
 letters, the active state, collection boards, library rows and primary actions.
 
+### Where the yellow goes, and why it moved
+
+An earlier draft spent `--imprint` on counts — every library row and collection board carried a
+chrome-yellow plate. Rendered, that inverted the product's first principle: the home screen's
+loudest marks all served *browsing*, while search, the dominant job, was the quietest element on
+the page. Placement is not prominence, and pinning the field satisfied the IA while the visual
+hierarchy said the opposite.
+
+So the yellow moved. **`--imprint` marks the apparatus of finding and acting** — the search field,
+the index letters, the active state, primary actions. Counts are inventory, not apparatus:
+
+| Element | Was | Now |
+|---|---|---|
+| Search field | recessed `--paper-deep`, `--ink-soft` placeholder | `--imprint`, the loudest mark on the home screen, and a **real input** that accepts keystrokes |
+| Library row plate | `--imprint` fill | `--ink` figures in a 2px ruled plate, no fill |
+| Collection board `⌗ N` | `--imprint` fill | same ruled treatment |
+| Collection member order | `--imprint` fill | same ruled treatment |
+| Index letter | `--imprint` filled, `--ink` stroked | unchanged — finding apparatus |
+| Primary action | `--imprint` plate | unchanged |
+
+The plate survives as a structural device; only its fill changes. And the rule now reads as one
+sentence rather than a list: yellow is how you find and how you act, ink is what you own.
+
 ### The index alphabet
 
 The stream's order is the server's, and the server folds it: `NormalizeForSort` in
@@ -292,7 +316,8 @@ all sort below `a` contiguously, so one bucket is truthful and ten near-empty on
 |---|---|
 | **Volume Frame** | The item's artwork frame — 2px rule, portrait 2:3 for every item (§4). Films add the spine rule. With no artwork it stays a ruled empty frame: no number, no placeholder icon, no apology. |
 | **Spine Rule** | 3px vertical rule inset one division from a frame's left edge. Marks a film — the wrap of a DVD or Blu-ray keep case. Drawn on empty frames as well as artwork. |
-| **Volume Plate** | Solid `--imprint` rectangle, black mono figures. Carries only a real count or order — see §4, *What a plate carries*. Absent on standalone items. |
+| **Volume Plate** | A 2px ruled rectangle with `--ink` mono figures, **no fill** — counts are inventory, not apparatus (§4, *Where the yellow goes*). Carries only a real count or order — see §4, *What a plate carries*. Absent on standalone items. |
+| **Search Field** | A **real text input**, never a link costumed as one: it takes the `--imprint` ground and is the loudest mark on any screen carrying it, because finding is the job this product exists for. Pinned in the header on list screens; the cover carries search in the right slot instead. |
 | **Plate Line** | The engraved metadata line. Book: `AUTHOR · ISBN`. Film: `DIRECTOR · 1974 · 118′`. Fields differ by type; the line's position does not. |
 | **Type Tag** | 11px caps, `BOOK` or `FILM`, at the row head. |
 | **Index Letter** | Monumental sticky letter with a 4px rule, marking the reader's position in the stream. Its label comes from the server's fold — see §4, *The index alphabet* — so it is not always A–Z. **Its count appears only on a closed run.** A run closes the instant a different letter appears after it in the stream, at which point the number is final; the run at the tail of the loaded stream shows no count at all, and no placeholder. A number that grows while the reader looks at it is worse than no number. The count is items — standalone entries plus each board's `itemCount`, counting a board once and ignoring its `partial` continuation. |

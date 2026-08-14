@@ -2,10 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-    />
+    <!-- No maximum-scale and no user-scalable=no: pinch-zoom stays available. WCAG 1.4.4, and
+         this app's dominant use is a bookshop in poor light reading 11-14px metadata.
+         viewport-fit=cover is the only part that is load-bearing — it is what lets the header
+         and bottom actions pad into the notch and home indicator. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0B0B0B" />
     <meta name="description" content="Alexandria — a circulation record for a physical collection" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
