@@ -17,8 +17,13 @@ dist/
 # Drawio
 *.bkp
 
-# Design-review screenshots (build artefacts from packages/web-client-v3/scripts/shoot.mjs)
-.impeccable/review/
+# Impeccable tooling output: review screenshots (scripts/shoot.mjs), critique
+# snapshots, decision-page state and the detector hook cache. All generated,
+# none of it source — durable design decisions live in packages/web-client-v3/DESIGN.md
+# and docs/. Ignored as a whole directory rather than per-subdirectory, because
+# review/ alone left critique/ and questions/ untracked-but-visible, which is a
+# trap for a wide `git add -A`.
+.impeccable/
 
 # Local dev env files (per-developer secrets)
 **/.env.local
