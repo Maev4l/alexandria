@@ -22,7 +22,7 @@ const DetailMarks = ({ item, library, loans }) => {
   if (!libraryName && !isSharedOut && !isSharedIn && !item.lentTo) return null;
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-start gap-3 pl-2">
+    <div className="flex min-w-0 flex-1 flex-col items-start gap-2 pl-2">
       {libraryName && (
         // "In" is an interface label and takes caps; the library name is content the reader
         // authored, so it never does (§3) — the same construction as FROM <owner>. It links

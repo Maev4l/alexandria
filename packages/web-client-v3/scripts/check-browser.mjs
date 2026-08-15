@@ -383,6 +383,13 @@ try {
       return {
         heading: weightOf(byText('h2', 'The record')),
         link: weightOf(byText('a', 'Full record')),
+        // Round 2's two newest `caps` usages, added by the Detail Marks column. `IN` is the
+        // direct caps span inside the `data-mark="in"` line; the sharing mark's caps class sits
+        // on the PARENT of `data-mark="shared"` (the inner node is only the text/edge wrapper),
+        // so this reaches it structurally rather than by a class-name guess that would break the
+        // moment the classes on that span get reordered or renamed.
+        inLabel: weightOf(document.querySelector('[data-mark="in"] .caps')),
+        sharedMark: weightOf(document.querySelector('[data-mark="shared"]')?.parentElement),
       };
     });
     record(
@@ -394,6 +401,16 @@ try {
       weights.link !== null && weights.link > 400,
       '"Full record" link resolves above ambient weight',
       `font-weight: ${weights.link}`,
+    );
+    record(
+      weights.inLabel !== null && weights.inLabel > 400,
+      'the "IN" label resolves above ambient weight',
+      `font-weight: ${weights.inLabel}`,
+    );
+    record(
+      weights.sharedMark !== null && weights.sharedMark > 400,
+      'the sharing mark resolves above ambient weight',
+      `font-weight: ${weights.sharedMark}`,
     );
   }
 } finally {
