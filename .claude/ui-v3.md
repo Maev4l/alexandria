@@ -349,6 +349,19 @@ them.
 **Errors.** Inline and in place. Toasts are for confirmations only, never the sole report of a
 failed or destructive operation.
 
+**An error must never attribute a system fault to the reader.** A second user's first sign-in
+showed her "Unauthorized" — telling her she lacked permission, when in fact the app had failed to
+authenticate *itself* and sent a request with no token. She had done nothing wrong and could do
+nothing about it. Never pass a server's status word through to a reader as though it described
+them; say what the app failed to do, and give it a way to recover.
+
+That defect also sets the rule for **weighting severity: prefer the defects that cannot be
+reported.** Every other finding in the slice B critique had someone who would eventually complain —
+a reader who cannot see a focus ring, a reader thrown back to page one. This one produced a
+plausible error that blamed the reader, so its most likely outcome was silence: she assumes she
+lacks access and never mentions it. A silent failure has no reporter, and severity should account
+for that, not only for what the defect costs when it fires.
+
 **Touch.** Minimum 48px targets. Primary actions in thumb reach. Long-press is always duplicated
 by a visible affordance, since long-press alone is undiscoverable.
 
