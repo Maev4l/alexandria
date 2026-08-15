@@ -131,6 +131,21 @@ The focus ring is `--imprint`, which already owns the active and selected state 
 every focused element momentarily read as lent. Do not fake a double ring with `box-shadow` either —
 the no-shadow law in §4 is mechanically checkable, and a shadow-shaped outline defeats the check.
 
+**Where an element already carries an ink rule, focus THICKENS that rule — it never adds a second,
+concentric one.** Two parallel ink lines with a strip of ground between them read as misregistered
+printing, not as emphasis. The offset ring was specified for a plate: a small solid `--imprint`
+rectangle with no rule of its own. Applied to something that is both imprint-grounded *and*
+ink-bordered — the search field — it produces exactly that doubled edge. Render the indicator at
+`outline-offset: 0` so it merges with the existing border into one heavier rule. State expressed by
+rule weight is already this system's language (§4); focus is not an exception to it.
+
+**Focus belongs to the control a reader sees, not to the node that happens to take the caret.** The
+search field is one control — ground, rule, input and mark together — so its indicator renders on
+that whole box via `:focus-within`, and the inner input carries none. This is the one case where
+suppressing an input's own outline is correct rather than the defect it was in slice A, and the
+distinction is not a matter of judgement: it holds only while the parent demonstrably shows an
+indicator, so a browser check must assert that focusing the input makes the control visibly focused.
+
 ---
 
 ## 3. Typography
