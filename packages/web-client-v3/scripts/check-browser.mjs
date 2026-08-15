@@ -277,6 +277,40 @@ try {
     'header column no wider than 448px at 1440px',
     `measured ${column}px`,
   );
+
+  // ---- The inverted cover never borrows the paper surface's secondary tokens ----
+  // DESIGN.md §2 is explicit that --ink-soft and --paper-deep belong to the PAPER surface only:
+  // --ink-soft on --ink measures ~1.9:1, unreadable, which is exactly why the cover has its own
+  // --cover-body/--cover-soft/--cover-rule tokens. Reaching for the familiar `text-ink-soft` out
+  // of habit while styling a component that also appears on paper is invisible in source review —
+  // both classes exist, both are "correct" in isolation — and only shows up as low-contrast grey
+  // on black once it actually paints. A stylesheet test cannot catch this either: it would have
+  // to know which literal elements land on the inverted route, which is exactly what jsdom cannot
+  // resolve. Only a computed style in a real browser, on the real route, catches it.
+  console.log('cover surface never resolves to a paper-surface secondary colour');
+  await page.setViewport({ width: 390, height: 844 });
+  await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
+  // Specific to this fixture item (lentTo: 'Marie') rather than a generic selector, so the check
+  // waits for the fully-loaded detail body rather than racing the loading placeholder.
+  await page.waitForSelector('[aria-label="On loan to Marie"]', { timeout: 10_000 });
+  const INK_SOFT = 'rgb(90, 90, 87)';
+  const PAPER_DEEP = 'rgb(236, 236, 231)';
+  const offenders = await page.evaluate(
+    (inkSoft, paperDeep) =>
+      [...document.querySelectorAll('body *')]
+        .filter((el) => {
+          const s = getComputedStyle(el);
+          return [s.color, s.backgroundColor].some((v) => v === inkSoft || v === paperDeep);
+        })
+        .map((el) => el.tagName.toLowerCase() + (el.className ? `.${String(el.className).trim().replace(/\s+/g, '.')}` : '')),
+    INK_SOFT,
+    PAPER_DEEP,
+  );
+  record(
+    offenders.length === 0,
+    'no element on the cover resolves to --ink-soft or --paper-deep',
+    offenders.join(', '),
+  );
 } finally {
   await browser.close();
   // Only the child this script spawned — signalled as a group and AWAITED, so the port is
