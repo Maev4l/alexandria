@@ -23,7 +23,7 @@ const SearchField = ({ className }) => {
     <form
       role="search"
       onSubmit={submit}
-      className={`mt-3 flex min-h-12 items-center gap-2 border-2 border-ink bg-imprint px-2 ${className ?? ''}`}
+      className={`focus-control mt-3 flex min-h-12 items-center gap-2 border-2 border-ink bg-imprint px-2 ${className ?? ''}`}
     >
       <input
         type="search"
@@ -31,8 +31,11 @@ const SearchField = ({ className }) => {
         onChange={(event) => setTerms(event.target.value)}
         aria-label="Search every library"
         placeholder="Search every library"
-        // No inner ring: the field's own 2px ink rule and the outer focus ring already bound it.
-        className="on-imprint min-h-12 min-w-0 flex-1 bg-transparent text-[13px] font-normal text-ink placeholder:text-ink"
+        // No inner ring, and now that is TRUE: `on-imprint` used to be here, which is precisely
+        // what gave the input a ring of its own, so the comment claimed one thing while the code
+        // did the opposite. The indicator lives on the whole control (`focus-control`) because
+        // that is the thing a reader sees.
+        className="min-h-12 min-w-0 flex-1 bg-transparent text-[13px] font-normal text-ink placeholder:text-ink"
       />
       <button
         type="submit"

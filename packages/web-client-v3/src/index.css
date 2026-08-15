@@ -106,6 +106,29 @@
     outline-offset: 2px;
   }
 
+  /* RULING 1: where an element ALREADY carries an ink rule, focus THICKENS that rule rather
+     than drawing a concentric second one. At the default 2px offset the outline lands just
+     outside the border with ground showing between them, which reads as misregistered print —
+     two parallel ink lines with a strip of yellow between. At offset 0 they merge into one
+     heavier edge, and state expressed by rule weight is already this system's language. */
+  .focus-control:focus-within {
+    outline: 3px solid var(--ink);
+    outline-offset: 0;
+  }
+
+  /* RULING 2: focus belongs to the CONTROL a reader sees, not the node that takes the caret.
+     The search field is one thing — ground, rule, input and mark — so the indicator renders on
+     the whole box and the inner node carries none.
+
+     SUPPRESSING AN INNER OUTLINE IS WHAT KILLED THE FOCUS RING IN SLICE A, so this is scoped to
+     descendants of a control that is ITSELF showing an indicator at that moment, and never
+     applied by analogy elsewhere. scripts/check-browser.mjs asserts in real Chrome that focusing
+     the input leaves the control visibly outlined; if that check ever fails, this rule is the
+     first suspect and must go rather than be adjusted. */
+  .focus-control:focus-within :focus-visible {
+    outline: none;
+  }
+
   .on-imprint:focus-visible {
     outline-color: var(--ink);
   }

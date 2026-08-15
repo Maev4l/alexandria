@@ -55,7 +55,6 @@ try {
     ['/login', 'button[type=submit]', 'login submit (imprint plate)'],
     ['/libraries/new', 'input', 'new-library name input'],
     ['/libraries/new', 'textarea', 'new-library description textarea'],
-    ['/libraries', 'input[type=search]', 'pinned search field (a real input)'],
   ]) {
     await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
     await page.waitForSelector(selector, { timeout: 10_000 });
@@ -75,6 +74,53 @@ try {
       ring.focused && ring.style !== 'none' && ring.width >= 2,
       label,
       `outline-style: ${ring.style}, width: ${ring.width}px, color: ${ring.color}`,
+    );
+  }
+
+  // ---- The search CONTROL shows focus, even though its input does not ----
+  // Required, not optional. Ruling 2 in DESIGN.md §2 re-permits suppressing an inner outline,
+  // which is exactly what killed the focus ring in slice A: an `outline-none` in a later cascade
+  // layer beat the base :focus-visible, and no stylesheet test could see it because both rules
+  // read as correct on their own. The suppression is only defensible while the parent
+  // DEMONSTRABLY shows an indicator, so that is asserted here, computed, in real Chrome. If this
+  // check fails, the ruling is wrong and the rule goes — it is not to be adjusted into passing.
+  console.log('focus renders on the control, not the caret node');
+  {
+    await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('input[type=search]', { timeout: 10_000 });
+    await page.focus('input[type=search]');
+    const focus = await page.evaluate(() => {
+      const input = document.querySelector('input[type=search]');
+      const control = input.closest('form[role=search]');
+      const read = (el) => {
+        const s = getComputedStyle(el);
+        return {
+          style: s.outlineStyle,
+          width: parseFloat(s.outlineWidth),
+          color: s.outlineColor,
+          offset: s.outlineOffset,
+        };
+      };
+      return { control: read(control), input: read(input), focused: document.activeElement === input };
+    });
+
+    record(
+      focus.focused && focus.control.style !== 'none' && focus.control.width >= 3,
+      'focusing the input makes the CONTROL visibly focused',
+      `control outline: ${focus.control.style} ${focus.control.width}px ${focus.control.color}`,
+    );
+    // The merge, not a concentric second ring: offset 0 puts the outline flush against the
+    // control's own 2px rule so they read as one heavier edge rather than misregistered print.
+    record(
+      focus.control.offset === '0px',
+      'the control ring merges with its own rule rather than doubling it',
+      `outline-offset: ${focus.control.offset}`,
+    );
+    // Only legitimate BECAUSE the two records above hold.
+    record(
+      focus.input.style === 'none',
+      'the inner input draws no competing ring',
+      `input outline-style: ${focus.input.style}`,
     );
   }
 
