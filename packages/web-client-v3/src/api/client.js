@@ -1,5 +1,7 @@
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth';
 import { config } from '@/config';
+// TEMPORARY. Phase-1 evidence gathering for the session defect; revert this commit to remove it.
+import { moduleIdentity, probeUser, sessionShape, snapshot } from '@/auth/diagnose.js';
 
 const BASE_URL = `${config.apiBaseUrl}/v1`;
 
@@ -50,14 +52,27 @@ export const registerSessionHooks = (hooks) => {
 // `catch {}` and a falsy token — so when this failed for a real user there was no way to tell
 // which had happened, and a successful retry proved only that something had changed. Whatever
 // goes wrong here now says so.
-const readToken = async () => {
+const readToken = async (attempt) => {
   let session;
   try {
     session = await fetchAuthSession();
   } catch (err) {
+    snapshot(`client.readToken(${attempt}) THREW`, {
+      amplify: moduleIdentity(fetchAuthSession),
+      error: err?.name ?? 'Error',
+    });
     return { token: null, reason: 'threw', cause: err };
   }
   const token = session?.tokens?.idToken?.toString();
+  if (!token) {
+    // Report the whole shape, not the verdict. "No tokens" was all we ever learned last time,
+    // and it does not distinguish an empty object from a session missing only its idToken.
+    snapshot(`client.readToken(${attempt}) NO TOKEN`, {
+      amplify: moduleIdentity(fetchAuthSession),
+      ...sessionShape(session),
+      ...(await probeUser(getCurrentUser)),
+    });
+  }
   return token ? { token } : { token: null, reason: 'no-tokens' };
 };
 
@@ -65,14 +80,14 @@ const authToken = async () => {
   // Mock mode has no Cognito session by design, and the fixture API wants none.
   if (config.isMock) return null;
 
-  const first = await readToken();
+  const first = await readToken('first');
   if (first.token) return first.token;
 
   // One forced refresh, then one retry — the same policy as a 401 below. This is the case that
   // reached a real user: a token missing on the first attempt and present on a manual retry, so
   // the recovery they performed by hand is now performed for them, before anything is shown.
   await sessionHooks.refresh();
-  const second = await readToken();
+  const second = await readToken('after-forced-refresh');
   if (second.token) return second.token;
 
   // Deliberately loud. This is the only record of a condition that was previously invisible.

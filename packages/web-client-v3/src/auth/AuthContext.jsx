@@ -20,6 +20,8 @@ import { Hub } from 'aws-amplify/utils';
 import { config } from '@/config';
 import { registerSessionHooks } from '@/api';
 import { classifyOAuthCallback } from './oauth.js';
+// TEMPORARY. Phase-1 evidence gathering for the session defect; revert this commit to remove it.
+import { moduleIdentity, probeUser, sessionShape, snapshot, watchForTokens } from './diagnose.js';
 
 const AuthContext = createContext(null);
 
@@ -99,6 +101,11 @@ export const AuthProvider = ({ children }) => {
       // also enough to blank the signed-in reader via setUser(null). The Cognito session
       // surviving is no comfort to someone looking at a login form.
       if (!session?.tokens) {
+        snapshot('auth.readSession EMPTY, confirming', {
+          amplify: moduleIdentity(fetchAuthSession),
+          ...sessionShape(session),
+          ...(await probeUser(getCurrentUser)),
+        });
         session = await fetchAuthSession({ forceRefresh: true }).catch(() => null);
       }
 
@@ -107,6 +114,13 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         return false;
       }
+      // The SUCCESSFUL read — the other half of the comparison. Its timestamp is what the API
+      // client's failing read is measured against, and its module id is what that read's id is
+      // compared to.
+      snapshot('auth.readSession OK', {
+        amplify: moduleIdentity(fetchAuthSession),
+        ...sessionShape(session),
+      });
       const claims = session.tokens.idToken.payload;
       const current = await getCurrentUser();
       const displayName = claims.name ?? null;
@@ -121,7 +135,8 @@ export const AuthProvider = ({ children }) => {
         initials: initialsOf(displayName, email),
       });
       return true;
-    } catch {
+    } catch (err) {
+      snapshot('auth.readSession THREW', { error: err?.name ?? 'Error' });
       await discardStaleSession();
       setUser(null);
       return false;
@@ -233,6 +248,10 @@ export const AuthProvider = ({ children }) => {
         // Lowering it before that refresh left the exact window unguarded: the session being
         // built is at its most fragile precisely while it is being read for the first time.
         signInFlight.current += 1;
+        // Starts the clock on "when do the tokens actually land in storage" — the width of the
+        // window, measured rather than inferred. Nothing waits on this.
+        snapshot('auth.signIn START', { amplify: moduleIdentity(fetchAuthSession) });
+        watchForTokens('auth.signIn');
         try {
           try {
             await cognitoSignIn({ username: email, password });

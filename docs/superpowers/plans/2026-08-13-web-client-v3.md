@@ -6674,6 +6674,26 @@ git commit -m "feat(web-v3): settings, account and about"
 
 ### Task 22: PWA identity, manifest and update prompt
 
+> **This task fixes a shipping defect, it does not add a nicety.** As the service worker stands,
+> **the app cannot be updated at all** once a reader has loaded it once. Two mechanisms, both
+> verified against the built `dist/sw.js`:
+>
+> 1. `registerType: 'prompt'` means a new worker installs and then **waits**. It only activates on
+>    a `SKIP_WAITING` message — and **nothing in the app sends one**, because the prompt that would
+>    send it does not exist yet. The waiting worker waits forever.
+> 2. Navigations are served by a precache `NavigationRoute` bound to the precached `index.html`,
+>    so they are answered **from the worker's cache and never reach CloudFront**. The `no-cache`
+>    header on the app shell is correct and irrelevant: the request that header governs is not
+>    made.
+>
+> Together these mean a reader keeps the first v3 build they ever loaded, indefinitely, with no
+> way to escape it short of clearing site data. The prompt below is therefore load-bearing and
+> must actually post `SKIP_WAITING` and reload on `controllerchange` — a prompt that only shows a
+> banner leaves the defect fully intact.
+>
+> Ruled out as the cause of the Cecile session defect (she is on the dev server, which registers
+> no worker, in a fresh window each time). It remains a production blocker on its own merits.
+
 **Files:**
 - Create: `packages/web-client-v3/public/icon-source.svg`
 - Create: `packages/web-client-v3/scripts/generate-icons.mjs`
