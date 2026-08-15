@@ -365,6 +365,19 @@ for that, not only for what the defect costs when it fires.
 **Touch.** Minimum 48px targets. Primary actions in thumb reach. Long-press is always duplicated
 by a visible affordance, since long-press alone is undiscoverable.
 
+**Structure is part of being built, not a later pass.** Every authenticated screen ships with
+`<main>` and an `<h1>` naming it — visually hidden where the header already carries the name. This
+is not deferred accessibility work: adding them while a screen is being written is free, and
+retrofitting them across twenty screens is a chore that grows with every screen built in the
+meantime. A screen without them is unfinished, not "pending the a11y pass".
+
+The wider principle, learned by deferring four findings and then examining them: **only defer what
+is genuinely one shared mechanism, and then do it at the first opportunity rather than at the end.**
+A single accessibility pass at the end is where accessibility work dies — it becomes one
+undifferentiated block, first to be squeezed when something else runs late, and larger every week it
+waits. Single-point fixes (a focus trap living in one component) should be done immediately, because
+deferring them saves nothing at all.
+
 **PWA.** `viewport-fit=cover`; safe-area padding on the header and any bottom-anchored action.
 Update prompt on a waiting service worker, checked at startup, **hourly**, and on
 `visibilitychange` — not every 60s.
