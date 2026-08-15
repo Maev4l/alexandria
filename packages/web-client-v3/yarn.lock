@@ -5467,6 +5467,11 @@ workbox-cacheable-response@7.4.1:
   dependencies:
     workbox-core "7.4.1"
 
+workbox-core@7.4.0:
+  version "7.4.0"
+  resolved "https://registry.yarnpkg.com/workbox-core/-/workbox-core-7.4.0.tgz#5cb59ae7655f2727423268fb1ba698f37809189d"
+  integrity sha512-6BMfd8tYEnN4baG4emG9U0hdXM4gGuDU3ectXuVHnj71vwxTFI7WOpQJC4siTOlVtGqCUtj0ZQNsrvi6kZZTAQ==
+
 workbox-core@7.4.1:
   version "7.4.1"
   resolved "https://registry.yarnpkg.com/workbox-core/-/workbox-core-7.4.1.tgz#5a8811ba5d25a2049821a7b66f63ee9b204dc691"
@@ -5551,6 +5556,14 @@ workbox-sw@7.4.1:
   version "7.4.1"
   resolved "https://registry.yarnpkg.com/workbox-sw/-/workbox-sw-7.4.1.tgz#aca04313ae6591222024ee80219b223384c9119c"
   integrity sha512-fez5f2DUlDJWTFYkCWQpY10N8gtztd849NswCbVFk0QlcSM4HT5A8x4g4ii650yem4I8tHY0R7JZahwp3ltIPw==
+
+workbox-window@7.4.0:
+  version "7.4.0"
+  resolved "https://registry.yarnpkg.com/workbox-window/-/workbox-window-7.4.0.tgz#5399a5261b8c34d9d102f2d832d5857ee4d5748a"
+  integrity sha512-/bIYdBLAVsNR3v7gYGaV4pQW3M3kEPx5E8vDxGvxo6khTrGtSSCS7QiFKv9ogzBgZiy0OXLP9zO28U/1nF1mfw==
+  dependencies:
+    "@types/trusted-types" "^2.0.2"
+    workbox-core "7.4.0"
 
 workbox-window@7.4.1, workbox-window@^7.4.0:
   version "7.4.1"

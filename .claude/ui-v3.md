@@ -459,6 +459,12 @@ Two suites, with a division that matters: `yarn test` asserts rules are DECLARED
 - [ ] Lend / return / history
 - [ ] Search surface with recents and honest match-scope
 - [ ] Settings, Account, About
-- [ ] PWA: icons, manifest, update prompt (CloudFront cache headers already satisfied by the
+- [x] PWA update prompt — pulled ahead of slice C because without it the app cannot be
+      updated at all: `registerType: 'prompt'` installs a worker that waits for a
+      `SKIP_WAITING` message nothing was sending, and navigations answered from precache never
+      reach CloudFront. Surfaced as a printed "NEW EDITION" notice (`--paper-deep`, 3px ink top
+      rule, Plate Button), not a toast: it must survive being ignored. Startup, hourly and
+      `visibilitychange` checks
+- [ ] PWA: icons and manifest (CloudFront cache headers already satisfied by the
       existing `cloudfront.tf` — no Terraform needed)
 - [x] `frontend-v3-build|serve|preview` Make targets; `frontend-v3-cutover` deferred to the end
