@@ -152,6 +152,20 @@ export const reportFirstClientRead = (fn) => {
   console.info(`[diag ${at()}] client.readToken FIRST SUCCESS`, { amplify: moduleIdentity(fn) });
 };
 
+// The success side of the age comparison. A retry that succeeds is ALWAYS logged, because it is
+// the direct counterpart to the failure that preceded it; an ordinary success is logged once per
+// page load, enough to establish the baseline age without flooding the console.
+let acceptedReported = false;
+export const reportAcceptedToken = (path, isRetry, token) => {
+  if (!DIAGNOSE) return;
+  if (!isRetry && acceptedReported) return;
+  if (!isRetry) acceptedReported = true;
+  console.info(`[diag ${at()}] client token ACCEPTED${isRetry ? ' on retry' : ''}`, {
+    path,
+    ...tokenFacts(token),
+  });
+};
+
 export const snapshot = (label, extra = {}) => {
   if (!DIAGNOSE) return;
   console.info(`[diag ${at()}] ${label}`, {
@@ -184,4 +198,52 @@ export const watchForTokens = (label, timeoutMs = 15_000) => {
     setTimeout(tick, 50);
   };
   setTimeout(tick, 50);
+};
+
+// The claims of a token AS SENT, decoded locally. Signature untouched and never inspected: the
+// question is what the authorizer was asked to accept, not whether we can validate it.
+//
+// PASTE-SAFE BY CONSTRUCTION. Only iss, aud, exp, iat and token_use are read. `sub`, `email`,
+// `name` and every custom claim are never touched, and the token itself is never logged.
+const decodeClaims = (token) => {
+  const payload = token?.split('.')[1];
+  if (!payload) return null;
+  const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(
+    payload.length + ((4 - (payload.length % 4)) % 4),
+    '=',
+  );
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (ch) => ch.codePointAt(0));
+  // TextDecoder rather than atob alone: claims can hold non-ASCII and latin1 would corrupt them.
+  return JSON.parse(new TextDecoder().decode(bytes));
+};
+
+export const tokenFacts = (token) => {
+  let claims;
+  try {
+    claims = decodeClaims(token);
+  } catch (err) {
+    return { claims: `undecodable:${err?.name ?? 'Error'}` };
+  }
+  if (!claims) return { claims: 'absent' };
+
+  const nowSeconds = Date.now() / 1000;
+  return {
+    iss: claims.iss,
+    // May be a string or an array depending on the issuer; normalise so the log is comparable.
+    aud: Array.isArray(claims.aud) ? claims.aud.join(',') : claims.aud,
+    token_use: claims.token_use,
+    iat: claims.iat,
+    exp: claims.exp,
+    // THE MEASUREMENT. A token refused while seconds old and accepted while minutes old is a
+    // validity-window problem at the validator, not a defect in anything we wrote.
+    //
+    // Stated honestly: this is computed against the BROWSER's clock, and iat came from Cognito's,
+    // so it is the token's age PLUS any skew between the two. It is not the authorizer's view —
+    // nothing in the browser can be. A negative age means this machine's clock is behind
+    // Cognito's, which is itself worth seeing, and is why the raw number is printed rather than
+    // clamped to zero.
+    ageSecondsBrowserClock: Math.round(nowSeconds - claims.iat),
+    secondsToExpiry: Math.round(claims.exp - nowSeconds),
+  };
 };

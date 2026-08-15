@@ -11,7 +11,11 @@ let info;
 
 beforeEach(() => {
   vi.resetModules();
+  // mockClear is REQUIRED: vi.spyOn on an already-spied method returns the SAME spy, so without
+  // this the calls accumulate across tests in this file and every count assertion is measuring
+  // the whole file rather than one test.
   info = vi.spyOn(console, 'info').mockImplementation(() => {});
+  info.mockClear();
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.stubGlobal('fetch', vi.fn(async () => ({
     ok: true, status: 200,
@@ -42,5 +46,29 @@ describe('the client-side probe', () => {
 
     await expect(api.get('/libraries')).rejects.toThrow();
     expect(linesMatching('THREW').length).toBeGreaterThan(0);
+  });
+});
+
+describe('request lifecycle logging', () => {
+  it('logs an outcome line for a 401, not only for a success', async () => {
+    // The point of the lifecycle lines is that silence becomes meaningful. If the one status we
+    // are chasing were the one that returned before logging its outcome, they would be worthless.
+    const { api, registerSessionHooks } = await import('./client.js');
+    registerSessionHooks({ refresh: async () => {}, invalidate: () => {} });
+    vi.mocked(fetchAuthSession).mockResolvedValue({
+      tokens: { idToken: { toString: () => 'header.eyJhdWQiOiJ4In0.sig' } },
+    });
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false, status: 401,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: async () => ({ message: 'Unauthorized' }),
+    })));
+
+    await expect(api.get('/libraries')).rejects.toThrow();
+
+    expect(linesMatching('client REQUEST start').length).toBe(2);
+    expect(linesMatching('client REQUEST outcome').length).toBe(2);
+    expect(linesMatching('client 401 WITH a token')).toHaveLength(1);
+    expect(linesMatching('client 401 AGAIN after refresh')).toHaveLength(1);
   });
 });

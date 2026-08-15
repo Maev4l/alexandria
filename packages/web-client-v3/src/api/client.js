@@ -4,10 +4,12 @@ import { config } from '@/config';
 import {
   moduleIdentity,
   probeUser,
+  reportAcceptedToken,
   reportFirstClientRead,
   sessionShape,
   snapshot,
   stampModule,
+  tokenFacts,
 } from '@/auth/diagnose.js';
 
 // Answers the duplication question WITHOUT waiting for a failure: if this module received a
@@ -120,6 +122,11 @@ const parse = async (response) => {
 };
 
 const request = async (path, options = {}, { isRetry = false } = {}) => {
+  // Logged unconditionally, at START and at OUTCOME. Every other client snapshot fires only on
+  // failure, which makes silence ambiguous between three different situations — the request was
+  // never made, the request succeeded, or the capture was truncated. With a start and an outcome
+  // line for every request, the ABSENCE of a line becomes a fact instead of a puzzle.
+  snapshot('client REQUEST start', { path, method: options.method ?? 'GET', isRetry });
   const token = await authToken();
 
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -131,6 +138,11 @@ const request = async (path, options = {}, { isRetry = false } = {}) => {
     },
   });
 
+  // BEFORE the 401 branches, so that every response produces exactly one outcome line. Placed
+  // after them, a 401 would return early and log nothing — leaving the case we are chasing as
+  // the one case with no outcome, which is precisely backwards.
+  snapshot('client REQUEST outcome', { path, status: response.status, ok: response.ok });
+
   // A 401 on a request that DID carry a token is a session event, not a permissions verdict:
   // force one refresh and try once more. A reader should never be shown a raw "Unauthorized"
   // and asked to solve it with a button.
@@ -141,17 +153,19 @@ const request = async (path, options = {}, { isRetry = false } = {}) => {
     snapshot('client 401 WITH a token, refreshing', {
       amplify: moduleIdentity(fetchAuthSession),
       path,
-      tokenLength: token?.length ?? 0,
+      ...tokenFacts(token),
     });
     await sessionHooks.refresh();
     return request(path, options, { isRetry: true });
   }
 
   if (response.status === 401) {
-    snapshot('client 401 AGAIN after refresh, ending the session', { path });
+    snapshot('client 401 AGAIN after refresh, ending the session', { path, ...tokenFacts(token) });
     sessionHooks.invalidate();
     throw new SessionExpiredError();
   }
+
+  if (response.ok) reportAcceptedToken(path, isRetry, token);
 
   const data = await parse(response);
 
