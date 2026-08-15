@@ -114,6 +114,11 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
 
   const onFormSubmit = async (event) => {
     event.preventDefault();
+    // Cleared before the field-validation early return, not after: a failed save followed by a
+    // resubmit that trips field validation used to leave the OLD server-error banner sitting
+    // above the new field errors, since `setError(null)` only ran on the path that reached the
+    // API call.
+    setError(null);
     const nextErrors = validateItem(type, {
       title: values.title,
       summary: values.summary,
@@ -126,7 +131,6 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    setError(null);
     setIsBusy(true);
     try {
       await onSubmit(buildPayload());
@@ -142,7 +146,7 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
   return (
     <form onSubmit={onFormSubmit} noValidate>
       {error && (
-        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm">
+        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
           {error}
         </p>
       )}
@@ -234,45 +238,48 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
       {/* Both controls above render together and are validated as one pair (DESIGN.md §6) — a
           single error under both, not two field-level messages the reader has to reconcile. */}
       {errors.collection && (
-        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm">
+        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
           {errors.collection}
         </p>
       )}
 
-      {isEdit && (
-        <div className="mb-6">
-          <button
-            type="button"
-            role="checkbox"
-            aria-checked={values.updatePicture}
-            disabled={!canRefetchCover}
-            onClick={toggleUpdatePicture}
-            className={cn(
-              'flex min-h-12 items-center gap-3 text-left text-sm',
-              !canRefetchCover && 'text-ink-soft',
-            )}
-          >
-            <span
-              aria-hidden="true"
-              className={cn(
-                'flex size-6 shrink-0 items-center justify-center border-2',
-                canRefetchCover ? 'border-ink' : 'border-ink-soft',
-                // `text-ink` is paired explicitly here, not inherited from `body`'s default:
-                // a ground that sets its own colour and leaves the foreground ambient is exactly
-                // the defect shape that shipped once already — correct on paper by coincidence,
-                // unreadable the moment the same class runs on the black cover.
-                values.updatePicture && canRefetchCover && 'on-imprint bg-imprint text-ink',
-              )}
+      {/* DESIGN.md §6: when the reason a control is unavailable is NOT visible elsewhere on the
+          form, the slot carries the REASON instead of the control — not an inert control plus a
+          separate explanation. A `disabled` checkbox drops out of the tab order, so a keyboard
+          or AT reader could never reach it; the sentence sat in its own `<p>` with no
+          `aria-describedby`, so assistive tech got an orphan sentence about a control it had no
+          way to find. Rendering only the sentence when there is no source image removes both
+          problems, and stops `text-ink-soft` from doing double duty as "this control is
+          disabled" — a second meaning for a token palette law gives exactly one. */}
+      {isEdit &&
+        (canRefetchCover ? (
+          <div className="mb-6">
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={values.updatePicture}
+              onClick={toggleUpdatePicture}
+              className="flex min-h-12 items-center gap-3 text-left text-sm"
             >
-              {values.updatePicture && canRefetchCover && <Check size={16} />}
-            </span>
-            Fetch the cover again from its source
-          </button>
-          {!canRefetchCover && (
-            <p className="mt-1 text-[13px] text-ink-soft">No source image to fetch from.</p>
-          )}
-        </div>
-      )}
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'flex size-6 shrink-0 items-center justify-center border-2 border-ink',
+                  // `text-ink` is paired explicitly here, not inherited from `body`'s default:
+                  // a ground that sets its own colour and leaves the foreground ambient is
+                  // exactly the defect shape that shipped once already — correct on paper by
+                  // coincidence, unreadable the moment the same class runs on the black cover.
+                  values.updatePicture && 'on-imprint bg-imprint text-ink',
+                )}
+              >
+                {values.updatePicture && <Check size={16} />}
+              </span>
+              Fetch the cover again from its source
+            </button>
+          </div>
+        ) : (
+          <p className="mb-6 text-sm text-ink-soft">No source image to fetch from.</p>
+        ))}
 
       <PlateButton type="submit" disabled={isBusy || !values.title.trim()}>
         {isBusy ? 'Saving' : submitLabel}

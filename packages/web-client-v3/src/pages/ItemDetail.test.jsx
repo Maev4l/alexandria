@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { createMemoryRouter, MemoryRouter, RouterProvider, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleMockRequest } from '../../tools/mock-api.js';
 import ItemDetail from './ItemDetail.jsx';
@@ -264,6 +264,130 @@ describe('Delete shares the action row and confirms in place', () => {
     expect(screen.getByRole('button', { name: /delete for good/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /keep it/i })).toBeInTheDocument();
     expect(document.querySelector('[data-toast]')).toBeNull();
+  });
+});
+
+// IMPORTANT 1: `canAct` returns false for three different situations — not mine, not loaded
+// yet, and the /libraries fetch failed — and only the third one used to render in total
+// silence. An owner who deep-links to their own item while /libraries is failing saw no Lend,
+// no Edit, no Delete and no explanation, which reads as "the app decided I may not act on my
+// own item" — a plausible, wrong story with no error to report (§7: prefer the defects that
+// cannot be reported).
+describe('when /libraries fails, read-only says why instead of staying silent', () => {
+  const failLibrariesFetch = () =>
+    vi.fn(async (url) => {
+      const path = String(url);
+      if (path.endsWith('/libraries')) {
+        return {
+          ok: false,
+          status: 500,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ message: 'Could not load your libraries' }),
+        };
+      }
+      const result = handleMockRequest('GET', path);
+      return {
+        ok: result.status < 400,
+        status: result.status,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => result.body,
+      };
+    });
+
+  it('explains the ambiguity and offers a control to retry, rather than rendering nothing', async () => {
+    vi.stubGlobal('fetch', failLibrariesFetch());
+    renderPage('item-lent');
+    expect(
+      await screen.findByText(/could not check whether this library is yours/i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+  });
+
+  it('still keeps actions absent — read-only stays the safe default — but no longer silent', async () => {
+    vi.stubGlobal('fetch', failLibrariesFetch());
+    renderPage('item-lent');
+    await screen.findByText(/could not check whether this library is yours/i);
+    expect(screen.queryByRole('button', { name: /^lend$/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /mark returned/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^edit$/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+  });
+
+  it('says nothing extra once /libraries succeeds and the library is genuinely owned', async () => {
+    // The control case: the same gate, with a healthy fetch, must not print the "could not
+    // check" notice just because a page renders it in its markup.
+    renderPage('item-lent');
+    await screen.findByRole('button', { name: /^edit$/i });
+    expect(screen.queryByText(/could not check whether this library is yours/i)).toBeNull();
+  });
+});
+
+// MINOR 4: React Router keeps this same element mounted across a `:itemId`-only change, so a
+// slow fetch for the item that just left the URL can resolve after a fast one for the item that
+// replaced it. EditItem.jsx already guards its own mount fetch with a `cancelled` flag; this
+// pins the same guard here.
+describe('a stale fetch for the item that just left the URL', () => {
+  it('does not paint over the item that replaced it at the new URL', async () => {
+    // item-lent's GET (and its events) are held open until released manually; item-1984's
+    // resolve immediately — recreating "navigate away before a slow request for the OLD item
+    // comes back".
+    let releaseLent;
+    const lentGate = new Promise((resolve) => {
+      releaseLent = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        if (path.includes('/items/item-lent')) await lentGate;
+        const result = handleMockRequest('GET', path);
+        return {
+          ok: result.status < 400,
+          status: result.status,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => result.body,
+        };
+      }),
+    );
+
+    // `createMemoryRouter` (rather than the fixed-route `MemoryRouter` every other test in this
+    // file uses) is the one thing that gives the test itself a way to change `:itemId` without
+    // an in-app link between two item pages, which does not exist.
+    const router = createMemoryRouter(
+      [{ path: '/libraries/:libraryId/items/:itemId', element: <ItemDetail /> }],
+      { initialEntries: ['/libraries/lib-fiction/items/item-lent'] },
+    );
+    render(
+      <LibrariesProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </LibrariesProvider>,
+    );
+
+    // Let the (still-gated) request for item-lent actually start, then leave before it returns.
+    await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument());
+    router.navigate('/libraries/lib-fiction/items/item-1984');
+    expect(await screen.findByText('1984')).toBeInTheDocument();
+
+    // Now let the stale item-lent response land.
+    releaseLent();
+    // An unguarded `load` would call `setItem`/`setStatus` right about here; give it the chance.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(screen.getByText('1984')).toBeInTheDocument();
+    expect(screen.queryByText('Le Grand Sommeil')).toBeNull();
+    // The sharper failure mode this guards against: item-lent's OWN lentTo ('Marie') painted
+    // onto item-1984's page, which a reader could then post RETURNED for against item-1984's id.
+    expect(screen.queryByText(/marie/i)).toBeNull();
   });
 });
 

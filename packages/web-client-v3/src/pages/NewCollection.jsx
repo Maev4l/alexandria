@@ -44,7 +44,7 @@ const NewCollection = () => {
       <AppHeader title="New collection" onBack={() => navigate(-1)} search={false} />
       <form className="p-4" onSubmit={onSubmit} noValidate>
         {error && (
-          <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm">
+          <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
             {error}
           </p>
         )}

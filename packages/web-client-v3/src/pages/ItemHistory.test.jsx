@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { createMemoryRouter, MemoryRouter, RouterProvider, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleMockRequest } from '../../tools/mock-api.js';
 import ItemHistory from './ItemHistory.jsx';
@@ -202,6 +202,88 @@ describe('ItemHistory', () => {
     await waitFor(() => expect(screen.getAllByText(/→/)).toHaveLength(2));
     // The error clears once the retry succeeds.
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  // IMPORTANT 1: the same ambiguity ItemDetail's action row has — `canAct` cannot tell "not
+  // mine" from "not loaded yet" from "the /libraries fetch failed" — silently hid Clear too.
+  describe('when /libraries fails, read-only says why instead of staying silent', () => {
+    const failLibrariesFetch = () =>
+      vi.fn(async (url) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return jsonResponse(500, { message: 'Could not load your libraries' });
+        }
+        const result = handleMockRequest('GET', path);
+        return jsonResponse(result.status, result.body);
+      });
+
+    it('explains the ambiguity and offers a control to retry, rather than rendering nothing', async () => {
+      vi.stubGlobal('fetch', failLibrariesFetch());
+      renderPage();
+      expect(
+        await screen.findByText(/could not check whether this library is yours/i),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    });
+
+    it('still keeps Clear absent — read-only stays the safe default — but no longer silent', async () => {
+      vi.stubGlobal('fetch', failLibrariesFetch());
+      renderPage();
+      await screen.findByText(/could not check whether this library is yours/i);
+      expect(screen.queryByRole('button', { name: /clear the record/i })).toBeNull();
+    });
+
+    it('says nothing extra once /libraries succeeds and the library is genuinely owned', async () => {
+      renderPage();
+      await screen.findByRole('button', { name: /clear the record/i });
+      expect(screen.queryByText(/could not check whether this library is yours/i)).toBeNull();
+    });
+  });
+
+  // MINOR 4: same guard as ItemDetail — React Router keeps this element mounted across a
+  // `:itemId`-only change, so a slow fetch for the item that just left the URL could otherwise
+  // resolve after a fast one for the item that replaced it.
+  describe('a stale fetch for the item that just left the URL', () => {
+    it('does not paint over the item that replaced it at the new URL', async () => {
+      let releaseLent;
+      const lentGate = new Promise((resolve) => {
+        releaseLent = resolve;
+      });
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url) => {
+          const path = String(url);
+          if (path.endsWith('/libraries')) return jsonResponse(200, { libraries });
+          if (path.includes('/items/item-lent')) await lentGate;
+          const result = handleMockRequest('GET', path);
+          return jsonResponse(result.status, result.body);
+        }),
+      );
+
+      const router = createMemoryRouter(
+        [{ path: '/libraries/:libraryId/items/:itemId/history', element: <ItemHistory /> }],
+        { initialEntries: ['/libraries/lib-fiction/items/item-lent/history'] },
+      );
+      render(
+        <LibrariesProvider>
+          <ToastProvider>
+            <RouterProvider router={router} />
+          </ToastProvider>
+        </LibrariesProvider>,
+      );
+
+      await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeInTheDocument());
+      router.navigate('/libraries/lib-fiction/items/item-1984/history');
+      // item-1984 has no lending events at all — "Never lent" is the tell that ITS fetch, not
+      // item-lent's, is the one that landed.
+      expect(await screen.findByText(/never lent/i)).toBeInTheDocument();
+
+      releaseLent();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(screen.getByText(/never lent/i)).toBeInTheDocument();
+      expect(screen.queryByText(/→/)).toBeNull();
+    });
   });
 
   it('never offers Clear on a shared (read-only) library, even with lending history', async () => {

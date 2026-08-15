@@ -53,7 +53,7 @@ const EditItem = () => {
         <AppHeader title="Not found" onBack={() => navigate(-1)} search={false} />
         <main className="p-4">
           <h1 className="sr-only">Edit item</h1>
-          <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm">
+          <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
             {status === 'missing'
               ? 'That item is not in this library any more.'
               : 'Could not load this item. Check your connection and try again.'}

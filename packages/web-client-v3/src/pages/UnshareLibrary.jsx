@@ -59,7 +59,7 @@ const UnshareLibrary = () => {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {error && (
-          <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm">
+          <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
             {error}
           </p>
         )}

@@ -56,7 +56,7 @@ const Libraries = () => {
       <PullToRefresh onRefresh={refresh} className="min-h-0 flex-1">
         {error && (
           // Recovery is a control, not an instruction to perform a gesture.
-          <div role="alert" className="border-t-2 border-out bg-paper-deep p-4">
+          <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">
             <p className="text-sm">{error}</p>
             <PlateButton variant="secondary" className="mt-4" onClick={refresh}>
               Try again

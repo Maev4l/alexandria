@@ -45,6 +45,25 @@ describe('ItemForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  // MINOR 7: `setError(null)` used to run only after the field-validation early return, so a
+  // failed save followed by a resubmit that trips FIELD validation left the old server-error
+  // banner sitting above the new field errors.
+  it('clears a stale API error banner once a later submit fails field validation instead', async () => {
+    const onSubmit = vi.fn().mockRejectedValueOnce(new Error('Could not save this item'));
+    render(<ItemForm type={FILM} initial={{}} collections={[]} onSubmit={onSubmit} submitLabel="Save" />);
+
+    await userEvent.type(screen.getByLabelText(/title/i), 'Chinatown');
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+    expect(await screen.findByText(/could not save this item/i)).toBeInTheDocument();
+
+    // This submit never reaches the API — it trips the release-year field validation instead.
+    await userEvent.type(screen.getByLabelText(/release year/i), '1799');
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    expect(await screen.findByText(/1800/)).toBeInTheDocument();
+    expect(screen.queryByText(/could not save this item/i)).toBeNull();
+  });
+
   it('splits comma-separated authors into an array, only at submit', async () => {
     const onSubmit = vi.fn().mockResolvedValue();
     render(<ItemForm type={BOOK} initial={{}} collections={[]} onSubmit={onSubmit} submitLabel="Save" />);
@@ -62,7 +81,11 @@ describe('ItemForm', () => {
     expect(screen.queryByRole('checkbox', { name: /fetch the cover again/i })).toBeNull();
   });
 
-  it('offers the control on edit, disabled unless the item already has a source image', () => {
+  // DESIGN.md §6: when the reason a control is unavailable is not visible elsewhere on the
+  // form, the slot carries the REASON instead of an inert control — never both. A `disabled`
+  // checkbox drops out of the tab order, so this used to be unreachable by keyboard/AT and its
+  // explanation was an orphan sentence with no `aria-describedby` pointing anywhere.
+  it('replaces the control with its own reason on edit, when the item has no source image', () => {
     render(
       <ItemForm
         type={BOOK}
@@ -72,7 +95,8 @@ describe('ItemForm', () => {
         submitLabel="Save changes"
       />,
     );
-    expect(screen.getByRole('checkbox', { name: /fetch the cover again/i })).toBeDisabled();
+    expect(screen.queryByRole('checkbox', { name: /fetch the cover again/i })).toBeNull();
+    expect(screen.getByText(/no source image to fetch from/i)).toBeInTheDocument();
   });
 
   it('enables the control on edit when a pictureUrl is present', () => {

@@ -52,7 +52,7 @@ const SignUp = () => {
       <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Create an account</h1>
 
       {error && (
-        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm">
+        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
           {error}
         </p>
       )}

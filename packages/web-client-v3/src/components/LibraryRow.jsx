@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import VolumePlate from '@/components/imprint/VolumePlate.jsx';
 import RowActions from '@/components/imprint/RowActions.jsx';
+import SharedRibbon from '@/components/imprint/SharedRibbon.jsx';
 import useLongPress from '@/lib/useLongPress.js';
 
 const LibraryRow = ({ library, onActions }) => {
@@ -33,18 +34,20 @@ const LibraryRow = ({ library, onActions }) => {
             {/* The sub-line carries sharing and nothing else. The count is already in the
                 plate, so naming it here too would label the same fact twice — which is why
                 the row falls silent when a library is neither shared out nor shared in. */}
+            {/* Routed through the SAME vocabulary component DetailMarks already uses, rather
+                than a hand-rolled tag: this used to set the whole "Shared · N" string — and,
+                worse, the owner's email address — in `.num` (Chivo Mono), which DESIGN.md §3
+                reserves for numerals. Mono is for the count, not the word or the address. The
+                `caps` wrapper supplies the same 0.16em tracking DetailMarks' caller already
+                uses, so one component now renders at one tracking value everywhere. */}
             {sharedOutCount > 0 && (
-              <span className="num mt-1 block text-[11px] uppercase tracking-[0.06em] font-bold text-shared">
-                Shared · {sharedOutCount}
+              <span className="caps mt-1 block text-[11px] font-bold tracking-[0.16em]">
+                <SharedRibbon direction="out" count={sharedOutCount} />
               </span>
             )}
             {isSharedWithMe && (
-              <span className="num mt-1 block text-[11px] text-ink-soft">
-                <span className="font-bold uppercase tracking-[0.06em] text-shared">From</span>{' '}
-                {/* An email address is content, not an interface label, so it is not
-                    uppercased. Read-only is already declared by the green tag and by the
-                    absent row actions; printing the words too would say it three times. */}
-                {library.sharedFrom}
+              <span className="caps mt-1 block text-[11px] font-bold tracking-[0.16em]">
+                <SharedRibbon direction="in" owner={library.sharedFrom} />
               </span>
             )}
           </span>

@@ -50,7 +50,7 @@ const DetailLine = ({ item }) => {
 const ItemDetail = () => {
   const { libraryId, itemId } = useParams();
   const navigate = useNavigate();
-  const { canAct, byId } = useLibraries();
+  const { canAct, byId, error: librariesError, refresh: refreshLibraries } = useLibraries();
   // Absence of knowledge is not permission: until the library is confirmed as owned, actions
   // stay absent rather than briefly appearing before a slow /libraries fetch resolves.
   const isReadOnly = !canAct(libraryId);
@@ -82,23 +82,39 @@ const ItemDetail = () => {
   // return, and re-reading quietly (content stays on screen) is the point: a mutation returns an
   // empty body, so the item must be re-read, but the reader should not see the whole cover blank
   // out just to confirm what they already just did.
-  const load = useCallback(async () => {
-    try {
-      const [fetchedItem, events] = await Promise.all([
-        itemsApi.get(libraryId, itemId),
-        eventsApi.list(libraryId, itemId, { limit: 20 }).catch(() => ({ events: [] })),
-      ]);
-      setItem(fetchedItem);
-      setLoans(pairLoanEvents(events?.events ?? []));
-      setStatus('ready');
-    } catch (err) {
-      setStatus(err.status === 404 ? 'missing' : 'error');
-    }
-  }, [libraryId, itemId]);
+  // `isCancelled` defaults to "never" for the manual re-reads after a mutation (markReturned,
+  // LendSheet's onLent): those happen for whichever item is currently on screen, so there is
+  // nothing to guard against. The mount effect below is the one caller that passes a real
+  // guard, because it is the one call React Router can outlive: it keeps this same element
+  // mounted across a `:itemId` change, so a slow fetch for the item that just left the URL can
+  // resolve after a fast one for the item that replaced it — painting item A's content (and,
+  // worse, letting a stray markReturned post A's borrower against B's id) at item B's URL.
+  const load = useCallback(
+    async (isCancelled = () => false) => {
+      try {
+        const [fetchedItem, events] = await Promise.all([
+          itemsApi.get(libraryId, itemId),
+          eventsApi.list(libraryId, itemId, { limit: 20 }).catch(() => ({ events: [] })),
+        ]);
+        if (isCancelled()) return;
+        setItem(fetchedItem);
+        setLoans(pairLoanEvents(events?.events ?? []));
+        setStatus('ready');
+      } catch (err) {
+        if (isCancelled()) return;
+        setStatus(err.status === 404 ? 'missing' : 'error');
+      }
+    },
+    [libraryId, itemId],
+  );
 
   useEffect(() => {
+    let cancelled = false;
     setStatus('loading');
-    load();
+    load(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   // Acts directly: "Mark returned" needs no input, so a label promising that action performs it
@@ -229,6 +245,21 @@ const ItemDetail = () => {
                 Full record
               </Link>
             </>
+          )}
+
+          {/* Read-only here can mean three different things (§7, "prefer the defects that
+              cannot be reported"): not mine, not loaded yet, or the /libraries fetch failed.
+              Silently hiding Lend/Edit/Delete for the third reason tells the owner nothing —
+              a plausible, wrong story ("the app decided I may not act on my own item") with no
+              error to report. This is the same block LibraryBrowse already shows for the same
+              ambiguity, so the two screens fail the same honest way. */}
+          {isReadOnly && librariesError && !library && (
+            <div role="alert" className="mt-6 border-2 border-out p-4 text-sm">
+              <p>Could not check whether this library is yours, so its actions are hidden.</p>
+              <PlateButton variant="secondary" className="mt-4" onClick={refreshLibraries}>
+                Try again
+              </PlateButton>
+            </div>
           )}
 
           {!isReadOnly && (

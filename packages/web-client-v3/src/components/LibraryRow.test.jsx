@@ -39,7 +39,10 @@ describe('LibraryRow', () => {
 
   it('names the owner on a library shared with me', () => {
     renderRow({ ...sharedIn, sharedFrom: 'marie@example.com' });
-    expect(screen.getByText('From')).toBeInTheDocument();
+    // Routed through SharedRibbon (Important 3): "From" is no longer its own isolated node —
+    // it is bare text alongside the owner's address inside the same tone span, the same shape
+    // DetailMarks.test.jsx already asserts against for the identical component.
+    expect(screen.getByText(/from/i)).toBeInTheDocument();
     expect(screen.getByText(/marie@example\.com/)).toBeInTheDocument();
   });
 

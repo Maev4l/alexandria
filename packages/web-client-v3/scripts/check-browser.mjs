@@ -736,6 +736,49 @@ try {
       `name left ${facts.nameLeft}px, card border inner edge ${facts.cardInnerLeft}px`,
     );
   }
+
+  // ---- Ledger Row: the last row does not double the card's own bottom rule (MINOR 5) ----
+  // Every row carries its own 1px `border-b`, and the card wrapping them carries a 3px
+  // `border-[3px]`. Stacked, the last row's hairline sat directly on the card's own bottom
+  // edge — a 1px + 3px composite the rule-weight scale (DESIGN.md section 4: 1/2/3/4px, and
+  // nothing else) does not contain. jsdom can see the `border-b-0` utility string on a
+  // className, but only a real cascade can confirm the browser actually resolves it to 0 at
+  // that specific element while every row before it keeps its own hairline.
+  console.log("ledger row: the last row does not double the card's own bottom rule");
+  {
+    // item-lent's fixture events (src/test/fixtures/events.js) pair into three loans — Marie
+    // (open), Paul (closed), Léa (unresolved, no matching RETURNED) — so this card has a real
+    // "last child" distinct from its first, unlike the single-loan case above.
+    await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent/history`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main h1');
+
+    const facts = await page.evaluate(() => {
+      const card = [...document.querySelectorAll('main div')].find((el) =>
+        el.className.includes('border-[3px]'),
+      );
+      const rows = card ? [...card.children] : [];
+      return {
+        rowCount: rows.length,
+        // Every row's OWN resolved border-bottom-width, so a fix that stripped the border from
+        // every row (not just the last) would be caught here too, not only the passing case.
+        borderBottoms: rows.map((row) => getComputedStyle(row).borderBottomWidth),
+      };
+    });
+
+    record(facts.rowCount >= 2, 'the card renders more than one ledger row', JSON.stringify(facts));
+    const last = facts.borderBottoms.at(-1);
+    const rest = facts.borderBottoms.slice(0, -1);
+    record(
+      last === '0px',
+      "the LAST row's own border-bottom resolves to 0 — the card's 3px rule is the only edge left",
+      `border-bottoms: ${JSON.stringify(facts.borderBottoms)}`,
+    );
+    record(
+      rest.length > 0 && rest.every((w) => w === '1px'),
+      'every OTHER row keeps its 1px hairline — only the last one is suppressed',
+      `border-bottoms: ${JSON.stringify(facts.borderBottoms)}`,
+    );
+  }
 } finally {
   await browser.close();
   // Only the child this script spawned — signalled as a group and AWAITED, so the port is

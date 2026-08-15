@@ -19,10 +19,11 @@ const PAGE_LIMIT = 50;
 const ItemHistory = () => {
   const { libraryId, itemId } = useParams();
   const navigate = useNavigate();
-  const { canAct } = useLibraries();
+  const { canAct, byId, error: librariesError, refresh: refreshLibraries } = useLibraries();
   // Same gate item detail uses: absence of knowledge is not permission, so clearing stays
   // absent until the library is positively known to be owned, not merely "not yet shared".
   const isReadOnly = !canAct(libraryId);
+  const library = byId(libraryId);
   const { confirm } = useToast();
 
   const [item, setItem] = useState(null);
@@ -35,24 +36,38 @@ const ItemHistory = () => {
   const [isClearing, setIsClearing] = useState(false);
   const [clearError, setClearError] = useState(null);
 
-  const load = useCallback(async () => {
-    setStatus('loading');
-    try {
-      const [fetchedItem, page] = await Promise.all([
-        itemsApi.get(libraryId, itemId),
-        eventsApi.list(libraryId, itemId, { limit: PAGE_LIMIT }),
-      ]);
-      setItem(fetchedItem);
-      setEvents(page?.events ?? []);
-      setNextToken(page?.nextToken ?? null);
-      setStatus('ready');
-    } catch {
-      setStatus('error');
-    }
-  }, [libraryId, itemId]);
+  // `isCancelled` defaults to "never" for the "Try again" button's manual retry, which always
+  // targets whatever item is currently on screen. The mount effect below passes a real guard:
+  // React Router keeps this element mounted across a `:itemId` change, so a slow fetch for the
+  // item that just left the URL could otherwise resolve after a fast one for the item that
+  // replaced it and paint the wrong item's history — the same race ItemDetail guards against.
+  const load = useCallback(
+    async (isCancelled = () => false) => {
+      setStatus('loading');
+      try {
+        const [fetchedItem, page] = await Promise.all([
+          itemsApi.get(libraryId, itemId),
+          eventsApi.list(libraryId, itemId, { limit: PAGE_LIMIT }),
+        ]);
+        if (isCancelled()) return;
+        setItem(fetchedItem);
+        setEvents(page?.events ?? []);
+        setNextToken(page?.nextToken ?? null);
+        setStatus('ready');
+      } catch {
+        if (isCancelled()) return;
+        setStatus('error');
+      }
+    },
+    [libraryId, itemId],
+  );
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    load(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   const loadMore = async () => {
@@ -104,9 +119,25 @@ const ItemHistory = () => {
             assistive tech only, and names the screen even before that fetch resolves. */}
         <h1 className="sr-only">{title ? `${title} — full record` : 'Item history'}</h1>
 
+        {/* Read-only can mean three different things: not mine, not loaded yet, or the
+            /libraries fetch failed. Silently hiding "Clear the record" for the third reason
+            leaves the owner no way to tell a real restriction from a dropped request — the
+            same gap ItemDetail's action row had, and the same block LibraryBrowse already
+            shows for it. */}
+        {isReadOnly && librariesError && !library && (
+          <div role="alert" className="mb-4 border-t-2 border-out bg-paper-deep p-4 text-ink">
+            <p className="text-sm">
+              Could not check whether this library is yours, so its actions are hidden.
+            </p>
+            <PlateButton variant="secondary" className="mt-4" onClick={refreshLibraries}>
+              Try again
+            </PlateButton>
+          </div>
+        )}
+
         {status === 'error' && (
           // Recovery is a control, never an instruction to perform a gesture.
-          <div role="alert" className="border-t-2 border-out bg-paper-deep p-4">
+          <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">
             <p className="text-sm">Could not load this item&apos;s history. Check your connection.</p>
             <PlateButton variant="secondary" className="mt-4" onClick={load}>
               Try again
@@ -123,7 +154,11 @@ const ItemHistory = () => {
                 <p className="caps text-xs font-bold text-ink-soft">Never lent</p>
               </div>
             ) : (
-              <div className="border-[3px] border-ink">
+              // `[&>*:last-child]:border-b-0` mirrors the comp's own
+              // `.board-members .item:last-child { border-bottom: 0 }`: the last row's own 1px
+              // hairline (LedgerRow's `border-b`) would otherwise sit flush on this card's 3px
+              // bottom rule, compositing into a 4px edge the rule-weight scale does not contain.
+              <div className="border-[3px] border-ink [&>*:last-child]:border-b-0">
                 {/* boxed: this card's rows must not sit flush against its own rule (defect 2) —
                     unlike item detail's inline ledger, which is a flush text column. */}
                 {loans.map((loan) => (
@@ -138,7 +173,7 @@ const ItemHistory = () => {
                   // Recovery is a control, never an instruction to perform a gesture — the same
                   // rule the top-level load error above follows, and the same treatment
                   // LibraryBrowse gives a failed page fetch from useStream.
-                  <p role="alert" className="mt-4 border-t-2 border-out bg-paper-deep p-4 text-sm">
+                  <p role="alert" className="mt-4 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
                     {loadMoreError}
                   </p>
                 )}

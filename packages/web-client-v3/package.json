@@ -27,6 +27,8 @@
     "workbox-window": "7.4.0"
   },
   "devDependencies": {
+    "@babel/parser": "7.29.8",
+    "@babel/traverse": "7.29.8",
     "@tailwindcss/vite": "4.1.18",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",

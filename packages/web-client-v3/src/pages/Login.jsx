@@ -47,13 +47,13 @@ const Login = () => {
       <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Sign in</h1>
 
       {(oauthMessage?.type === 'success' || notice) && (
-        <p role="status" className="mb-6 border-t-2 border-imprint bg-paper-deep p-4 text-sm">
+        <p role="status" className="mb-6 border-t-2 border-imprint bg-paper-deep p-4 text-sm text-ink">
           {oauthMessage?.type === 'success' ? oauthMessage.text : notice}
         </p>
       )}
 
       {(error || oauthMessage?.type === 'error') && (
-        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm">
+        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
           {error ?? oauthMessage.text}
         </p>
       )}

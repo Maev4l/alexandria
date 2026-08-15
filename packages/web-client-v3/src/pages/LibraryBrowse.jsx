@@ -9,6 +9,7 @@ import PlateButton from '@/components/imprint/PlateButton.jsx';
 import AddItemSheet from '@/components/AddItemSheet.jsx';
 import ItemActionsSheet from '@/components/ItemActionsSheet.jsx';
 import CollectionActionsSheet from '@/components/CollectionActionsSheet.jsx';
+import SharedRibbon from '@/components/imprint/SharedRibbon.jsx';
 import { Plus } from '@/components/icons';
 import { useLibraries } from '@/state/LibrariesContext.jsx';
 import { useStream } from '@/state/StreamContext.jsx';
@@ -89,7 +90,7 @@ const LibraryBrowse = () => {
           library that has silently lost its add button and every row action, with nothing to
           explain it and nothing to retry. */}
       {librariesError && !library && (
-        <div role="alert" className="border-b-2 border-t-2 border-out bg-paper-deep p-4">
+        <div role="alert" className="border-b-2 border-t-2 border-out bg-paper-deep p-4 text-ink">
           <p className="text-sm">
             Could not check whether this library is yours, so it is showing read-only.
           </p>
@@ -100,11 +101,15 @@ const LibraryBrowse = () => {
       )}
 
       {provenanceKnown && (
-        // Provenance is declared once, here, and never repeated on every row.
-        <p className="relative border-b-2 border-ink px-4 py-2 text-[11px] font-bold text-shared">
+        // Provenance is declared once, here, and never repeated on every row. Routed through
+        // the same SharedRibbon vocabulary component LibraryRow and DetailMarks use — the
+        // hand-rolled version this replaced set the owner's email address in `.num` (Chivo
+        // Mono), which DESIGN.md §3 reserves for numerals, not an authored address.
+        <p className="relative border-b-2 border-ink px-4 py-2">
           <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-shared" />
-          <span className="uppercase tracking-[0.06em]">From</span>{' '}
-          <span className="num normal-case">{library.sharedFrom}</span>
+          <span className="caps text-[11px] font-bold tracking-[0.16em]">
+            <SharedRibbon direction="in" owner={library.sharedFrom} />
+          </span>
         </p>
       )}
 
@@ -117,7 +122,7 @@ const LibraryBrowse = () => {
             // try again" tells a keyboard or mouse reader to do something they cannot do, on
             // the one screen state whose whole purpose is recovery. The gesture remains as the
             // touch shortcut for the same action rather than being its only route.
-            <div role="alert" className="border-t-2 border-out bg-paper-deep p-4">
+            <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">
               <p className="text-sm">{error}</p>
               <PlateButton variant="secondary" className="mt-4" onClick={refresh}>
                 Try again
