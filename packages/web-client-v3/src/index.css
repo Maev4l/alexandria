@@ -132,6 +132,30 @@
   .on-imprint:focus-visible {
     outline-color: var(--ink);
   }
+
+  /* RULING 3: a field with a reveal control (password + eye mark) has TWO focusable
+     descendants that mean DIFFERENT things — caret in the field vs. attention on the reveal
+     toggle. .focus-control is the wrong tool here: it was built for a control where ANY
+     descendant focus means the same thing (the search field's input and its own submit
+     button both say "I am using this field"), so it suppresses every descendant's own ring
+     and lights the whole box on :focus-within regardless of which descendant has focus. Doing
+     that here would suppress the reveal mark's own ring the instant it is tabbed to, then light
+     the whole field as though the caret were in the password input — a reader tabbing past the
+     input would see the field indicate for a control they are not on, which is the doubled/
+     misattributed indicator RULING 2 already exists to prevent, reintroduced in a new place.
+     `:has()` lets the field distinguish the two: the field's own rule only thickens when the
+     INPUT SPECIFICALLY is the focus-visible target, and the mark is left alone to show its own
+     separate ring when IT has focus. One control, one indicator, whichever the reader is
+     actually on. scripts/check-browser.mjs proves this by reverting the selector to
+     :focus-within and asserting the check then fails. */
+  .field-control:has(input:focus-visible) {
+    outline: 3px solid var(--imprint);
+    outline-offset: 0;
+  }
+
+  .field-control:has(input:focus-visible) input {
+    outline: none;
+  }
 }
 
 @layer utilities {

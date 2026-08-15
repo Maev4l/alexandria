@@ -76,3 +76,22 @@ export const More = (props) => (
     <path d="M4 10 H4.01 M10 10 H10.01 M16 10 H16.01" strokeWidth="3" strokeLinecap="round" />
   </Mark>
 );
+
+// The password-reveal pair. Not a state-carrying icon in the sense DESIGN.md §9 refuses: the
+// state (masked vs. showing) is already legible in the field itself — the reader can see
+// whether their password is showing by looking at their password — so the glyph carries no
+// fact that has no words behind it, only the toggle's own action affordance.
+export const Eye = (props) => (
+  <Mark {...props}>
+    <path d="M2 10 C5 4 15 4 18 10 C15 16 5 16 2 10 Z" />
+    <circle cx="10" cy="10" r="2.5" />
+  </Mark>
+);
+
+export const EyeOff = (props) => (
+  <Mark {...props}>
+    <path d="M2 10 C5 4 15 4 18 10 C15 16 5 16 2 10 Z" />
+    <circle cx="10" cy="10" r="2.5" />
+    <path d="M3 3 L17 17" />
+  </Mark>
+);

@@ -48,10 +48,13 @@ try {
   await page.setViewport({ width: 390, height: 844 });
 
   // ---- The focus ring must actually paint, on every focusable thing ----
+  // The password input is deliberately absent from this list, for the same reason the search
+  // input already was: both suppress their OWN ring in favour of their parent control's, and
+  // that suppression is only legitimate while a dedicated check proves the parent actually
+  // indicates instead — see "the password reveal mark carries its own ring" below.
   console.log('focus ring survives the cascade');
   for (const [route, selector, label] of [
     ['/login', 'input[type=email]', 'login email input'],
-    ['/login', 'input[type=password]', 'login password input'],
     ['/login', 'button[type=submit]', 'login submit (imprint plate)'],
     ['/libraries/new', 'input', 'new-library name input'],
     ['/libraries/new', 'textarea', 'new-library description textarea'],
@@ -121,6 +124,75 @@ try {
       focus.input.style === 'none',
       'the inner input draws no competing ring',
       `input outline-style: ${focus.input.style}`,
+    );
+  }
+
+  // ---- The password reveal mark carries its own ring; the field never doubles it ----
+  // A password field with a reveal button has TWO focusable descendants that mean DIFFERENT
+  // things — caret in the field vs. attention on the reveal toggle — unlike the search field
+  // above, whose input and submit button both mean "I am using this field". Reusing
+  // .focus-control's :focus-within here would suppress the mark's own ring whenever EITHER
+  // descendant is focused and then light the whole field as though the caret were in the
+  // input — the doubled/misattributed indicator the previous check exists to prevent,
+  // reintroduced in a new place. index.css keys the field's own indicator to
+  // :has(input:focus-visible) instead. Proven by hand: reverting that selector to
+  // :focus-within makes the second record() below fail (the field lights up while the mark,
+  // not the input, holds focus) — restored afterwards; see the task report for the transcript.
+  console.log("the password reveal mark carries its own ring, never doubled with the field's");
+  {
+    await page.goto(`${BASE}/login`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('input[type=password]', { timeout: 10_000 });
+
+    const readTriad = () => {
+      const input = document.querySelector('input[type=password]');
+      const control = input.closest('.field-control');
+      const mark = control.querySelector('button');
+      const read = (el) => {
+        const s = getComputedStyle(el);
+        return { style: s.outlineStyle, width: parseFloat(s.outlineWidth), offset: s.outlineOffset };
+      };
+      return { control: read(control), input: read(input), mark: read(mark) };
+    };
+
+    await page.focus('input[type=password]');
+    const onInput = await page.evaluate(readTriad);
+
+    record(
+      onInput.control.style !== 'none' && onInput.control.width >= 3,
+      'focusing the password input makes the FIELD visibly focused',
+      `field outline: ${onInput.control.style} ${onInput.control.width}px`,
+    );
+    record(
+      onInput.control.offset === '0px',
+      'the field ring merges with its own rule rather than doubling it',
+      `outline-offset: ${onInput.control.offset}`,
+    );
+    record(
+      onInput.input.style === 'none',
+      'the input draws no competing ring while the field indicates on its behalf',
+      `input outline-style: ${onInput.input.style}`,
+    );
+    record(
+      onInput.mark.style === 'none',
+      'the reveal mark shows no ring while the input, not the mark, has focus',
+      `mark outline-style: ${onInput.mark.style}`,
+    );
+
+    await page.focus('button[aria-label="Show password"]');
+    const onMark = await page.evaluate(readTriad);
+
+    record(
+      onMark.mark.style !== 'none' && onMark.mark.width >= 2,
+      "focusing the reveal mark shows the MARK's own ring",
+      `mark outline: ${onMark.mark.style} ${onMark.mark.width}px`,
+    );
+    // This is the record a reverted-to-:focus-within selector fails: with :focus-within, the
+    // field's :has(...)-scoped rule is replaced by one that fires for ANY focused descendant, so
+    // the field lights up here too — doubled with the mark's own ring just asserted above.
+    record(
+      onMark.control.style === 'none',
+      'the field does NOT also indicate while focus is on the mark, not the input',
+      `field outline-style: ${onMark.control.style}`,
     );
   }
 

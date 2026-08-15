@@ -21,7 +21,9 @@ const renderPage = () =>
 
 const submit = async (password = 'Secret1!') => {
   await userEvent.type(screen.getByLabelText(/email/i), 'a@b.c');
-  await userEvent.type(screen.getByLabelText(/password/i), password);
+  // Exact match, not the earlier /password/i regex: the reveal-mark button now carries its own
+  // "Show password" / "Hide password" aria-label, and a substring match would find both.
+  await userEvent.type(screen.getByLabelText('Password'), password);
   await userEvent.click(screen.getByRole('button', { name: /^sign in$/i }));
 };
 
@@ -34,7 +36,7 @@ describe('Login', () => {
   it('offers email, password, the primary action and Google', () => {
     renderPage();
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^sign in$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /google/i })).toBeInTheDocument();
   });

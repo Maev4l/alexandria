@@ -16,9 +16,19 @@ describe('VolumeFrame', () => {
   // frame. It is gone now (DESIGN.md §4): a book and a film render the IDENTICAL frame, with
   // or without artwork. This is the inverse of the old spine tests, and it is the one a future
   // contributor restoring a type marker would break — pinned deliberately.
+  //
+  // With no picture, collectionId or order, the compared outerHTML was a bare frame div with no
+  // children at all — a matching identity a type marker could reintroduce as a THIRD child and
+  // still pass. Giving both items the same collectionId/order makes the assertion also cover the
+  // one child node the frame can actually render (the order plate), which is what would carry a
+  // reintroduced marker.
   it('renders the identical frame for a book and a film — type is not marked here', () => {
-    const { container: book } = render(<VolumeFrame item={{ id: 'b', type: 0, title: 'X' }} />);
-    const { container: film } = render(<VolumeFrame item={{ id: 'f', type: 1, title: 'X' }} />);
+    const { container: book } = render(
+      <VolumeFrame item={{ id: 'b', type: 0, title: 'X', collectionId: 'c', order: 3 }} />,
+    );
+    const { container: film } = render(
+      <VolumeFrame item={{ id: 'f', type: 1, title: 'X', collectionId: 'c', order: 3 }} />,
+    );
     expect(film.firstChild.outerHTML).toBe(book.firstChild.outerHTML);
     expect(book.querySelector('[data-spine]')).toBeNull();
   });
