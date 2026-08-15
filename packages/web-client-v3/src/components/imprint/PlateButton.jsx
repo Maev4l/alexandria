@@ -7,10 +7,18 @@ import { cn } from '@/lib/cn';
 const VARIANTS = {
   primary: 'on-imprint bg-imprint text-ink border-2 border-imprint',
   secondary: 'bg-transparent text-current border-2 border-current',
-  // Red on the RULE, caps in ink — the same resolution the Overprint Stamp uses. --out is
-  // 4.11:1 on paper, sound for a 2px edge and short of AA for 12px text, so a red label here
-  // would be the least legible text in the app on the one control where a misread costs most.
-  danger: 'bg-transparent text-ink border-2 border-out',
+  // Red on the RULE, caps in the surface's own ink — the same resolution the Overprint Stamp
+  // uses. --out is 4.11:1 on paper, sound for a 2px edge and short of AA for 12px text, so a red
+  // label here would be the least legible text in the app on the one control where a misread
+  // costs most.
+  //
+  // `text-current`, NOT a hardcoded `text-ink`: this variant sets no ground of its own
+  // (`bg-transparent`), so per DESIGN.md §2 it follows ambient like `secondary` does rather than
+  // assuming one. A hardcoded `text-ink` was invisible — ink on ink — the one time this shipped
+  // straight onto item detail's black cover instead of inside a paper-grounded sheet; every
+  // earlier use happened to sit inside a Sheet, where ambient ink and a hardcoded ink read
+  // identically and the bug had nowhere to show itself.
+  danger: 'bg-transparent text-current border-2 border-out',
 };
 
 // A disabled primary is drawn as the ruled outline, never as a faded plate. Half-strength

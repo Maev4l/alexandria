@@ -37,7 +37,10 @@ const ItemActionsSheet = ({ item, libraryId, open, onClose, onChanged, onDeleted
   return (
     <Sheet open={open} onClose={onClose} title={item.title}>
       {error && (
-        <p role="alert" className="mb-4 border-t-2 border-out bg-paper p-4 text-sm">
+        // `bg-paper` is its own ground, distinct from the sheet's `bg-paper-deep`, so — per the
+        // same rule that fixed Sheet.jsx — it declares its own foreground rather than trusting
+        // whatever ink the sheet happens to supply.
+        <p role="alert" className="mb-4 border-t-2 border-out bg-paper p-4 text-sm text-ink">
           {error}
         </p>
       )}

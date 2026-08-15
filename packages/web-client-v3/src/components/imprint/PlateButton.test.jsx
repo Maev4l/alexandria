@@ -22,14 +22,18 @@ describe('PlateButton', () => {
     expect(cls).not.toContain('bg-imprint');
   });
 
-  it('puts the destructive red on the RULE and keeps its label in ink', () => {
+  it('puts the destructive red on the RULE and keeps its label ambient, never red', () => {
     render(<PlateButton variant="danger">Delete</PlateButton>);
     const cls = screen.getByRole('button').className;
     // --out is 4.11:1 on paper — sound for a 2px edge, short of AA for 12px caps. Section 2
     // restricts it to >=18px bold, rules and stamp outlines, so the label cannot be red.
     expect(cls).toContain('border-out');
     expect(cls).not.toContain('text-out');
-    expect(cls).toContain('text-ink');
+    // `text-current`, not a hardcoded `text-ink`: this variant sets no ground of its own, so it
+    // follows ambient exactly like `secondary` does. A hardcoded ink read fine every time this
+    // button sat inside a paper-grounded sheet, and was invisible — ink on ink — the one time it
+    // shipped straight onto item detail's black cover instead.
+    expect(cls).toContain('text-current');
   });
 
   it('flips the focus ring to ink on the yellow plate, where a yellow ring would vanish', () => {

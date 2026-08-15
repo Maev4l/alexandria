@@ -1,18 +1,24 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleMockRequest } from '../../tools/mock-api.js';
 import ItemDetail from './ItemDetail.jsx';
 import { LibrariesProvider } from '@/state/LibrariesContext.jsx';
+import { ToastProvider } from '@/state/ToastContext.jsx';
 import { libraries } from '@/test/fixtures';
 
 const renderPage = (itemId) =>
   render(
     <MemoryRouter initialEntries={[`/libraries/lib-fiction/items/${itemId}`]}>
       <LibrariesProvider>
-        <Routes>
-          <Route path="/libraries/:libraryId/items/:itemId" element={<ItemDetail />} />
-        </Routes>
+        {/* The real app always has a ToastProvider above every route (App.jsx) — confirmations
+            for Mark returned / Lend / Delete are real toasts, not a mocked stub. */}
+        <ToastProvider>
+          <Routes>
+            <Route path="/libraries/:libraryId/items/:itemId" element={<ItemDetail />} />
+          </Routes>
+        </ToastProvider>
       </LibrariesProvider>
     </MemoryRouter>,
   );
@@ -86,5 +92,119 @@ describe('ItemDetail', () => {
     renderPage('item-lent');
     const plateLine = await screen.findByText(/9782070404209/);
     expect(plateLine.closest('p')).not.toHaveTextContent('Fiction');
+  });
+});
+
+// DEFECT 2: `Mark returned` used to open ItemActionsSheet — a menu of Edit/Lend/Delete — when
+// the label promised one specific action. A label is a promise: these tests hold the rebuilt
+// action set to it. `item-lent` (Le Grand Sommeil, lentTo: 'Marie') and `item-1984` (not lent)
+// are both fixtures in lib-fiction, which `canAct` treats as owned (no `sharedFrom`).
+describe('the primary action acts or asks for exactly what it needs — never a menu', () => {
+  it('"Mark returned" acts directly: no dialog ever opens', async () => {
+    renderPage('item-lent');
+    const button = await screen.findByRole('button', { name: /mark returned/i });
+    await userEvent.click(button);
+    // Not even transiently: this assertion would catch a regression back to
+    // `setIsActing(true)` just as easily as one that never called an API at all.
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('posts the RETURNED event and confirms as a toast once the item is re-read', async () => {
+    renderPage('item-lent');
+    await userEvent.click(await screen.findByRole('button', { name: /mark returned/i }));
+    expect(await screen.findByText(/le grand sommeil is back/i)).toBeInTheDocument();
+  });
+
+  it('"Lend" opens a sheet holding ONLY the lend form — no Edit, no Delete, no menu', async () => {
+    renderPage('item-1984');
+    const button = await screen.findByRole('button', { name: /^lend$/i });
+    await userEvent.click(button);
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText(/who has it/i)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: /^edit$/i })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: /^delete/i })).toBeNull();
+  });
+
+  it('records the loan from the sheet and confirms once the item is re-read', async () => {
+    renderPage('item-1984');
+    await userEvent.click(await screen.findByRole('button', { name: /^lend$/i }));
+    await userEvent.type(screen.getByLabelText(/who has it/i), 'Marie');
+    await userEvent.click(screen.getByRole('button', { name: /record the loan/i }));
+    expect(await screen.findByText(/is out with marie/i)).toBeInTheDocument();
+    // The sheet closes once the write and the re-read both succeed.
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('reports a failed return inline, never only as a toast', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        if (path.endsWith('/events') && options.method === 'POST') {
+          return {
+            ok: false,
+            status: 500,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ message: 'Could not record the return' }),
+          };
+        }
+        const result = handleMockRequest('GET', path);
+        return {
+          ok: result.status < 400,
+          status: result.status,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => result.body,
+        };
+      }),
+    );
+    renderPage('item-lent');
+    await userEvent.click(await screen.findByRole('button', { name: /mark returned/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not record the return/i);
+    expect(document.querySelector('[data-toast]')).toBeNull();
+  });
+
+  it('keeps Edit as the one secondary control beside the primary, nowhere else on the page', async () => {
+    renderPage('item-1984');
+    await userEvent.click(await screen.findByRole('button', { name: /^lend$/i }));
+    await screen.findByRole('dialog');
+    // Even with the lend sheet open, there is still exactly one Edit control on the page.
+    expect(screen.getAllByRole('button', { name: /^edit$/i })).toHaveLength(1);
+  });
+});
+
+// Delete is destructive, so it sits apart from the primary pair (its own block, its own
+// margin — DESIGN.md, "own control at the foot") and confirms IN PLACE before acting, the same
+// in-page reveal UnshareLibrary.jsx already uses, rather than a sheet.
+describe('Delete sits apart and confirms in place', () => {
+  it('is not offered until the reader confirms, and names what is lost', async () => {
+    renderPage('item-lent');
+    const deleteButton = await screen.findByRole('button', { name: /^delete$/i });
+    await userEvent.click(deleteButton);
+    expect(screen.getByText(/cannot be undone/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /delete for good/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /keep it/i })).toBeInTheDocument();
+  });
+
+  it('"Keep it" backs out without deleting anything', async () => {
+    renderPage('item-lent');
+    await userEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /keep it/i }));
+    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument();
+    expect(screen.queryByText(/cannot be undone/i)).toBeNull();
+  });
+
+  it('deletes for good and confirms — the item is gone, so there is nothing left to re-read', async () => {
+    renderPage('item-lent');
+    await userEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /delete for good/i }));
+    expect(await screen.findByText(/le grand sommeil deleted/i)).toBeInTheDocument();
   });
 });

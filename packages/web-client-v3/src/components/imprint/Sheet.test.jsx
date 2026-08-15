@@ -80,6 +80,23 @@ describe('Sheet', () => {
     await userEvent.click(screen.getByTestId('sheet-scrim'));
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  // DEFECT 1: the panel declared `bg-paper-deep` with no foreground of its own, so it inherited
+  // whatever text colour its ambient context happened to set — `text-ink` on every ordinary
+  // paper screen, but `text-paper` on item detail's inverted cover, ~1.08:1, "grey on white,
+  // hardly readable". jsdom cannot compute the resulting colour (that is scripts/check-browser.mjs's
+  // job, proven both ways there); this only asserts the DECLARATION survives — that a ground and
+  // its foreground are set in the same rule, per DESIGN.md §2.
+  it('declares its own foreground alongside its own ground, so it never inherits an ambient colour', () => {
+    render(
+      <Sheet open title="Actions">
+        <p>Body</p>
+      </Sheet>,
+    );
+    const panel = screen.getByRole('dialog');
+    expect(panel.className).toContain('bg-paper-deep');
+    expect(panel.className).toContain('text-ink');
+  });
 });
 
 describe('leaving a sheet', () => {

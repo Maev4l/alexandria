@@ -30,7 +30,9 @@ const LibraryActionsSheet = ({ library, open, onClose, onChanged, onDeleted }) =
   return (
     <Sheet open={open} onClose={onClose} title={library.name}>
       {error && (
-        <p role="alert" className="mb-4 border-t-2 border-out bg-paper p-4 text-sm">
+        // `bg-paper` is its own ground, distinct from the sheet's `bg-paper-deep`, so it
+        // declares its own foreground in the same rule rather than trusting the sheet's.
+        <p role="alert" className="mb-4 border-t-2 border-out bg-paper p-4 text-sm text-ink">
           {error}
         </p>
       )}

@@ -5,12 +5,13 @@ import VolumeFrame from '@/components/imprint/VolumeFrame.jsx';
 import DetailMarks from '@/components/imprint/DetailMarks.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import LedgerRow from '@/components/imprint/LedgerRow.jsx';
-import ItemActionsSheet from '@/components/ItemActionsSheet.jsx';
+import LendSheet from '@/components/LendSheet.jsx';
 import { Search } from '@/components/icons';
 import { eventsApi, itemsApi } from '@/api';
 import { detailLineParts } from '@/lib/format';
 import { pairLoanEvents } from '@/lib/loans';
 import { useLibraries } from '@/state/LibrariesContext.jsx';
+import { useToast } from '@/state/ToastContext.jsx';
 
 const FILM = 1;
 const LEDGER_PREVIEW = 3;
@@ -61,7 +62,19 @@ const ItemDetail = () => {
   const [item, setItem] = useState(null);
   const [loans, setLoans] = useState([]);
   const [status, setStatus] = useState('loading');
-  const [isActing, setIsActing] = useState(false);
+  // Lend genuinely needs input (a borrower's name), so it is the one action that still opens a
+  // sheet — and that sheet holds ONLY the lend form, never a menu.
+  const [isLending, setIsLending] = useState(false);
+  // "Mark returned" needs no input, so it acts directly with no sheet at all — the defect was
+  // never "a sheet", it was a label promising one action and delivering a menu of three.
+  const [isReturning, setIsReturning] = useState(false);
+  // Delete is destructive and sits apart at the foot, confirming in place — the same in-page
+  // reveal UnshareLibrary already uses, rather than another sheet.
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  // Inline, because a toast is never the only report of a failure (DESIGN.md, "Errors").
+  const [actionError, setActionError] = useState(null);
+  const { confirm } = useToast();
 
   // Deliberately does NOT flip `status` to 'loading' itself — that is left to the effect below,
   // which owns the initial/route-driven fetch. `onChanged` calls this directly after a lend or
@@ -86,6 +99,41 @@ const ItemDetail = () => {
     setStatus('loading');
     load();
   }, [load]);
+
+  // Acts directly: "Mark returned" needs no input, so a label promising that action performs it
+  // rather than opening a menu of unrelated choices (the bug this replaces).
+  const markReturned = async () => {
+    if (!item) return;
+    setActionError(null);
+    setIsReturning(true);
+    try {
+      await eventsApi.create(libraryId, itemId, { type: 'RETURNED', event: item.lentTo });
+      // The write returns an empty body, so the item is re-read rather than assumed.
+      await load();
+      confirm(`${item.title} is back`);
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setIsReturning(false);
+    }
+  };
+
+  const deleteItem = async () => {
+    if (!item) return;
+    setActionError(null);
+    setIsDeleting(true);
+    try {
+      await itemsApi.remove(libraryId, itemId);
+      confirm(`${item.title} deleted`);
+      // Nothing is left to re-read: the item is gone, so return to the library it came from.
+      navigate(`/libraries/${libraryId}`);
+    } catch (err) {
+      // Stays confirming: the reader already committed to deleting, and dropping back to the
+      // single "Delete" button would make them confirm twice for one failed attempt.
+      setActionError(err.message);
+      setIsDeleting(false);
+    }
+  };
 
   if (status === 'missing' || status === 'error') {
     return (
@@ -183,33 +231,84 @@ const ItemDetail = () => {
           )}
 
           {!isReadOnly && (
-            <div className="mt-6 flex gap-2">
-              <PlateButton onClick={() => setIsActing(true)}>
-                {item.lentTo ? 'Mark returned' : 'Lend'}
-              </PlateButton>
-              <PlateButton
-                variant="secondary"
-                onClick={() => navigate(`/libraries/${libraryId}/items/${itemId}/edit`)}
-              >
-                Edit
-              </PlateButton>
-            </div>
+            <>
+              {actionError && (
+                // Ambient text is already `--paper` on this ground (inherited from the root
+                // div below), which is correct here: this block sets no background of its own,
+                // only a rule — the half-declaration rule in DESIGN.md §2 is about elements that
+                // set a GROUND, not every bordered block.
+                <p role="alert" className="mt-4 border-2 border-out p-4 text-sm">
+                  {actionError}
+                </p>
+              )}
+
+              {/* The circulation action is the primary and it ACTS or asks for exactly what it
+                  needs — never a menu. "Mark returned" needs no input, so it posts the event
+                  directly. "Lend" needs a borrower's name, so it opens a sheet holding ONLY that
+                  form. Edit is the secondary beside it, and is the only other thing this row
+                  offers — it no longer also sits inside a sheet, which was the same action
+                  offered twice, two taps apart. */}
+              <div className="mt-6 flex gap-2">
+                {item.lentTo ? (
+                  <PlateButton disabled={isReturning} onClick={markReturned}>
+                    {isReturning ? 'Recording' : 'Mark returned'}
+                  </PlateButton>
+                ) : (
+                  <PlateButton onClick={() => setIsLending(true)}>Lend</PlateButton>
+                )}
+                <PlateButton
+                  variant="secondary"
+                  onClick={() => navigate(`/libraries/${libraryId}/items/${itemId}/edit`)}
+                >
+                  Edit
+                </PlateButton>
+              </div>
+
+              {/* Destructive, so it sits apart from the primary pair rather than beside them,
+                  and confirms in place before acting — the same in-page reveal
+                  UnshareLibrary.jsx already uses for an equally consequential action, rather
+                  than yet another sheet. */}
+              <div className="mt-8">
+                {isConfirmingDelete ? (
+                  <>
+                    <p className="mb-4 text-sm">
+                      Delete <strong>{item.title}</strong> from this library? Its lending history
+                      goes with it. This cannot be undone.
+                    </p>
+                    <div className="flex gap-2">
+                      <PlateButton variant="danger" disabled={isDeleting} onClick={deleteItem}>
+                        {isDeleting ? 'Deleting' : 'Delete for good'}
+                      </PlateButton>
+                      <PlateButton
+                        variant="secondary"
+                        onClick={() => setIsConfirmingDelete(false)}
+                      >
+                        Keep it
+                      </PlateButton>
+                    </div>
+                  </>
+                ) : (
+                  <PlateButton variant="danger" onClick={() => setIsConfirmingDelete(true)}>
+                    Delete
+                  </PlateButton>
+                )}
+              </div>
+            </>
           )}
         </main>
       )}
 
-      {/* Mounted only while open — not merely hidden by the `open` prop — so a reader who never
-          touches Lend/Edit never pulls in ItemActionsSheet's ToastContext dependency at all.
-          Read-only is also enforced here, redundantly with the buttons above: absent, not
-          disabled. */}
-      {isActing && item && !isReadOnly && (
-        <ItemActionsSheet
+      {/* Mounted only while open, so a reader who never touches Lend never pulls in
+          LendSheet's ToastContext dependency at all. Read-only is also enforced here,
+          redundantly with the buttons above: absent, not disabled. */}
+      {isLending && item && !isReadOnly && (
+        <LendSheet
           item={item}
           libraryId={libraryId}
           open
-          onClose={() => setIsActing(false)}
-          // PUT and POST return empty bodies, so the item is re-read rather than assumed.
-          onChanged={load}
+          onClose={() => setIsLending(false)}
+          // The write returns an empty body, so the item is re-read rather than assumed.
+          onLent={load}
         />
       )}
     </div>

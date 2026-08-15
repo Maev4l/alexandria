@@ -384,6 +384,60 @@ try {
     offenders.join(', '),
   );
 
+  // ---- The REVERSE direction: a paper surface rendered INSIDE the cover declares its own
+  // foreground rather than inheriting the cover's ----
+  // The check just above asserts a PAPER token never leaks ONTO the bare cover. It never
+  // asserted the opposite, and the opposite is what shipped: Sheet.jsx set `bg-paper-deep` with
+  // no text colour of its own, so when it opened INSIDE item detail's inverted `text-paper`
+  // ancestor, a plain <p> and a `text-current` secondary button inherited paper text straight
+  // through the sheet's own recessed ground — ~1.08:1, "grey on white, hardly readable". The
+  // check above alone could never have caught this: the sheet's OWN ground is correctly
+  // paper-deep, so nothing there resolves to a forbidden background. The defect was in the
+  // FOREGROUND its children resolved to once mounted on this one inverted route — the other
+  // half of the same "sets a ground, not its foreground" shape.
+  console.log('a sheet opened INSIDE the cover declares its own foreground, not the cover\'s');
+  {
+    // item-1984 is not on loan, so the primary action reads "Lend" and opens the one sheet
+    // item detail still has — "Mark returned" now acts directly, with no dialog to inspect.
+    await page.goto(`${BASE}/libraries/lib-fiction/items/item-1984`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main h1');
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('main button')].find((el) =>
+        /^lend$/i.test(el.textContent.trim()),
+      );
+      btn?.click();
+    });
+    await page.waitForSelector('[role=dialog]', { timeout: 10_000 });
+
+    const PAPER = 'rgb(246, 246, 243)';
+    const COVER_BODY = 'rgb(222, 222, 217)';
+    const COVER_SOFT = 'rgb(185, 185, 180)';
+    const inheritedCoverFg = await page.evaluate(
+      (paper, coverBody, coverSoft) =>
+        [...document.querySelectorAll('[role=dialog] *')]
+          // Leaf nodes only — a wrapping container repeats the same defect its text child
+          // already reports, so this keeps one offender per actual piece of unreadable text.
+          .filter((el) => el.children.length === 0 && el.textContent.trim().length > 0)
+          .filter((el) => [paper, coverBody, coverSoft].includes(getComputedStyle(el).color))
+          .map((el) => `${el.tagName.toLowerCase()}:"${el.textContent.trim().slice(0, 24)}"`),
+      PAPER,
+      COVER_BODY,
+      COVER_SOFT,
+    );
+    record(
+      inheritedCoverFg.length === 0,
+      'no text inside a sheet opened on the cover resolves to a cover-surface foreground token',
+      inheritedCoverFg.join(', '),
+    );
+
+    // Later checks below assume the page already loaded above (`item-lent`, which has loans and
+    // a sharing mark); this block borrowed the page for a different fixture item and must hand
+    // it back exactly as it found it rather than leaving a later, unrelated check to fail for a
+    // reason that has nothing to do with what it is testing.
+    await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('[aria-label="On loan to Marie"]', { timeout: 10_000 });
+  }
+
   // ---- --shared and --out must never resolve as TEXT colour on the cover either ----
   // Round 2 (the item-detail marks column): DESIGN.md §2 measures --shared on --ink at ~3.03:1
   // and --out on --ink at ~4.42:1 — both sound for a rule or an outline, both short of AA for
