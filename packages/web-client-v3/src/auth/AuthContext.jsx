@@ -15,6 +15,10 @@ import { classifyOAuthCallback } from './oauth.js';
 
 const AuthContext = createContext(null);
 
+// How long to hold the app while a Google code exchange is in flight before giving up and
+// showing the sign-in form with a reason. Exported so tests do not have to wait it out.
+export const CALLBACK_TIMEOUT_MS = 10_000;
+
 const initialsOf = (displayName, email) => {
   const source = displayName || email || '';
   const parts = source.split(/[\s@.]+/).filter(Boolean);
@@ -59,13 +63,15 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Returns whether a usable session was found, so callers can distinguish "resolved, signed
+  // out" from "resolved, signed in" without reading state that has not committed yet.
   const refresh = useCallback(async () => {
     try {
       const session = await fetchAuthSession();
       if (!session?.tokens) {
         await discardStaleSession();
         setUser(null);
-        return;
+        return false;
       }
       const claims = session.tokens.idToken.payload;
       const current = await getCurrentUser();
@@ -80,9 +86,11 @@ export const AuthProvider = ({ children }) => {
         approved: claims['custom:Approved'] === 'true',
         initials: initialsOf(displayName, email),
       });
+      return true;
     } catch {
       await discardStaleSession();
       setUser(null);
+      return false;
     }
   }, [discardStaleSession]);
 
@@ -119,15 +127,55 @@ export const AuthProvider = ({ children }) => {
       );
     }
 
-    refresh().finally(() => setIsLoading(false));
+    // A successful Google return cold-loads at /?code=...&state=..., and Amplify's code
+    // exchange is still in flight when this mounts. fetchAuthSession then resolves with NO
+    // tokens, and resolving on that answer renders the sign-in form to someone who has just
+    // signed in successfully — a transient unavailable window presented as a failure.
+    //
+    // This is not the token gate that was rejected. That would block on a condition we cannot
+    // predict; here the URL positively tells us an exchange is underway, so we hold on
+    // knowledge rather than on a guess — the same principle as canAct.
+    const params = new URLSearchParams(window.location.search);
+    const exchangeInFlight = params.has('code') && !params.has('error_description');
+
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      setIsLoading(false);
+    };
+
+    // If the exchange already finished before we mounted, this finds the session and we settle
+    // immediately; otherwise we wait for the Hub rather than answering with a wrong 'no'.
+    refresh().then((hasSession) => {
+      if (hasSession || !exchangeInFlight) settle();
+    });
+
+    // A failed exchange must not hold the reader on a spinner forever. Landing on the sign-in
+    // form with a stated reason is worse than success and far better than an indefinite wait.
+    const timer = exchangeInFlight
+      ? setTimeout(() => {
+          setOauthMessage({
+            type: 'error',
+            text: 'Google sign-in did not complete. Try again, or sign in with your email.',
+          });
+          settle();
+        }, CALLBACK_TIMEOUT_MS)
+      : null;
 
     const listener = Hub.listen('auth', ({ payload }) => {
       // tokenRefresh_failure means the 365-day refresh token is gone: the session is over
       // and the reader returns to /login without losing the route they were on.
-      if (['signedIn', 'tokenRefresh'].includes(payload.event)) refresh();
-      if (['signedOut', 'tokenRefresh_failure'].includes(payload.event)) setUser(null);
+      if (['signedIn', 'tokenRefresh'].includes(payload.event)) refresh().finally(settle);
+      if (['signedOut', 'tokenRefresh_failure'].includes(payload.event)) {
+        setUser(null);
+        settle();
+      }
     });
-    return () => listener();
+    return () => {
+      listener();
+      if (timer) clearTimeout(timer);
+    };
   }, [refresh]);
 
   const value = useMemo(
