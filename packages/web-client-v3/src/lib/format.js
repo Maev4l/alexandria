@@ -33,10 +33,14 @@ export const detailLineParts = (item) => {
   const identifiers =
     item.type === FILM
       ? [
-          item.releaseYear ? String(item.releaseYear) : null,
+          // Presence, not truthiness: both fields are optional-and-omitted (omitempty), never
+          // null, but `duration` permits 0 (CreateVideoRequest.duration: minimum 0) — a
+          // truthy check would silently drop the runtime of a short film. Same idiom as
+          // `item.order != null` in VolumeFrame.jsx.
+          item.releaseYear != null ? String(item.releaseYear) : null,
           // The prime mark is the catalogue's own convention for a runtime in minutes (DESIGN.md
           // §3 type scale, "Numerals · mono 13 · tabular" reads "130′").
-          item.duration ? `${item.duration}′` : null,
+          item.duration != null ? `${item.duration}′` : null,
         ].filter(Boolean)
       : [item.isbn || null].filter(Boolean);
   return { names: names || null, identifiers };

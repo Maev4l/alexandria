@@ -311,6 +311,37 @@ try {
     'no element on the cover resolves to --ink-soft or --paper-deep',
     offenders.join(', '),
   );
+
+  // ---- `caps` elements on the cover keep an explicit weight through the cascade ----
+  // `.caps` sets ONLY text-transform and letter-spacing, by deliberate design (DESIGN.md §3):
+  // weight is always stated separately, at the point of use, because a `caps` utility that also
+  // set font-weight once let "stop uppercasing this, it's content" silently drop the emphasis
+  // too — the exact regression this checks for. Every other `caps` usage in the package pairs it
+  // with font-bold/font-extrabold; a stylesheet test can only confirm the class NAME is present,
+  // not that the cascade actually resolves it to a weight above ambient, so this is a computed
+  // check in real Chrome, same page already loaded above.
+  console.log('caps elements on the cover keep their weight, not just their case');
+  {
+    const weights = await page.evaluate(() => {
+      const byText = (selector, text) =>
+        [...document.querySelectorAll(selector)].find((el) => el.textContent.trim() === text);
+      const weightOf = (el) => (el ? parseInt(getComputedStyle(el).fontWeight, 10) : null);
+      return {
+        heading: weightOf(byText('h2', 'The record')),
+        link: weightOf(byText('a', 'Full record')),
+      };
+    });
+    record(
+      weights.heading !== null && weights.heading > 400,
+      '"The record" heading resolves above ambient weight',
+      `font-weight: ${weights.heading}`,
+    );
+    record(
+      weights.link !== null && weights.link > 400,
+      '"Full record" link resolves above ambient weight',
+      `font-weight: ${weights.link}`,
+    );
+  }
 } finally {
   await browser.close();
   // Only the child this script spawned — signalled as a group and AWAITED, so the port is

@@ -80,4 +80,16 @@ describe('detailLineParts', () => {
     );
     expect(identifiers).not.toContain(names);
   });
+
+  // duration is optional-and-omitted (omitempty) but explicitly permits 0
+  // (CreateVideoRequest.duration: minimum 0) — a short/silent film is a real value, not an
+  // absent one. A truthiness check (`item.duration ? ... : null`) would silently drop it, which
+  // is exactly the failure the API's "optional fields are omitted, not null" constraint warns
+  // against: test presence, never truthiness.
+  it('keeps a runtime of 0 rather than treating it as absent', () => {
+    const { identifiers } = detailLineParts(
+      film({ directors: ['X'], releaseYear: 1974, duration: 0 }),
+    );
+    expect(identifiers).toContain('0′');
+  });
 });

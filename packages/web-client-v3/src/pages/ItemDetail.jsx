@@ -158,8 +158,13 @@ const ItemDetail = () => {
 
           {loans.length > 0 && (
             <>
-              {/* The record carries its own past: the ledger reads on the item itself. */}
-              <h2 className="caps mt-6 text-[10px] tracking-[0.16em] text-imprint">The record</h2>
+              {/* The record carries its own past: the ledger reads on the item itself.
+                  `caps` sets ONLY text-transform/letter-spacing (DESIGN.md §3) — weight is
+                  always stated at the point of use, so font-extrabold is explicit here rather
+                  than assumed from the class. */}
+              <h2 className="caps mt-6 text-[10px] font-extrabold tracking-[0.16em] text-imprint">
+                The record
+              </h2>
               <div className="mt-2 border-t-2 border-paper">
                 {loans.slice(0, LEDGER_PREVIEW).map((loan) => (
                   <LedgerRow key={`${loan.lentAt}-${loan.name}`} loan={loan} inverted />
@@ -167,7 +172,7 @@ const ItemDetail = () => {
               </div>
               <Link
                 to={`/libraries/${libraryId}/items/${itemId}/history`}
-                className="caps mt-4 inline-block text-[11px] text-imprint underline"
+                className="caps mt-4 inline-block text-[11px] font-extrabold text-imprint underline"
               >
                 Full record
               </Link>
