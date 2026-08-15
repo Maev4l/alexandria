@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   fetchAuthSession,
   getCurrentUser,
@@ -39,6 +47,11 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(config.isMock ? MOCK_USER : null);
   const [isLoading, setIsLoading] = useState(!config.isMock);
   const [oauthMessage, setOauthMessage] = useState(null);
+  // Non-zero while a sign-in is in progress. A session being established must not be reconciled
+  // away by a concurrent read that happens to land in the window before tokens are stored.
+  const signInFlight = useRef(0);
+  // Serializes refresh() against itself.
+  const refreshQueue = useRef(Promise.resolve(false));
 
   // Amplify v6 has two independent notions of "signed in": fetchAuthSession() asks whether
   // usable tokens exist, getCurrentUser() asks whether a user record exists. They can
@@ -48,15 +61,25 @@ export const AuthProvider = ({ children }) => {
   //
   // This is a permanent condition, not a one-off: v2 and v3 share an origin and a Cognito
   // client id, so they share Amplify's token store and a stale v2 session surfaces here.
+  // This signs the reader OUT, so it is the most destructive thing in a path that reads like a
+  // getter — and it reached a real user twice. An empty read is EXACTLY the transient condition
+  // we are chasing, so an empty read alone must never destroy a session. Three guards, each
+  // ruling out a way of being wrong:
   const discardStaleSession = useCallback(async () => {
+    // 1. Never while a sign-in is in flight. The session being reconciled away is the one that
+    //    sign-in is in the middle of establishing.
+    if (signInFlight.current > 0) return;
+
+    // 2. Only when the state is genuinely INCONSISTENT — a user record with no session behind
+    //    it. No record means nothing to reconcile.
     try {
       await getCurrentUser();
     } catch {
-      // No user record either — already consistent, nothing to discard.
       return;
     }
+
+    console.warn('[auth] discarding a user record with no session behind it');
     try {
-      // Resolve the disagreement in favour of what the UI is about to claim anyway.
       await cognitoSignOut();
     } catch {
       // Best effort. The sign-in path reconciles again if this did not take.
@@ -65,9 +88,20 @@ export const AuthProvider = ({ children }) => {
 
   // Returns whether a usable session was found, so callers can distinguish "resolved, signed
   // out" from "resolved, signed in" without reading state that has not committed yet.
-  const refresh = useCallback(async () => {
+  const readSession = useCallback(async () => {
     try {
-      const session = await fetchAuthSession();
+      let session = await fetchAuthSession();
+
+      // An empty result is EXACTLY the transient condition that cost a real user her session
+      // twice, so it is not allowed to drive any decision until it has been confirmed. A forced
+      // re-read distinguishes a genuinely absent session from a momentary gap — and this has to
+      // happen here rather than only before the sign-out, because an unconfirmed empty read was
+      // also enough to blank the signed-in reader via setUser(null). The Cognito session
+      // surviving is no comfort to someone looking at a login form.
+      if (!session?.tokens) {
+        session = await fetchAuthSession({ forceRefresh: true }).catch(() => null);
+      }
+
       if (!session?.tokens) {
         await discardStaleSession();
         setUser(null);
@@ -93,6 +127,16 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
   }, [discardStaleSession]);
+
+  // SERIALIZED. refresh() runs concurrently with itself on every sign-in — signIn() awaits it
+  // explicitly and the Hub 'signedIn' listener fires another — and two instances could
+  // interleave such that one destroyed the session the other had just validated. Queueing them
+  // means a later refresh always observes the settled result of the earlier one.
+  const refresh = useCallback(() => {
+    const next = refreshQueue.current.catch(() => {}).then(() => readSession());
+    refreshQueue.current = next;
+    return next;
+  }, [readSession]);
 
   // The API client cannot navigate and must not reach into React state, so it delegates
   // recovery here: force Amplify to re-resolve the session, or drop the user, which the router
@@ -185,21 +229,29 @@ export const AuthProvider = ({ children }) => {
       oauthMessage,
       clearOauthMessage: () => setOauthMessage(null),
       signIn: async (email, password) => {
+        // Raised across the WHOLE sign-in, including the refresh that establishes the user.
+        // Lowering it before that refresh left the exact window unguarded: the session being
+        // built is at its most fragile precisely while it is being read for the first time.
+        signInFlight.current += 1;
         try {
-          await cognitoSignIn({ username: email, password });
-        } catch (err) {
-          if (err?.name !== 'UserAlreadyAuthenticatedException') throw err;
-          // "There is already a signed in user" is an SDK statement about SDK state; it
-          // tells someone staring at a login form nothing they can act on. Resolve it
-          // instead of reporting it.
-          //
-          // Always sign out and retry with the credentials that were actually typed, even
-          // when the existing session is usable: adopting it would sign the reader into
-          // whichever account the stale session belongs to, which may not be theirs.
-          await cognitoSignOut().catch(() => {});
-          await cognitoSignIn({ username: email, password });
+          try {
+            await cognitoSignIn({ username: email, password });
+          } catch (err) {
+            if (err?.name !== 'UserAlreadyAuthenticatedException') throw err;
+            // "There is already a signed in user" is an SDK statement about SDK state; it
+            // tells someone staring at a login form nothing they can act on. Resolve it
+            // instead of reporting it.
+            //
+            // Always sign out and retry with the credentials that were actually typed, even
+            // when the existing session is usable: adopting it would sign the reader into
+            // whichever account the stale session belongs to, which may not be theirs.
+            await cognitoSignOut().catch(() => {});
+            await cognitoSignIn({ username: email, password });
+          }
+          await refresh();
+        } finally {
+          signInFlight.current -= 1;
         }
-        await refresh();
       },
       signInWithGoogle: () => signInWithRedirect({ provider: 'Google' }),
       signUp: (email, password, name) =>
