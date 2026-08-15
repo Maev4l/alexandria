@@ -59,19 +59,30 @@ One `AppHeader` with a **contextual right slot**, rendered as an `--imprint` pla
 
 | Screen | Left | Right slot | Search |
 |---|---|---|---|
-| Libraries root | wordmark | account initials → `/settings` | pinned field |
-| Library browse | back + library name | add (owned libraries only) | pinned field |
-| Item detail (cover) | back | search | **slot only, no field** |
+| Libraries root | wordmark | account initials → `/settings` | **pinned field** |
+| Library browse | back + library name | add (owned libraries only) | **none** |
+| Item detail (cover) | back | search | slot only, no field |
 
-Search is *reachable* from every screen; the pinned *field* belongs to the list screens. On the
-cover the reader is looking at one thing, so the field would be chrome competing with the volume
-it came to read — the slot carries search there instead.
+**The pinned field belongs to the root and nowhere else.** The dominant job — "do I own this?" —
+starts from a cold open, which lands on the root, where the field is the loudest mark on the
+screen. Entering a library is a different and deliberate intent: browsing what you already chose.
+
+A field on a browse screen would be the loudest thing there and would promise to *leave* — it
+searches every library, so inside Fiction the fastest affordance on screen takes you out of
+Fiction. Scoping it to the current library was considered and rejected: the API has no scoped
+search, so scoping means filtering a global response, which hides matches elsewhere and then needs
+a second control to un-hide them. That is a limitation invented in the client and then worked
+around in the client. Global search already prints each result's library name, so nothing was ever
+lost — the scope was the only thing that would have lost it.
+
+The cost, accepted: from inside a library there is no fast path to a title. One tap back reaches
+the field, and global search finds the item regardless of which library holds it.
 
 ### IA anti-patterns, and what replaces each
 
 | Anti-pattern | Refused by |
 |---|---|
-| Hub-and-spoke that forces a library choice before you can look anything up | Search is pinned in the header on every screen and spans all libraries. The dominant job never requires entering a library first. |
+| Hub-and-spoke that forces a library choice before you can look anything up | Search is pinned on the root — the screen a cold open lands on — and spans every library. The dominant job never requires entering a library first, which is the whole point; it does not require a field on every screen thereafter. |
 | A tab bar where Settings is a peer of the collection | No tab bar. Account plate in the header. |
 | Two competing hierarchies — collections as a parallel tree alongside libraries | Collections are inline groups delivered by the API's own server-side grouping. There is no collections destination. |
 | Read-only mode expressed as a screen full of disabled buttons | On a shared library, actions are **absent**, not disabled, and provenance is declared in the header. A reader is never offered what they cannot do. |
