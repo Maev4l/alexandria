@@ -539,6 +539,65 @@ try {
       `font-weight: ${weights.sharedMark}`,
     );
   }
+
+  // ---- The item-detail action row reflows on the narrowest phones, never overflows ----
+  // Delete moved onto the same line as Mark returned/Lend and Edit (DESIGN.md, "all three on
+  // one line" — a lone Delete below the ledger used to read as though it deleted the RECORD,
+  // not the item). The three labels total ~319px, which fits a 390px viewport with margins and
+  // does not fit a 320px one, so the row relies on `flex-wrap` rather than a second layout.
+  // Measured by hand: at 390px the row spans ~329px inside 358px of available width (29px
+  // slack) and stays on one line; at 320px (288px available) Delete drops to its own line. Both
+  // are asserted here in a REAL browser — jsdom does no layout at all, so a green unit test
+  // would be evidence about jsdom, not about whether this row actually wraps. Proven to catch a
+  // regression by hand: reverting `flex-wrap` to `flex` on `.cover-actions`'s React equivalent
+  // (the `div` around the three PlateButtons in ItemDetail.jsx) makes the 320px checks below
+  // FAIL — Delete overflows past the viewport edge instead of dropping to a second line — then
+  // restored; see the task report for the transcript.
+  console.log('item-detail action row reflows instead of overflowing');
+  {
+    const actionRects = async (width) => {
+      await page.setViewport({ width, height: 844 });
+      await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
+      await page.waitForSelector('main h1');
+      return page.evaluate(() =>
+        [...document.querySelectorAll('main button')]
+          .filter((el) => /^(mark returned|lend|edit|delete)$/i.test(el.textContent.trim()))
+          .map((el) => {
+            const r = el.getBoundingClientRect();
+            return { text: el.textContent.trim(), top: r.top, right: r.left + r.width };
+          }),
+      );
+    };
+
+    const wide = await actionRects(390);
+    const wideTops = new Set(wide.map((r) => Math.round(r.top)));
+    const wideMaxRight = Math.max(...wide.map((r) => r.right));
+    record(
+      wideTops.size === 1,
+      'at 390px the three actions stay on one line',
+      `tops: ${[...wideTops].join(', ')}`,
+    );
+    record(
+      wideMaxRight <= 390,
+      'at 390px the row does not overflow the viewport',
+      `rightmost edge: ${wideMaxRight.toFixed(1)}px`,
+    );
+
+    const narrow = await actionRects(320);
+    const deleteRect = narrow.find((r) => /^delete$/i.test(r.text));
+    const editRect = narrow.find((r) => /^edit$/i.test(r.text));
+    record(
+      Boolean(deleteRect) && Boolean(editRect) && Math.round(deleteRect.top) > Math.round(editRect.top),
+      'at 320px Delete wraps to its own line rather than overflowing',
+      `Delete top: ${deleteRect?.top}, Edit top: ${editRect?.top}`,
+    );
+    const narrowMaxRight = Math.max(...narrow.map((r) => r.right));
+    record(
+      narrowMaxRight <= 320,
+      'at 320px the row does not overflow the viewport (reflow, not overflow)',
+      `rightmost edge: ${narrowMaxRight.toFixed(1)}px`,
+    );
+  }
 } finally {
   await browser.close();
   // Only the child this script spawned — signalled as a group and AWAITED, so the port is

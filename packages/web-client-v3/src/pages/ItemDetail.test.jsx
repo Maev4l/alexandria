@@ -180,10 +180,25 @@ describe('the primary action acts or asks for exactly what it needs — never a 
   });
 });
 
-// Delete is destructive, so it sits apart from the primary pair (its own block, its own
-// margin — DESIGN.md, "own control at the foot") and confirms IN PLACE before acting, the same
-// in-page reveal UnshareLibrary.jsx already uses, rather than a sheet.
-describe('Delete sits apart and confirms in place', () => {
+// Delete now sits on the same line as Mark returned/Lend and Edit (DESIGN.md, "all three on one
+// line" — a lone Delete below the ledger used to read as though it deleted the RECORD, not the
+// item). Hierarchy is carried by treatment, not distance. It still confirms IN PLACE before
+// acting, the same in-page reveal UnshareLibrary.jsx already uses, rather than a sheet.
+describe('Delete shares the action row and confirms in place', () => {
+  // jsdom does no layout, so it cannot see whether the row WRAPS at 320px (that lives in
+  // scripts/check-browser.mjs, in a real browser). What jsdom CAN pin is the structural fact
+  // this task actually changed: the three buttons are siblings in one container rather than
+  // Delete living in a second block below, which is what a regression back to the old two-block
+  // layout would break first.
+  it('renders Mark returned/Lend, Edit and Delete as siblings in one row', async () => {
+    renderPage('item-lent');
+    const markReturned = await screen.findByRole('button', { name: /^mark returned$/i });
+    const edit = screen.getByRole('button', { name: /^edit$/i });
+    const del = screen.getByRole('button', { name: /^delete$/i });
+    expect(markReturned.parentElement).toBe(edit.parentElement);
+    expect(edit.parentElement).toBe(del.parentElement);
+  });
+
   it('is not offered until the reader confirms, and names what is lost', async () => {
     renderPage('item-lent');
     const deleteButton = await screen.findByRole('button', { name: /^delete$/i });

@@ -68,8 +68,9 @@ const ItemDetail = () => {
   // "Mark returned" needs no input, so it acts directly with no sheet at all — the defect was
   // never "a sheet", it was a label promising one action and delivering a menu of three.
   const [isReturning, setIsReturning] = useState(false);
-  // Delete is destructive and sits apart at the foot, confirming in place — the same in-page
-  // reveal UnshareLibrary already uses, rather than another sheet.
+  // Delete is destructive and confirms in place — the same in-page reveal UnshareLibrary already
+  // uses, rather than a sheet. It no longer sits apart at the foot: see the comment beside the
+  // action row below for why that placement was reversed.
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   // Inline, because a toast is never the only report of a failure (DESIGN.md, "Errors").
@@ -242,55 +243,50 @@ const ItemDetail = () => {
                 </p>
               )}
 
-              {/* The circulation action is the primary and it ACTS or asks for exactly what it
-                  needs — never a menu. "Mark returned" needs no input, so it posts the event
-                  directly. "Lend" needs a borrower's name, so it opens a sheet holding ONLY that
-                  form. Edit is the secondary beside it, and is the only other thing this row
-                  offers — it no longer also sits inside a sheet, which was the same action
-                  offered twice, two taps apart. */}
-              <div className="mt-6 flex gap-2">
-                {item.lentTo ? (
-                  <PlateButton disabled={isReturning} onClick={markReturned}>
-                    {isReturning ? 'Recording' : 'Mark returned'}
-                  </PlateButton>
-                ) : (
-                  <PlateButton onClick={() => setIsLending(true)}>Lend</PlateButton>
-                )}
-                <PlateButton
-                  variant="secondary"
-                  onClick={() => navigate(`/libraries/${libraryId}/items/${itemId}/edit`)}
-                >
-                  Edit
-                </PlateButton>
-              </div>
-
-              {/* Destructive, so it sits apart from the primary pair rather than beside them,
-                  and confirms in place before acting — the same in-page reveal
-                  UnshareLibrary.jsx already uses for an equally consequential action, rather
-                  than yet another sheet. */}
-              <div className="mt-8">
+              {/* All three actions on one line: the circulation action (primary, acts or asks
+                  for exactly what it needs, never a menu), Edit (secondary), Delete
+                  (destructive). Delete used to sit apart at the foot, on the convention that a
+                  destructive action is separated from the rest — but below the loan ledger and
+                  below "Full record", a lone Delete read as though it deleted the RECORD, which
+                  is a real action this app offers elsewhere (ItemHistory). Distance separated
+                  the button from its own subject; grouped here it can only mean the item.
+                  Hierarchy still reads because it is carried by treatment, not position — filled
+                  plate, ink outline, red outline are three sharply different things in a row.
+                  `flex-wrap` lets Delete drop to its own line on the narrowest phones: this is
+                  reflow, not a second layout, and not an overflow. */}
+              <div className="mt-6 flex flex-wrap gap-2">
                 {isConfirmingDelete ? (
                   <>
-                    <p className="mb-4 text-sm">
+                    <p className="mb-4 w-full text-sm">
                       Delete <strong>{item.title}</strong> from this library? Its lending history
                       goes with it. This cannot be undone.
                     </p>
-                    <div className="flex gap-2">
-                      <PlateButton variant="danger" disabled={isDeleting} onClick={deleteItem}>
-                        {isDeleting ? 'Deleting' : 'Delete for good'}
-                      </PlateButton>
-                      <PlateButton
-                        variant="secondary"
-                        onClick={() => setIsConfirmingDelete(false)}
-                      >
-                        Keep it
-                      </PlateButton>
-                    </div>
+                    <PlateButton variant="danger" disabled={isDeleting} onClick={deleteItem}>
+                      {isDeleting ? 'Deleting' : 'Delete for good'}
+                    </PlateButton>
+                    <PlateButton variant="secondary" onClick={() => setIsConfirmingDelete(false)}>
+                      Keep it
+                    </PlateButton>
                   </>
                 ) : (
-                  <PlateButton variant="danger" onClick={() => setIsConfirmingDelete(true)}>
-                    Delete
-                  </PlateButton>
+                  <>
+                    {item.lentTo ? (
+                      <PlateButton disabled={isReturning} onClick={markReturned}>
+                        {isReturning ? 'Recording' : 'Mark returned'}
+                      </PlateButton>
+                    ) : (
+                      <PlateButton onClick={() => setIsLending(true)}>Lend</PlateButton>
+                    )}
+                    <PlateButton
+                      variant="secondary"
+                      onClick={() => navigate(`/libraries/${libraryId}/items/${itemId}/edit`)}
+                    >
+                      Edit
+                    </PlateButton>
+                    <PlateButton variant="danger" onClick={() => setIsConfirmingDelete(true)}>
+                      Delete
+                    </PlateButton>
+                  </>
                 )}
               </div>
             </>
