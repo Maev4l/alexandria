@@ -19,11 +19,15 @@ export const foldForSort = (value) =>
 // contrast collided with itself in the counters. Near-empty head buckets are rare, truthful
 // and cheap.
 //
-// The empty case cannot arise from the API, which requires a title. It returns '' rather than
-// inventing a bucket, so bad data shows as blank instead of being disguised as a real letter.
+// A title can fold to nothing even when it is not empty: one whose first character is a bare
+// combining mark loses it to the NFD strip. Falling back to the RAW first character keeps the
+// label honest — a 76px band of nothing is worse than an odd glyph, and the reader is still
+// shown the character the server sorted on. Only a genuinely empty title yields no label, which
+// the API forbids.
 export const indexLetterFor = (title) => {
-  const first = foldForSort(title).charAt(0);
-  return first ? first.toUpperCase() : '';
+  const folded = foldForSort(title).charAt(0);
+  if (folded) return folded.toUpperCase();
+  return (title ?? '').charAt(0).toUpperCase();
 };
 
 // The index letter's treatment is bounded by the GLYPH, not patched per symbol. Alphanumerics

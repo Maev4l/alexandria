@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -44,6 +45,29 @@ describe('Sheet', () => {
     const heading = screen.getByRole('heading', { name: 'Bandes dessinées' });
     expect(heading.className).not.toContain('caps');
     expect(heading.className).not.toContain('uppercase');
+  });
+
+  it('returns focus to whatever opened it', async () => {
+    const Harness = () => {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Open
+          </button>
+          <Sheet open={open} title="Actions" onClose={() => setOpen(false)}>
+            <p>Body</p>
+          </Sheet>
+        </>
+      );
+    };
+    render(<Harness />);
+    const opener = screen.getByRole('button', { name: 'Open' });
+    await userEvent.click(opener);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    // Not <body>: a keyboard reader must not be stranded when the sheet closes.
+    expect(document.activeElement).toBe(opener);
   });
 
   it('closes when the scrim is clicked', async () => {

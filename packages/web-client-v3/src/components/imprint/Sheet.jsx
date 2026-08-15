@@ -8,12 +8,19 @@ const Sheet = ({ open, title, onClose, children }) => {
 
   useEffect(() => {
     if (!open) return undefined;
+    // Remember what opened this, so focus can go back there rather than to <body>. After
+    // "Delete for good" the trigger is gone with its row, and document.body is where focus
+    // lands by default — which strands a keyboard reader at the top of a rebuilt stream.
+    const opener = document.activeElement;
     const onKeyDown = (event) => {
       if (event.key === 'Escape') onClose?.();
     };
     document.addEventListener('keydown', onKeyDown);
     panel.current?.focus();
-    return () => document.removeEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      if (opener instanceof HTMLElement && document.contains(opener)) opener.focus();
+    };
   }, [open, onClose]);
 
   if (!open) return null;

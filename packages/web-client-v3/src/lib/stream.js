@@ -43,7 +43,16 @@ export const toLetterRuns = (stream, { complete = false } = {}) => {
       last.entries.push(entry);
       last.itemCount += entryItemCount(entry);
     } else {
-      runs.push({ letter, entries: [entry], itemCount: entryItemCount(entry), closed: true });
+      // The key is the run's position, not its letter: the client never sorts, so if the server
+      // ever returns a letter twice — or a fixture is wrong — two runs share a letter and a
+      // letter key collides in React.
+      runs.push({
+        key: `${runs.length}-${letter}`,
+        letter,
+        entries: [entry],
+        itemCount: entryItemCount(entry),
+        closed: true,
+      });
     }
   }
 

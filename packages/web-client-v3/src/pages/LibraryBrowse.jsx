@@ -29,10 +29,17 @@ const SkeletonRow = () => (
 const LibraryBrowse = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
-  const { byId, isLoading: librariesLoading } = useLibraries();
+  const { byId, canAct, error: librariesError, refresh: refreshLibraries } = useLibraries();
   const library = byId(libraryId);
-  const isReadOnly = Boolean(library?.sharedFrom);
-  const { runs, isLoading, isAppending, isComplete, error, loadMore, refresh } =
+  // Gate on POSITIVE knowledge that this library is the reader's own. Deriving read-only from
+  // `library?.sharedFrom` made "not loaded yet" and "fetch failed" indistinguishable from
+  // "mine" — so a cold deep link, a PWA restart, or any GET /libraries failure rendered the add
+  // plate and row actions on a shared library, permanently if the fetch never recovered.
+  // Read-only is the safe default, and absence of knowledge is not permission.
+  const canModify = canAct(libraryId);
+  const isReadOnly = !canModify;
+  const provenanceKnown = Boolean(library?.sharedFrom);
+  const { runs, isLoading, isAppending, isComplete, error, loadMore, refresh, patchItem, dropItem } =
     useStream(libraryId);
   const [isAdding, setIsAdding] = useState(false);
   const [actionsFor, setActionsFor] = useState(null);
@@ -58,12 +65,13 @@ const LibraryBrowse = () => {
   return (
     <div className="flex h-dvh flex-col bg-paper">
       <AppHeader
-        title={library?.name ?? (librariesLoading ? '' : 'Library')}
+        title={library?.name ?? ''}
         onBack={() => navigate('/libraries')}
+        search={false}
         onTitleTap={() => scroller.current?.scrollTo({ top: 0 })}
         right={
           // Read-only means the action is absent, not disabled.
-          isReadOnly ? null : (
+          !canModify ? null : (
             <button
               type="button"
               onClick={() => setIsAdding(true)}
@@ -76,7 +84,22 @@ const LibraryBrowse = () => {
         }
       />
 
-      {isReadOnly && (
+      {/* Read-only because ownership could not be established, rather than because the library
+          is shared. Saying so matters: without it a reader whose connection dropped sees a
+          library that has silently lost its add button and every row action, with nothing to
+          explain it and nothing to retry. */}
+      {librariesError && !library && (
+        <div role="alert" className="border-b-2 border-t-2 border-out bg-paper-deep p-4">
+          <p className="text-sm">
+            Could not check whether this library is yours, so it is showing read-only.
+          </p>
+          <PlateButton variant="secondary" className="mt-4" onClick={refreshLibraries}>
+            Try again
+          </PlateButton>
+        </div>
+      )}
+
+      {provenanceKnown && (
         // Provenance is declared once, here, and never repeated on every row.
         <p className="relative border-b-2 border-ink px-4 py-2 text-[11px] font-bold text-shared">
           <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-shared" />
@@ -121,7 +144,7 @@ const LibraryBrowse = () => {
           )}
 
           {runs.map((run) => (
-            <section key={run.letter}>
+            <section key={run.key}>
               {/* A closed run knows its final count; the tail run does not, so it shows none. */}
               <IndexLetter letter={run.letter} count={run.closed ? run.itemCount : null} />
               {run.entries.map((entry) =>
@@ -168,7 +191,14 @@ const LibraryBrowse = () => {
           libraryId={libraryId}
           open
           onClose={() => setBoardActionsFor(null)}
-          onChanged={refresh}
+          // Deleting a collection genuinely restructures the stream — its members become
+          // standalone entries and re-file alphabetically — so this one does reload, and
+          // restores the scroll position afterwards.
+          onChanged={async () => {
+            const top = scroller.current?.scrollTop ?? 0;
+            await refresh();
+            requestAnimationFrame(() => scroller.current?.scrollTo({ top }));
+          }}
         />
       )}
 
@@ -178,7 +208,10 @@ const LibraryBrowse = () => {
           libraryId={libraryId}
           open
           onClose={() => setActionsFor(null)}
-          onChanged={refresh}
+          // Patch the one item rather than reloading: a lend or return must not cost the
+          // reader their place in a thousand-item stream.
+          onChanged={() => patchItem(actionsFor.id)}
+          onDeleted={() => dropItem(actionsFor.id)}
         />
       )}
     </div>

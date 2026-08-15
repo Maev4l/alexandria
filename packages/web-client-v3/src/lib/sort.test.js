@@ -50,9 +50,15 @@ describe('indexLetterFor', () => {
     expect(indexLetterFor('Æneid')).toBe('Æ');
   });
 
-  it('returns no label for an empty title rather than inventing a bucket', () => {
-    // The API requires a title, so this is defensive: bad data shows as blank rather than
-    // being disguised as a real letter.
+  it('still finds a letter when a combining mark merely PRECEDES one', () => {
+    // The mark is stripped and the letter behind it survives, so this is not the empty case.
+    expect(indexLetterFor('\u0301abc')).toBe('A');
+  });
+
+  it('falls back to the raw character when the fold empties the title entirely', () => {
+    // A title of nothing but combining marks folds away completely. A 76px band of nothing is
+    // worse than an odd glyph, and the raw character is what the server sorted on.
+    expect(indexLetterFor('\u0301')).toBe('\u0301');
     expect(indexLetterFor('')).toBe('');
     expect(indexLetterFor(undefined)).toBe('');
   });

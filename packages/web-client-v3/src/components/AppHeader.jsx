@@ -53,6 +53,12 @@ const AppHeader = ({
       {right}
     </div>
 
+    {/* Only the root pins the field. Inside a library, the loudest mark on screen would be a
+        control promising to search EVERY library — the fastest affordance taking the reader out
+        of what they came to browse. Scoping it was the obvious repair and the wrong one: the API
+        has no scoped search, so scoping means filtering a global response, which HIDES matches
+        elsewhere and then needs a second control to un-hide them. Global search already prints
+        each result's library, so nothing is lost by leaving browse without a field. */}
     {search && !inverted && <SearchField />}
   </header>
 );

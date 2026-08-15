@@ -91,4 +91,11 @@ describe('toLetterRuns', () => {
   it('returns nothing for an empty stream', () => {
     expect(toLetterRuns([])).toEqual([]);
   });
+
+  it('gives each run a stable key, because a letter can legitimately recur', () => {
+    // Not in fold order — but the client never sorts, so it must survive being given this.
+    const runs = toLetterRuns([book('a', 'Alpha'), book('b', 'Beta'), book('c', 'Anvil')]);
+    expect(runs.map((r) => r.letter)).toEqual(['A', 'B', 'A']);
+    expect(new Set(runs.map((r) => r.key)).size).toBe(3);
+  });
 });

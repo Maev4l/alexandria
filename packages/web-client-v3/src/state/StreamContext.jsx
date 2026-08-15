@@ -54,10 +54,57 @@ export const useStream = (libraryId) => {
     return load(null);
   }, [load]);
 
+  const COLLECTION = 2;
+
+  // Re-read ONE item and swap it in place, including inside a collection board. Reaching for
+  // refresh() after every lend, return or edit sent the reader back to page one: in a 1000-item
+  // library, returning a book filed under M put them at the top of the stream. refresh() is for
+  // pull-to-refresh, where losing your place is what was asked for.
+  const patchItem = useCallback(
+    async (itemId) => {
+      const fresh = await itemsApi.get(libraryId, itemId);
+      setEntries((current) =>
+        current.map((entry) => {
+          if (entry.id === itemId) return fresh;
+          if (entry.type !== COLLECTION) return entry;
+          const items = entry.items ?? [];
+          if (!items.some((member) => member.id === itemId)) return entry;
+          return { ...entry, items: items.map((m) => (m.id === itemId ? fresh : m)) };
+        }),
+      );
+    },
+    [libraryId],
+  );
+
+  // A deleted item is gone; there is nothing to re-read. Drop it where it stands rather than
+  // reloading the stream around it.
+  const dropItem = useCallback((itemId) => {
+    setEntries((current) =>
+      current
+        .filter((entry) => entry.id !== itemId)
+        .map((entry) =>
+          entry.type === COLLECTION && entry.items
+            ? { ...entry, items: entry.items.filter((member) => member.id !== itemId) }
+            : entry,
+        ),
+    );
+  }, []);
+
   const runs = useMemo(
     () => toLetterRuns(entries, { complete: isComplete }),
     [entries, isComplete],
   );
 
-  return { entries, runs, isLoading, isAppending, isComplete, error, loadMore, refresh };
+  return {
+    entries,
+    runs,
+    isLoading,
+    isAppending,
+    isComplete,
+    error,
+    loadMore,
+    refresh,
+    patchItem,
+    dropItem,
+  };
 };

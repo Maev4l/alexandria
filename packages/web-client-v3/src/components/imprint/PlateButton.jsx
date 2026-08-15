@@ -7,7 +7,10 @@ import { cn } from '@/lib/cn';
 const VARIANTS = {
   primary: 'on-imprint bg-imprint text-ink border-2 border-imprint',
   secondary: 'bg-transparent text-current border-2 border-current',
-  danger: 'bg-transparent text-out border-2 border-out',
+  // Red on the RULE, caps in ink — the same resolution the Overprint Stamp uses. --out is
+  // 4.11:1 on paper, sound for a 2px edge and short of AA for 12px text, so a red label here
+  // would be the least legible text in the app on the one control where a misread costs most.
+  danger: 'bg-transparent text-ink border-2 border-out',
 };
 
 // A disabled primary is drawn as the ruled outline, never as a faded plate. Half-strength

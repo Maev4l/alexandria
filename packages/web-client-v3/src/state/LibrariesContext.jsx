@@ -37,6 +37,13 @@ export const LibrariesProvider = ({ children }) => {
       error,
       refresh,
       byId: (id) => libraries.find((library) => library.id === id),
+      // Positive knowledge only. A caller must be able to distinguish "this library is mine"
+      // from "I do not know yet" or "the fetch failed", because the difference decides whether
+      // a shared library is shown actions it must never offer.
+      canAct: (id) => {
+        const library = libraries.find((entry) => entry.id === id);
+        return Boolean(library) && !library.sharedFrom;
+      },
     };
   }, [libraries, isLoading, error, refresh]);
 

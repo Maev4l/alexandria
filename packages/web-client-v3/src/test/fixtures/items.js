@@ -41,7 +41,19 @@ const inCollection = (order) => ({
 // - an absent picture, and a picture URL that 404s because the thumbnail is not made yet
 // - a lent item
 // - a collection split across the page boundary at index 10
+// IN THE SERVER'S FOLD ORDER — NFD, strip combining marks, NFC, lowercase — because the client
+// is faithful to whatever order it is given and never sorts. A fixture out of fold order makes
+// the index letters render non-monotonically, which looks like a client bug and is not one.
+// Verify with: foldForSort(a) <= foldForSort(b) for every adjacent pair.
+//
+// So: & (0x26) before digits, digits before letters, and œ after z.
+//
+// The cross-page collection split is NOT modelled here: this library is smaller than one page,
+// so the server would never emit a continuation for it. That case lives in huge.js, where it is
+// real. Modelling it here produced two entries for one collection inside a single response,
+// which no server does.
 export const fictionItems = [
+  book('item-ampersand', '&Sons', { authors: ['David Gilbert'] }),
   book('item-1984', '1984', { authors: ['George Orwell'], isbn: '9780451524935' }),
   book('item-amerique', 'Amérique', { authors: ['Franz Kafka'] }),
   book('item-aurore', 'Aurore', { authors: ['Michel Tournier'] }),
@@ -50,6 +62,7 @@ export const fictionItems = [
     isbn: '9782070404209',
     lentTo: 'Marie',
   }),
+  book('item-mendiant', 'Le Mendiant de Jérusalem', { authors: ['Elie Wiesel'] }),
   {
     id: 'coll-melville',
     type: 2,
@@ -60,41 +73,24 @@ export const fictionItems = [
     description: 'Jean-Pierre Melville, dans l’ordre de sortie',
     itemCount: 4,
     updatedAt: '2026-07-22T18:40:00Z',
+    // Members run in `order`, not alphabetically — which is why the board carries SERIES ORDER.
     items: [
       film('item-bob', 'Bob le flambeur', { ...inCollection(1), releaseYear: 1956, duration: 102 }),
       film('item-doulos', 'Le Doulos', { ...inCollection(2), releaseYear: 1962, duration: 108 }),
+      film('item-samourai', 'Le Samouraï', { ...inCollection(3), releaseYear: 1967, duration: 105 }),
+      film('item-cercle', 'Le Cercle rouge', { ...inCollection(4), releaseYear: 1970, duration: 140 }),
     ],
   },
-  book('item-mendiant', 'Le Mendiant de Jérusalem', { authors: ['Elie Wiesel'] }),
   book('item-nadja', 'Nadja', { authors: ['André Breton'] }),
   book('item-broken', 'Pêcheur d’Islande', {
     authors: ['Pierre Loti'],
     // A thumbnail that has not been produced yet: the URL exists and 404s.
     picture: 'https://alexandria.isnan.eu/thumbnails/user/OWNER1/library/lib-fiction/item/missing',
   }),
-  book('item-zazie', 'Zazie dans le métro', { authors: ['Raymond Queneau'] }),
-  book('item-oeuvres', 'Œuvres complètes', { authors: ['Arthur Rimbaud'] }),
-  // Page two opens with the continuation of the Melville collection, as the API does.
-  {
-    id: 'coll-melville',
-    type: 2,
-    title: 'Melville',
-    ownerId: 'OWNER1',
-    libraryId: 'lib-fiction',
-    libraryName: 'Fiction',
-    description: 'Jean-Pierre Melville, dans l’ordre de sortie',
-    itemCount: 4,
-    partial: true,
-    updatedAt: '2026-07-22T18:40:00Z',
-    items: [
-      film('item-samourai', 'Le Samouraï', { ...inCollection(3), releaseYear: 1967, duration: 105 }),
-      film('item-cercle', 'Le Cercle rouge', { ...inCollection(4), releaseYear: 1970, duration: 140 }),
-    ],
-  },
   book('item-voyage', 'Voyage au bout de la nuit', { authors: ['Louis-Ferdinand Céline'] }),
-  // A self-crossing title-initial character is a real possibility in a collection, so the
-  // solid-ink fallback is visible in mock mode rather than theoretical.
-  book('item-ampersand', '&Sons', { authors: ['David Gilbert'] }),
+  book('item-zazie', 'Zazie dans le métro', { authors: ['Raymond Queneau'] }),
+  // œ survives the fold and sorts after z, so this is genuinely last.
+  book('item-oeuvres', 'Œuvres complètes', { authors: ['Arthur Rimbaud'] }),
 ];
 
 export const itemsByLibrary = {

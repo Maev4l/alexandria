@@ -8,7 +8,7 @@ import { useToast } from '@/state/ToastContext.jsx';
 
 const NAME_MAX = 50;
 
-const ItemActionsSheet = ({ item, libraryId, open, onClose, onChanged }) => {
+const ItemActionsSheet = ({ item, libraryId, open, onClose, onChanged, onDeleted }) => {
   const [mode, setMode] = useState('menu');
   const [borrower, setBorrower] = useState('');
   const [error, setError] = useState(null);
@@ -16,13 +16,14 @@ const ItemActionsSheet = ({ item, libraryId, open, onClose, onChanged }) => {
   const navigate = useNavigate();
   const { confirm } = useToast();
 
-  const run = async (action, confirmation) => {
+  const run = async (action, confirmation, after = onChanged) => {
     setError(null);
     setIsBusy(true);
     try {
       await action();
-      // Every mutation here returns an empty body, so the item is re-read rather than assumed.
-      await onChanged?.();
+      // Every mutation here returns an empty body, so the item is re-read rather than assumed —
+      // except a delete, where there is nothing left to read.
+      await after?.();
       // The toast confirms only; the failure path below never reaches it.
       confirm(confirmation);
       onClose();
@@ -121,7 +122,11 @@ const ItemActionsSheet = ({ item, libraryId, open, onClose, onChanged }) => {
               variant="danger"
               disabled={isBusy}
               onClick={() =>
-                run(() => itemsApi.remove(libraryId, item.id), `${item.title} deleted`)
+                run(
+                  () => itemsApi.remove(libraryId, item.id),
+                  `${item.title} deleted`,
+                  onDeleted ?? onChanged,
+                )
               }
             >
               {isBusy ? 'Deleting' : 'Delete for good'}
