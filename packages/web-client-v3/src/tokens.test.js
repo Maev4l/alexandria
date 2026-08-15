@@ -101,6 +101,27 @@ describe('the inverted surface, which cannot borrow the paper palette', () => {
   it('imprint clears AA on ink, for the title rule and the ledger head', () => {
     expect(contrastRatio(PALETTE.imprint, PALETTE.ink)).toBeGreaterThanOrEqual(4.5);
   });
+
+  // Round 2 (item-detail hero): the design session wrote "~3.03:1" in their message and
+  // "3.07:1" in the comp's own CSS comment, and said plainly both are computed rather than
+  // measured — DESIGN.md §2's own table has been off by up to 0.7 before. Pinned here with a
+  // tolerance so a future palette edit that drifts the true figure fails loudly instead of the
+  // document quietly going stale again.
+  it('shared on ink fails as text — ~3.03:1, which is why the cover puts it on an edge', () => {
+    const ratio = contrastRatio(PALETTE.shared, PALETTE.ink);
+    expect(ratio).toBeGreaterThan(2.9);
+    expect(ratio).toBeLessThan(3.2);
+    expect(ratio).toBeLessThan(4.5);
+  });
+
+  // Same shape as --out on --paper (§2's existing table): sound for a rule or an outline,
+  // short of AA for small text, which is exactly the discipline the Overprint Stamp already
+  // applies — colour on the outline, caps in a legible tone.
+  it('out on ink fails as text too, for the same reason its stamp keeps caps off the colour', () => {
+    const ratio = contrastRatio(PALETTE.out, PALETTE.ink);
+    expect(ratio).toBeGreaterThan(3);
+    expect(ratio).toBeLessThan(4.5);
+  });
 });
 
 describe('the focus ring', () => {

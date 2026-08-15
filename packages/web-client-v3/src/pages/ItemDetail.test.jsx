@@ -67,4 +67,24 @@ describe('ItemDetail', () => {
     const title = await screen.findByText('Le Grand Sommeil');
     expect(title.className).not.toContain('uppercase');
   });
+
+  // Round 2: the hero gained a marks column beside the frame, and the library left the plate
+  // line for it (DESIGN.md §5). `lib-fiction` in the fixtures is shared with two people
+  // (marie@example.com, paul@example.com), which is exactly the amended comp's "Shared · 2".
+  it('links IN <library> beside the hero, not the header, which carries no title here', async () => {
+    renderPage('item-lent');
+    const link = await screen.findByRole('link', { name: 'Fiction' });
+    expect(link).toHaveAttribute('href', '/libraries/lib-fiction');
+  });
+
+  it('shows the sharing mark beside the hero, matching the library sharedTo count', async () => {
+    renderPage('item-lent');
+    expect(await screen.findByText(/shared · 2/i)).toBeInTheDocument();
+  });
+
+  it('keeps the library out of the plate line — the line is the work, not the copy', async () => {
+    renderPage('item-lent');
+    const plateLine = await screen.findByText(/9782070404209/);
+    expect(plateLine.closest('p')).not.toHaveTextContent('Fiction');
+  });
 });

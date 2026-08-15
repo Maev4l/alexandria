@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import VolumeFrame from '@/components/imprint/VolumeFrame.jsx';
+import DetailMarks from '@/components/imprint/DetailMarks.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
-import OverprintStamp from '@/components/imprint/OverprintStamp.jsx';
 import LedgerRow from '@/components/imprint/LedgerRow.jsx';
 import ItemActionsSheet from '@/components/ItemActionsSheet.jsx';
 import { Search } from '@/components/icons';
@@ -16,14 +16,16 @@ const FILM = 1;
 const LEDGER_PREVIEW = 3;
 
 // Names take the sans and only a figure takes the mono (§3) — the same split PlateLine already
-// makes on the row, carried onto detail's longer line. `item.libraryName` is denormalized onto
-// the item itself, so the line does not depend on the libraries list having loaded.
+// makes on the row, carried onto detail's longer line. The library is deliberately absent here:
+// the Plate Line is the WORK (author, edition), and where a COPY is kept belongs to the Detail
+// Marks column beside the hero instead (DESIGN.md §5, "Plate Line ... it never carries the
+// library"). Running them together as `AUTHOR · ISBN · LIBRARY` put three categories in one
+// dot-separated run and made location read as identity.
 const buildDetailLineSegments = (item) => {
   const { names, identifiers } = detailLineParts(item);
   return [
     names && { text: names, mono: false },
     ...identifiers.map((value) => ({ text: value, mono: true })),
-    item.libraryName && { text: item.libraryName, mono: false },
   ].filter(Boolean);
 };
 
@@ -47,10 +49,14 @@ const DetailLine = ({ item }) => {
 const ItemDetail = () => {
   const { libraryId, itemId } = useParams();
   const navigate = useNavigate();
-  const { canAct } = useLibraries();
+  const { canAct, byId } = useLibraries();
   // Absence of knowledge is not permission: until the library is confirmed as owned, actions
   // stay absent rather than briefly appearing before a slow /libraries fetch resolves.
   const isReadOnly = !canAct(libraryId);
+  // The Detail Marks column needs the library's own sharedTo/sharedFrom, which live on the
+  // LIBRARY, not the item (§6 in the brief) — /libraries is already loaded by the provider, so
+  // this is a lookup, not a second fetch.
+  const library = byId(libraryId);
 
   const [item, setItem] = useState(null);
   const [loans, setLoans] = useState([]);
@@ -129,26 +135,22 @@ const ItemDetail = () => {
               at a single object, not scanning a thousand. Same 2:3 frame and spine rule as
               the stream, at hero scale, ruled in paper on the cover. VolumeFrame already draws
               the collection-order plate inside itself — a second plate beside it would label
-              the same fact twice. */}
-          <VolumeFrame item={item} hero className="mb-6" />
+              the same fact twice. Beside it, Detail Marks fills what was dead space with
+              everything true of the COPY rather than the work: filed, visible, circulating. */}
+          <div className="mb-6 flex items-start gap-4">
+            <VolumeFrame item={item} hero />
+            <DetailMarks item={item} library={library} loans={loans} />
+          </div>
 
           {/* The visible title doubles as the screen's <h1>; nothing hides it, and content
               titles are never uppercased (§3). */}
           <h1 className="text-[32px] font-extrabold leading-[1.06]">{item.title}</h1>
 
+          {/* Never carries the library (DESIGN.md §5) — that fact moved into Detail Marks
+              above, beside the hero, where location joins visibility and circulation. */}
           <DetailLine item={item} />
 
           <div className="my-4 h-1 bg-imprint" />
-
-          {/* The stamp is the only statement of loan state here. A "Currently out" label
-              above it would say the same thing twice. */}
-          {item.lentTo && (
-            <OverprintStamp
-              inverted
-              name={item.lentTo}
-              days={loans.find((loan) => loan.open)?.days}
-            />
-          )}
 
           {item.summary && <p className="mt-4 text-sm text-cover-body">{item.summary}</p>}
 

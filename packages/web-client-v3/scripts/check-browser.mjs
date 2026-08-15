@@ -312,6 +312,60 @@ try {
     offenders.join(', '),
   );
 
+  // ---- --shared and --out must never resolve as TEXT colour on the cover either ----
+  // Round 2 (the item-detail marks column): DESIGN.md §2 measures --shared on --ink at ~3.03:1
+  // and --out on --ink at ~4.42:1 — both sound for a rule or an outline, both short of AA for
+  // small text. Both ALSO have a legitimate use as a background/border colour on this exact
+  // route: the sharing mark's edge is `bg-shared`, the Overprint Stamp's outline is `border-out`.
+  // So only the resolved TEXT colour is checked — checking background/border too would flag
+  // those legitimate marks as if they were the defect they exist to prevent.
+  console.log('--shared and --out never resolve as text colour on the cover');
+  const SHARED = 'rgb(15, 107, 79)';
+  const OUT = 'rgb(216, 65, 47)';
+  const textOffenders = await page.evaluate(
+    (shared, out) =>
+      [...document.querySelectorAll('body *')]
+        .filter((el) => {
+          const s = getComputedStyle(el);
+          return s.color === shared || s.color === out;
+        })
+        .map(
+          (el) =>
+            el.tagName.toLowerCase() +
+            (el.className ? `.${String(el.className).trim().replace(/\s+/g, '.')}` : ''),
+        ),
+    SHARED,
+    OUT,
+  );
+  record(
+    textOffenders.length === 0,
+    '--shared and --out never resolve as a text colour on the cover',
+    textOffenders.join(', '),
+  );
+
+  // ---- The sharing mark's green edge does not displace its own text ----
+  // Round 1 shipped the stamp fix with no automated regression coverage; this closes that gap
+  // for the mark that replaces it. The design session's OWN first attempt at this edge used
+  // `border-left`, which adds to the box and pushed the SHARED line 12px right of IN <library>
+  // directly above it (DESIGN.md §6: an edge rule never displaces content). The fix hangs the
+  // edge into the column's own padding-left as an absolutely positioned sibling instead, so the
+  // IN line and the SHARED line's own flow boxes should share the same left edge, in real
+  // Chrome's layout — a stylesheet test can assert the rule exists, not that the cascade leaves
+  // the text where the rule intends.
+  console.log('the sharing mark edge does not displace its own text');
+  const marks = await page.evaluate(() => {
+    const left = (selector) => {
+      const el = document.querySelector(selector);
+      return el ? el.getBoundingClientRect().left : null;
+    };
+    return { in: left('[data-mark="in"]'), shared: left('[data-mark="shared"]') };
+  });
+  record(
+    marks.in !== null && marks.shared !== null && Math.abs(marks.in - marks.shared) < 1,
+    'IN <library> and the SHARED mark share one left edge — the edge hangs into padding',
+    `IN left: ${marks.in}, SHARED left: ${marks.shared}`,
+  );
+
   // ---- `caps` elements on the cover keep an explicit weight through the cascade ----
   // `.caps` sets ONLY text-transform and letter-spacing, by deliberate design (DESIGN.md §3):
   // weight is always stated separately, at the point of use, because a `caps` utility that also
