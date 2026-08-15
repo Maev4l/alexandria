@@ -62,12 +62,15 @@ export const AuthProvider = ({ children }) => {
   // This is a permanent condition, not a one-off: v2 and v3 share an origin and a Cognito
   // client id, so they share Amplify's token store and a stale v2 session surfaces here.
   // This signs the reader OUT, so it is the most destructive thing in a path that reads like a
-  // getter — and it reached a real user twice. An empty read is EXACTLY the transient condition
-  // we are chasing, so an empty read alone must never destroy a session. Three guards, each
-  // ruling out a way of being wrong:
+  // getter. Its guards were written while chasing a defect that turned out to live elsewhere —
+  // a fetch issued while signed out, since fixed in App.jsx's Gate — so each was re-tested by
+  // removal afterwards rather than kept on the strength of that story. Each closes a scenario a
+  // test can reach, named below:
   const discardStaleSession = useCallback(async () => {
-    // 1. Never while a sign-in is in flight. The session being reconciled away is the one that
-    //    sign-in is in the middle of establishing.
+    // 1. Never while a sign-in is in flight. Two empty reads in a row — a network gap spanning
+    //    both, reachable on the poor signal this app is specified for — otherwise reconcile away
+    //    the very session the sign-in is establishing. The confirming re-read below handles ONE
+    //    transient empty; only this handles two.
     if (signInFlight.current > 0) return;
 
     // 2. Only when the state is genuinely INCONSISTENT — a user record with no session behind

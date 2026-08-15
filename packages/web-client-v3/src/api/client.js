@@ -68,9 +68,14 @@ const authToken = async () => {
   const first = await readToken();
   if (first.token) return first.token;
 
-  // One forced refresh, then one retry — the same policy as a 401 below. This is the case that
-  // reached a real user: a token missing on the first attempt and present on a manual retry, so
-  // the recovery they performed by hand is now performed for them, before anything is shown.
+  // One forced refresh, then one retry — the same policy as a 401 below.
+  //
+  // THIS IS NOT WHAT THE SECOND READER HIT, despite what this comment claimed for four commits.
+  // Her request fired while signed out, fifteen seconds before sign-in, and no retry could have
+  // helped because there was no session to find; that is fixed in App.jsx's Gate. The retry is
+  // kept for the case it actually covers — a token expiring or being evicted mid-session, where
+  // one forced refresh genuinely produces it — and a test pins that case. Kept for a stated
+  // reason, not by inheritance.
   await sessionHooks.refresh();
   const second = await readToken();
   if (second.token) return second.token;

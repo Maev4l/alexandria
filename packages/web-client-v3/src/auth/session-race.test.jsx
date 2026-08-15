@@ -67,7 +67,12 @@ beforeEach(() => {
   window.history.replaceState({}, '', '/login');
 });
 
-// The console message from Cecile's SECOND occurrence was decisive:
+// WRITTEN UNDER A MISTAKEN MODEL, AND KEPT ANYWAY. The defect a second reader actually hit was
+// a libraries fetch issued while signed out (fixed in App.jsx's Gate), not any of what follows.
+// These tests survive because each was re-checked by removing the guard it covers and confirming
+// the test fails — they describe real, reachable races, whoever they were written for.
+//
+// The console message from that reader's second occurrence read:
 //   [auth] no token after a forced refresh: first=no-tokens, second=no-tokens
 // fetchAuthSession SUCCEEDED both times and returned a session with no idToken, so Amplify
 // believed there was no session at all — after a sign-in that had just succeeded.
@@ -144,5 +149,67 @@ describe('two refreshes racing after a successful sign-in', () => {
     renderProvider();
 
     await waitFor(() => expect(amplify.signOut).toHaveBeenCalled());
+  });
+});
+
+// The two guards that the sweep showed no test could see. A guard nothing can break is either
+// dead or untested, and those need opposite treatment, so each gets a reachable scenario written
+// against it. Both fail without their guard — verified by removing it — so both earn their place.
+describe('guards the first sweep could not see', () => {
+  it('does not sign out when BOTH reads land empty during a sign-in', async () => {
+    // The confirming re-read handles a single transient empty. It cannot handle two in a row —
+    // a network hiccup spanning both reads, which is entirely reachable on the poor signal this
+    // app is specified to work on. Only the in-flight guard stops the sign-in being reconciled
+    // away by the very read that is establishing it.
+    amplify.fetchAuthSession.mockResolvedValue({});
+    amplify.getCurrentUser.mockRejectedValue(new Error('no current user'));
+    renderProvider();
+    await waitFor(() => expect(hubListener).not.toBeNull());
+    await waitFor(() => expect(auth).toBeDefined());
+
+    amplify.getCurrentUser.mockResolvedValue({ username: 'cecile@example.com' });
+    amplify.fetchAuthSession
+      .mockResolvedValueOnce({}) // first read
+      .mockResolvedValueOnce({}) // the confirming re-read, also in the gap
+      .mockResolvedValue(withTokens);
+
+    await auth.signIn('cecile@example.com', 'secret');
+
+    expect(amplify.signOut).not.toHaveBeenCalled();
+  });
+
+  it('does not let a slow refresh restore a reader whose session has since gone', async () => {
+    // Two refreshes in flight, resolving out of order. The slow one started FIRST and carries the
+    // older truth; if it lands last it reinstates a signed-in reader whose session is gone —
+    // exactly the inconsistent state the reconciliation exists to prevent. Serialization is what
+    // orders them.
+    amplify.fetchAuthSession.mockResolvedValue(withTokens);
+    amplify.getCurrentUser.mockResolvedValue({ username: 'jr@example.com' });
+    renderProvider();
+    await waitFor(() => expect(auth?.user).toBeTruthy());
+
+    let slowResolve;
+    amplify.fetchAuthSession
+      // The first refresh's read: deliberately held open.
+      .mockImplementationOnce(() => new Promise((resolve) => { slowResolve = resolve; }))
+      // The second refresh's reads: the session is genuinely gone now.
+      .mockResolvedValue({});
+
+    // refresh() is not on the context — it is driven by Hub events and by the API client's
+    // session hook. Two events in the same tick is how two land concurrently in real use.
+    hubListener({ payload: { event: 'tokenRefresh' } });
+    hubListener({ payload: { event: 'tokenRefresh' } });
+    // The queued read starts on a later microtask, so the held promise does not exist yet.
+    await waitFor(() => expect(slowResolve).toBeTypeOf('function'));
+    slowResolve(withTokens);
+
+    // The FINAL state, not the first instant at which the assertion happens to hold. waitFor
+    // succeeds the moment its condition is momentarily true, so waiting on `user === null` would
+    // pass while the slow read was still in flight and about to overwrite it — a test that
+    // agrees with the implementation without testing it.
+    await waitFor(() => expect(amplify.signOut).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(auth.user).toBeNull();
   });
 });
