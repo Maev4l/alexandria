@@ -1,20 +1,5 @@
-import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth';
+import { fetchAuthSession } from 'aws-amplify/auth';
 import { config } from '@/config';
-// TEMPORARY. Phase-1 evidence gathering for the session defect; revert this commit to remove it.
-import {
-  moduleIdentity,
-  probeUser,
-  reportAcceptedToken,
-  reportFirstClientRead,
-  sessionShape,
-  snapshot,
-  stampModule,
-  tokenFacts,
-} from '@/auth/diagnose.js';
-
-// Answers the duplication question WITHOUT waiting for a failure: if this module received a
-// different Amplify copy than AuthContext did, the two ids differ here, at import, on any run.
-stampModule('api/client.js', fetchAuthSession);
 
 const BASE_URL = `${config.apiBaseUrl}/v1`;
 
@@ -65,28 +50,14 @@ export const registerSessionHooks = (hooks) => {
 // `catch {}` and a falsy token — so when this failed for a real user there was no way to tell
 // which had happened, and a successful retry proved only that something had changed. Whatever
 // goes wrong here now says so.
-const readToken = async (attempt) => {
+const readToken = async () => {
   let session;
   try {
     session = await fetchAuthSession();
   } catch (err) {
-    snapshot(`client.readToken(${attempt}) THREW`, {
-      amplify: moduleIdentity(fetchAuthSession),
-      error: err?.name ?? 'Error',
-    });
     return { token: null, reason: 'threw', cause: err };
   }
   const token = session?.tokens?.idToken?.toString();
-  if (!token) {
-    // Report the whole shape, not the verdict. "No tokens" was all we ever learned last time,
-    // and it does not distinguish an empty object from a session missing only its idToken.
-    snapshot(`client.readToken(${attempt}) NO TOKEN`, {
-      amplify: moduleIdentity(fetchAuthSession),
-      ...sessionShape(session),
-    });
-    probeUser(`client.readToken(${attempt})`, getCurrentUser);
-  }
-  if (token) reportFirstClientRead(fetchAuthSession);
   return token ? { token } : { token: null, reason: 'no-tokens' };
 };
 
@@ -94,14 +65,14 @@ const authToken = async () => {
   // Mock mode has no Cognito session by design, and the fixture API wants none.
   if (config.isMock) return null;
 
-  const first = await readToken('first');
+  const first = await readToken();
   if (first.token) return first.token;
 
   // One forced refresh, then one retry — the same policy as a 401 below. This is the case that
   // reached a real user: a token missing on the first attempt and present on a manual retry, so
   // the recovery they performed by hand is now performed for them, before anything is shown.
   await sessionHooks.refresh();
-  const second = await readToken('after-forced-refresh');
+  const second = await readToken();
   if (second.token) return second.token;
 
   // Deliberately loud. This is the only record of a condition that was previously invisible.
@@ -122,11 +93,6 @@ const parse = async (response) => {
 };
 
 const request = async (path, options = {}, { isRetry = false } = {}) => {
-  // Logged unconditionally, at START and at OUTCOME. Every other client snapshot fires only on
-  // failure, which makes silence ambiguous between three different situations — the request was
-  // never made, the request succeeded, or the capture was truncated. With a start and an outcome
-  // line for every request, the ABSENCE of a line becomes a fact instead of a puzzle.
-  snapshot('client REQUEST start', { path, method: options.method ?? 'GET', isRetry });
   const token = await authToken();
 
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -138,41 +104,22 @@ const request = async (path, options = {}, { isRetry = false } = {}) => {
     },
   });
 
-  // BEFORE the 401 branches, so that every response produces exactly one outcome line. Placed
-  // after them, a 401 would return early and log nothing — leaving the case we are chasing as
-  // the one case with no outcome, which is precisely backwards.
-  snapshot('client REQUEST outcome', { path, status: response.status, ok: response.ok });
-
   // A 401 on a request that DID carry a token is a session event, not a permissions verdict:
   // force one refresh and try once more. A reader should never be shown a raw "Unauthorized"
   // and asked to solve it with a button.
   if (response.status === 401 && !isRetry) {
-    // PREVIOUSLY SILENT, and it is a failure mode we never instrumented: the request DID carry a
-    // token and the server rejected it. It produces no readToken line and no warn, so a failing
-    // run down this path looks, in the console, exactly like a run that never failed.
-    snapshot('client 401 WITH a token, refreshing', {
-      amplify: moduleIdentity(fetchAuthSession),
-      path,
-      ...tokenFacts(token),
-    });
     await sessionHooks.refresh();
     return request(path, options, { isRetry: true });
   }
 
   if (response.status === 401) {
-    snapshot('client 401 AGAIN after refresh, ending the session', { path, ...tokenFacts(token) });
     sessionHooks.invalidate();
     throw new SessionExpiredError();
   }
 
-  if (response.ok) reportAcceptedToken(path, isRetry, token);
-
   const data = await parse(response);
 
   if (!response.ok) {
-    // Also previously silent. An ordinary server failure and a session failure reach the reader
-    // as similar-looking errors, and only one of them was ever visible in the console.
-    snapshot('client REQUEST FAILED', { path, status: response.status });
     throw new ApiError(data?.message ?? 'The request failed.', response.status, data);
   }
   return data;
