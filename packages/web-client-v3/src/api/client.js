@@ -12,31 +12,112 @@ export class ApiError extends Error {
   }
 }
 
-const authHeader = async () => {
-  // Mock mode never has a Cognito session, and asking Amplify for one throws.
-  if (config.isMock) return {};
-  try {
-    const session = await fetchAuthSession();
-    const token = session?.tokens?.idToken?.toString();
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
+// A request that could not be authenticated, which never reached the network. Distinct from
+// ApiError on purpose: the old code sent the request WITHOUT an Authorization header, API
+// Gateway answered 401, and the reader was shown "Unauthorized" — a permissions error for what
+// was actually a session-timing problem. The two conditions must never look alike again.
+export class SessionUnavailableError extends Error {
+  constructor(reason, cause) {
+    super('Your session is not ready. Sign in again if this keeps happening.');
+    this.name = 'SessionUnavailableError';
+    // 'threw' or 'no-tokens' — which of the two silent paths was taken.
+    this.reason = reason;
+    this.cause = cause;
   }
+}
+
+// The session was rejected by the server and could not be recovered by refreshing.
+export class SessionExpiredError extends Error {
+  constructor() {
+    super('Your session has ended. Sign in again to continue.');
+    this.name = 'SessionExpiredError';
+  }
+}
+
+// Registered by AuthProvider. The client cannot navigate and must not import React state, so
+// recovery is delegated: `refresh` forces Amplify to re-resolve the session, `invalidate` drops
+// the user, which the router turns into a return to /login with the current route preserved.
+let sessionHooks = {
+  refresh: async () => {},
+  invalidate: () => {},
 };
 
-const request = async (path, options = {}) => {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...(await authHeader()), ...options.headers },
-  });
+export const registerSessionHooks = (hooks) => {
+  sessionHooks = { ...sessionHooks, ...hooks };
+};
 
+// Never discards the reason. The previous version had two silent paths to "no header" — a bare
+// `catch {}` and a falsy token — so when this failed for a real user there was no way to tell
+// which had happened, and a successful retry proved only that something had changed. Whatever
+// goes wrong here now says so.
+const readToken = async () => {
+  let session;
+  try {
+    session = await fetchAuthSession();
+  } catch (err) {
+    return { token: null, reason: 'threw', cause: err };
+  }
+  const token = session?.tokens?.idToken?.toString();
+  return token ? { token } : { token: null, reason: 'no-tokens' };
+};
+
+const authToken = async () => {
+  // Mock mode has no Cognito session by design, and the fixture API wants none.
+  if (config.isMock) return null;
+
+  const first = await readToken();
+  if (first.token) return first.token;
+
+  // One forced refresh, then one retry — the same policy as a 401 below. This is the case that
+  // reached a real user: a token missing on the first attempt and present on a manual retry, so
+  // the recovery they performed by hand is now performed for them, before anything is shown.
+  await sessionHooks.refresh();
+  const second = await readToken();
+  if (second.token) return second.token;
+
+  // Deliberately loud. This is the only record of a condition that was previously invisible.
+  console.warn(
+    `[auth] no token after a forced refresh: first=${first.reason}, second=${second.reason}`,
+    first.cause ?? second.cause ?? '',
+  );
+  throw new SessionUnavailableError(second.reason, second.cause ?? first.cause);
+};
+
+const parse = async (response) => {
   // Mutations return empty bodies; do not try to parse one.
   const isEmpty =
     response.status === 204 ||
     response.headers.get('content-length') === '0' ||
     !(response.headers.get('content-type') ?? '').includes('json');
+  return isEmpty ? null : response.json();
+};
 
-  const data = isEmpty ? null : await response.json();
+const request = async (path, options = {}, { isRetry = false } = {}) => {
+  const token = await authToken();
+
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  });
+
+  // A 401 on a request that DID carry a token is a session event, not a permissions verdict:
+  // force one refresh and try once more. A reader should never be shown a raw "Unauthorized"
+  // and asked to solve it with a button.
+  if (response.status === 401 && !isRetry) {
+    await sessionHooks.refresh();
+    return request(path, options, { isRetry: true });
+  }
+
+  if (response.status === 401) {
+    sessionHooks.invalidate();
+    throw new SessionExpiredError();
+  }
+
+  const data = await parse(response);
 
   if (!response.ok) {
     throw new ApiError(data?.message ?? 'The request failed.', response.status, data);

@@ -10,6 +10,7 @@ import {
 } from 'aws-amplify/auth';
 import { Hub } from 'aws-amplify/utils';
 import { config } from '@/config';
+import { registerSessionHooks } from '@/api';
 import { classifyOAuthCallback } from './oauth.js';
 
 const AuthContext = createContext(null);
@@ -84,6 +85,23 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
     }
   }, [discardStaleSession]);
+
+  // The API client cannot navigate and must not reach into React state, so it delegates
+  // recovery here: force Amplify to re-resolve the session, or drop the user, which the router
+  // turns into a return to /login with the current route preserved.
+  useEffect(() => {
+    registerSessionHooks({
+      refresh: async () => {
+        try {
+          await fetchAuthSession({ forceRefresh: true });
+        } catch {
+          // Nothing more to try; the caller decides what a still-missing token means.
+        }
+        await refresh();
+      },
+      invalidate: () => setUser(null),
+    });
+  }, [refresh]);
 
   useEffect(() => {
     if (config.isMock) return undefined;
