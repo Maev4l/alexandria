@@ -49,7 +49,7 @@
      yellow on yellow vanishes. No box-shadow ring — the no-shadow law is
      mechanically checkable and a shadow-shaped outline defeats the check. */
   :focus-visible { outline: 3px solid var(--imprint); outline-offset: 2px; }
-  .plate:focus-visible, .btn-plate:focus-visible, .acct:focus-visible, .detail-plate:focus-visible {
+  .plate:focus-visible, .btn-plate:focus-visible, .acct:focus-visible {
     outline-color: var(--ink);
   }
 
@@ -190,25 +190,24 @@
     content: ""; position: absolute; left: 0; top: 0; bottom: 0;
     width: 4px; background: var(--out);
   }
-  .frame { border: 2px solid var(--ink); background: var(--paper-deep); flex: 0 0 auto; position: relative; }
+  .frame { border: 2px solid var(--ink); background: var(--paper-deep); flex: 0 0 auto; position: relative; width: 48px; height: 72px; }
   /* One ratio for every item: portrait 2:3. Book covers and TMDB posters are
-     both that shape, so nothing is cropped. Films are marked by the spine
-     rule — the wrap of a DVD / Blu-ray keep case — never by proportion. */
-  .frame.book, .frame.film { width: 48px; height: 72px; }
-  .frame.film::before {
-    content: ""; position: absolute; top: 0; bottom: 0; left: 6px;
-    width: 3px; background: var(--ink);
-  }
-  /* Bottom-RIGHT: the spine rule owns the left edge, and a bottom-left plate
-     would sit on top of it on every film frame. */
+     both that shape, so nothing is cropped — and one frame for both types is
+     now the whole story. THE TYPE IS NOT MARKED. An earlier draft encoded it
+     three redundant ways — a spine rule on the frame, a BOOK / FILM tag at the
+     row head, and the plate line — on the theory that a reader scanning a
+     thousand rows needs to know which is which. They do not: libraries here
+     are organised BY type (Romans, Films, Bandes dessinées), so the tag marked
+     a distinction that does not vary on screen, and paid for it on every row.
+     What remains is the plate line, where a film carries a year and a book
+     does not, and the artwork, where a poster does not look like a cover. */
   .frame .fnum {
     position: absolute; inset: auto 0 0 auto; background: var(--paper); color: var(--ink);
     border: 1px solid var(--ink);
     font-family: var(--mono); font-size: 9px; padding: 0 3px; font-variant-numeric: tabular-nums;
   }
   .item-body { min-width: 0; flex: 1; }
-  .type-tag { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }
-  .item-title { font-size: 17px; font-weight: 600; line-height: 1.25; margin-top: 2px; }
+  .item-title { font-size: 17px; font-weight: 600; line-height: 1.25; }
   /* A name is content and belongs in the sans; section 3 reserves the mono for
      numerals, so only a film's year is set in it. */
   .plate-line { font-size: 14px; color: var(--ink-soft); margin-top: 3px; }
@@ -231,29 +230,83 @@
   .cover .appbar { border-color: var(--paper); }
   .cover .backrow .chev { color: var(--imprint); }
   .detail { padding: calc(var(--d) * 3) calc(var(--d) * 2); }
+  /* The hero is two columns: the object, and beside it its filing marks. The
+     ~210px next to a 132px frame was dead space, and the three facts that
+     belong there are one block — where it is filed, who else can see it, and
+     whether it has left the building. The stamp lives here rather than under
+     the yellow rule because an overprint stamp belongs ON the cover.
+     Location is not identity, so the library name is NOT in the plate line:
+     that line carries the work (author, edition), this column carries the
+     copy (shelf, visibility, circulation). */
+  .detail-hero { display: flex; gap: calc(var(--d) * 2); align-items: flex-start; margin-bottom: calc(var(--d) * 3); }
   /* Detail is the one screen where artwork earns real space: the reader is
-     looking at a single object, not scanning a thousand. Same 2:3 frame and
-     spine rule as the stream, at hero scale, ruled in paper on the cover. */
+     looking at a single object, not scanning a thousand. Same undecorated 2:3
+     frame as the stream, at hero scale, ruled in paper on the cover. */
   .detail-frame {
     width: 132px; height: 198px; border: 2px solid var(--paper);
-    background: var(--cover-rule); position: relative; margin-bottom: calc(var(--d) * 3);
+    background: var(--cover-rule); position: relative; flex: 0 0 auto;
   }
-  .detail-frame.film::before {
-    content: ""; position: absolute; top: 0; bottom: 0; left: 10px;
-    width: 3px; background: var(--paper);
+  /* The column carries its own left padding so the sharing rule has somewhere to
+     hang without shoving its line out of line with the two beside it.
+     Gap is ONE division. It was 1.5 for a while on the feeling that three
+     distinct facts deserve more air — which is spacing by eye, the one thing
+     §4 exists to forbid. The stream already stacks this same rotated stamp
+     against a line of metadata at 8px and it holds; spacing the same
+     relationship two different ways on two screens is the actual defect. */
+  .detail-marks { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--d); padding-left: var(--d); }
+  /* "In" is an interface label and takes caps; the library name is content the
+     reader authored, so it never does — the same construction as FROM <owner>.
+     The link is underlined rather than set in --imprint: it is navigation, not
+     a primary action, and yellow here would compete with the title rule below. */
+  .detail-in { font-size: 14px; color: var(--cover-body); line-height: 1.3; }
+  .detail-in .lbl { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--cover-soft); }
+  .detail-in a { color: var(--cover-body); text-decoration: underline; text-underline-offset: 3px; }
+  /* --shared measures 3.033:1 on the black cover — sound for a rule, far short
+     of AA for text. So the green goes on the EDGE and the words stay in a
+     legible tone, exactly as the Overprint Stamp puts --out on its outline and
+     its caps in ink. State colour lives on edges; here that discipline is
+     enforced by arithmetic rather than taste. */
+  /* §6: an edge rule NEVER displaces content. As border-left this line started
+     12px right of IN <library> directly above it — three stacked marks, one
+     indented, which reads as a mistake. The rule hangs into the column's own
+     padding instead, exactly as .item.lent::before sits inside the row's. */
+  .detail-shared {
+    position: relative;
+    font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--cover-body);
   }
-  .detail-plate { background: var(--imprint); color: var(--ink); font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 2px var(--d); display: inline-block; }
+  .detail-shared::before {
+    content: ""; position: absolute; left: calc(var(--d) * -1); top: 0; bottom: 0;
+    width: 4px; background: var(--shared);
+  }
+  .detail-shared .who { text-transform: none; font-weight: 400; font-size: 13px; letter-spacing: 0; }
   .detail-title { font-size: 32px; font-weight: 800; line-height: 1.06; margin: calc(var(--d) * 2) 0 var(--d); }
   .detail-rule { height: 4px; background: var(--imprint); margin: calc(var(--d) * 2) 0; }
   .detail-line { font-family: var(--mono); font-size: 12px; color: var(--cover-soft); }
   .detail-sum { font-size: 14px; color: var(--cover-body); margin: calc(var(--d) * 2) 0 0; }
   .ledger-head { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: var(--imprint); margin-top: calc(var(--d) * 3); }
   .ledger { border-top: 2px solid var(--paper); margin-top: var(--d); }
-  .ledger-row { display: flex; justify-content: space-between; gap: var(--d); font-family: var(--mono); font-size: 11px; padding: var(--d) 0; border-bottom: 1px solid var(--cover-rule); font-variant-numeric: tabular-nums; color: var(--cover-soft); }
-  .ledger-row.open { color: var(--paper); }
-  .ledger-row .dur { color: var(--cover-soft); }
+  /* Two lines, because the borrower's name is the reason the row exists and
+     `lentTo` permits 50 characters — no single line holds a name, two dates and
+     a duration without truncating, and nothing here truncates. The name is
+     CONTENT and sets in the sans; only the dates and the day count take the
+     mono (§3). A name in mono is the category error the Plate Line already
+     warns about. */
+  .ledger-row { padding: var(--d) 0; border-bottom: 1px solid var(--cover-rule); color: var(--cover-soft); }
+  .ledger-row .who { display: flex; justify-content: space-between; gap: var(--d); font-size: 13px; color: var(--cover-body); }
+  .ledger-row .dates { font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .ledger-row .dur { font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ledger-row.open .who { color: var(--paper); }
+  /* Inside a bordered card (the history page) the row is inset so it does not
+     sit flush against the rule; the separator still spans the full width,
+     because the padding is inside the border box. Item detail's ledger is a
+     flush text column and takes none, so its rows align with the prose above. */
+  .ledger.boxed .ledger-row { padding-left: calc(var(--d) * 2); padding-right: calc(var(--d) * 2); }
   .stamp-open { border: 2px solid var(--out); color: var(--paper); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; padding: 1px 5px; transform: rotate(-4deg); display: inline-block; }
-  .cover-actions { display: flex; gap: var(--d); margin-top: calc(var(--d) * 3); }
+  /* Wraps rather than overflows: the three labels total ~319px, which fits a
+     390px viewport and does not fit a 320px one. Delete drops to its own line
+     on the narrowest phones — reflow, not a second layout. */
+  .cover-actions { display: flex; flex-wrap: wrap; gap: var(--d); margin-top: calc(var(--d) * 3); }
 
   /* buttons */
   .btn-plate { background: var(--imprint); color: var(--ink); border: 2px solid var(--imprint); font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; padding: var(--d) calc(var(--d) * 2); cursor: pointer; }
@@ -298,9 +351,14 @@
   .refuse li { border-bottom: 1px solid var(--ink); padding: var(--d) 0 var(--d) calc(var(--d) * 4); position: relative; max-width: 74ch; }
   .refuse li::before { content: "✕"; position: absolute; left: 0; color: var(--out); font-weight: 800; }
 
-  .callout { border: 3px solid var(--ink); border-left-width: 12px; padding: calc(var(--d) * 2); background: var(--paper-deep); max-width: 74ch; }
+  /* §6 already answers this: a warning on --paper-deep takes an --out TOP rule,
+     not a coloured side border. Trimming 12px to 4px only made a side tab that
+     no longer marked anything — worse on both counts. Document chrome follows
+     the system it documents, so the frame stays a uniform 3px and .warn recolours
+     the top edge. No geometry change, and the scale holds. */
+  .callout { border: 3px solid var(--ink); padding: calc(var(--d) * 2); background: var(--paper-deep); max-width: 74ch; }
   .callout h3 { margin-top: 0; }
-  .callout.warn { border-left-color: var(--out); }
+  .callout.warn { border-top-color: var(--out); }
 
   footer { border-top: 4px solid var(--ink); margin-top: calc(var(--d) * 8); padding: calc(var(--d) * 4) 0 calc(var(--d) * 8); }
   footer p { font-size: 13px; color: var(--ink-soft); }
@@ -417,9 +475,8 @@
             </div>
 
             <div class="item lent">
-              <div class="frame book"></div>
+              <div class="frame"></div>
               <div class="item-body">
-                <div class="type-tag">Book</div>
                 <div class="item-title">Le Grand Sommeil</div>
                 <div class="plate-line">Raymond Chandler</div>
                 <span class="stamp">Out</span>
@@ -428,9 +485,8 @@
             </div>
 
             <div class="item">
-              <div class="frame film"></div>
+              <div class="frame"></div>
               <div class="item-body">
-                <div class="type-tag">Film</div>
                 <div class="item-title">Chinatown</div>
                 <div class="plate-line">Roman Polanski · <span class="num">1974</span></div>
               </div>
@@ -439,26 +495,24 @@
 
             <div class="board">
               <div class="board-head">
-                <div>
-                  <div class="board-name">La Série Noire</div>
-                  <div class="type-tag" style="margin-top:2px">Series order</div>
-                </div>
+                <!-- No SERIES ORDER label: every member carries a numbered plate,
+                     and a numbered sequence already says it runs in order. The
+                     label restated what the numbers state — labelled twice. -->
+                <div class="board-name">La Série Noire</div>
                 <span class="plate">⌗ 12</span>
               </div>
               <div class="board-members">
                 <div class="item">
-                  <div class="frame book"><span class="fnum">01</span></div>
+                  <div class="frame"><span class="fnum">01</span></div>
                   <div class="item-body">
-                    <div class="type-tag">Book</div>
                     <div class="item-title">Nada</div>
                     <div class="plate-line">Jean-Patrick Manchette</div>
                   </div>
                   <button class="row-actions" type="button" aria-label="Item actions"><i></i><i></i><i></i></button>
                 </div>
                 <div class="item">
-                  <div class="frame film"><span class="fnum">02</span></div>
+                  <div class="frame"><span class="fnum">02</span></div>
                   <div class="item-body">
-                    <div class="type-tag">Film</div>
                     <div class="item-title">Le Samouraï</div>
                     <div class="plate-line">Jean-Pierre Melville · <span class="num">1967</span></div>
                   </div>
@@ -489,11 +543,17 @@
           </div>
           <div class="body">
             <div class="detail">
-              <div class="detail-frame"></div>
+              <div class="detail-hero">
+                <div class="detail-frame"></div>
+                <div class="detail-marks">
+                  <div class="detail-in"><span class="lbl">In</span> <a href="#">Romans</a></div>
+                  <div class="detail-shared">Shared · 2</div>
+                  <span class="stamp-open">Out · Marie · 6 days</span>
+                </div>
+              </div>
               <div class="detail-title" style="margin-top:0">Le Grand Sommeil</div>
-              <div class="detail-line">Raymond Chandler · 9782070404209 · Romans</div>
+              <div class="detail-line">Raymond Chandler · 9782070404209</div>
               <div class="detail-rule"></div>
-              <div><span class="stamp-open">Out · Marie · 6 days</span></div>
 
               <p class="detail-sum">
                 Le général Sternwood engage Philip Marlowe pour régler une affaire de chantage.
@@ -504,22 +564,35 @@
               <div class="ledger-head">The record</div>
               <div class="ledger">
                 <div class="ledger-row open">
-                  <span>07 Aug 2026 → still out</span>
-                  <span class="dur">6 days</span>
+                  <div class="who"><span>Marie</span><span class="dur">6 days</span></div>
+                  <div class="dates">07 Aug 2026 → still out</div>
                 </div>
                 <div class="ledger-row">
-                  <span>02 Mar 2026 → 19 Mar 2026</span>
-                  <span class="dur">17 days</span>
+                  <div class="who"><span>Jean-Raymond</span><span class="dur">17 days</span></div>
+                  <div class="dates">02 Mar 2026 → 19 Mar 2026</div>
                 </div>
                 <div class="ledger-row">
-                  <span>11 Nov 2025 → 25 Nov 2025</span>
-                  <span class="dur">14 days</span>
+                  <div class="who"><span>Marie</span><span class="dur">14 days</span></div>
+                  <div class="dates">11 Nov 2025 → 25 Nov 2025</div>
                 </div>
               </div>
+
+              <!-- The circulation action is the primary and it ACTS: "Mark returned" needs no
+                   input, so it posts the event. "Lend" opens a sheet holding only a name field,
+                   because that one genuinely needs input. Neither opens a menu — a button
+                   labelled with an action performs it.
+                   All three on ONE line. An earlier draft dropped Delete to its own row below,
+                   on the convention that destructive actions sit apart — but below the ledger
+                   and below "Full record", a lone "Delete" reads as though it deletes the
+                   RECORD, which is a real action this app has elsewhere. Grouped with Lend and
+                   Edit it can only mean the item. Hierarchy is carried by treatment — filled
+                   plate, ink outline, red outline — which does not need vertical distance to
+                   read, and the delete confirms in place, so a misreach costs a dismissal. -->
 
               <div class="cover-actions">
                 <button class="btn-plate" type="button">Mark returned</button>
                 <button class="btn-ruled" type="button">Edit</button>
+                <button class="btn-danger" type="button">Delete</button>
               </div>
             </div>
           </div>
@@ -529,11 +602,14 @@
     </div>
     <p class="note" style="margin-top:16px">
       Every frame is portrait 2:3 — a book cover and a TMDB poster are both that shape, so nothing
-      gets cropped and the stream keeps one row height. A film is marked by the <strong>spine
-      rule</strong>: a 3px vertical rule inset one division from the left edge, where the
-      wrap-around spine of a DVD or Blu-ray keep case actually falls. Backed by the
-      <span class="mono">FILM</span> tag and by a runtime in the plate line, which only films have.
-      All three layers survive with no artwork at all.
+      gets cropped and the stream keeps one row height. <strong>Type is not marked.</strong> An
+      earlier draft encoded it three redundant ways — a spine rule on the frame, a
+      <span class="mono">BOOK</span> / <span class="mono">FILM</span> tag at the row head, and the
+      plate line — reasoning that a reader scanning a thousand rows needs to know which is which.
+      They do not. Libraries here are organised <em>by</em> type — Romans, Films, Bandes dessinées —
+      so within any one stream the tag marked a distinction that barely varies, and charged every
+      row for it. Two layers went; the plate line stayed, where a film carries a year and a book
+      does not, and where the poster does not look like a cover.
     </p>
   </section>
 
@@ -730,13 +806,8 @@
         <tbody>
           <tr>
             <td>Volume Frame</td>
-            <td><span style="display:inline-flex;gap:8px;align-items:flex-start"><span class="frame book"></span><span class="frame film"></span></span></td>
-            <td>2px rule, portrait 2:3 for every item. With no artwork it stays a ruled empty frame — no number, no placeholder icon, no apology. <em>Book left, film right.</em></td>
-          </tr>
-          <tr>
-            <td>Spine Rule</td>
-            <td><span class="frame film"></span></td>
-            <td>3px vertical rule inset one division from the left edge. Marks a film — the wrap of a DVD or Blu-ray keep case. Drawn on empty frames as well as artwork.</td>
+            <td><span class="frame"></span></td>
+            <td>2px rule, portrait 2:3 for <strong>every</strong> item — books and films take the identical frame. With no artwork it stays a ruled empty frame: no number, no placeholder icon, no apology.</td>
           </tr>
           <tr>
             <td>Volume Plate</td>
@@ -749,9 +820,9 @@
             <td>Book: <strong>author</strong>. Film: <strong>director · year</strong>. ISBN, TMDB id and runtime are identification and live on item detail, not on a row — a row exists to be recognised in a scan. Names set in the sans; only figures take the mono.</td>
           </tr>
           <tr>
-            <td>Type Tag</td>
-            <td><span class="type-tag">Book</span> &nbsp; <span class="type-tag">Film</span></td>
-            <td>11px caps at the row head. Type is never encoded by colour.</td>
+            <td>Plate Line <em>(type)</em></td>
+            <td><span class="plate-line">Raymond Chandler</span> &nbsp; <span class="plate-line">Roman Polanski · <span class="num">1974</span></span></td>
+            <td><strong>The only place type is legible, and that is enough.</strong> A film carries a year, a book does not. There is no spine rule and no <span class="mono">BOOK</span> / <span class="mono">FILM</span> tag: libraries are organised by type, so a per-row marker mostly restated the screen the reader was already on.</td>
           </tr>
           <tr>
             <td>Index Letter</td>

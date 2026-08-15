@@ -200,17 +200,21 @@ Body: a single stream of Volume Frames in **the server's order**, never re-sorte
 sticky Index Letters marking position. The stream's alphabet is the server's folded one and is not
 strictly A–Z — see `DESIGN.md` §4, *The index alphabet*.
 Collections arrive from the API as `type=2` entries and render as Collection Boards, filed
-alphabetically under the collection's name but with members in `order`, so the board head carries a
-`SERIES ORDER` label. A board flagged `partial` on a continuation page **merges into the board already on screen** — the
+alphabetically under the collection's name but with members in `order`. The head carries **no
+`SERIES ORDER` label** — every member's plate already carries its number, and a numbered sequence
+needs no caption saying it runs in sequence (`DESIGN.md` §5). A board flagged `partial` on a
+continuation page **merges into the board already on screen** — the
 reader ends with one board holding all its members, which is what the collection actually is, and
 no label is needed because nothing was split in the reader's view. Rendering a second labelled
 board would show one collection twice in a single stream, which reads as a data bug. The API emits
 the partial board first on the continuation page, so the merge target is unambiguous. A partial
-board arriving with no predecessor on screen keeps its flag and reads `SERIES ORDER · continues`.
+board arriving with no predecessor on screen keeps its flag and reads `CONTINUES` — that one *is*
+worth printing, because it is a fact nothing else on screen states. A member plate reading `07`
+does not prove continuation: orders run 1–1000 and a collection need not start at 1.
 Every frame is portrait 2:3 — book covers and TMDB posters are both that shape, so nothing is
-cropped. Type is marked in three redundant layers, none of them colour: films carry a spine rule
-(the wrap of a keep case), the row head carries a `BOOK` / `FILM` tag, and the Plate Line carries
-`AUTHOR · ISBN` or `DIRECTOR · YEAR · runtime`.
+cropped. **Type is not marked.** The only place a book and a film differ on a row is the Plate
+Line — `AUTHOR` against `DIRECTOR · YEAR` — and that is enough: libraries are organised by type,
+so a per-row marker mostly restated the screen the reader was already on. See `DESIGN.md` §4.
 Lent items carry the Overprint Stamp. Tapping the header title scrolls to top.
 Long-press an owned item → ItemActionsSheet: Edit, Lend (inline name form), Return, Delete.
 **States:** loading; empty; end-of-list; error; pull-to-refresh; infinite scroll appending pages.
@@ -253,10 +257,17 @@ each, cast, `releaseYear` 1800–2100, `duration` 0–1000 minutes, `tmdbId`.
 
 ### ItemDetail — `/libraries/:libraryId/items/:itemId`
 The one screen on the black cover, and **the one screen where artwork earns real space**: the
-hero carries the item's cover or poster in the same 2:3 frame and spine rule as the stream, at
+hero carries the item's cover or poster in the same undecorated 2:3 frame as the stream, at
 132×198, ruled in `--paper`. The reader is looking at a single object here rather than scanning a
 thousand, which is the whole reason the cover inverts. With no artwork it stays the ruled empty
 frame — the same designed state as everywhere else, not a placeholder.
+
+Beside the frame, in the column that was otherwise dead space, the **Detail Marks** carry
+everything true of the *copy* rather than the work: `IN <library>`, linked to that library; the
+Shared Ribbon when the library is shared in either direction; and the Overprint Stamp when the
+item is out. The link matters most when the reader arrived from search, where the shelf is
+genuinely new information and jumping to it is the natural next move. The library is **not** in
+the Plate Line — see `DESIGN.md` §5, and note that `--shared` fails as text on the black cover.
 
 Then title, Plate Line, the yellow rule, and — per the donated **record-carries-its-past**
 discipline — the loan ledger inline: the first page of lending events paired into loans
@@ -362,6 +373,28 @@ plausible error that blamed the reader, so its most likely outcome was silence: 
 lacks access and never mentions it. A silent failure has no reporter, and severity should account
 for that, not only for what the defect costs when it fires.
 
+**A control labelled with a specific action performs that action.** A label is a promise. A button
+reading `Mark returned` that opens a menu offering Edit, Lend and Delete breaks it twice over: the
+reader is made to choose again, from options they did not ask for, and the one thing they *did* ask
+for is now one of three. This shipped on item detail, where `Edit` also sat in the menu while
+already being a button beside it — the same action offered twice, two taps apart.
+
+A sheet is still right when the action genuinely needs input: `Lend` opens a sheet because a
+borrower's name is required, and that sheet contains **only** the lend form. What is wrong is not
+the sheet, it is the menu. Where an action needs nothing — `Mark returned` — the button does it.
+
+The corollary is that a screen's actions are laid out by what they *are*, not gathered behind one
+control for tidiness: on item detail the circulation action is primary, then `Edit`, then `Delete`,
+all three on one line, each in its own treatment — filled plate, ink outline, `--out` outline —
+and the destructive one confirming in place.
+
+**Rank destructive actions by treatment, not by distance.** A first draft dropped `Delete` to its
+own row below the ledger, on the convention that destructive actions sit apart. That convention
+guards against a misreach, which here costs a dismissal because the action confirms — and it
+bought a worse problem: below the loan ledger and below "Full record", a lone `Delete` reads as
+though it deletes the *record*, which is a real action this app offers elsewhere. Grouped with
+Lend and Edit it can only mean the item. Distance separated the button from its own subject.
+
 **Touch.** Minimum 48px targets. Primary actions in thumb reach. Long-press is always duplicated
 by a visible affordance, since long-press alone is undiscoverable.
 
@@ -459,8 +492,9 @@ Two suites, with a division that matters: `yarn test` asserts rules are DECLARED
 - [x] App shell: header with pinned search and a per-screen right slot, single stack, no tab bar
 - [x] Libraries root with two sections, actions sheet, share/unshare, delete
 - [ ] Component vocabulary — partial: Volume Plate, Shared Ribbon, Row Actions, Sheet,
-      Plate Button, Field, Marks done. Volume Frame, Spine Rule, Plate Line, Type Tag,
-      Index Letter, Overprint Stamp, Collection Board, Ledger Row arrive with slices B and C
+      Plate Button, Field, Marks done. Volume Frame, Plate Line, Index Letter,
+      Overprint Stamp, Collection Board, Detail Marks, Ledger Row arrive with slices B and C.
+      **Spine Rule and Type Tag were retired before being built** — type is not marked (§4)
 - [x] LibraryBrowse: alphabetical stream, sticky index letters, collection boards,
       partial-collection continuation — measured at 1000 items: 0.0px scroll drift when a
       continuation board merges above the viewport, sticky letters hold, p95 26.3ms

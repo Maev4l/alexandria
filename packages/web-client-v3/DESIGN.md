@@ -90,6 +90,8 @@ were out by up to 0.7.
 | `--out` on `--paper` | **stamps and rules only** | 4.11:1 — under the 4.5 AA floor, so red stays restricted to ≥18px bold, rules and stamp outlines. Never small red body text. |
 | `--cover-body` on `--ink` | summary on the cover | 14.58:1 |
 | `--cover-soft` on `--ink` | plate line, durations on the cover | 9.99:1 |
+| `--shared` on `--ink` | **never text on the cover** | 3.033:1 — green reads on paper at 5.99 and fails on the cover. So on the inverted surface the sharing mark puts the green on a 4px edge and sets its caps in `--cover-body`, exactly as the stamp puts `--out` on its outline. |
+| `--out` on `--ink` | stamp outline on the cover | 4.421:1 — **better than red-on-paper's 4.11**, so the cover is the *less* constrained surface for red, not the more. The stamp still sets its caps in a legible tone rather than in red; that is deliberate conservatism, not a contrast requirement, and it keeps one stamp construction across both surfaces. Recorded so a later pass does not "optimise" the caps to red on the strength of this number. |
 | `--imprint` on `--paper` | **never text, never a shape** | ~1.55:1 — yellow on paper is invisible on its own |
 
 **Yellow never carries a shape by itself.** At ~1.55:1 against paper, `--imprint` cannot describe a
@@ -121,6 +123,21 @@ cover alone, and using any of them on paper is a bug:
 They are named for the surface they belong to, not their brightness: a `soft`/`dim` pair invites
 exactly the wrong guess, since the body tone is the *brighter* of the two.
 
+**Anything that sets a ground sets its foreground, in the same rule.** A sheet, a toast, an error
+block — any surface that paints its own background must paint its text colour too, never inherit
+it. Inheriting is safe on every paper screen and catastrophic on the one inverted screen, which is
+precisely why it survives review: it is correct everywhere the author looked.
+
+This shipped. The `Sheet` panel set `bg-paper-deep` and no text colour, and item detail's root sets
+`text-paper` on its whole subtree — so a sheet opened from the black cover rendered `--paper` text
+on `--paper-deep`, about **1.08:1**. Invisible. The bug is not in the sheet's contents; it is in a
+surface that declared half of a pair.
+
+Note which direction the guard missed. The check written for the cover asserts that no paper token
+leaks *onto* the cover. Nothing asserted the reverse — a cover token leaking onto a paper surface
+rendered *inside* the cover — and the reverse is the one that shipped. **A surface check must run
+in both directions**, because the inverted screen contains paper surfaces as well as being one.
+
 ### Focus
 
 The focus ring is `--imprint`, which already owns the active and selected state — 3px, 2px offset.
@@ -141,7 +158,13 @@ rule weight is already this system's language (§4); focus is not an exception t
 
 **Focus belongs to the control a reader sees, not to the node that happens to take the caret.** The
 search field is one control — ground, rule, input and mark together — so its indicator renders on
-that whole box via `:focus-within`, and the inner input carries none. This is the one case where
+that whole box via `:focus-within`, and the inner input carries none. **That construction holds
+only while the control has exactly one focusable descendant.** Add a second — a password field's
+reveal mark — and `:focus-within` fires for both, so tabbing to the mark lights the whole field as
+though the caret were in it, and the mark's own indicator draws inside a box that is already
+indicating. Key the control's indicator to the input specifically (`:has(input:focus-visible)`) and
+let the second control show its own. One control, one indicator, whichever one the reader is on.
+This is the one case where
 suppressing an input's own outline is correct rather than the defect it was in slice A, and the
 distinction is not a matter of judgement: it holds only while the parent demonstrably shows an
 indicator, so a browser check must assert that focusing the input makes the control visibly focused.
@@ -254,19 +277,33 @@ has none — and **no rounded corners**: every radius is 0.
 book covers sit near 2:3, and TMDB serves posters at exactly 2:3 — so a single frame crops
 nothing, and the stream keeps one row height and one grid.
 
-Type is encoded **structurally, never by colour** (colour is legislated for state), in three
-redundant layers:
+**Type is not marked.** Books and films take the identical frame, and the only place the
+difference is legible on a row is the Plate Line — where a film carries a year and a book does
+not:
 
-| Layer | Book | Film |
+| | Book | Film |
 |---|---|---|
-| Frame | plain 2:3 frame | 2:3 frame **+ spine rule**: 3px vertical rule inset 6px from the left edge, the wrap of a keep case |
-| Tag | `BOOK` | `FILM` |
-| Plate Line | `AUTHOR · ISBN` | `DIRECTOR · YEAR · 118′` |
+| Frame | plain 2:3 frame | plain 2:3 frame — the same one |
+| Plate Line | `AUTHOR` | `DIRECTOR · YEAR` |
 
-The spine rule sits over the artwork's left edge, which is where a real case's wrap-around spine
-falls, and it is drawn on empty frames too. Runtime with a prime mark is film-only. All three
-layers survive with no artwork at all, which matters because `picture` is frequently null and
-thumbnails arrive asynchronously.
+An earlier draft encoded type three redundant ways: a **spine rule** on the frame (3px vertical,
+inset from the left edge, the wrap of a keep case), a `BOOK` / `FILM` **tag** at the row head, and
+the Plate Line. The reasoning was that a reader scanning a thousand rows needs to know which is
+which, and that redundancy was needed because `picture` is frequently null.
+
+Both premises were wrong. **Libraries here are organised by type** — Romans, Films, Bandes
+dessinées, Polars — so within any one stream the marker labelled a distinction that barely varies,
+and charged every row for it. And the fallback case it was defending was never dangerous: an item
+with no artwork still carries its Plate Line, so type was never actually at risk of vanishing.
+Three layers were defending one fact that one layer already held.
+
+Removing them also gave the frame back to the artwork. The spine rule was drawn **over** the
+poster's left edge, which is where a real case's spine falls but also where a poster's content
+is — a 3px bar defacing every film cover in the collection to restate what the row already said.
+
+> A DVD keep case is ~5:7 and a Blu-ray case ~4:5 — both portrait, which is why films were never
+> framed landscape even when they were marked. The frame stays 2:3 for the same reason it always
+> did: TMDB serves posters at exactly that ratio.
 
 > A DVD keep case is ~5:7 and a Blu-ray case ~4:5 — both portrait. An earlier draft of this
 > document framed films landscape at 16:9, which described the medium rather than the object on
@@ -336,7 +373,7 @@ wearing the imprint's clothes, and unstable across pagination besides.
 | Collection board | the member count, prefixed `⌗` | `itemCount` |
 | Collection member | its order in the series, 1–1000 | `order` |
 | Standalone item | **no plate** | — |
-| Item detail | the collection order when the item is in one, otherwise no plate | `order` |
+| Item detail | the collection order when the item is in one, drawn **inside the frame** exactly as on the stream — never as a second plate beside it; otherwise no plate | `order` |
 
 An item's real catalogue identity is its ISBN or TMDB id, and that already reads in the Plate
 Line, so detail needs no invented number either. A standalone item's frame is unnumbered, and an
@@ -427,21 +464,19 @@ grows every time the data surprises you.
 
 | Component | Description |
 |---|---|
-| **Volume Frame** | The item's artwork frame — 2px rule, portrait 2:3 for every item (§4). Films add the spine rule. With no artwork it stays a ruled empty frame: no number, no placeholder icon, no apology. |
-| **Spine Rule** | 3px vertical rule inset one division from a frame's left edge. Marks a film — the wrap of a DVD or Blu-ray keep case. Drawn on empty frames as well as artwork. |
+| **Volume Frame** | The item's artwork frame — 2px rule, portrait 2:3 for **every** item, books and films alike (§4). Nothing is drawn over the artwork. With no artwork it stays a ruled empty frame: no number, no placeholder icon, no apology. |
 | **Volume Plate** | A 2px ruled rectangle with `--ink` mono figures, **no fill** — counts are inventory, not apparatus (§4, *Where the yellow goes*). Carries only a real count or order — see §4, *What a plate carries*. Absent on standalone items. |
-| **Search Field** | A **real text input**, never a link costumed as one: it takes the `--imprint` ground and is the loudest mark on the screen that carries it, because finding is the job this product exists for. **It is pinned on the libraries root and nowhere else.** A browse screen does not carry it — the field searches every library, so on a browse screen the loudest affordance would promise to leave the library being browsed. One field, one screen, no scope modes. |
-| **Plate Line** | The engraved line under a title. Book: `AUTHOR`. Film: `DIRECTOR · 1974`. Fields differ by type; the line's position does not. Names are set in the sans; only figures take the mono, so a film's year is mono and a person's name is not — §3 reserves mono for numerals, and a name in mono is a category error that digits beside it used to disguise. |
-| **Type Tag** | 11px caps, `BOOK` or `FILM`, at the row head. |
+| **Search Field** | A **real text input**, never a link costumed as one: it takes the `--imprint` ground and is the loudest mark on the screen that carries it, because finding is the job this product exists for. **It is pinned on the libraries root and nowhere else.** A browse screen does not carry it — the field searches every library, so on a browse screen the loudest affordance would promise to leave the library being browsed. One field, one screen, no scope modes. It opens the full-screen search surface and returns the reader exactly where they were. |
+| **Plate Line** | The engraved line under a title. Book: `AUTHOR`. Film: `DIRECTOR · 1974`. On detail it gains the edition — `AUTHOR · ISBN`. Fields differ by type; the line's position does not. Names are set in the sans; only figures take the mono, so a film's year is mono and a person's name is not — §3 reserves mono for numerals, and a name in mono is a category error that digits beside it used to disguise. **It never carries the library.** The line is the *work*; a library is where a *copy* is kept. An early comp ran them together as `AUTHOR · ISBN · LIBRARY`, three categories in one dot-separated run, which set the shelf in the same tone as the author and made location read as identity. Location belongs to the Detail Marks. |
+| **Detail Marks** | The column beside the item-detail hero, holding everything true of the *copy* rather than the work: `IN <library>` as a link to it, the Shared Ribbon when the library is shared either way, and the Overprint Stamp when the item is out. Reading order is where it is filed → who else can see it → whether it is here. The ~210px next to a 132px frame was dead space; these three facts are one block and fill it. **The stamp lives here, not under the title rule** — an overprint stamp belongs on the cover. `IN` is an interface label and takes caps; the library name is content the reader authored and never does (§3), the same construction as `FROM <owner>`. The link is underlined rather than set in `--imprint`: it is navigation, not a primary action, and yellow beside the title rule would read as one. |
 | **Index Letter** | Monumental sticky letter with a 4px rule, marking the reader's position in the stream. Its label comes from the server's fold — see §4, *The index alphabet* — so it is not always A–Z. **Its count appears only on a closed run.** A run closes the instant a different letter appears after it in the stream, at which point the number is final; the run at the tail of the loaded stream shows no count at all, and no placeholder. A number that grows while the reader looks at it is worse than no number. The count is items — standalone entries plus each board's `itemCount`, counting a board once and ignoring its `partial` continuation. |
-| **Overprint Stamp** | Rotated −4°, 0.9 opacity to read as ink over paper. **Outline 2px `--out`; caps set in `--ink`.** Red measures ~3.9:1 on paper — sound for rules and outlines, short of AA for small text — so the stamp's colour lives on its edge and its words stay in ink. Marks a lent item, and carries words, never colour alone. **On a row it reads `OUT` alone; the borrower and duration belong to item detail** (`OUT · MARIE · 6 DAYS`). `lentTo` permits 50 characters, which no row can hold, and the split follows the labelled-twice rule — the row answers *is it out*, the detail answers *who has it and how long*. Nothing is ever truncated. |
+| **Overprint Stamp** | Rotated −4°, 0.9 opacity to read as ink over paper. **Outline 2px `--out`; caps set in `--ink`.** Red measures ~3.9:1 on paper — sound for rules and outlines, short of AA for small text — so the stamp's colour lives on its edge and its words stay in ink. Marks a lent item, and carries words, never colour alone. **On a row it reads `OUT` alone; the borrower and duration belong to item detail** (`OUT · MARIE · 6 DAYS`). `lentTo` permits 50 characters, which no row can hold, and the split follows the labelled-twice rule — the row answers *is it out*, the detail answers *who has it and how long*. Nothing is ever truncated. On detail the stamp and the ledger's first row **do** state the same loan, and that overlap is allowed: the stamp is current *state*, read beside the cover without looking for it; the ledger is the *record*, read only if you go down for it. The open loan is the single row where state and history coincide, and that coincidence is in the data, not in the design. Suppressing it either way would make one surface lie by omission — a stamp with no borrower, or a history missing its most recent loan — and `PRODUCT.md` requires lent-to-whom to be legible wherever the item appears, not a scroll away. |
 | **Shared Ribbon** | 4px `--shared` left edge rule plus a caps tag: `SHARED · N` outbound, `FROM <owner>` inbound. |
-| **Collection Board** | A grouped collection: 3px frame, member count in a plate, members inset by one division. Server-grouped, expandable in place. **The head carries a `SERIES ORDER` caps label**, because the board is filed alphabetically under the collection's name while its members run in `order`, not by title — so a board under "S" may legitimately open with *Aliens*. Without that label the correct behaviour reads as a sorting bug. Each member's plate carries its order, which reinforces the sequence. |
-| **Search Field** | Header-pinned. Opens the full-screen search surface and returns the reader exactly where they were. |
+| **Collection Board** | A grouped collection: 3px frame, member count in a plate, members inset by one division. Server-grouped, expandable in place. The board is filed alphabetically under the **collection's** name while its members run in `order`, not by title — so a board under "S" may legitimately open with *Aliens*. An earlier draft printed a `SERIES ORDER` caps label at the head to explain that, on the theory it would otherwise read as a sorting bug. It would not: **every member already carries a numbered plate**, and a numbered sequence needs no caption saying it is in sequence. The label restated what the numbers state — labelled twice, by the rule's plainest reading. The board's own name at the head is what files it; a named container filed under its name surprises nobody. |
 | **Sheet** | Bottom sheet on `--paper-deep` with a 3px top rule. Square corners. |
 | **Plate Button** | Primary action: `--imprint` plate, black caps. Secondary: 2px ruled outline, no fill. Destructive: 2px `--out` outline, `--out` caps. **A disabled primary renders as the ruled outline, never as a tinted plate** — a 50% `--imprint` is a new colour meaning "disabled", which palette law forbids, and it drags its own label under the contrast floor. Becoming a filled plate the moment the form is valid is itself the affordance saying so. |
-| **Field** | Form input: no radius, 2px bottom rule, caps label above, no floating label. |
-| **Ledger Row** | One loan pairing: `out → back · duration`, or `still out · N days` when open. |
+| **Field** | Form input: no radius, 2px bottom rule, caps label above, no floating label. A password field carries a **reveal mark** at its right: a hand-authored eye at 2px stroke, slashed when the password is showing, toggling `type` between `password` and `text`. It is a Mark rather than a `SHOW` / `HIDE` caps label because the state it reflects is already legible in the field itself — the reader can see whether their password is showing by looking at it — so this is not an icon standing in for state with nothing to read. It always opens hidden, on every mount, and never remembers. Its 48px target is negative-margined so it does not inflate the field, and it takes its own focus indicator, not the field's (§2). |
+| **Ledger Row** | One loan pairing, over two lines. **Line 1: the borrower's name, and the duration.** Line 2: `out → back`, or `out → still out` when open. The name is the reason the row exists — a ledger that records when a thing left but not who took it does not answer the question the product is for — and it comes from the **`LENT` event only**. The `RETURNED` event also carries a name; it is ignored, because the returner is the borrower and printing it again states one fact twice. The name is **content and sets in the sans**; only the dates and the day count take the mono (§3) — a 50-character `lentTo` is why the row is two lines and not one, and nothing is truncated. Inside a bordered card the row takes `px-4` so it does not sit flush against the rule, with the separator still spanning the full width; in a flush text column (item detail's inline ledger) it takes none, so it aligns with the prose above it. |
 | **Row Actions** | The visible duplicate of long-press, at the right of any row that has a sheet behind it. **Three 3px ink squares** — not round dots, not a text ellipsis: the world has no radii, and a glyph falls back to junk. 48px target, negative-margined so it does not inflate the row. Absent on rows with no actions, which is how a read-only shared library declares itself. |
 | **Pull to refresh** | The touch shortcut for reloading a list. **The threshold is measured in finger travel, never in the transformed offset**: resistance is a visual affordance, and dividing the trigger by it silently multiplies the required drag — at 0.4 resistance a 64px offset threshold demands 160px of travel, roughly 2.5× the conventional 60–80px, so an ordinary pull does nothing at all. Trigger at **72px of travel**; let the offset stay damped and capped for feel. Two feedback states, both in the caps register: nothing before the threshold, where the paper moving is the whole signal, then `RELEASE TO REFRESH` once past it, then `REFRESHING` after release. Without the middle state a reader cannot learn how far to pull, which turns a mis-tuned threshold from an annoyance into an apparently dead gesture. |
 | **Marks** | The few universal affordances left after the no-icons-for-state rule — back, add, search, close and the like. **Hand-authored SVG at 2px stroke on the division scale; no icon library.** An imported set would arrive at someone else's stroke weights and optical sizes and quietly break the rule system, to carry perhaps eight marks. State is never a mark; state is a stamp, a ribbon or a rule. |
@@ -455,8 +490,8 @@ grows every time the data surprises you.
 | Default | ink on paper, 2px frame |
 | Active / selected | `--imprint` plate or fill; never a colour wash over content |
 | On loan | Overprint Stamp + `--out` left edge rule. **Item rows only.** |
-| Shared out | Shared Ribbon, `SHARED · N`. **Library rows only.** |
-| Shared with me | Shared Ribbon, `FROM <owner>`. **Library rows only**; inside the library, provenance is declared once in the header, never repeated on every row. |
+| Shared out | Shared Ribbon, `SHARED · N`. **Library rows and the Detail Marks column; never on a row in an item stream.** |
+| Shared with me | Shared Ribbon, `FROM <owner>`. The same two places. The restriction is against repetition **in a stream**, not against detail: inside a library, provenance is declared once in the header and never on every row; on item detail it is declared once beside the cover, which is the only place that screen has to say it. On the cover the green moves to the edge and the caps take `--cover-body` — see §2. |
 | Read-only | Actions are **absent**, not disabled, and provenance is declared in the header |
 | Empty | A ruled frame with a caps invitation, at the same weight as a full block |
 | Loading | Ruled skeleton frames at correct ratio — the layout does not move when content lands |
