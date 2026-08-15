@@ -102,3 +102,61 @@ describe('leaving a sheet', () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe('focus is trapped inside an open sheet', () => {
+  const Harness = () => (
+    <>
+      <button type="button">outside before</button>
+      <Sheet open title="Fiction" onClose={vi.fn()}>
+        <button type="button">first</button>
+        <button type="button">last</button>
+      </Sheet>
+      <button type="button">outside after</button>
+    </>
+  );
+
+  // aria-modal="true" is a PROMISE to assistive tech that nothing outside the dialog is
+  // reachable. Without a trap it is a lie: Tab walks straight out into the page behind, where a
+  // screen reader has been told there is nothing, and the reader is silently stranded.
+  it('does not let Tab walk out of the dialog', async () => {
+    render(<Harness />);
+    const dialog = screen.getByRole('dialog');
+
+    // Tab through more than the dialog holds; focus must still be inside it.
+    for (let i = 0; i < 8; i += 1) {
+      await userEvent.tab();
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+  });
+
+  // The test that distinguishes a real trap from a degenerate one. "Focus stayed in the dialog"
+  // is also true of an implementation that pins focus to the panel and never moves it — which is
+  // exactly what the first version of this did, invisibly, because jsdom reports offsetParent as
+  // null for every element and the visibility filter emptied the list.
+  it('cycles through the dialog\'s own controls rather than pinning focus', async () => {
+    render(<Harness />);
+    const dialog = screen.getByRole('dialog');
+    const inside = within(dialog).getAllByRole('button');
+    expect(inside.length).toBeGreaterThan(1);
+
+    const seen = new Set();
+    for (let i = 0; i < inside.length + 1; i += 1) {
+      await userEvent.tab();
+      seen.add(document.activeElement);
+    }
+
+    // More than one distinct control received focus, and all of them were inside.
+    expect(seen.size).toBeGreaterThan(1);
+    [...seen].forEach((el) => expect(dialog.contains(el)).toBe(true));
+  });
+
+  it('does not let Shift+Tab walk out backwards either', async () => {
+    render(<Harness />);
+    const dialog = screen.getByRole('dialog');
+
+    for (let i = 0; i < 8; i += 1) {
+      await userEvent.tab({ shift: true });
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+  });
+});

@@ -16,15 +16,20 @@ const UnshareLibrary = () => {
   const [selected, setSelected] = useState([]);
   const [error, setError] = useState(null);
   const [isBusy, setIsBusy] = useState(false);
+  // Revoking another person's access is at least as consequential as deleting your own library,
+  // and delete confirms in place. This used to fire on the first tap.
+  const [isConfirming, setIsConfirming] = useState(false);
   const navigate = useNavigate();
 
   const recipients = library?.sharedTo ?? [];
   const tooMany = selected.length > MAX_PER_REQUEST;
 
   const toggle = (email) =>
-    setSelected((current) =>
-      current.includes(email) ? current.filter((e) => e !== email) : [...current, email],
-    );
+    setSelected((current) => {
+      // Changing the selection invalidates a confirmation about the old one.
+      setIsConfirming(false);
+      return current.includes(email) ? current.filter((e) => e !== email) : [...current, email];
+    });
 
   const onSubmit = async () => {
     setError(null);
@@ -101,9 +106,32 @@ const UnshareLibrary = () => {
             {selected.length} selected — the API removes {MAX_PER_REQUEST} at a time. Deselect{' '}
             {selected.length - MAX_PER_REQUEST} and repeat for the rest.
           </p>
+        ) : isConfirming ? (
+          <>
+            {/* Say what the action does, before it is taken, in place — the same discipline the
+                delete confirmations follow. Names the people, because "1 reader" is not what the
+                owner is deciding about. */}
+            <p className="mb-2 text-sm">
+              <strong>{selected.join(', ')}</strong> will lose access to {library?.name}. You can
+              share it with them again later.
+            </p>
+            <div className="flex gap-2">
+              <PlateButton variant="danger" disabled={isBusy} onClick={onSubmit}>
+                {isBusy ? 'Removing' : 'Remove for good'}
+              </PlateButton>
+              <PlateButton variant="secondary" onClick={() => setIsConfirming(false)}>
+                Keep access
+              </PlateButton>
+            </div>
+          </>
         ) : (
-          <PlateButton variant="danger" disabled={isBusy} onClick={onSubmit} className="self-start">
-            {isBusy ? 'Removing' : `Remove ${selected.length}`}
+          <PlateButton
+            variant="danger"
+            disabled={isBusy}
+            onClick={() => setIsConfirming(true)}
+            className="self-start"
+          >
+            {`Remove ${selected.length}`}
           </PlateButton>
         )}
       </div>

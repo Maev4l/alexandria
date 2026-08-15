@@ -124,6 +124,39 @@ try {
     );
   }
 
+  // ---- Focus is really trapped in a sheet, in a real browser's focus model ----
+  // jsdom cannot be trusted for this: it reports offsetParent as null for every element, which
+  // silently emptied the focusable list and made the unit trap tests pass through a degenerate
+  // branch that never exercised the wrapping. Real Chrome, real Tab keys.
+  console.log('sheet traps focus');
+  {
+    await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('[aria-label^="Actions for Bandes"]', { timeout: 10_000 });
+    await page.click('[aria-label^="Actions for Bandes"]');
+    await page.waitForSelector('[role=dialog]', { timeout: 10_000 });
+
+    const walk = async (shift) => {
+      const inside = [];
+      for (let i = 0; i < 8; i += 1) {
+        await page.keyboard.down('Shift').catch(() => {});
+        if (!shift) await page.keyboard.up('Shift').catch(() => {});
+        await page.keyboard.press('Tab');
+        if (shift) await page.keyboard.up('Shift').catch(() => {});
+        inside.push(
+          await page.evaluate(() =>
+            document.querySelector('[role=dialog]').contains(document.activeElement),
+          ),
+        );
+      }
+      return inside;
+    };
+
+    const forward = await walk(false);
+    record(forward.every(Boolean), 'Tab never leaves the sheet', `${forward.filter(Boolean).length}/8 inside`);
+    const back = await walk(true);
+    record(back.every(Boolean), 'Shift+Tab never leaves the sheet', `${back.filter(Boolean).length}/8 inside`);
+  }
+
   // ---- Pull to refresh actually fires, at the right amount of finger travel ----
   // A whole class of defect no screenshot and no unit test can see. This one shipped: the
   // trigger was written against the damped offset rather than the travel, so it needed 160px;

@@ -3970,26 +3970,46 @@ contradiction of §3 left standing in a reviewed build teaches the wrong thing t
 it next. A sheet's title is a content name, so it is set at 15px semibold in `--ink`, in
 authored case; a test asserts "Bandes dessinées" is never uppercased.
 
-**B1 — the authenticated app has no landmarks.** No `<main>`, no `<h1>` on any authenticated
-screen, and `<html lang="en">` sits over mixed English/French content. Add `<main>` and a
-per-screen `<h1>` as the stream is built, and mark French content with `lang="fr"` where the
-language of an item is known — which, since the API does not record language, means the
-document stays `en` and only known-French UI strings get marked. Do not fake a language field.
+> **DEFERRAL POLICY, revised (ui-v3.md §7, `50c2e1a`). There is no single accessibility pass at
+> the end.** Defer only what is genuinely ONE shared mechanism, and then do it at the first
+> opportunity rather than at the end. A pass scheduled for the end is where this work dies: it
+> becomes one undifferentiated block, the first thing squeezed when something else runs late, and
+> larger every week it waits. Single-point fixes are done immediately, because deferring them
+> buys nothing. Of the four items below, two were never slice-spanning and should not have been
+> filed as such.
+
+**~~B1 — unshare commits on a single tap.~~ Done.** One screen, never slice-spanning. It now
+confirms in place, naming the readers who lose access, with "Remove for good" / "Keep access"
+mirroring delete.
+
+**~~B2 — `Sheet` has no focus trap.~~ Done.** One component, used by every sheet in the app, so
+deferring it delayed it without saving anything — and doing it now makes every sheet in slices C
+onward correct on arrival. Paired with the visible close mark: `aria-modal` hides the scrim from
+assistive tech, so the trap and the mark together are what close that gap.
+
+**B1 — the authenticated app has no landmarks.** From slice C onward this is BUILT IN, not
+deferred: every authenticated screen ships with `<main>` and an `<h1>` naming it, visually hidden
+where the header already carries the name. Adding them while writing a screen is free; retrofitting
+twenty grows with every screen built in the meantime. A screen without them is unfinished, not
+pending a pass. Sweep the existing screens that lack them when next in each file, not as a separate
+exercise.
+
+`<html lang="en">` sits over mixed English/French content. Mark French content with `lang="fr"`
+where the language is known — which, since the API does not record language, means the document
+stays `en` and only known-French UI strings get marked. Do not fake a language field.
 
 **B1 — no mutation is confirmed and there is no toast primitive.** `DESIGN.md` reserves toasts
 for confirmations; none exists. Slice B introduces lend, return and delete, so build the toast
 primitive with the first of them, and keep the rule: a toast never carries a failure, and never
 carries the only report of a destructive action.
 
-**B1 — unshare commits on a single tap while delete gets two steps.** Unshare is destructive and
-irreversible for the recipient. Give it the same in-place confirmation the delete flow has.
-
-**B1 — offline and 401 have no state.** A dropped connection currently renders
+**B1 — offline has no state.** THE ONE GENUINE PASS, and still not at the end: it lives in a
+single place, the API client, and 401 is already handled there. Do it the next time that file is
+open for another reason rather than scheduling it for slice G. A dropped connection currently renders
 "Failed to fetch Pull down to try again." Give `ApiError` a recognisable network case and a 401
 case: the first says the connection is gone and the app is online-only; the second returns to
-`/login` without losing the route. `PRODUCT.md` requires offline to be honest rather than stale.
-
-**B2 — `Sheet` has no focus trap.** Focus escapes to the page behind it.
+`/login` without losing the route — the 401 half is DONE. `PRODUCT.md` requires offline to be
+honest rather than stale.
 
 ---
 

@@ -13,8 +13,56 @@ const Sheet = ({ open, title, onClose, children }) => {
     // "Delete for good" the trigger is gone with its row, and document.body is where focus
     // lands by default — which strands a keyboard reader at the top of a rebuilt stream.
     const opener = document.activeElement;
+    // aria-modal="true" is a PROMISE that nothing outside this dialog is reachable. Without a
+    // trap it is a lie: Tab walks into the page behind, where assistive tech has been told there
+    // is nothing, and the reader is stranded somewhere they cannot perceive. The attribute and
+    // the behaviour have to agree.
+    //
+    // Queried on each keypress rather than once: a sheet's controls change as its mode does —
+    // menu, lend, delete — so a list captured at open would be stale the moment the reader picks
+    // an action.
+    // No visibility filter. An earlier version excluded elements with a null offsetParent,
+    // which jsdom returns for EVERYTHING — so every trap test passed through the degenerate
+    // "nothing focusable" branch below and never exercised the wrapping at all. The filter also
+    // bought nothing: a sheet renders only the current mode's controls, so it has no hidden
+    // focusables, and the scrim lives outside the panel.
+    const focusable = () => [
+      ...(panel.current?.querySelectorAll(
+        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? []),
+    ];
+
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') onClose?.();
+      if (event.key === 'Escape') {
+        onClose?.();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const items = focusable();
+      // Nothing focusable inside: keep focus on the panel rather than releasing it to the page.
+      if (items.length === 0) {
+        event.preventDefault();
+        panel.current?.focus();
+        return;
+      }
+
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+      // The panel itself holds focus when the sheet opens, and it CONTAINS itself — so a
+      // `contains` test alone reads it as "already inside, no wrap needed" and Shift+Tab walks
+      // straight out the back. It has to count as sitting before the first control.
+      const atStart = active === first || active === panel.current;
+      const outside = !panel.current?.contains(active);
+
+      if (event.shiftKey && (atStart || outside)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || outside)) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
     panel.current?.focus();
