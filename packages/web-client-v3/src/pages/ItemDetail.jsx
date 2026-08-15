@@ -132,8 +132,9 @@ const ItemDetail = () => {
       {status === 'ready' && item && (
         <main className="px-4 py-6">
           {/* Detail is the one screen where artwork earns real space: the reader is looking
-              at a single object, not scanning a thousand. Same 2:3 frame and spine rule as
-              the stream, at hero scale, ruled in paper on the cover. VolumeFrame already draws
+              at a single object, not scanning a thousand. Same 2:3 frame as the stream — book
+              and film are identical, type is not marked (DESIGN.md §4) — at hero scale, ruled
+              in paper on the cover. VolumeFrame already draws
               the collection-order plate inside itself — a second plate beside it would label
               the same fact twice. Beside it, Detail Marks fills what was dead space with
               everything true of the COPY rather than the work: filed, visible, circulating. */}

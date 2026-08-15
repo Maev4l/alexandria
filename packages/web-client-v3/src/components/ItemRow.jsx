@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import VolumeFrame from '@/components/imprint/VolumeFrame.jsx';
-import TypeTag from '@/components/imprint/TypeTag.jsx';
 import PlateLine from '@/components/imprint/PlateLine.jsx';
 import OverprintStamp from '@/components/imprint/OverprintStamp.jsx';
 import RowActions from '@/components/imprint/RowActions.jsx';
@@ -26,9 +25,9 @@ const ItemRow = ({ item, libraryId, onActions, className }) => {
         >
           <VolumeFrame item={item} />
           <span className="min-w-0 flex-1">
-            <TypeTag type={item.type} />
-            {/* Content title — authored case, never uppercased. */}
-            <span className="mt-[2px] block text-[17px] font-semibold leading-[1.25]">
+            {/* Content title — authored case, never uppercased. Type is no longer marked here:
+                the Plate Line below is the only place book and film differ (DESIGN.md §4). */}
+            <span className="block text-[17px] font-semibold leading-[1.25]">
               {item.title}
             </span>
             <PlateLine item={item} />

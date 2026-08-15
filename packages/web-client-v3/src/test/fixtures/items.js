@@ -73,7 +73,8 @@ export const fictionItems = [
     description: 'Jean-Pierre Melville, dans l’ordre de sortie',
     itemCount: 4,
     updatedAt: '2026-07-22T18:40:00Z',
-    // Members run in `order`, not alphabetically — which is why the board carries SERIES ORDER.
+    // Members run in `order`, not alphabetically — a board filed under "S" can open with
+    // "Aliens" and that is correct, since every member's own plate already carries its number.
     items: [
       film('item-bob', 'Bob le flambeur', { ...inCollection(1), releaseYear: 1956, duration: 102 }),
       film('item-doulos', 'Le Doulos', { ...inCollection(2), releaseYear: 1962, duration: 108 }),

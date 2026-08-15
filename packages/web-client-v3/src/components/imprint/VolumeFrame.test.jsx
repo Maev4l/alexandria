@@ -12,18 +12,15 @@ const bookWithArt = {
 };
 
 describe('VolumeFrame', () => {
-  it('draws the spine rule on a film, and not on a book', () => {
-    const { container: film } = render(<VolumeFrame item={{ id: 'f', type: 1, title: 'X' }} />);
-    expect(film.querySelector('[data-spine]')).not.toBeNull();
-
+  // Type used to be marked three redundant ways, one of them a spine rule drawn on this
+  // frame. It is gone now (DESIGN.md §4): a book and a film render the IDENTICAL frame, with
+  // or without artwork. This is the inverse of the old spine tests, and it is the one a future
+  // contributor restoring a type marker would break — pinned deliberately.
+  it('renders the identical frame for a book and a film — type is not marked here', () => {
     const { container: book } = render(<VolumeFrame item={{ id: 'b', type: 0, title: 'X' }} />);
+    const { container: film } = render(<VolumeFrame item={{ id: 'f', type: 1, title: 'X' }} />);
+    expect(film.firstChild.outerHTML).toBe(book.firstChild.outerHTML);
     expect(book.querySelector('[data-spine]')).toBeNull();
-  });
-
-  it('draws the spine rule on an empty frame too, since artwork is often absent', () => {
-    const { container } = render(<VolumeFrame item={{ id: 'f', type: 1, title: 'X' }} />);
-    expect(container.querySelector('img')).toBeNull();
-    expect(container.querySelector('[data-spine]')).not.toBeNull();
   });
 
   it('cache-busts the thumbnail with updatedAt', () => {
@@ -65,6 +62,6 @@ describe('VolumeFrame', () => {
   it('takes the hero size on the inverted cover, ruled in paper', () => {
     const { container } = render(<VolumeFrame hero item={{ id: 'f', type: 1, title: 'X' }} />);
     expect(container.firstChild.className).toContain('border-paper');
-    expect(container.querySelector('[data-spine]').className).toContain('bg-paper');
+    expect(container.querySelector('[data-spine]')).toBeNull();
   });
 });

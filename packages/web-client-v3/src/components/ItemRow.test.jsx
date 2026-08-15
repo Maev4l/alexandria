@@ -31,12 +31,22 @@ const renderRow = (item, props = {}) =>
   );
 
 describe('ItemRow', () => {
-  it('marks type in three ways, none of them colour', () => {
-    const { container } = renderRow(film);
-    expect(screen.getByText('Film')).toBeInTheDocument();
-    expect(container.querySelector('[data-spine]')).not.toBeNull();
-    // The plate line's FIELDS differ by type: a film has a year, a book does not.
+  // Type used to be marked three redundant ways (a tag, a spine rule, the plate line). Two of
+  // them are gone: the Plate Line's FIELDS are the only place a book and a film differ now — a
+  // film carries a year, a book does not — and that is deliberately the whole distinction
+  // (DESIGN.md §4).
+  it('marks type only through the plate line, nowhere else', () => {
+    renderRow(film);
     expect(screen.getByText('1974')).toBeInTheDocument();
+    expect(screen.queryByText('Film')).toBeNull();
+    expect(screen.queryByText('Book')).toBeNull();
+  });
+
+  it('renders the identical row for a book and a film, past the plate line', () => {
+    const { container: bookRow } = renderRow(lentBook);
+    const { container: filmRow } = renderRow(film);
+    expect(bookRow.querySelector('[data-spine]')).toBeNull();
+    expect(filmRow.querySelector('[data-spine]')).toBeNull();
   });
 
   it('keeps identification off the row — no ISBN, no runtime', () => {

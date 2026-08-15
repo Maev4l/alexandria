@@ -21,10 +21,10 @@ const OverprintStamp = ({ name, days, inverted = false }) => {
         'inline-block -rotate-[4deg] border-2 border-out',
         'text-[10px] font-extrabold uppercase tracking-[0.14em]',
         inverted
-          ? // No extra top margin: on the cover this stamp directly follows the yellow rule,
-            // which already carries its own 16px bottom margin. Adding one here as well would
-            // double the gap the comp draws as a single step (mockup line 496, `.detail-rule`
-            // immediately followed by `.stamp-open` with no margin of its own).
+          ? // No extra top margin: on the cover this stamp is the last mark in DetailMarks'
+            // own flex column (`gap-2`), which already spaces it from whatever mark sits above
+            // it (the library name, the shared ribbon, or nothing). A margin here as well would
+            // double that gap on top of the one the parent already provides.
             'px-[5px] py-px text-paper'
           : 'mt-2 px-[6px] py-[2px] text-ink opacity-[0.92]',
       )}
