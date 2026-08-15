@@ -24,14 +24,28 @@ const Gate = () => {
     );
   }
 
+  const shell = (
+    <ToastProvider>
+      <Column>
+        <AppRoutes />
+      </Column>
+    </ToastProvider>
+  );
+
+  // NO PROVIDER WHILE SIGNED OUT. This branch did not exist, and its absence is what a second
+  // reader actually experienced: LibrariesProvider mounts ABOVE the router, so its effect ran on
+  // every signed-out page load and fetched libraries with no session. RequireAuth redirects the
+  // ROUTE to /login, but it cannot unmount a provider above it. Her first ever page load fired
+  // GET /libraries fifteen seconds before she signed in, and the failure it stored was still on
+  // screen once she had. A signed-out session has no libraries and no business asking for any.
+  if (!user) return shell;
+
+  // KEYED BY IDENTITY. Fixing the fetch alone would leave the class of defect intact: state
+  // raised under one identity must never survive into another, and nothing about navigating
+  // clears a provider mounted above the router. The key makes that structural rather than a
+  // consequence of the branch above happening to unmount first.
   return (
-    <LibrariesProvider>
-      <ToastProvider>
-        <Column>
-          <AppRoutes />
-        </Column>
-      </ToastProvider>
-    </LibrariesProvider>
+    <LibrariesProvider key={user.id}>{shell}</LibrariesProvider>
   );
 };
 
