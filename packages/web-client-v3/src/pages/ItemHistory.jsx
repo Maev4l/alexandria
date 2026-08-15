@@ -30,6 +30,7 @@ const ItemHistory = () => {
   const [nextToken, setNextToken] = useState(null);
   const [status, setStatus] = useState('loading');
   const [isAppending, setIsAppending] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(null);
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [clearError, setClearError] = useState(null);
@@ -55,6 +56,7 @@ const ItemHistory = () => {
   }, [load]);
 
   const loadMore = async () => {
+    setLoadMoreError(null);
     setIsAppending(true);
     try {
       const page = await eventsApi.list(libraryId, itemId, { limit: PAGE_LIMIT, nextToken });
@@ -63,8 +65,13 @@ const ItemHistory = () => {
       // page being paired in isolation and the two halves of one loan never meeting.
       setEvents((current) => [...current, ...(page?.events ?? [])]);
       setNextToken(page?.nextToken ?? null);
-    } catch {
-      // nextToken is left untouched, so the same button can be pressed again.
+    } catch (err) {
+      // Inline, in place, next to the control that can retry — the same precedent
+      // StreamContext/LibraryBrowse follow for a failed page fetch. nextToken is left
+      // untouched, so the SAME page is retried rather than the reader losing their place or a
+      // click that visibly did nothing (the defect: isAppending alone reverting the button's
+      // label was indistinguishable from a click that never registered).
+      setLoadMoreError(err.message);
     } finally {
       setIsAppending(false);
     }
@@ -124,14 +131,24 @@ const ItemHistory = () => {
             )}
 
             {nextToken && (
-              <PlateButton
-                variant="secondary"
-                className="mt-4"
-                disabled={isAppending}
-                onClick={loadMore}
-              >
-                {isAppending ? 'Loading' : 'Load more'}
-              </PlateButton>
+              <>
+                {loadMoreError && (
+                  // Recovery is a control, never an instruction to perform a gesture — the same
+                  // rule the top-level load error above follows, and the same treatment
+                  // LibraryBrowse gives a failed page fetch from useStream.
+                  <p role="alert" className="mt-4 border-t-2 border-out bg-paper-deep p-4 text-sm">
+                    {loadMoreError}
+                  </p>
+                )}
+                <PlateButton
+                  variant="secondary"
+                  className="mt-4"
+                  disabled={isAppending}
+                  onClick={loadMore}
+                >
+                  {isAppending ? 'Loading' : loadMoreError ? 'Try again' : 'Load more'}
+                </PlateButton>
+              </>
             )}
 
             {/* Read-only means absent, not disabled — the same rule item detail's actions
@@ -147,11 +164,12 @@ const ItemHistory = () => {
         )}
       </main>
 
-      <Sheet
-        open={isConfirmingClear}
-        onClose={() => setIsConfirmingClear(false)}
-        title="Clear the record?"
-      >
+      {/* The sheet's title is the content's own name, not a restatement of the action the body
+          paragraph already spells out below it — the same rule every other content-scoped sheet
+          in this package follows (ItemActionsSheet/LendSheet: item.title; LibraryActionsSheet:
+          library.name; CollectionActionsSheet: board.title). "Clear the record?" atop "Clear the
+          record for {title}?" was one fact stated twice. */}
+      <Sheet open={isConfirmingClear} onClose={() => setIsConfirmingClear(false)} title={title}>
         {clearError && (
           <p role="alert" className="mb-4 border-t-2 border-out bg-paper p-4 text-sm text-ink">
             {clearError}

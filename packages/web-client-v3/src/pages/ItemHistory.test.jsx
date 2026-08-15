@@ -162,6 +162,48 @@ describe('ItemHistory', () => {
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 
+  it('reports a failed "Load more" inline and lets the reader retry the same page', async () => {
+    let eventsCalls = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) return jsonResponse(200, { libraries });
+        if (path.includes('/events')) {
+          eventsCalls += 1;
+          // 1st call: initial page, with more to come. 2nd call (the first "Load more" click):
+          // fails. 3rd call (retry, same nextToken): succeeds.
+          if (eventsCalls === 1) {
+            return jsonResponse(200, {
+              events: [{ date: '2026-01-01T00:00:00Z', type: 'LENT', event: 'New' }],
+              nextToken: 'page-2',
+            });
+          }
+          if (eventsCalls === 2) {
+            return jsonResponse(500, { message: 'Could not load more of this record' });
+          }
+          return jsonResponse(200, {
+            events: [{ date: '2019-01-01T00:00:00Z', type: 'LENT', event: 'Old' }],
+          });
+        }
+        const result = handleMockRequest('GET', path);
+        return jsonResponse(result.status, result.body);
+      }),
+    );
+    renderPage();
+    const loadMore = await screen.findByRole('button', { name: /load more/i });
+    await userEvent.click(loadMore);
+    // A reader on poor signal must be able to see the click registered and failed — not a
+    // button that silently reverts to its own starting label.
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load more of this record/i);
+    // Recovery is a control: the same page can be retried, not just re-read about.
+    const retry = screen.getByRole('button', { name: /try again/i });
+    await userEvent.click(retry);
+    await waitFor(() => expect(screen.getAllByText(/→/)).toHaveLength(2));
+    // The error clears once the retry succeeds.
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('never offers Clear on a shared (read-only) library, even with lending history', async () => {
     vi.stubGlobal(
       'fetch',
