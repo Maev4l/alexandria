@@ -290,6 +290,39 @@ is not what this product is for.
 The test for a row field is whether it helps someone recognise a thing they already own, not
 whether it is true or available.
 
+### Where the primary action sits
+
+The two list screens place their primary differently, on purpose:
+
+| Screen | Primary | Where |
+|---|---|---|
+| Libraries root | New library | bottom bar, in thumb reach |
+| Library browse | Add an item | header right slot |
+
+**This is a difference, not an inconsistency awaiting correction.** It has been raised twice — once
+by a critique as "two primaries, opposite thumb zones", once as a proposal to unify them — and
+closed both times. Three reasons, in the order they matter:
+
+**Density, and it is asymmetric.** A bottom bar costs ~80px plus safe-area inset, about 9% of an
+844px viewport, permanently. On the root, where a list of three to six libraries already has dead
+space beneath it, that bar is free. On the browse stream — the densest surface in the app, holding a
+thousand items, whose entire job is showing content — the same bar is expensive. The same component
+has very different prices on the two screens.
+
+**Frequency, counted correctly.** The capture flow loops internally: Add → Book or Film → capture →
+confirm → *back to capture for the next item*. So Add is pressed **once to enter a cataloguing
+session**, not once per book. An earlier draft of this argument put Add in thumb reach because it was
+"performed dozens of times back to back" — that was counting the scan, not the button, and it is the
+error that made the placement look wrong.
+
+**The physical scene.** `PRODUCT.md`'s one-handed moment is the bookshop, answering *do I own this*
+— which is lookup. Cataloguing is "a stack of new arrivals processed back-to-back" at a table, with
+two hands free. So the harder reach falls on the task least likely to be performed one-handed.
+
+The rule for a screen not listed here: **the primary action goes wherever it costs that screen
+least.** A short list can afford a bar; a dense stream cannot. Placement follows the screen's density
+and the action's real frequency — never a template applied for symmetry.
+
 ### What a plate carries
 
 The plate is the imprint's mark, and it carries **only quantities the API actually returns**.
