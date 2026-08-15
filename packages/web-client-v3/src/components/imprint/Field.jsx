@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { cn } from '@/lib/cn';
-import { Eye, EyeOff } from '@/components/icons/index.jsx';
+import { ChevronDown, Eye, EyeOff } from '@/components/icons/index.jsx';
 
 // No radius, a 2px bottom rule, a caps label above. No floating label: it would animate, and
 // print does not. Errors sit under the field, in place, never only in a toast.
@@ -48,6 +48,28 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, ...
             {revealed ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
+      ) : as === 'select' ? (
+        // A native <select> draws its own disclosure arrow, which is exactly the chrome §9
+        // refuses — a glyph this world never authored, at someone else's stroke weight. The
+        // select itself stays the real, focusable, keyboard-operable control (its own
+        // :focus-visible ring needs no help, unlike the compound password/search fields
+        // above); only the arrow is replaced, drawn over it and out of the tab order.
+        <div className="relative">
+          <Tag
+            id={id}
+            aria-invalid={error ? 'true' : undefined}
+            aria-describedby={noteId}
+            className={cn(
+              'min-h-12 w-full appearance-none border-b-2 bg-transparent px-0 py-2 pr-6 text-base text-ink',
+              borderClass,
+            )}
+            {...props}
+          />
+          <ChevronDown
+            aria-hidden="true"
+            className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-ink-soft"
+          />
+        </div>
       ) : (
         <Tag
           id={id}
@@ -64,6 +86,11 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, ...
             // The browser's resize grabber is a rounded, diagonal piece of chrome this world
             // has no vocabulary for. Height comes from rows instead.
             as === 'textarea' && 'resize-none',
+            // Same refusal for the number spinner: it is a pair of tiny rounded arrows with no
+            // rule and no place in a system whose every radius is 0. `-moz-appearance` is the
+            // Firefox-only equivalent; Chrome/Safari need the two pseudo-elements suppressed.
+            type === 'number' &&
+              '[-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
             borderClass,
           )}
           {...props}

@@ -25,6 +25,15 @@ export const ChevronLeft = (props) => (
   </Mark>
 );
 
+// The select's own disclosure mark — drawn by hand so it sits on the same 2px stroke as every
+// other mark, rather than the browser's native arrow (§9: chrome this world has no vocabulary
+// for; the native glyph is neither a rule nor drawn at this stroke weight).
+export const ChevronDown = (props) => (
+  <Mark {...props}>
+    <path d="M4 7 L10 13 L16 7" />
+  </Mark>
+);
+
 // Two cuts: 16 for the pinned search field, 20 for the header plate on the cover.
 export const Search = ({ size = 20, ...props }) =>
   size <= 16 ? (

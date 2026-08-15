@@ -548,11 +548,26 @@ try {
   // Measured by hand: at 390px the row spans ~329px inside 358px of available width (29px
   // slack) and stays on one line; at 320px (288px available) Delete drops to its own line. Both
   // are asserted here in a REAL browser — jsdom does no layout at all, so a green unit test
-  // would be evidence about jsdom, not about whether this row actually wraps. Proven to catch a
-  // regression by hand: reverting `flex-wrap` to `flex` on `.cover-actions`'s React equivalent
-  // (the `div` around the three PlateButtons in ItemDetail.jsx) makes the 320px checks below
-  // FAIL — Delete overflows past the viewport edge instead of dropping to a second line — then
-  // restored; see the task report for the transcript.
+  // would be evidence about jsdom, not about whether this row actually wraps.
+  //
+  // This block used to carry a SECOND 320px record, "the row does not overflow the viewport",
+  // which cannot fail in the direction its name promises. Reverting `flex-wrap` to `flex` on
+  // the div below and re-running proved it: only the "Delete wraps to its own line" record
+  // failed; the overflow record stayed green throughout, because a flex row's items default to
+  // `min-width: auto` and do not shrink below their own content width — removing `flex-wrap`
+  // does not make them compress, it would only make the ROW overflow once the buttons'
+  // combined content width exceeds the available space. For this fixture (Mark
+  // returned/Edit/Delete) the combined width already fits inside 288px, wrapped or not, so the
+  // overflow record was true regardless of the very regression it sat beside.
+  //
+  // A replacement was tried next — every button >=48px in its smaller dimension, label not
+  // clipped — and measured the same way: reverting `flex-wrap` left every button at height 52px
+  // (min-h-12's 48px floor is a min-height, set by the component and independent of the
+  // surrounding flex layout — PlateButton.test.jsx already asserts the class) with
+  // `scrollWidth === clientWidth` on all three labels, i.e. it ALSO stayed green under the
+  // regression. Per the task brief: when a floor check turns out to hold either way, the honest
+  // outcome is to delete the record rather than keep a second one that cannot fail either. Only
+  // the wrap record — proven above to actually catch the regression — remains.
   console.log('item-detail action row reflows instead of overflowing');
   {
     const actionRects = async (width) => {
@@ -590,12 +605,6 @@ try {
       Boolean(deleteRect) && Boolean(editRect) && Math.round(deleteRect.top) > Math.round(editRect.top),
       'at 320px Delete wraps to its own line rather than overflowing',
       `Delete top: ${deleteRect?.top}, Edit top: ${editRect?.top}`,
-    );
-    const narrowMaxRight = Math.max(...narrow.map((r) => r.right));
-    record(
-      narrowMaxRight <= 320,
-      'at 320px the row does not overflow the viewport (reflow, not overflow)',
-      `rightmost edge: ${narrowMaxRight.toFixed(1)}px`,
     );
   }
 } finally {
