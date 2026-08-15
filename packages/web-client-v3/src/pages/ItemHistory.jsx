@@ -124,8 +124,10 @@ const ItemHistory = () => {
               </div>
             ) : (
               <div className="border-[3px] border-ink">
+                {/* boxed: this card's rows must not sit flush against its own rule (defect 2) —
+                    unlike item detail's inline ledger, which is a flush text column. */}
                 {loans.map((loan) => (
-                  <LedgerRow key={`${loan.lentAt}-${loan.name}`} loan={loan} />
+                  <LedgerRow key={`${loan.lentAt}-${loan.name}`} loan={loan} boxed />
                 ))}
               </div>
             )}

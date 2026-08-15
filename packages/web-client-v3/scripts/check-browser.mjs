@@ -607,6 +607,135 @@ try {
       `Delete top: ${deleteRect?.top}, Edit top: ${editRect?.top}`,
     );
   }
+
+  // ---- Ledger Row: the borrower's name resolves in the sans, and item detail's inline ledger
+  // (flush) stays aligned with the title above it ----
+  // LedgerRow.test.jsx already asserts the CLASSES (no `.num` on the name, `.num` on the dates
+  // and the day count, no `px-4` when unboxed) — but jsdom does no layout, so it cannot tell
+  // whether `.num` actually resolves to the mono typeface in the cascade, nor whether an unboxed
+  // row's left edge actually lines up with the title's, which is the whole point of "flush".
+  console.log("ledger row: the borrower reads in the sans, and item detail's ledger stays flush");
+  {
+    await page.setViewport({ width: 390, height: 844 });
+    await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
+    // item-lent's most recent event is a LENT to Marie with no matching RETURNED (the fixtures'
+    // comment), so the first (most recent) ledger row is that open loan.
+    await page.waitForSelector('[aria-label="On loan to Marie"]', { timeout: 10_000 });
+
+    const facts = await page.evaluate(() => {
+      const h1 = document.querySelector('main h1');
+      const heading = [...document.querySelectorAll('main h2')].find((el) =>
+        /the record/i.test(el.textContent),
+      );
+      const ledger = heading?.nextElementSibling;
+      const firstRow = ledger?.firstElementChild;
+      const rowSpans = firstRow ? [...firstRow.querySelectorAll('span')] : [];
+      const nameEl = rowSpans.find((el) => el.textContent.trim() === 'Marie');
+      const durationEl = rowSpans.find((el) => /^\d+ days$/.test(el.textContent.trim()));
+      // Line 2 (the date range) is the row's second direct child.
+      const dateLine = firstRow?.children[1];
+      return {
+        found: Boolean(h1 && firstRow && nameEl && durationEl && dateLine),
+        lineCount: firstRow?.children.length,
+        h1Left: h1?.getBoundingClientRect().left,
+        rowLeft: firstRow?.getBoundingClientRect().left,
+        rowPaddingLeft: firstRow ? getComputedStyle(firstRow).paddingLeft : null,
+        nameFont: nameEl ? getComputedStyle(nameEl).fontFamily : null,
+        durationFont: durationEl ? getComputedStyle(durationEl).fontFamily : null,
+        dateFont: dateLine ? getComputedStyle(dateLine).fontFamily : null,
+      };
+    });
+
+    record(facts.found, 'the open loan\'s row, its borrower and its duration are all on screen', JSON.stringify(facts));
+    record(
+      facts.lineCount === 2,
+      'the row lays out as two lines (borrower+duration, then the date range)',
+      `${facts.lineCount} line(s)`,
+    );
+    record(
+      Boolean(facts.nameFont) && !facts.nameFont.includes('Chivo Mono'),
+      "the borrower's name resolves in the sans, not the mono",
+      facts.nameFont,
+    );
+    record(
+      Boolean(facts.durationFont?.includes('Chivo Mono')),
+      'the duration resolves in the mono',
+      facts.durationFont,
+    );
+    record(
+      Boolean(facts.dateFont?.includes('Chivo Mono')),
+      'the date range resolves in the mono',
+      facts.dateFont,
+    );
+    record(
+      facts.rowPaddingLeft === '0px',
+      "item detail's inline ledger carries no padding of its own (it is a flush text column)",
+      facts.rowPaddingLeft,
+    );
+    record(
+      Math.round(facts.rowLeft) === Math.round(facts.h1Left),
+      'the flush ledger row aligns with the title above it',
+      `row left ${facts.rowLeft}px, h1 left ${facts.h1Left}px`,
+    );
+  }
+
+  // ---- Ledger Row: item history's boxed rows do not sit flush against the card's own rule ----
+  // Defect 2 was exactly this, invisible in source: `border-[3px] border-ink` on the card plus
+  // `py-2` with no horizontal padding on the row, so the text touched the border. The fix put
+  // `px-4` on the ROW (not the card) so the row's own `border-b` hairline still reaches the
+  // card's edge — padding the card instead would leave that hairline stopping short of the rule.
+  console.log("ledger row: item history insets its rows so they never touch the card's border");
+  {
+    await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent/history`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main h1');
+
+    const facts = await page.evaluate(() => {
+      const card = [...document.querySelectorAll('main div')].find((el) =>
+        el.className.includes('border-[3px]'),
+      );
+      const row = card?.firstElementChild;
+      const rowSpans = row ? [...row.querySelectorAll('span')] : [];
+      const nameEl = rowSpans.find((el) => el.textContent.trim() === 'Marie');
+      const cardBox = card?.getBoundingClientRect();
+      const rowBox = row?.getBoundingClientRect();
+      const nameBox = nameEl?.getBoundingClientRect();
+      // The card's OWN border sits between cardBox.left and its content: `clientLeft` is the
+      // resolved width of that left border in px, so cardBox.left + card.clientLeft is the
+      // border's INNER edge — the line the row and its own border-b must reach exactly for the
+      // hairline not to stop short of the card rule.
+      const cardInnerLeft = card ? cardBox.left + card.clientLeft : null;
+      return {
+        found: Boolean(card && row && nameEl),
+        rowPaddingLeft: row ? getComputedStyle(row).paddingLeft : null,
+        cardPaddingLeft: card ? getComputedStyle(card).paddingLeft : null,
+        cardInnerLeft,
+        rowLeft: rowBox?.left,
+        nameLeft: nameBox?.left,
+      };
+    });
+
+    record(facts.found, 'the boxed card and its first row are both on screen', JSON.stringify(facts));
+    record(
+      facts.rowPaddingLeft === '16px',
+      'a boxed row insets by one division (px-4, 16px)',
+      facts.rowPaddingLeft,
+    );
+    record(
+      facts.cardPaddingLeft === '0px',
+      'the padding lives on the ROW, not the card — the card itself carries none',
+      facts.cardPaddingLeft,
+    );
+    record(
+      Math.round(facts.rowLeft) === Math.round(facts.cardInnerLeft),
+      "the row's own box still reaches the card's border exactly — its border-b does not stop short",
+      `row left ${facts.rowLeft}px, card's border inner edge ${facts.cardInnerLeft}px`,
+    );
+    record(
+      facts.nameLeft - facts.cardInnerLeft >= 15,
+      "the borrower's name sits inset from the card rule, not flush against it",
+      `name left ${facts.nameLeft}px, card border inner edge ${facts.cardInnerLeft}px`,
+    );
+  }
 } finally {
   await browser.close();
   // Only the child this script spawned — signalled as a group and AWAITED, so the port is
