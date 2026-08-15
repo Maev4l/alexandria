@@ -104,8 +104,8 @@ export const AuthProvider = ({ children }) => {
         snapshot('auth.readSession EMPTY, confirming', {
           amplify: moduleIdentity(fetchAuthSession),
           ...sessionShape(session),
-          ...(await probeUser(getCurrentUser)),
         });
+        probeUser('auth.readSession EMPTY', getCurrentUser);
         session = await fetchAuthSession({ forceRefresh: true }).catch(() => null);
       }
 

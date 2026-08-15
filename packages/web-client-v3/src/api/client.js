@@ -70,8 +70,8 @@ const readToken = async (attempt) => {
     snapshot(`client.readToken(${attempt}) NO TOKEN`, {
       amplify: moduleIdentity(fetchAuthSession),
       ...sessionShape(session),
-      ...(await probeUser(getCurrentUser)),
     });
+    probeUser(`client.readToken(${attempt})`, getCurrentUser);
   }
   return token ? { token } : { token: null, reason: 'no-tokens' };
 };

@@ -90,13 +90,26 @@ const expiryOf = (idToken) => {
 // Does Amplify believe a user is signed in AT THIS INSTANT, from THIS caller's module instance?
 // The caller passes its own getCurrentUser so the answer describes its own copy, not ours.
 // Never logs the username — only whether one came back.
-export const probeUser = async (getCurrentUser) => {
-  try {
-    const current = await getCurrentUser();
-    return { getCurrentUser: 'resolved', hasUsername: Boolean(current?.username) };
-  } catch (err) {
-    return { getCurrentUser: `rejected:${err?.name ?? 'Error'}` };
-  }
+//
+// DELIBERATELY NOT AWAITED BY ITS CALLERS. Both call sites sit directly between a failing read
+// and the forced refresh that follows it, which is the exact window under measurement. Awaiting
+// a network-capable call there would push the retry later in wall-clock time, and if the
+// condition is time-dependent the retry would then start succeeding — the instrument curing the
+// symptom it exists to observe, and the result reading as a repair to anyone downstream. So this
+// is fired and left to report on its own; the caller's timing is unchanged.
+export const probeUser = (label, getCurrentUser) => {
+  if (!DIAGNOSE) return;
+  const asked = performance.now();
+  const report = (result) =>
+    console.info(`[diag ${at()}] ${label} getCurrentUser`, {
+      ...result,
+      // How long the probe itself took, so it can never be mistaken for the read's own latency.
+      probeMs: Math.round(performance.now() - asked),
+    });
+  Promise.resolve()
+    .then(() => getCurrentUser())
+    .then((current) => report({ getCurrentUser: 'resolved', hasUsername: Boolean(current?.username) }))
+    .catch((err) => report({ getCurrentUser: `rejected:${err?.name ?? 'Error'}` }));
 };
 
 // Does a write to localStorage actually persist here? A private window can restrict, cap or
