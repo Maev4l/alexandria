@@ -367,7 +367,24 @@ by a visible affordance, since long-press alone is undiscoverable.
 
 **PWA.** `viewport-fit=cover`; safe-area padding on the header and any bottom-anchored action.
 Update prompt on a waiting service worker, checked at startup, **hourly**, and on
-`visibilitychange` — not every 60s. CloudFront must serve the stable-named app shell
+`visibilitychange` — not every 60s.
+
+**The update prompt must ship in the FIRST v3 build, before cutover.** `registerType: 'prompt'`
+generates a worker whose `skipWaiting()` is reachable only via a `SKIP_WAITING` message, and the
+auto-injected `registerSW.js` never sends one. Without a prompt calling `updateServiceWorker(true)`,
+a newly deployed worker waits indefinitely while the old one answers navigations **from precache** —
+so the CloudFront `no-cache` header on the app shell is correct and never consulted, because the
+request does not reach the network. The failure is silent: the deploy succeeds and nobody receives it.
+
+v2 already implements this (`src/pwa/PWAContext.jsx`, `useRegisterSW`), which is why the cutover
+itself will land — v2's worker prompts and yields to v3's. The trap is one release later: if v3 takes
+control without its own prompt, the first post-cutover fix can never be delivered, because the build
+carrying it is the build that cannot arrive. Port v2's mechanism; the surface is v3's own.
+
+**The prompt is not a toast.** Toasts carry confirmations only and auto-dismiss; this is a
+persistent, actionable notice that must survive being ignored. Render it as a printed notice on
+`--paper-deep` with a 3px `--ink` top rule, a caps label, and a Plate Button — in the imprint's
+vocabulary, a new build is a **new edition**, so it says so rather than talking about versions. CloudFront must serve the stable-named app shell
 (`index.html`, `sw.js`, `registerSW.js`, `*.webmanifest`, `workbox-*.js`) as `no-cache`, with
 content-hashed `/assets/*` as `immutable`, and `/*` invalidated on deploy; otherwise phantom
 update prompts appear with no real deploy. **This is already satisfied by the existing
