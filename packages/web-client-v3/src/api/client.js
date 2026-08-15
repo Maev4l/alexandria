@@ -1,7 +1,18 @@
 import { fetchAuthSession, getCurrentUser } from 'aws-amplify/auth';
 import { config } from '@/config';
 // TEMPORARY. Phase-1 evidence gathering for the session defect; revert this commit to remove it.
-import { moduleIdentity, probeUser, sessionShape, snapshot } from '@/auth/diagnose.js';
+import {
+  moduleIdentity,
+  probeUser,
+  reportFirstClientRead,
+  sessionShape,
+  snapshot,
+  stampModule,
+} from '@/auth/diagnose.js';
+
+// Answers the duplication question WITHOUT waiting for a failure: if this module received a
+// different Amplify copy than AuthContext did, the two ids differ here, at import, on any run.
+stampModule('api/client.js', fetchAuthSession);
 
 const BASE_URL = `${config.apiBaseUrl}/v1`;
 
@@ -73,6 +84,7 @@ const readToken = async (attempt) => {
     });
     probeUser(`client.readToken(${attempt})`, getCurrentUser);
   }
+  if (token) reportFirstClientRead(fetchAuthSession);
   return token ? { token } : { token: null, reason: 'no-tokens' };
 };
 
@@ -123,11 +135,20 @@ const request = async (path, options = {}, { isRetry = false } = {}) => {
   // force one refresh and try once more. A reader should never be shown a raw "Unauthorized"
   // and asked to solve it with a button.
   if (response.status === 401 && !isRetry) {
+    // PREVIOUSLY SILENT, and it is a failure mode we never instrumented: the request DID carry a
+    // token and the server rejected it. It produces no readToken line and no warn, so a failing
+    // run down this path looks, in the console, exactly like a run that never failed.
+    snapshot('client 401 WITH a token, refreshing', {
+      amplify: moduleIdentity(fetchAuthSession),
+      path,
+      tokenLength: token?.length ?? 0,
+    });
     await sessionHooks.refresh();
     return request(path, options, { isRetry: true });
   }
 
   if (response.status === 401) {
+    snapshot('client 401 AGAIN after refresh, ending the session', { path });
     sessionHooks.invalidate();
     throw new SessionExpiredError();
   }
@@ -135,6 +156,9 @@ const request = async (path, options = {}, { isRetry = false } = {}) => {
   const data = await parse(response);
 
   if (!response.ok) {
+    // Also previously silent. An ordinary server failure and a session failure reach the reader
+    // as similar-looking errors, and only one of them was ever visible in the console.
+    snapshot('client REQUEST FAILED', { path, status: response.status });
     throw new ApiError(data?.message ?? 'The request failed.', response.status, data);
   }
   return data;

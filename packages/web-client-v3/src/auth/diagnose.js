@@ -130,6 +130,28 @@ export const storageWritable = () => {
   }
 };
 
+// Stamps the Amplify copy a module received AT IMPORT TIME, before anything has failed.
+//
+// The first run answered nothing about duplication: every id came from AuthContext, because the
+// API client only speaks when it fails. Waiting for a failure to learn whether there are two
+// copies is the wrong way round — the copies exist from the moment the modules load, or they do
+// not, and the answer is the same either way. Two different ids here means duplication, on a run
+// that succeeds, with no race to catch.
+export const stampModule = (label, fn) => {
+  if (!DIAGNOSE) return;
+  console.info(`[diag ${at()}] module ${label}`, { amplify: moduleIdentity(fn) });
+};
+
+// The client's successful read, logged ONCE per page load. Without it a passing run says nothing
+// about how close it came: the same run that succeeds at 40ms after sign-in and the one that
+// succeeds at 900ms look identical in the log, and only one of them is near the boundary.
+let clientReadReported = false;
+export const reportFirstClientRead = (fn) => {
+  if (!DIAGNOSE || clientReadReported) return;
+  clientReadReported = true;
+  console.info(`[diag ${at()}] client.readToken FIRST SUCCESS`, { amplify: moduleIdentity(fn) });
+};
+
 export const snapshot = (label, extra = {}) => {
   if (!DIAGNOSE) return;
   console.info(`[diag ${at()}] ${label}`, {

@@ -21,7 +21,17 @@ import { config } from '@/config';
 import { registerSessionHooks } from '@/api';
 import { classifyOAuthCallback } from './oauth.js';
 // TEMPORARY. Phase-1 evidence gathering for the session defect; revert this commit to remove it.
-import { moduleIdentity, probeUser, sessionShape, snapshot, watchForTokens } from './diagnose.js';
+import {
+  moduleIdentity,
+  probeUser,
+  sessionShape,
+  snapshot,
+  stampModule,
+  watchForTokens,
+} from './diagnose.js';
+
+// The other half of the duplication test — see api/client.js.
+stampModule('auth/AuthContext.jsx', fetchAuthSession);
 
 const AuthContext = createContext(null);
 
