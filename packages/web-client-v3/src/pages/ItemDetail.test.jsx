@@ -207,4 +207,68 @@ describe('Delete sits apart and confirms in place', () => {
     await userEvent.click(screen.getByRole('button', { name: /delete for good/i }));
     expect(await screen.findByText(/le grand sommeil deleted/i)).toBeInTheDocument();
   });
+
+  // Deferred finding: the implementation deliberately keeps the confirm state open when a
+  // delete fails, rather than making the reader confirm again from scratch after a network
+  // blip. Nothing pinned that choice before this test.
+  it('keeps the confirm controls in place and reports a failed delete inline, not as a toast', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        if (options.method === 'DELETE' && path.includes('/items/')) {
+          return {
+            ok: false,
+            status: 500,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ message: 'Could not delete this item' }),
+          };
+        }
+        const result = handleMockRequest('GET', path);
+        return {
+          ok: result.status < 400,
+          status: result.status,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => result.body,
+        };
+      }),
+    );
+    renderPage('item-lent');
+    await userEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /delete for good/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not delete this item/i);
+    // Still confirming — a failed attempt must not force the reader to start over.
+    expect(screen.getByRole('button', { name: /delete for good/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /keep it/i })).toBeInTheDocument();
+    expect(document.querySelector('[data-toast]')).toBeNull();
+  });
+});
+
+// Deferred finding: everything behind this gate (Mark returned, Lend, Edit, Delete) was rebuilt
+// in the same pass that removed the old three-action-menu "Mark returned" dialog, and nothing
+// pinned "read-only means absent, not disabled" against the rebuilt set.
+describe('a shared (read-only) library offers no action controls', () => {
+  it('renders zero buttons in <main> for an item in a library shared with me', async () => {
+    render(
+      <MemoryRouter initialEntries={['/libraries/lib-shared-in/items/item-shared']}>
+        <LibrariesProvider>
+          <ToastProvider>
+            <Routes>
+              <Route path="/libraries/:libraryId/items/:itemId" element={<ItemDetail />} />
+            </Routes>
+          </ToastProvider>
+        </LibrariesProvider>
+      </MemoryRouter>,
+    );
+    await screen.findByText('Le Grand Meaulnes');
+    expect(within(screen.getByRole('main')).queryAllByRole('button')).toHaveLength(0);
+  });
 });
