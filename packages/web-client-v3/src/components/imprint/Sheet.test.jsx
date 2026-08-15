@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import Sheet from './Sheet.jsx';
@@ -79,5 +79,26 @@ describe('Sheet', () => {
     );
     await userEvent.click(screen.getByTestId('sheet-scrim'));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe('leaving a sheet', () => {
+  it('offers a close control INSIDE the dialog', async () => {
+    // The scrim is a real button with an accessible name, but it is a SIBLING of the panel, and
+    // the panel is aria-modal="true" — so assistive tech hides everything outside it, the scrim
+    // included. Escape is the only other route and a phone has no Escape key. "Long-press is
+    // always duplicated by a visible affordance" has to apply to LEAVING a sheet too.
+    const onClose = vi.fn();
+    render(
+      <Sheet open title="Bandes dessinées" onClose={onClose}>
+        <p>body</p>
+      </Sheet>,
+    );
+
+    const dialog = screen.getByRole('dialog');
+    const close = within(dialog).getByRole('button', { name: /close/i });
+    await userEvent.click(close);
+
+    expect(onClose).toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { Close } from '@/components/icons/index.jsx';
 
 // Bottom sheet on the recessed field with a 3px top rule and square corners. Rises from the
 // bottom edge in 200ms, linear — the press, not a spring.
@@ -52,9 +53,24 @@ const Sheet = ({ open, title, onClose, children }) => {
             Set at the Row Title step, 17/600, because the sheet is about the row it was
             opened from: the reader's eye lands on the same object at the same volume, and the
             sheet reads as that row expanded rather than as a screen with its own typography. */}
-        <h2 id={titleId} className="mb-4 text-[17px] font-semibold text-ink">
-          {title}
-        </h2>
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <h2 id={titleId} className="text-[17px] font-semibold text-ink">
+            {title}
+          </h2>
+          {/* INSIDE the dialog, deliberately. The scrim is a real button with an accessible
+              name, but it is a SIBLING of this panel and the panel is aria-modal, so assistive
+              tech hides everything outside it — the scrim included. That left Escape as the only
+              exposed route, and a phone has no Escape key. A visible mark duplicating a gesture
+              is the same rule that governs long-press; leaving a sheet is not exempt from it. */}
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="-m-2 flex min-h-12 min-w-12 items-center justify-center p-2 text-ink"
+          >
+            <Close />
+          </button>
+        </div>
         {children}
       </div>
     </div>

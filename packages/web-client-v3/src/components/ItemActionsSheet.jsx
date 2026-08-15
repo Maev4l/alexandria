@@ -92,21 +92,31 @@ const ItemActionsSheet = ({ item, libraryId, open, onClose, onChanged, onDeleted
             value={borrower}
             onChange={(event) => setBorrower(event.target.value)}
           />
-          <PlateButton
-            disabled={isBusy || !borrower.trim()}
-            onClick={() =>
-              run(
-                () =>
-                  eventsApi.create(libraryId, item.id, {
-                    type: 'LENT',
-                    event: borrower.trim(),
-                  }),
-                `${item.title} is out with ${borrower.trim()}`,
-              )
-            }
-          >
-            {isBusy ? 'Recording' : 'Record the loan'}
-          </PlateButton>
+          {/* Paired with a secondary, exactly as delete is paired with "Keep it". Lend was a
+              one-way door: its only controls were the field and the primary, so a reader who
+              tapped Lend by mistake could leave only by Escape — which a phone does not have —
+              or the scrim, which aria-modal hides from assistive tech. The same component was
+              modelling the same pattern two different ways. */}
+          <div className="flex gap-2">
+            <PlateButton
+              disabled={isBusy || !borrower.trim()}
+              onClick={() =>
+                run(
+                  () =>
+                    eventsApi.create(libraryId, item.id, {
+                      type: 'LENT',
+                      event: borrower.trim(),
+                    }),
+                  `${item.title} is out with ${borrower.trim()}`,
+                )
+              }
+            >
+              {isBusy ? 'Recording' : 'Record the loan'}
+            </PlateButton>
+            <PlateButton variant="secondary" onClick={() => setMode('menu')}>
+              Back
+            </PlateButton>
+          </div>
         </>
       )}
 

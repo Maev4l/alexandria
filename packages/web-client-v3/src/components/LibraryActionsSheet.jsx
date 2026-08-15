@@ -68,12 +68,21 @@ const LibraryActionsSheet = ({ library, open, onClose, onChanged, onDeleted }) =
             hint="They get read-only access. Search may take a moment to catch up."
             onChange={(event) => setEmail(event.target.value)}
           />
-          <PlateButton
-            disabled={isBusy || !email}
-            onClick={() => run(() => librariesApi.share(library.id, email), onChanged)}
-          >
-            {isBusy ? 'Sharing' : 'Share'}
-          </PlateButton>
+          {/* Paired, for the same reason lend is. Share was the identical one-way door: only a
+              field and a primary, so a mistaken tap could be escaped only by a key a phone does
+              not have or a scrim aria-modal hides. Found while fixing lend — the pattern was
+              wrong in two places, not one. */}
+          <div className="flex gap-2">
+            <PlateButton
+              disabled={isBusy || !email}
+              onClick={() => run(() => librariesApi.share(library.id, email), onChanged)}
+            >
+              {isBusy ? 'Sharing' : 'Share'}
+            </PlateButton>
+            <PlateButton variant="secondary" onClick={() => setMode('menu')}>
+              Back
+            </PlateButton>
+          </div>
         </>
       )}
 
