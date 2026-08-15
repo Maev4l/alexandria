@@ -257,7 +257,11 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
               className={cn(
                 'flex size-6 shrink-0 items-center justify-center border-2',
                 canRefetchCover ? 'border-ink' : 'border-ink-soft',
-                values.updatePicture && canRefetchCover && 'on-imprint bg-imprint',
+                // `text-ink` is paired explicitly here, not inherited from `body`'s default:
+                // a ground that sets its own colour and leaves the foreground ambient is exactly
+                // the defect shape that shipped once already — correct on paper by coincidence,
+                // unreadable the moment the same class runs on the black cover.
+                values.updatePicture && canRefetchCover && 'on-imprint bg-imprint text-ink',
               )}
             >
               {values.updatePicture && canRefetchCover && <Check size={16} />}
