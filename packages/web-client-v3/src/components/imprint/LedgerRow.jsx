@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import OverprintStamp from './OverprintStamp.jsx';
 
 const stamp = (iso) =>
   new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -46,6 +47,19 @@ const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
       {/* Line 2: when it left, and when (or whether) it came back. Only the dates and the day
           count are numerals, so this line stays mono throughout. */}
       <span className="num mt-0.5 block">{dates}</span>
+      {/* Round 5 critique #6: an open loan on the PAPER surface carried no stamp at all — the
+          "brighten the whole line" treatment the comp gives an open loan on the COVER has
+          nowhere to go here, because paper has no tone brighter than `--ink` to promote to
+          (unlike the cover's `--paper` above `--cover-body`), and palette law permits no
+          eleventh token to invent one. Gated on `boxed` rather than a new prop: `boxed` already
+          means "this is the paper ledger card" (item detail's inline ledger is never boxed, and
+          item history's is always boxed), so it is the existing, correct signal for exactly the
+          one surface this was missing from — solved with the Overprint Stamp's OWN
+          construction (its `--out` outline, its ink caps) rather than with colour. Bare, no
+          name/days: this row's own two lines already state who and how long, so the stamp only
+          needs to contribute the "OUT" mark itself, or it would restate what the row already
+          says (DESIGN.md's "nothing is labelled twice"). */}
+      {boxed && loan.open && <OverprintStamp />}
     </div>
   );
 };

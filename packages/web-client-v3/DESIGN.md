@@ -506,7 +506,7 @@ that cost nothing, and it was disqualified on evidence rather than waved away.
 
 | Component | Description |
 |---|---|
-| **Volume Frame** | The item's artwork frame — 2px rule, portrait 2:3 for **every** item, books and films alike (§4). Nothing is drawn over the artwork. With no artwork it stays a ruled empty frame: no number, no placeholder icon, no apology. |
+| **Volume Frame** | The item's artwork frame — 2px rule, portrait 2:3 for **every** item, books and films alike (§4). Nothing is drawn over the artwork. With no artwork it stays a ruled empty frame: no number, no placeholder icon, no apology. **"Ruled" means the rule and nothing else — the empty frame carries no fill.** On paper the fill was `--paper-deep`, near-invisible at ~1.05:1 against its ground, so the frame read as a rule. The hero on the cover filled with `--cover-rule` instead, which is 1.73:1 against `--ink` — a mid-grey slab in the largest, most prominent frame in the app, and since `picture` is absent for most items that slab is the *default* appearance of the peak screen. A filled rectangle where artwork belongs reads as a failed image, which §6 forbids outright. It also spent `--cover-rule`, declared structure-only, as a ground. Both frames are now unfilled; the rule alone describes them, on either surface. |
 | **Volume Plate** | A 2px ruled rectangle with `--ink` mono figures, **no fill** — counts are inventory, not apparatus (§4, *Where the yellow goes*). Carries only a real count or order — see §4, *What a plate carries*. Absent on standalone items. |
 | **Search Field** | A **real text input**, never a link costumed as one: it takes the `--imprint` ground and is the loudest mark on the screen that carries it, because finding is the job this product exists for. **It is pinned on the libraries root and nowhere else.** A browse screen does not carry it — the field searches every library, so on a browse screen the loudest affordance would promise to leave the library being browsed. One field, one screen, no scope modes. It opens the full-screen search surface and returns the reader exactly where they were. |
 | **Plate Line** | The engraved line under a title. Book: `AUTHOR`. Film: `DIRECTOR · 1974`. On detail it gains the edition — `AUTHOR · ISBN`. Fields differ by type; the line's position does not. Names are set in the sans; only figures take the mono, so a film's year is mono and a person's name is not — §3 reserves mono for numerals, and a name in mono is a category error that digits beside it used to disguise. **It never carries the library.** The line is the *work*; a library is where a *copy* is kept. An early comp ran them together as `AUTHOR · ISBN · LIBRARY`, three categories in one dot-separated run, which set the shelf in the same tone as the author and made location read as identity. Location belongs to the Detail Marks. |
@@ -600,6 +600,14 @@ becomes an instant swap. This austerity is also cheap, which suits a PWA on a ph
 - Focus ring per §2, *Focus*: 3px `--imprint` at 2px offset, switching to `--ink` on yellow grounds.
 - Every state carries **words**, not colour alone: stamps and ribbons have visible caps text and
   an `aria-label`.
+- **An `aria-label` must never carry fewer facts than the visible text it replaces.** A label
+  overrides the content beneath it, so a shorter label is not a summary — it is a deletion, and
+  only for the readers who cannot see what was deleted. The Overprint Stamp shipped reading
+  `OUT · MARIE · 8 DAYS` under `aria-label="On loan to Marie"`, so a screen reader got the
+  borrower and never the duration: the one number saying how long a favour has been outstanding,
+  removed from the only readers who could not recover it. The label exists to turn middot-separated
+  caps into a sentence, not to shorten it — *"On loan to Marie for 8 days"*. When in doubt, count
+  the facts on each side and make them match.
 - Content titles are never uppercased (§3), preserving French readability.
 - Index letters are separators, not headings, and are exposed as such.
 - All motion gated by `prefers-reduced-motion`.

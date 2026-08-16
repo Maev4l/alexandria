@@ -64,6 +64,20 @@ describe('VolumeFrame', () => {
     expect(plate.className).toContain('border-ink');
   });
 
+  // Round 5 critique #1: the empty frame used to fill with `bg-paper-deep` (row) or
+  // `bg-cover-rule/25` (hero) — a near-invisible tint on paper, but a mid-grey slab on the
+  // cover that read as a failed image on the app's peak screen. "Ruled" now means the rule and
+  // nothing else, on both surfaces, so neither fill class may reappear on either size.
+  it('carries no fill on either surface — the rule alone describes the empty frame', () => {
+    const { container: row } = render(<VolumeFrame item={{ id: 'r', type: 0, title: 'X' }} />);
+    expect(row.firstChild.className).not.toMatch(/bg-(paper-deep|cover-rule)/);
+
+    const { container: hero } = render(
+      <VolumeFrame hero item={{ id: 'h', type: 0, title: 'X' }} />,
+    );
+    expect(hero.firstChild.className).not.toMatch(/bg-(paper-deep|cover-rule)/);
+  });
+
   it('is decorative to assistive technology — the title beside it already names the item', () => {
     render(<VolumeFrame item={bookWithArt} />);
     expect(screen.getByRole('presentation')).toHaveAttribute('alt', '');

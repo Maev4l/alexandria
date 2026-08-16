@@ -19,74 +19,93 @@ const DetailMarks = ({ item, library, loans }) => {
   const isSharedIn = Boolean(sharedFrom);
   const libraryName = library?.name;
 
-  if (!libraryName && !isSharedOut && !isSharedIn && !item.lentTo) return null;
+  // IN <library> and SHARED/FROM are both facts about the LIBRARY the copy sits in; the stamp
+  // below is a fact about the ITEM. Grouped here so the outer column can space the two groups
+  // apart instead of listing all three at one uniform gap (round 5 critique: at a uniform gap
+  // "SHARED · 2" read as though the BOOK itself were shared with two people, which the API
+  // cannot even express — sharing is library-level).
+  const hasLibraryFacts = Boolean(libraryName) || isSharedOut || isSharedIn;
+
+  if (!hasLibraryFacts && !item.lentTo) return null;
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col items-start gap-2 pl-2">
-      {libraryName && (
-        // "In" is an interface label and takes caps; the library name is content the reader
-        // authored, so it never does (§3) — the same construction as FROM <owner>. It links
-        // rather than sitting inert: arriving from search, the shelf is genuinely new
-        // information, and the link underlines rather than takes --imprint, which would
-        // compete with the title rule just below (DESIGN.md §5). `data-mark` is a stable hook
-        // for check:browser's geometry assertion (a real-Chrome bounding-rect comparison a
-        // stylesheet test cannot make) — content, not styling.
-        <p data-mark="in" className="text-sm leading-[1.3] text-cover-body">
-          <span className="caps text-[10px] font-extrabold tracking-[0.16em] text-cover-soft">
-            In
-          </span>{' '}
-          <Link
-            to={`/libraries/${item.libraryId}`}
-            // 48px floor (P1 #4): this Link is genuinely inline, mid-sentence with "In" and
-            // the space before it — vertical margin has no effect at all on an inline
-            // (non-block) box, so the negative-margin idiom RowActions uses cannot apply
-            // here. A `::before` hit-box does: absolutely positioned against the Link's own
-            // `relative`, it extends the tappable region without asking the surrounding text
-            // flow (or the flex column stacking this line above the sharing mark) to give it
-            // any more room than it already has, so the green edge rule on the sharing mark
-            // below (DESIGN.md §6: an edge rule never displaces content) stays exactly where
-            // it is regardless of how this expands.
-            //
-            // The inset is ASYMMETRIC, not -inset-y-N: the column's own gap-2 (8px) between
-            // this line and the sharing mark below is under half of what a ~15px line needs
-            // (~16.5px/side) to clear 48px, so a symmetric inset unavoidably eats into that
-            // sibling's own box — harmless today only because SharedRibbon has no click
-            // handler of its own to steal a tap from (a future one would silently lose its
-            // top ~7px with no error to report, per ui-v3.md §7's "defects that cannot be
-            // reported"). This link is the column's FIRST item, beside a 198px VolumeFrame,
-            // so there is ~25px of genuinely free space above it (down to the header's own
-            // bottom edge) and only ~10px below before the sharing mark's box starts.
-            // -top-[30px]/-bottom-[8px] spends that asymmetrically: 8px down leaves a real
-            // ~2px clear of the sharing mark (verified in real Chrome, never overlapping it),
-            // and the remaining reach goes up, past the header's edge into its own dead
-            // space — confirmed harmless there too: this link's hit-box never leaves its own
-            // ~188–231px column, clear of both the header's back button (4–52px) and its
-            // search button (326–374px).
-            className="relative text-cover-body underline underline-offset-[3px] before:absolute before:inset-x-0 before:-top-[30px] before:-bottom-[8px] before:content-['']"
-          >
-            {libraryName}
-          </Link>
-        </p>
-      )}
+    // The outer gap is 4 divisions (16px) — twice the gap-2 inside the library-facts group
+    // below — so the group and the stamp read as two separate clusters rather than one list.
+    // This gap only ever applies BETWEEN the two blocks below (it is inert whenever only one of
+    // them renders), so it never touches the "IN" link's own hit-box geometry, which is
+    // measured against its immediate gap-2 neighbour inside the nested group, unchanged here.
+    <div className="flex min-w-0 flex-1 flex-col items-start gap-4 pl-2">
+      {hasLibraryFacts && (
+        <div className="flex flex-col items-start gap-2">
+          {libraryName && (
+            // "In" is an interface label and takes caps; the library name is content the reader
+            // authored, so it never does (§3) — the same construction as FROM <owner>. It links
+            // rather than sitting inert: arriving from search, the shelf is genuinely new
+            // information, and the link underlines rather than takes --imprint, which would
+            // compete with the title rule just below (DESIGN.md §5). `data-mark` is a stable
+            // hook for check:browser's geometry assertion (a real-Chrome bounding-rect
+            // comparison a stylesheet test cannot make) — content, not styling.
+            <p data-mark="in" className="text-sm leading-[1.3] text-cover-body">
+              <span className="caps text-[10px] font-extrabold tracking-[0.16em] text-cover-soft">
+                In
+              </span>{' '}
+              <Link
+                to={`/libraries/${item.libraryId}`}
+                // 48px floor (P1 #4): this Link is genuinely inline, mid-sentence with "In" and
+                // the space before it — vertical margin has no effect at all on an inline
+                // (non-block) box, so the negative-margin idiom RowActions uses cannot apply
+                // here. A `::before` hit-box does: absolutely positioned against the Link's own
+                // `relative`, it extends the tappable region without asking the surrounding text
+                // flow (or the flex column stacking this line above the sharing mark) to give it
+                // any more room than it already has, so the green edge rule on the sharing mark
+                // below (DESIGN.md §6: an edge rule never displaces content) stays exactly where
+                // it is regardless of how this expands.
+                //
+                // The inset is ASYMMETRIC, not -inset-y-N: the group's own gap-2 (8px) between
+                // this line and the sharing mark below is under half of what a ~15px line needs
+                // (~16.5px/side) to clear 48px, so a symmetric inset unavoidably eats into that
+                // sibling's own box — harmless today only because SharedRibbon has no click
+                // handler of its own to steal a tap from (a future one would silently lose its
+                // top ~7px with no error to report, per ui-v3.md §7's "defects that cannot be
+                // reported"). This link is the column's FIRST item, beside a 198px VolumeFrame,
+                // so there is ~25px of genuinely free space above it (down to the header's own
+                // bottom edge) and only ~10px below before the sharing mark's box starts.
+                // -top-[30px]/-bottom-[8px] spends that asymmetrically: 8px down leaves a real
+                // ~2px clear of the sharing mark (verified in real Chrome, never overlapping it),
+                // and the remaining reach goes up, past the header's edge into its own dead
+                // space — confirmed harmless there too: this link's hit-box never leaves its own
+                // ~188–231px column, clear of both the header's back button (4–52px) and its
+                // search button (326–374px). Re-measured after round 5's regrouping: this
+                // group's own internal gap-2 did not change (only the SPACE AFTER the group,
+                // before the stamp, grew), so these figures still hold.
+                className="relative text-cover-body underline underline-offset-[3px] before:absolute before:inset-x-0 before:-top-[30px] before:-bottom-[8px] before:content-['']"
+              >
+                {libraryName}
+              </Link>
+            </p>
+          )}
 
-      {(isSharedOut || isSharedIn) && (
-        // Pseudo-element hanging into the column's own padding-left, NEVER border-left — a
-        // border adds to the box and pushes this one line right of IN/OUT beside it, which is
-        // the regression the design session's own first attempt shipped and then fixed. The
-        // text itself carries `data-mark`, not this outer relatively-positioned span: the edge
-        // hangs OUTSIDE the text's own box, so the geometry check must measure the text, not a
-        // box whose own left edge does not move regardless of how the edge is drawn.
-        <span className="relative caps text-[10px] font-extrabold tracking-[0.16em]">
-          <span aria-hidden className="absolute inset-y-0 -left-2 w-1 bg-shared" />
-          <span data-mark="shared">
-            <SharedRibbon
-              inverted
-              direction={isSharedOut ? 'out' : 'in'}
-              count={sharedOutCount}
-              owner={sharedFrom}
-            />
-          </span>
-        </span>
+          {(isSharedOut || isSharedIn) && (
+            // Pseudo-element hanging into the column's own padding-left, NEVER border-left — a
+            // border adds to the box and pushes this one line right of IN/OUT beside it, which
+            // is the regression the design session's own first attempt shipped and then fixed.
+            // The text itself carries `data-mark`, not this outer relatively-positioned span:
+            // the edge hangs OUTSIDE the text's own box, so the geometry check must measure the
+            // text, not a box whose own left edge does not move regardless of how the edge is
+            // drawn.
+            <span className="relative caps text-[10px] font-extrabold tracking-[0.16em]">
+              <span aria-hidden className="absolute inset-y-0 -left-2 w-1 bg-shared" />
+              <span data-mark="shared">
+                <SharedRibbon
+                  inverted
+                  direction={isSharedOut ? 'out' : 'in'}
+                  count={sharedOutCount}
+                  owner={sharedFrom}
+                />
+              </span>
+            </span>
+          )}
+        </div>
       )}
 
       {item.lentTo && (

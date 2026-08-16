@@ -30,9 +30,16 @@ const VolumeFrame = ({ item, hero = false, className }) => {
     <div
       className={cn(
         'relative shrink-0 border-2',
-        hero
-          ? 'h-[198px] w-[132px] border-paper bg-cover-rule'
-          : 'h-[72px] w-12 border-ink bg-paper-deep',
+        // Unfilled, both surfaces (round 5 critique #1): "ruled" means the rule and nothing
+        // else. The hero used to fill with `--cover-rule` at full strength — 1.73:1 against
+        // `--ink`, a mid-grey slab in the largest frame in the app — and since `picture` is
+        // absent for most items, that slab was the DEFAULT appearance of the peak screen: a
+        // filled rectangle where artwork belongs reads as a failed image, which §6 forbids. It
+        // also spent a token declared "hairline separators, structure only" as a ground. The
+        // non-hero frame's `bg-paper-deep` read as harmless (~1.05:1, near-invisible against
+        // `--paper`) but was still a fill where the rule alone was already doing the job — so
+        // both are unfilled here, not just the one that looked wrong.
+        hero ? 'h-[198px] w-[132px] border-paper' : 'h-[72px] w-12 border-ink',
         className,
       )}
     >

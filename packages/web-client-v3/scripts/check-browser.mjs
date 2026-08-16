@@ -17,7 +17,9 @@
 // and shared with v2, so borrowing it risks not giving it back.
 import fs from 'fs';
 import puppeteer from 'puppeteer-core';
+import sharp from 'sharp';
 import { startFixtureServer, stopFixtureServer } from './fixture-server.mjs';
+import { contrastRatio } from '../src/lib/contrast.js';
 
 const PORT = Number(process.env.CHECK_PORT ?? 5199);
 const BASE = `http://localhost:${PORT}`;
@@ -456,8 +458,11 @@ try {
   await page.setViewport({ width: 390, height: 844 });
   await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
   // Specific to this fixture item (lentTo: 'Marie') rather than a generic selector, so the check
-  // waits for the fully-loaded detail body rather than racing the loading placeholder.
-  await page.waitForSelector('[aria-label="On loan to Marie"]', { timeout: 10_000 });
+  // waits for the fully-loaded detail body rather than racing the loading placeholder. `^=`, not
+  // `=`: round 5 gave the stamp's aria-label duration parity with its visible text (", N days"),
+  // and N is derived from the real clock against the fixture's fixed LENT date, so it drifts by
+  // a day every time this script runs on a later date. The prefix is stable; the day count is not.
+  await page.waitForSelector('[aria-label^="On loan to Marie"]', { timeout: 10_000 });
   const INK_SOFT = 'rgb(90, 90, 87)';
   const PAPER_DEEP = 'rgb(236, 236, 231)';
   const offenders = await page.evaluate(
@@ -528,7 +533,7 @@ try {
     // it back exactly as it found it rather than leaving a later, unrelated check to fail for a
     // reason that has nothing to do with what it is testing.
     await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
-    await page.waitForSelector('[aria-label="On loan to Marie"]', { timeout: 10_000 });
+    await page.waitForSelector('[aria-label^="On loan to Marie"]', { timeout: 10_000 });
   }
 
   // ---- --shared and --out must never resolve as TEXT colour on the cover either ----
@@ -601,7 +606,6 @@ try {
       const weightOf = (el) => (el ? parseInt(getComputedStyle(el).fontWeight, 10) : null);
       return {
         heading: weightOf(byText('h2', 'The record')),
-        link: weightOf(byText('a', 'Full record')),
         // Round 2's two newest `caps` usages, added by the Detail Marks column. `IN` is the
         // direct caps span inside the `data-mark="in"` line; the sharing mark's caps class sits
         // on the PARENT of `data-mark="shared"` (the inner node is only the text/edge wrapper),
@@ -617,11 +621,6 @@ try {
       `font-weight: ${weights.heading}`,
     );
     record(
-      weights.link !== null && weights.link > 400,
-      '"Full record" link resolves above ambient weight',
-      `font-weight: ${weights.link}`,
-    );
-    record(
       weights.inLabel !== null && weights.inLabel > 400,
       'the "IN" label resolves above ambient weight',
       `font-weight: ${weights.inLabel}`,
@@ -631,6 +630,57 @@ try {
       'the sharing mark resolves above ambient weight',
       `font-weight: ${weights.sharedMark}`,
     );
+  }
+
+  // "Full record" moved out of the block above (round 5, item 5): the link now only renders
+  // when there is genuinely more history than the inline preview shows, and item-lent's own
+  // fixture (src/test/fixtures/events.js) pairs to exactly LEDGER_PREVIEW loans with no
+  // nextToken, so it no longer appears on the page the rest of this section already has open.
+  // Rather than edit that shared fixture (several tests pin its exact "3 loans" count) or the
+  // off-limits mock server, a dedicated page intercepts just the one events request that page
+  // would otherwise make, answering with enough raw events to pair into more than 3 loans —
+  // everything else on the page (the item, the library, its own IN/SHARED marks) still comes
+  // from the real fixture server untouched.
+  console.log('"Full record" keeps its weight, not just its case, when it genuinely renders');
+  {
+    const linkPage = await browser.newPage();
+    try {
+      await linkPage.setViewport({ width: 390, height: 844 });
+      await linkPage.setRequestInterception(true);
+      linkPage.on('request', (req) => {
+        if (req.url().includes('/items/item-lent/events')) {
+          const events = [];
+          for (let i = 0; i < 4; i += 1) {
+            events.push({ date: `2020-0${i + 1}-01T00:00:00Z`, type: 'LENT', event: `P${i}` });
+            events.push({ date: `2020-0${i + 1}-05T00:00:00Z`, type: 'RETURNED', event: `P${i}` });
+          }
+          req.respond({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ events }),
+          });
+        } else {
+          req.continue();
+        }
+      });
+      await linkPage.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, {
+        waitUntil: 'networkidle0',
+      });
+      await linkPage.waitForSelector('a[href$="/history"]', { timeout: 10_000 });
+      const weight = await linkPage.evaluate(() => {
+        const link = [...document.querySelectorAll('a')].find(
+          (el) => el.textContent.trim() === 'Full record',
+        );
+        return link ? parseInt(getComputedStyle(link).fontWeight, 10) : null;
+      });
+      record(
+        weight !== null && weight > 400,
+        '"Full record" link resolves above ambient weight',
+        `font-weight: ${weight}`,
+      );
+    } finally {
+      await linkPage.close();
+    }
   }
 
   // ---- The item-detail action row reflows on the narrowest phones, never overflows ----
@@ -713,7 +763,7 @@ try {
     await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
     // item-lent's most recent event is a LENT to Marie with no matching RETURNED (the fixtures'
     // comment), so the first (most recent) ledger row is that open loan.
-    await page.waitForSelector('[aria-label="On loan to Marie"]', { timeout: 10_000 });
+    await page.waitForSelector('[aria-label^="On loan to Marie"]', { timeout: 10_000 });
 
     const facts = await page.evaluate(() => {
       const h1 = document.querySelector('main h1');
@@ -870,6 +920,89 @@ try {
       rest.length > 0 && rest.every((w) => w === '1px'),
       'every OTHER row keeps its 1px hairline — only the last one is suppressed',
       `border-bottoms: ${JSON.stringify(facts.borderBottoms)}`,
+    );
+  }
+
+  // ---- Round 5, item 1: the empty hero frame is unfilled — the rule alone describes it ----
+  // DESIGN.md §6: an empty Volume Frame is a designed state, never a placeholder. The hero size
+  // used to fill with `--cover-rule` at full strength — 1.73:1 against `--ink` — a mid-grey slab
+  // that read as a failed image on the app's peak screen, since `picture` is absent for most
+  // items. An intermediate fix tried tuning the SAME token down with opacity (~1.09:1, matching
+  // the row frame's own quiet `bg-paper-deep`), but the ruling was "unfill both", not "tint
+  // both": a fill — at any opacity — is still a fill where the direction calls for a rule and
+  // nothing else. So this now asserts the frame's interior matches the page ground EXACTLY
+  // (ratio ~1.000), which is what "no fill" means in pixels: nothing painted over `--ink` inside
+  // the border, full stop.
+  //
+  // `getComputedStyle` cannot be used to prove a NEGATIVE ("this has no background") the way it
+  // can assert a positive value — an element with no background rule still resolves to
+  // `rgba(0, 0, 0, 0)` via the cascade, which is correct but tells this check nothing about what
+  // a viewer actually SEES through it (the page ground behind it). This reads the ACTUAL
+  // rendered pixels via `sharp` (already a dependency, already used the same way by
+  // check-index-letter.mjs) on a small screenshot clipped well inside the frame's own border —
+  // guaranteed correct because it is the literal sRGB the display would show, with no colour-
+  // space translation left for this script to get wrong.
+  console.log('the empty hero frame is unfilled — its interior matches the page ground exactly');
+  {
+    // item-1984 (src/test/fixtures/items.js) has no `picture` at all and no lending events — the
+    // hero frame renders genuinely empty, which is the app's most common cover state.
+    await page.goto(`${BASE}/libraries/lib-fiction/items/item-1984`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main h1');
+
+    // The frame has no fill class to select by now, so it is found structurally: inside the
+    // hero row (`.mb-6.flex`), VolumeFrame is always the first child — DetailMarks is the
+    // second and only ever renders text/marks, never an element this size.
+    const frameHandle = await page.$('main div.mb-6 > div:first-child');
+    const box = await frameHandle.boundingBox();
+    // Inset well clear of the 2px `border-paper` rule and its antialiased edge, so only the
+    // fill itself is sampled.
+    const inset = 16;
+    const clip = {
+      x: box.x + inset,
+      y: box.y + inset,
+      width: Math.max(1, box.width - inset * 2),
+      height: Math.max(1, box.height - inset * 2),
+    };
+    const frameShot = await page.screenshot({ clip });
+    const framePixels = await sharp(frameShot).raw().toBuffer({ resolveWithObject: true });
+    let rSum = 0;
+    let gSum = 0;
+    let bSum = 0;
+    const channels = framePixels.info.channels;
+    const pixelCount = framePixels.data.length / channels;
+    for (let i = 0; i < framePixels.data.length; i += channels) {
+      rSum += framePixels.data[i];
+      gSum += framePixels.data[i + 1];
+      bSum += framePixels.data[i + 2];
+    }
+    const frameAvg = { r: rSum / pixelCount, g: gSum / pixelCount, b: bSum / pixelCount };
+
+    // The page ground is a solid, fully-opaque colour, so it needs none of the above — a plain
+    // computed style already resolves correctly for it (proven by the earlier "cover surface"
+    // checks in this same script, which pass on comparing this exact background as text).
+    const groundRgb = await page.evaluate(
+      () => getComputedStyle(document.querySelector('.bg-ink')).backgroundColor,
+    );
+    const groundMatch = groundRgb.match(/rgba?\(([^)]+)\)/);
+    const [gr, gg, gb] = groundMatch[1].split(',').map((v) => parseFloat(v));
+
+    const toHex = (c) => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, '0');
+    const frameHex = `#${toHex(frameAvg.r)}${toHex(frameAvg.g)}${toHex(frameAvg.b)}`;
+    const groundHex = `#${toHex(gr)}${toHex(gg)}${toHex(gb)}`;
+    const ratio = contrastRatio(frameHex, groundHex);
+
+    console.log(
+      `    sampled frame fill: ${frameHex} (${JSON.stringify(frameAvg)}), page ground: ${groundHex}, measured contrast: ${ratio.toFixed(3)}:1`,
+    );
+
+    // 1.000 is the ONLY value "unfilled" can mean: the frame's interior painting nothing over
+    // the page ground it sits on. 1.02 leaves headroom for PNG/JPEG rounding in the screenshot
+    // pipeline without accepting the old 1.73:1 slab or even the intermediate ~1.09:1 tint —
+    // both fail this ceiling by a wide margin, so this catches either regression.
+    record(
+      ratio <= 1.02,
+      'the empty hero frame matches the page ground exactly — no fill, just the rule',
+      `measured contrast: ${ratio.toFixed(3)}:1`,
     );
   }
 } finally {

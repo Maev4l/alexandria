@@ -50,12 +50,39 @@ describe('DetailMarks', () => {
         />
       </MemoryRouter>,
     );
-    expect(screen.getByLabelText('On loan to Marie')).toHaveTextContent(/out · marie · 6 days/i);
+    // Accessibility is parity, not a shorter summary (round 5 critique #4): the announced name
+    // carries the same duration the visible label does, in the same sentence shape the ruling
+    // specified — "for N days", not a comma splice.
+    expect(screen.getByLabelText('On loan to Marie for 6 days')).toHaveTextContent(
+      /out · marie · 6 days/i,
+    );
   });
 
   it('renders nothing when there is no library, no sharing and no loan', () => {
     const { container } = renderMarks({ library: null });
     expect(container.firstChild).toBeNull();
+  });
+
+  // Round 5 critique #2: at one uniform gap, IN/SHARED (facts about the LIBRARY) and the stamp
+  // (a fact about the ITEM) read as one list, and "SHARED · 2" landed as though the book itself
+  // were shared with two people. The fix groups the two library facts on the division scale's
+  // OWN 8px unit (gap-2) and doubles the space before the stamp to 16px (gap-4), so the grouping
+  // is expressed in the gap itself rather than a label.
+  it('groups the library facts at one division apart, and doubles the gap before the stamp', () => {
+    const { container } = render(
+      <MemoryRouter>
+        <DetailMarks
+          item={{ ...item, lentTo: 'Marie' }}
+          library={{ name: 'Fiction', sharedTo: ['marie@example.com'] }}
+          loans={[{ open: true, days: 6 }]}
+        />
+      </MemoryRouter>,
+    );
+    const outerColumn = container.firstChild;
+    expect(outerColumn.className).toContain('gap-4');
+    const libraryFactsGroup = outerColumn.querySelector('[data-mark="in"]').closest('div');
+    expect(libraryFactsGroup.className).toContain('gap-2');
+    expect(libraryFactsGroup.className).not.toContain('gap-4');
   });
 
   it('does not displace the sharing text with its own edge rule', () => {

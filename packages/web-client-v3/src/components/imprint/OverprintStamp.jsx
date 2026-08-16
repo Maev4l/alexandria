@@ -14,9 +14,16 @@ import { cn } from '@/lib/cn';
 // against. `inverted` already forks the text colour for this reason, so it forks these too.
 const OverprintStamp = ({ name, days, inverted = false }) => {
   const label = name ? `Out · ${name}${days != null ? ` · ${days} days` : ''}` : 'Out';
+  // Accessibility is parity, not a shorter summary: the visible label carries the duration
+  // (`days != null`, never truthiness — a loan can legitimately be 0 days old), so the
+  // announced name must carry it too, or a screen-reader user gets fewer facts than a sighted
+  // one reads off the same stamp.
+  const ariaLabel = name
+    ? `On loan to ${name}${days != null ? ` for ${days} days` : ''}`
+    : 'On loan';
   return (
     <span
-      aria-label={name ? `On loan to ${name}` : 'On loan'}
+      aria-label={ariaLabel}
       className={cn(
         'inline-block -rotate-[4deg] border-2 border-out',
         'text-[10px] font-extrabold uppercase tracking-[0.14em]',

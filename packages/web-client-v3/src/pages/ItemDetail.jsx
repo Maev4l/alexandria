@@ -61,6 +61,11 @@ const ItemDetail = () => {
 
   const [item, setItem] = useState(null);
   const [loans, setLoans] = useState([]);
+  // Captured alongside `loans` so "Full record" (below) can tell "the inline preview already
+  // shows everything" from "there is genuinely more" — the API's own signal that more raw
+  // events exist beyond the page this screen fetched, independent of how many of them happened
+  // to pair into loans.
+  const [eventsNextToken, setEventsNextToken] = useState(null);
   const [status, setStatus] = useState('loading');
   // Lend genuinely needs input (a borrower's name), so it is the one action that still opens a
   // sheet — and that sheet holds ONLY the lend form, never a menu.
@@ -103,6 +108,7 @@ const ItemDetail = () => {
         if (isCancelled()) return;
         setItem(fetchedItem);
         setLoans(pairLoanEvents(events?.events ?? []));
+        setEventsNextToken(events?.nextToken ?? null);
         setStatus('ready');
       } catch (err) {
         if (isCancelled()) return;
@@ -214,8 +220,39 @@ const ItemDetail = () => {
       />
 
       {status === 'loading' && (
-        <main className="p-6" aria-busy="true">
+        // `px-4 py-6` — the SAME padding as the ready branch below, not `p-6`: the two used to
+        // differ, so the instant content landed every element nudged by the difference, which
+        // is the exact thing a "ruled skeleton at the correct ratio" (DESIGN.md §6) exists to
+        // prevent. The hero frame and the three action controls are RULED, unfilled boxes —
+        // the same treatment VolumeFrame's own empty frame now takes (round 5, item 1) — rather
+        // than a tinted fill, since a filled box in exactly the hero's own size/position would
+        // read as "artwork is here" before any fetch has even returned. The plain bars standing
+        // in for lines of text (title, plate line, summary) are a different affordance — a
+        // skeleton LINE, not an artwork frame — and keep a quiet `bg-cover-rule/25` tint so they
+        // are visible at all; the same token `OverprintStamp`'s row variant already tunes with
+        // opacity, not a new one.
+        <main className="px-4 py-6" aria-busy="true">
           <h1 className="sr-only">Item detail</h1>
+          <div aria-hidden="true">
+            <div className="mb-6 flex items-start gap-4">
+              <span className="block h-[198px] w-[132px] border-2 border-paper" />
+              <span className="flex-1 pl-2">
+                <span className="block h-4 w-24 bg-cover-rule/25" />
+                <span className="mt-3 block h-5 w-20 bg-cover-rule/25" />
+              </span>
+            </div>
+            <span className="block h-8 w-3/4 bg-cover-rule/25" />
+            <span className="mt-2 block h-3 w-1/2 bg-cover-rule/25" />
+            <div className="my-4 h-1 bg-imprint" />
+            <span className="block h-3 w-full bg-cover-rule/25" />
+            <span className="mt-2 block h-3 w-5/6 bg-cover-rule/25" />
+            <span className="mt-2 block h-3 w-2/3 bg-cover-rule/25" />
+            <div className="mt-6 flex flex-wrap gap-2">
+              <span className="block h-12 w-24 border-2 border-paper" />
+              <span className="block h-12 w-20 border-2 border-paper" />
+              <span className="block h-12 w-24 border-2 border-paper" />
+            </div>
+          </div>
         </main>
       )}
 
@@ -263,22 +300,31 @@ const ItemDetail = () => {
                   <LedgerRow key={`${loan.lentAt}-${loan.name}`} loan={loan} inverted />
                 ))}
               </div>
-              <Link
-                to={`/libraries/${libraryId}/items/${itemId}/history`}
-                // 48px floor (P1 #4): a standalone navigational control (not a prose link —
-                // WCAG 2.5.5's inline-text exemption does not apply), whose text alone stood
-                // 15.4px tall. Same `::before` hit-box as DetailMarks' "In" link, chosen here
-                // too rather than the real-padding-plus-negative-margin idiom: this link sits
-                // in normal block flow with nothing else measuring its natural height, so the
-                // margin idiom would have been safe here specifically, but a single technique
-                // for every enlarged text link is easier to verify than picking per-site.
-                // -inset-y-4 (-16px) measured 47.4px in real Chrome — 0.6px under the floor,
-                // since 15.4px of text plus 32px doesn't quite clear it; -5 (-20px) does, with
-                // room to spare, and the action buttons below still sit ~9px clear of it.
-                className="relative caps mt-4 inline-block text-[11px] font-extrabold text-imprint underline before:absolute before:inset-x-0 before:-inset-y-5 before:content-['']"
-              >
-                Full record
-              </Link>
+              {/* "Full record" only when it genuinely leads somewhere new (round 5 critique #5):
+                  either more PAIRED loans than the preview above already shows, or a `nextToken`
+                  on the raw events page — the API's own signal that more history exists even
+                  when it happened to pair into `<= LEDGER_PREVIEW` loans. Without this, the link
+                  rendered whenever there was at least one loan, which for an item with exactly
+                  `LEDGER_PREVIEW` loans and no further pages led to a screen showing the SAME
+                  rows just seen, plus a destructive action nobody asked for. */}
+              {(loans.length > LEDGER_PREVIEW || eventsNextToken) && (
+                <Link
+                  to={`/libraries/${libraryId}/items/${itemId}/history`}
+                  // 48px floor (P1 #4): a standalone navigational control (not a prose link —
+                  // WCAG 2.5.5's inline-text exemption does not apply), whose text alone stood
+                  // 15.4px tall. Same `::before` hit-box as DetailMarks' "In" link, chosen here
+                  // too rather than the real-padding-plus-negative-margin idiom: this link sits
+                  // in normal block flow with nothing else measuring its natural height, so the
+                  // margin idiom would have been safe here specifically, but a single technique
+                  // for every enlarged text link is easier to verify than picking per-site.
+                  // -inset-y-4 (-16px) measured 47.4px in real Chrome — 0.6px under the floor,
+                  // since 15.4px of text plus 32px doesn't quite clear it; -5 (-20px) does, with
+                  // room to spare, and the action buttons below still sit ~9px clear of it.
+                  className="relative caps mt-4 inline-block text-[11px] font-extrabold text-imprint underline before:absolute before:inset-x-0 before:-inset-y-5 before:content-['']"
+                >
+                  Full record
+                </Link>
+              )}
             </>
           )}
 
@@ -342,8 +388,22 @@ const ItemDetail = () => {
                         case `aria-live` exists for, and the immediately-following focus move
                         (below) is the second, redundant channel for the same announcement —
                         belt and suspenders for the AT/browser combinations that only pick up
-                        one of the two. */}
-                    <p aria-live="assertive" aria-atomic="true" className="mb-4 w-full text-sm">
+                        one of the two.
+
+                        Framed, not just spaced (round 5 critique #3): at the same size, colour
+                        and margin as the summary paragraph above, this read as one more line of
+                        prose rather than a destructive confirmation. A 2px `--out` TOP rule —
+                        §6's own state-grammar treatment for a destructive block ("Error ...
+                        with a 2px `--out` top rule"), not a new token and not a full box: `--out`
+                        measures 4.42:1 against `--ink` on this cover, comfortably past the bar a
+                        rule (not text) needs to clear. Ambient text stays `--paper`, inherited
+                        from the root — the rule alone is what makes this read as its own thing
+                        the instant it replaces the Delete trigger. */}
+                    <p
+                      aria-live="assertive"
+                      aria-atomic="true"
+                      className="mb-4 w-full border-t-2 border-out p-4 text-sm"
+                    >
                       Delete <strong>{item.title}</strong> from this library? Its lending history
                       goes with it. This cannot be undone.
                     </p>

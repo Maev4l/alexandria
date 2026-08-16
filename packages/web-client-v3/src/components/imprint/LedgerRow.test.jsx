@@ -99,6 +99,26 @@ describe('LedgerRow', () => {
     expect(container.firstChild.className).not.toMatch(/\bpx-4\b/);
   });
 
+  // Round 5 critique #6: an open loan on the paper surface (item history's boxed card) carried
+  // no stamp at all. Gated on `boxed` — the existing signal for "this is the paper ledger card"
+  // — rather than a new prop, since item detail's own inline ledger already states the open
+  // loan via DetailMarks' Overprint Stamp and must not gain a second one.
+  it('stamps an open loan OUT when boxed (item history), bare — no name or days of its own', () => {
+    render(<LedgerRow loan={openLoan} boxed />);
+    const stamp = screen.getByLabelText('On loan');
+    expect(stamp).toHaveTextContent(/^out$/i);
+  });
+
+  it('does not stamp a closed loan, even when boxed', () => {
+    render(<LedgerRow loan={closedLoan} boxed />);
+    expect(screen.queryByLabelText(/on loan/i)).toBeNull();
+  });
+
+  it('does not stamp an open loan when unboxed — item detail already carries the stamp itself', () => {
+    render(<LedgerRow loan={openLoan} inverted />);
+    expect(screen.queryByLabelText(/on loan/i)).toBeNull();
+  });
+
   // Every colour rule below is a surface pairing: the cover set (`--cover-*`) only appears
   // together with `inverted`, and the paper set only without it — never mixed, per DESIGN.md's
   // "anything that sets a ground sets its foreground" rule.

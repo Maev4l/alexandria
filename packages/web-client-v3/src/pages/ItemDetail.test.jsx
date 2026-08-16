@@ -64,7 +64,99 @@ describe('ItemDetail', () => {
   it('carries the record inline, not only behind the history screen', async () => {
     renderPage('item-lent');
     await waitFor(() => expect(screen.getByText(/still out/i)).toBeInTheDocument());
-    expect(screen.getByRole('link', { name: /full record/i })).toBeInTheDocument();
+  });
+
+  // Round 5 critique #5: `item-lent`'s fixture events (src/test/fixtures/events.js) pair to
+  // exactly 3 loans — LEDGER_PREVIEW's own cap — and the mock never returns a `nextToken`, so
+  // "Full record" used to render here and lead to a screen showing the SAME 3 rows just seen,
+  // plus a destructive action nobody asked for. It must not over-promise.
+  describe('"Full record" only appears when there is genuinely more', () => {
+    it('is absent when the inline preview already shows every loan', async () => {
+      renderPage('item-lent');
+      await waitFor(() => expect(screen.getByText(/still out/i)).toBeInTheDocument());
+      expect(screen.queryByRole('link', { name: /full record/i })).toBeNull();
+    });
+
+    it('appears when there are more PAIRED loans than the preview shows', async () => {
+      const manyEvents = [
+        { date: '2020-01-01T00:00:00Z', type: 'LENT', event: 'A' },
+        { date: '2020-01-05T00:00:00Z', type: 'RETURNED', event: 'A' },
+        { date: '2020-02-01T00:00:00Z', type: 'LENT', event: 'B' },
+        { date: '2020-02-05T00:00:00Z', type: 'RETURNED', event: 'B' },
+        { date: '2020-03-01T00:00:00Z', type: 'LENT', event: 'C' },
+        { date: '2020-03-05T00:00:00Z', type: 'RETURNED', event: 'C' },
+        { date: '2020-04-01T00:00:00Z', type: 'LENT', event: 'D' },
+        { date: '2020-04-05T00:00:00Z', type: 'RETURNED', event: 'D' },
+      ];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url) => {
+          const path = String(url);
+          if (path.endsWith('/libraries')) {
+            return {
+              ok: true,
+              status: 200,
+              headers: new Headers({ 'content-type': 'application/json' }),
+              json: async () => ({ libraries }),
+            };
+          }
+          if (path.includes('/events')) {
+            return {
+              ok: true,
+              status: 200,
+              headers: new Headers({ 'content-type': 'application/json' }),
+              json: async () => ({ events: manyEvents }),
+            };
+          }
+          const result = handleMockRequest('GET', path);
+          return {
+            ok: result.status < 400,
+            status: result.status,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => result.body,
+          };
+        }),
+      );
+      renderPage('item-lent');
+      expect(await screen.findByRole('link', { name: /full record/i })).toBeInTheDocument();
+    });
+
+    it('appears when a nextToken means more history exists, even if every paired loan already fits the preview', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url) => {
+          const path = String(url);
+          if (path.endsWith('/libraries')) {
+            return {
+              ok: true,
+              status: 200,
+              headers: new Headers({ 'content-type': 'application/json' }),
+              json: async () => ({ libraries }),
+            };
+          }
+          if (path.includes('/events')) {
+            return {
+              ok: true,
+              status: 200,
+              headers: new Headers({ 'content-type': 'application/json' }),
+              json: async () => ({
+                events: [{ date: '2026-01-01T00:00:00Z', type: 'LENT', event: 'Paul' }],
+                nextToken: 'page-2',
+              }),
+            };
+          }
+          const result = handleMockRequest('GET', path);
+          return {
+            ok: result.status < 400,
+            status: result.status,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => result.body,
+          };
+        }),
+      );
+      renderPage('item-lent');
+      expect(await screen.findByRole('link', { name: /full record/i })).toBeInTheDocument();
+    });
   });
 
   it('says plainly when the item is not there, instead of spinning forever', async () => {
