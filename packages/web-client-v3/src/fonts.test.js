@@ -80,12 +80,14 @@ const RIGHTWARDS_ARROW = 0x2192;
 // characters this codebase actually puts on screen, beyond the report's own named minimum.
 // Each is legitimately reachable via either family's General Punctuation coverage (U+2000–
 // U+206F), which both "latin" cuts declare — see EditCollection.jsx / NewCollection.jsx
-// (curly quotes in the duplicate-name error), Libraries.jsx / ItemHistory.jsx / LedgerRow.jsx
-// (em dash — LedgerRow uses it to stand in for an unresolved loan's unrecorded return date,
-// labelled `RETURNED —`, distinct from the connector `→` this same file replaced), and
-// lib/format.js (prime mark for film runtime, "118′").
+// (curly quotes in the duplicate-name error), Libraries.jsx / ItemHistory.jsx (em dash), and
+// lib/format.js (prime mark for film runtime, "118′"). LedgerRow.jsx does NOT use the em dash:
+// an earlier round of this fix stood one in for an unresolved loan's missing return date
+// (`RETURNED —`), but that restated in a weaker form what the duration slot already says
+// plainly ("no return recorded") — so the row states `LENT <date>` alone instead, the same
+// shape as an open loan, distinguished only by that duration slot (and, when boxed, the stamp).
 const OTHER_RENDERED_PUNCTUATION = {
-  'em dash — (Libraries.jsx, ItemHistory.jsx, LedgerRow.jsx, …)': 0x2014,
+  'em dash — (Libraries.jsx, ItemHistory.jsx, …)': 0x2014,
   'left double quotation mark " (EditCollection.jsx, NewCollection.jsx)': 0x201c,
   'right double quotation mark " (EditCollection.jsx, NewCollection.jsx)': 0x201d,
   "right single quotation mark ’ (fixtures: l’ordre, d’Islande, …)": 0x2019,

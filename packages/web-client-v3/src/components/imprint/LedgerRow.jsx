@@ -13,8 +13,6 @@ const stamp = (iso) =>
 // surface it's on. Item history is boxed and never inverted; item detail is inverted and never
 // boxed today, but nothing here assumes those always travel together.
 const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
-  const duration = loan.unresolved ? 'no return recorded' : `${loan.days} days`;
-
   return (
     <div
       className={cn(
@@ -31,7 +29,15 @@ const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
           (never `.num`); a name in mono is the category error the Plate Line already warns
           about (section 3). The comp brightens this whole line on an open loan — there is no
           brighter-than-`--ink` tone on paper to promote to, so that lift only has somewhere to
-          go on the cover, where `--paper` sits above `--cover-body`. */}
+          go on the cover, where `--paper` sits above `--cover-body`.
+
+          The duration itself is words AND a numeral — "9 days" — so only the figure takes
+          `.num`; "days" is a unit word, not a numeral, and stays in the sans (same rule as the
+          Plate Line's "a name in mono is a category error" — a WORD in mono is the same error,
+          just with a different word). This was invisible while the whole app rendered in
+          `system-ui` (nobody could see which face a word was in); the font fix that made the
+          `→` glyph gap visible also made this one visible, on every row. "no return recorded"
+          has no numeral in it at all, so it takes no mono span whatsoever. */}
       <span
         className={cn(
           'flex justify-between gap-2 text-[13px]',
@@ -39,16 +45,26 @@ const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
         )}
       >
         <span>{loan.name}</span>
-        <span className="num">{duration}</span>
+        <span>
+          {loan.unresolved ? (
+            'no return recorded'
+          ) : (
+            <>
+              <span className="num">{loan.days}</span>
+              {' '}
+              days
+            </>
+          )}
+        </span>
       </span>
-      {/* Line 2: when it left, and — for a closed loan — when it came back. `LENT`/`RETURNED`
-          are interface labels: caps, set in the SANS (never `.num`), with weight stated
-          explicitly here because the `caps` utility carries case and tracking only, never
-          weight (DESIGN.md section 3). Only the dates themselves are numerals and take the
-          mono. There is no connector joining the two fields — no arrow, no dash between
-          them — labelling both endpoints is the one grammar that reads the same for a closed
-          loan and an open one. `→` (U+2192) is the glyph this replaces: verified absent from
-          every shipped cut of both faces (src/fonts.test.js), so it fell back to
+      {/* Line 2: when it left, and — for a genuinely CLOSED loan — when it came back.
+          `LENT`/`RETURNED` are interface labels: caps, set in the SANS (never `.num`), with
+          weight stated explicitly here because the `caps` utility carries case and tracking
+          only, never weight (DESIGN.md section 3). Only the dates themselves are numerals and
+          take the mono. There is no connector joining the two fields — no arrow, no dash
+          between them — labelling both endpoints is the one grammar that reads the same for a
+          closed loan and an open one. `→` (U+2192) is the glyph this replaces: verified absent
+          from every shipped cut of both faces (src/fonts.test.js), so it fell back to
           `ui-monospace` inside an otherwise all-Chivo-Mono line.
 
           An OPEN loan states only the LENT half: there is no second date to label, and the
@@ -57,20 +73,23 @@ const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
           the same thing twice (DESIGN.md's "nothing is labelled twice").
 
           An UNRESOLVED pairing (a LENT superseded by another LENT with no RETURNED between
-          them, see `pairLoanEvents` in lib/loans.js) is a different fact from "open": something
-          else started afterwards, so the loan DID end — there is a second term, it was just
-          never recorded. Keeping the RETURNED label and standing an em dash in for the missing
-          date says exactly that, and reads visibly different from an open loan's single LENT
-          line rather than silently collapsing into it. `—` is present in both faces
-          (fonts.test.js's OTHER_RENDERED_PUNCTUATION), so no glyph gap is reintroduced. */}
+          them, see `pairLoanEvents` in lib/loans.js) reads the SAME as an open loan here —
+          `LENT <date>` alone. It is tempting to keep a `RETURNED` label with a placeholder
+          value, on the argument that the loan structurally DID end (a later LENT proves it).
+          That argument is correct but doesn't belong on this line: the duration slot above
+          already states "no return recorded", precisely and in words — a `RETURNED —` here
+          would restate that same fact in a weaker form, which is exactly the position an open
+          loan is in with its own stamp (DESIGN.md's "nothing is labelled twice"). So the two
+          rows share this line's grammar and differ only in the duration slot and, for a boxed
+          open loan, the stamp — never ambiguous, since the stamp only ever marks OPEN. */}
       <span className="mt-0.5 block">
         <span className="caps text-[10px] font-extrabold tracking-[0.16em]">Lent</span>{' '}
         <span className="num">{stamp(loan.lentAt)}</span>
-        {!loan.open && (
+        {!loan.open && !loan.unresolved && (
           <>
             {' · '}
             <span className="caps text-[10px] font-extrabold tracking-[0.16em]">Returned</span>{' '}
-            <span className="num">{loan.unresolved ? '—' : stamp(loan.returnedAt)}</span>
+            <span className="num">{stamp(loan.returnedAt)}</span>
           </>
         )}
       </span>

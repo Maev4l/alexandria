@@ -82,21 +82,29 @@ describe('LedgerRow', () => {
     expect(dateLine).toHaveTextContent('Lent 01 Aug 2026 · Returned 18 Aug 2026');
   });
 
-  // An unresolved pairing is a different fact from an open loan — the loan DID end, the return
-  // just was never recorded — so it must not silently render identically to "still open". It
-  // keeps the RETURNED label and stands an em dash in for the missing date.
-  it('states an unresolved loan as LENT <date> · RETURNED — (a labelled unknown, not "open")', () => {
+  // Round 2 of the ruling: an unresolved pairing shares the OPEN row's line-2 grammar —
+  // `LENT <date>` alone, no RETURNED label. A `RETURNED —` here would restate, in a weaker
+  // form, exactly what the duration slot on line 1 already states precisely ("no return
+  // recorded") — the same "nothing is labelled twice" reasoning that drops "still out" from an
+  // open loan's line 2 because its own stamp already says it.
+  it('states an unresolved loan as LENT <date> alone — same line-2 grammar as an open loan', () => {
     const { container } = render(<LedgerRow loan={unresolvedLoan} />);
     const dateLine = container.firstChild.children[1];
-    expect(dateLine).toHaveTextContent('Lent 11 Mar 2026 · Returned —');
+    expect(dateLine).toHaveTextContent('Lent 11 Mar 2026');
+    expect(dateLine).not.toHaveTextContent(/returned/i);
   });
 
-  it('never reads identically to an open loan: RETURNED is present for unresolved, absent for open', () => {
-    const openDates = render(<LedgerRow loan={openLoan} />).container.firstChild.children[1];
-    const unresolvedDates = render(<LedgerRow loan={unresolvedLoan} />).container.firstChild
-      .children[1];
-    expect(openDates).not.toHaveTextContent(/returned/i);
-    expect(unresolvedDates).toHaveTextContent(/returned/i);
+  it('distinguishes an unresolved loan from an open one on line 1 (duration), not line 2', () => {
+    const openLines = render(<LedgerRow loan={openLoan} />).container.firstChild.children;
+    const unresolvedLines = render(<LedgerRow loan={unresolvedLoan} />).container.firstChild
+      .children;
+    // Line 2 is identical in shape for both — `LENT <date>` alone.
+    expect(openLines[1]).toHaveTextContent(/^lent \d{2} \w{3} \d{4}$/i);
+    expect(unresolvedLines[1]).toHaveTextContent(/^lent \d{2} \w{3} \d{4}$/i);
+    // Line 1's duration slot is where the two facts actually differ.
+    expect(openLines[0]).toHaveTextContent('6 days');
+    expect(unresolvedLines[0]).toHaveTextContent('no return recorded');
+    expect(unresolvedLines[0]).not.toHaveTextContent(/\d+ days/);
   });
 
   it('never renders the rightwards arrow anywhere — the glyph neither face has', () => {
@@ -108,14 +116,38 @@ describe('LedgerRow', () => {
   // sans. Only the dates and the day count are numerals, and take the mono utility (`.num`,
   // DESIGN.md section 3): a name in mono is the category error the Plate Line already warns
   // about, and this component must not import it.
-  it('sets the name in the sans and keeps the mono reserved for dates and the day count', () => {
+  it('sets the name in the sans, never the mono', () => {
     render(<LedgerRow loan={closedLoan} />);
     const name = screen.getByText('Jean-Raymond');
     expect(name.className).not.toMatch(/\bnum\b/);
     expect(name.closest('.num')).toBeNull();
+  });
 
-    const duration = screen.getByText('17 days');
-    expect(duration.closest('.num')).not.toBeNull();
+  // Round 2 of the ruling: "9 days"/"17 days" is a FIGURE plus a unit WORD, not one numeral —
+  // only the figure is mono. This was invisible while the whole app fell back to `system-ui`
+  // (no face was distinguishable), and the font fix that surfaced the `→` gap surfaced this
+  // one too: "days" was rendering in Chivo Mono on every row, the exact category error the
+  // Plate Line entry already names for a person's name.
+  it('splits the duration: the figure takes the mono, "days" stays in the sans', () => {
+    const { container } = render(<LedgerRow loan={closedLoan} />);
+    const durationLine = container.firstChild.children[0];
+    expect(durationLine).toHaveTextContent('17 days');
+    const figure = durationLine.querySelector('.num');
+    expect(figure).not.toBeNull();
+    expect(figure.textContent).toBe('17');
+    // "days" itself must not sit inside any `.num`-classed element.
+    const monoText = [...durationLine.querySelectorAll('.num')].map((el) => el.textContent).join('');
+    expect(monoText).not.toMatch(/days/);
+  });
+
+  // An unresolved loan's duration slot has no numeral in it at all ("no return recorded"), so
+  // none of it may sit inside `.num` — a WORD in the mono is the same category error the
+  // figure-and-unit split above exists to prevent.
+  it('renders "no return recorded" entirely in the sans — it has no numeral to be mono', () => {
+    const { container } = render(<LedgerRow loan={unresolvedLoan} />);
+    const durationLine = container.firstChild.children[0];
+    expect(durationLine).toHaveTextContent('no return recorded');
+    expect(durationLine.querySelector('.num')).toBeNull();
   });
 
   // Line 2 is now mixed: LENT/RETURNED are interface labels and take the sans (`caps`, never

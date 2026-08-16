@@ -774,7 +774,12 @@ try {
       const firstRow = ledger?.firstElementChild;
       const rowSpans = firstRow ? [...firstRow.querySelectorAll('span')] : [];
       const nameEl = rowSpans.find((el) => el.textContent.trim() === 'Marie');
+      // The duration slot is now MIXED too — "6 days" is a figure (mono) plus a unit word
+      // (sans), not one numeral, so its own font isn't checked as one span either: the wrapper
+      // (native `textContent` is recursive, unlike a single leaf span) proves the full text,
+      // and its `.num` child proves only the figure is mono.
       const durationEl = rowSpans.find((el) => /^\d+ days$/.test(el.textContent.trim()));
+      const durationFigureEl = durationEl?.querySelector('.num');
       // Line 2 (the date range) is the row's second direct child. It is now MIXED — `LENT` is
       // an interface label in the sans, only the date value itself is mono — so its own font
       // isn't checked as one span; the label and the date value are checked separately.
@@ -782,14 +787,17 @@ try {
       const dateLabelEl = dateLine?.querySelector('.caps');
       const dateValueEl = dateLine?.querySelector('.num');
       return {
-        found: Boolean(h1 && firstRow && nameEl && durationEl && dateLine && dateLabelEl && dateValueEl),
+        found: Boolean(
+          h1 && firstRow && nameEl && durationEl && durationFigureEl && dateLine && dateLabelEl && dateValueEl,
+        ),
         lineCount: firstRow?.children.length,
         dateLineText: dateLine?.textContent,
         h1Left: h1?.getBoundingClientRect().left,
         rowLeft: firstRow?.getBoundingClientRect().left,
         rowPaddingLeft: firstRow ? getComputedStyle(firstRow).paddingLeft : null,
         nameFont: nameEl ? getComputedStyle(nameEl).fontFamily : null,
-        durationFont: durationEl ? getComputedStyle(durationEl).fontFamily : null,
+        durationWrapperFont: durationEl ? getComputedStyle(durationEl).fontFamily : null,
+        durationFigureFont: durationFigureEl ? getComputedStyle(durationFigureEl).fontFamily : null,
         dateLabelFont: dateLabelEl ? getComputedStyle(dateLabelEl).fontFamily : null,
         dateValueFont: dateValueEl ? getComputedStyle(dateValueEl).fontFamily : null,
       };
@@ -807,9 +815,14 @@ try {
       facts.nameFont,
     );
     record(
-      Boolean(facts.durationFont?.includes('Chivo Mono')),
-      'the duration resolves in the mono',
-      facts.durationFont,
+      Boolean(facts.durationWrapperFont) && !facts.durationWrapperFont.includes('Chivo Mono'),
+      'the duration WRAPPER (figure + "days") does not resolve wholesale to the mono',
+      facts.durationWrapperFont,
+    );
+    record(
+      Boolean(facts.durationFigureFont?.includes('Chivo Mono')),
+      "the duration's FIGURE resolves in the mono — only the number, not the unit word",
+      facts.durationFigureFont,
     );
     record(
       Boolean(facts.dateLabelFont) && !facts.dateLabelFont.includes('Chivo Mono'),
@@ -835,6 +848,54 @@ try {
       Math.round(facts.rowLeft) === Math.round(facts.h1Left),
       'the flush ledger row aligns with the title above it',
       `row left ${facts.rowLeft}px, h1 left ${facts.h1Left}px`,
+    );
+  }
+
+  // ---- Ledger Row: an unresolved loan shares the open loan's line-2 grammar ----
+  // Round 2 of the ruling: a `RETURNED —` on an unresolved loan restated, in a weaker form,
+  // exactly what the duration slot already states plainly ("no return recorded") — the same
+  // "labelled twice" defect the ruling's own stamp/still-out reasoning was written to avoid.
+  // item-lent's third loan (Léa) is unresolved (src/test/fixtures/events.js); this asserts its
+  // line 2 reads identically in SHAPE to the open loan above (`LENT <date>` alone) and that the
+  // real distinction lives in the duration slot instead, entirely in the sans (no numeral).
+  console.log('ledger row: an unresolved loan reads LENT <date> alone, distinguished on line 1');
+  {
+    const facts = await page.evaluate(() => {
+      const heading = [...document.querySelectorAll('main h2')].find((el) =>
+        /the record/i.test(el.textContent),
+      );
+      const ledger = heading?.nextElementSibling;
+      // Marie (open) is row 0, Paul (closed) is row 1, Léa (unresolved) is row 2 — the pairing
+      // order asserted already by loans.test.js and visible in the fixture's own comment.
+      const leaRow = ledger?.children[2];
+      const nameEl = leaRow ? [...leaRow.querySelectorAll('span')].find((el) => el.textContent.trim() === 'Léa') : null;
+      // leaRow.children[0] is the whole flex LINE 1 (name + duration side by side); the
+      // duration itself is that line's SECOND child.
+      const durationLine = leaRow?.children[0]?.children[1];
+      const dateLine = leaRow?.children[1];
+      return {
+        found: Boolean(leaRow && nameEl && durationLine && dateLine),
+        durationText: durationLine?.textContent,
+        durationHasMono: Boolean(durationLine?.querySelector('.num')),
+        dateLineText: dateLine?.textContent,
+      };
+    });
+
+    record(facts.found, "Léa's unresolved row is on screen", JSON.stringify(facts));
+    record(
+      facts.durationText === 'no return recorded',
+      'the duration slot states "no return recorded" in words',
+      facts.durationText,
+    );
+    record(
+      facts.durationHasMono === false,
+      '"no return recorded" has no numeral in it, so none of it sits in the mono',
+      facts.durationHasMono,
+    );
+    record(
+      facts.dateLineText === 'Lent 11 Mar 2026',
+      'line 2 reads LENT <date> alone — the SAME shape as the open loan above, no RETURNED, no em dash',
+      facts.dateLineText,
     );
   }
 
