@@ -193,6 +193,27 @@ Both are self-hosted `woff2` (subset to Latin + Latin Extended-A), consistent wi
 existing self-hosted-fonts practice. Neither appears on the calibration list of training-data
 default faces, and neither is v2's pairing.
 
+**A shipped font is asserted to contain the alphabet the product can produce, by a test that reads
+the file.** Not reviewed, not assumed from the build script's intent — read out of the `woff2`'s
+own cmap and compared against a required set: printable ASCII, the Latin-1 letters, Latin
+Extended-A, French diacritics, `Œ`/`Æ` (the fold's non-A–Z tail, §4), and every mark the design
+sets in type.
+
+This rule exists because its absence hid a total failure of the identity for three slices. Google
+serves `latin` and `latin-ext` as **separate** cuts, and `fetch-fonts.mjs` selected the block
+containing `U+0100` on the assumption that latin-ext is a superset of latin. It is not. The
+committed `archivo-var.woff2` contained **262 codepoints, of which exactly two were ASCII: the
+space and the letter `A`.** Every other character in the product — every title, every name, every
+digit, every date, the middot in every Plate Line — fell back to `system-ui`, silently, because
+`index.css` declared the face with no `unicode-range` to reveal the gap.
+
+Three slices, a full design critique and a dedicated typography calibration all passed over it, and
+the reason is worth keeping: **the comp fell back too.** `ui-v3-mockup.html` names Archivo with no
+`@font-face`, so on a machine without it installed the comp rendered in the same system font as the
+app. Reproduction against the comp therefore *succeeded* — both sides were wrong identically, and
+matching was mistaken for correct. A reproduction target and its subject must not share a failure
+mode; the check that reads the font file is the only thing that separates them.
+
 ### Scale
 
 Sizes are in px at base 16. Line-height is expressed in divisions (§4).
@@ -396,7 +417,7 @@ wearing the imprint's clothes, and unstable across pagination besides.
 | Surface | Plate carries | Source |
 |---|---|---|
 | Library row | the library's item count | `totalItems` |
-| Collection board | the member count, prefixed `⌗` | `itemCount` |
+| Collection board | the member count, bare | `itemCount` |
 | Collection member | its order in the series, 1–1000 | `order` |
 | Standalone item | **no plate** | — |
 | Item detail | the collection order when the item is in one, drawn **inside the frame** exactly as on the stream — never as a second plate beside it; otherwise no plate | `order` |
@@ -404,6 +425,27 @@ wearing the imprint's clothes, and unstable across pagination besides.
 An item's real catalogue identity is its ISBN or TMDB id, and that already reads in the Plate
 Line, so detail needs no invented number either. A standalone item's frame is unnumbered, and an
 empty frame carries nothing but its rules.
+
+**A plate carries a bare figure and no prefix; the container says what the figure is.** The board
+head's plate belongs to the collection, so its number is that collection's size; a member's plate
+belongs to that member's frame, so its number is that member's place. Nothing needs to caption
+which is which — it is read off what the plate is attached to, exactly as a library row's plate is
+read off the library.
+
+The board's count was prefixed `⌗` (U+2317) until that character turned out **not to exist in
+Archivo at all** — not missing from our subset, absent from the upstream typeface — so it had been
+rendering in whatever the browser substituted, in a design that names two faces and declares no
+fallback chain. Nobody had ever seen the intended version.
+
+Three replacements were rejected, and the reasons matter more than the outcome. `#` is in the face
+and reads as *number*, which is the wrong meaning: `# 12` states an ordinal where the plate holds a
+count. A second face is a stated constraint broken for one glyph. And hand-authoring it as a
+**Mark** would stretch that category past its definition — §5 admits Marks as *universal
+affordances* (back, add, search, close), and a decorative prefix attached to data is ornament, not
+an affordance; growing the Marks set to carry ornament is precisely the drift §5 exists to prevent.
+
+This is the second mark in this system to turn out to be doing less work than it appeared, after
+the type markers. Both were removed by discovering the layout already carried the fact.
 
 Fewer plates on the browse stream is the correct outcome, not a loss: a number that means
 something is worth more than a number on everything. Chrome yellow still carries the index
@@ -424,7 +466,7 @@ the index letters, the active state, primary actions. Counts are inventory, not 
 |---|---|---|
 | Search field | recessed `--paper-deep`, `--ink-soft` placeholder | `--imprint`, the loudest mark on the home screen, and a **real input** that accepts keystrokes |
 | Library row plate | `--imprint` fill | `--ink` figures in a 2px ruled plate, no fill |
-| Collection board `⌗ N` | `--imprint` fill | same ruled treatment |
+| Collection board count | `--imprint` fill | same ruled treatment |
 | Collection member order | `--imprint` fill | same ruled treatment |
 | Index letter | `--imprint` filled, `--ink` stroked | solid `--ink` letter; the yellow moved to its 4px rule. Still finding apparatus — but on an edge, because an outline cannot describe a letterform (§4) |
 | Primary action | `--imprint` plate | unchanged |
@@ -518,7 +560,7 @@ that cost nothing, and it was disqualified on evidence rather than waved away.
 | **Sheet** | Bottom sheet on `--paper-deep` with a 3px top rule. Square corners. |
 | **Plate Button** | Primary action: `--imprint` plate, black caps. Secondary: 2px ruled outline, no fill. Destructive: 2px `--out` outline, `--out` caps. **A disabled primary renders as the ruled outline, never as a tinted plate** — a 50% `--imprint` is a new colour meaning "disabled", which palette law forbids, and it drags its own label under the contrast floor. Becoming a filled plate the moment the form is valid is itself the affordance saying so. |
 | **Field** | Form input: no radius, 2px bottom rule, caps label above, no floating label. A password field carries a **reveal mark** at its right: a hand-authored eye at 2px stroke, slashed when the password is showing, toggling `type` between `password` and `text`. It is a Mark rather than a `SHOW` / `HIDE` caps label because the state it reflects is already legible in the field itself — the reader can see whether their password is showing by looking at it — so this is not an icon standing in for state with nothing to read. It always opens hidden, on every mount, and never remembers. Its 48px target is negative-margined so it does not inflate the field, and it takes its own focus indicator, not the field's (§2). |
-| **Ledger Row** | One loan pairing, over two lines. **Line 1: the borrower's name, and the duration.** Line 2: `out → back`, or `out → still out` when open. The name is the reason the row exists — a ledger that records when a thing left but not who took it does not answer the question the product is for — and it comes from the **`LENT` event only**. The `RETURNED` event also carries a name; it is ignored, because the returner is the borrower and printing it again states one fact twice. The name is **content and sets in the sans**; only the dates and the day count take the mono (§3) — a 50-character `lentTo` is why the row is two lines and not one, and nothing is truncated. Inside a bordered card the row takes `px-4` so it does not sit flush against the rule, with the separator still spanning the full width; in a flush text column (item detail's inline ledger) it takes none, so it aligns with the prose above it. |
+| **Ledger Row** | One loan pairing, over two lines. **Line 1: the borrower's name, and the duration.** Line 2: `LENT <date> · RETURNED <date>`, and for an open loan **`LENT <date>` alone** — no second half, because there is no second date and the stamp already says it is out. The caps are interface labels and the dates are mono (§3). There is **no arrow**: `→` (U+2192) is absent from both faces, so it rendered in `ui-monospace` inside a line of Chivo Mono. An en dash was the obvious replacement and fails on the case that matters most — a dash states a *range*, and `07 Aug 2026 – still out` is not a range, it is a date beside a state. Labelling both endpoints works for a closed loan and a live one with the same grammar, which a connector cannot. The name is the reason the row exists — a ledger that records when a thing left but not who took it does not answer the question the product is for — and it comes from the **`LENT` event only**. The `RETURNED` event also carries a name; it is ignored, because the returner is the borrower and printing it again states one fact twice. The name is **content and sets in the sans**; only the dates and the day count take the mono (§3) — a 50-character `lentTo` is why the row is two lines and not one, and nothing is truncated. Inside a bordered card the row takes `px-4` so it does not sit flush against the rule, with the separator still spanning the full width; in a flush text column (item detail's inline ledger) it takes none, so it aligns with the prose above it. |
 | **Row Actions** | The visible duplicate of long-press, at the right of any row that has a sheet behind it. **Three 3px ink squares** — not round dots, not a text ellipsis: the world has no radii, and a glyph falls back to junk. 48px target, negative-margined so it does not inflate the row. Absent on rows with no actions, which is how a read-only shared library declares itself. |
 | **Pull to refresh** | The touch shortcut for reloading a list. **The threshold is measured in finger travel, never in the transformed offset**: resistance is a visual affordance, and dividing the trigger by it silently multiplies the required drag — at 0.4 resistance a 64px offset threshold demands 160px of travel, roughly 2.5× the conventional 60–80px, so an ordinary pull does nothing at all. Trigger at **72px of travel**; let the offset stay damped and capped for feel. Two feedback states, both in the caps register: nothing before the threshold, where the paper moving is the whole signal, then `RELEASE TO REFRESH` once past it, then `REFRESHING` after release. Without the middle state a reader cannot learn how far to pull, which turns a mis-tuned threshold from an annoyance into an apparently dead gesture. |
 | **Marks** | The few universal affordances left after the no-icons-for-state rule — back, add, search, close and the like. **Hand-authored SVG at 2px stroke on the division scale; no icon library.** An imported set would arrive at someone else's stroke weights and optical sizes and quietly break the rule system, to carry perhaps eight marks. State is never a mark; state is a stamp, a ribbon or a rule. |
@@ -621,6 +663,12 @@ becomes an instant swap. This austerity is also cheap, which suits a PWA on a ph
 
 Recorded so later work does not quietly reintroduce it:
 
+- **Any character the shipped faces do not draw.** Two shipped before anyone checked — `⌗` in the
+  collection plate and `→` in every ledger row — each rendering in a browser-substituted system
+  font inside a line of Archivo or Chivo Mono, in a design that names two faces and declares no
+  fallback chain. Both were chosen for meaning without confirming the typeface contained them. The
+  cmap assertion in §3 now fails the build for this, but the habit is the real guard: **check the
+  font before choosing the glyph, not after shipping it.**
 - **Native control chrome this world has no vocabulary for.** A `<textarea>` resize grabber is a
   rounded diagonal handle drawn by the browser, in a system with no radii and no diagonals; suppress
   it and let `rows` govern height. The same applies to any default the platform draws that the

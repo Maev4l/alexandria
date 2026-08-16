@@ -1,5 +1,43 @@
 <title>The Noir Imprint</title>
 <style>
+  /* THE COMP LOADS THE SAME BINARIES THE APP SHIPS. It did not, and that is how a total
+     font failure survived three slices of review: this file named "Archivo" with no
+     @font-face, so on a machine without Archivo installed it fell back to system-ui —
+     the very font the app was accidentally falling back to. Every reproduction pass
+     therefore PASSED, because target and subject were wrong identically. A reproduction
+     target must not share a failure mode with its subject (DESIGN.md §3).
+     Paths are relative to this file, so the comp works opened directly or served from
+     the repo root. Ranges are Google's own, copied verbatim from src/index.css — a
+     range-specific file declared without its range is the original bug. */
+  @font-face {
+    font-family: "Archivo"; font-style: normal; font-weight: 400 900;
+    font-stretch: 62% 125%; font-display: swap;
+    src: url("../../packages/web-client-v3/public/fonts/archivo-var-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+      U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "Archivo"; font-style: normal; font-weight: 400 900;
+    font-stretch: 62% 125%; font-display: swap;
+    src: url("../../packages/web-client-v3/public/fonts/archivo-var-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+      U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+      U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+  @font-face {
+    font-family: "Chivo Mono"; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url("../../packages/web-client-v3/public/fonts/chivo-mono-var-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+      U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "Chivo Mono"; font-style: normal; font-weight: 400 700; font-display: swap;
+    src: url("../../packages/web-client-v3/public/fonts/chivo-mono-var-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+      U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+      U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+
   /* ------------------------------------------------------------------
      THE NOIR IMPRINT — Alexandria v3 spec sheet + comps.
      Single-theme by decision, not omission: this world is the imprint's
@@ -302,6 +340,9 @@
   .ledger-row { padding: var(--d) 0; border-bottom: 1px solid var(--cover-rule); color: var(--cover-soft); }
   .ledger-row .who { display: flex; justify-content: space-between; gap: var(--d); font-size: 13px; color: var(--cover-body); }
   .ledger-row .dates { font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  /* Interface labels, so caps — and the weight is stated here rather than carried by the
+     caps rule, which sets case and tracking only (§3). Sans, because they are words. */
+  .ledger-row .dates .lbl { font-family: var(--sans); font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
   .ledger-row .dur { font-family: var(--mono); font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ledger-row.open .who { color: var(--paper); }
   /* Inside a bordered card (the history page) the row is inset so it does not
@@ -506,7 +547,7 @@
                      and a numbered sequence already says it runs in order. The
                      label restated what the numbers state — labelled twice. -->
                 <div class="board-name">La Série Noire</div>
-                <span class="plate">⌗ 12</span>
+                <span class="plate">12</span>
               </div>
               <div class="board-members">
                 <div class="item">
@@ -570,17 +611,22 @@
 
               <div class="ledger-head">The record</div>
               <div class="ledger">
+                <!-- No arrow: U+2192 is absent from both faces, so it rendered in a
+                     substituted system font inside a line of Chivo Mono. An en dash states a
+                     RANGE, which "07 Aug – still out" is not. Labelling both endpoints holds
+                     for a closed loan and a live one with one grammar; an open loan simply has
+                     no second half, and the stamp already says it is out. -->
                 <div class="ledger-row open">
                   <div class="who"><span>Marie</span><span class="dur">6 days</span></div>
-                  <div class="dates">07 Aug 2026 → still out</div>
+                  <div class="dates"><span class="lbl">Lent</span> 07 Aug 2026</div>
                 </div>
                 <div class="ledger-row">
                   <div class="who"><span>Jean-Raymond</span><span class="dur">17 days</span></div>
-                  <div class="dates">02 Mar 2026 → 19 Mar 2026</div>
+                  <div class="dates"><span class="lbl">Lent</span> 02 Mar 2026 · <span class="lbl">Returned</span> 19 Mar 2026</div>
                 </div>
                 <div class="ledger-row">
                   <div class="who"><span>Marie</span><span class="dur">14 days</span></div>
-                  <div class="dates">11 Nov 2025 → 25 Nov 2025</div>
+                  <div class="dates"><span class="lbl">Lent</span> 11 Nov 2025 · <span class="lbl">Returned</span> 25 Nov 2025</div>
                 </div>
               </div>
 
@@ -818,8 +864,8 @@
           </tr>
           <tr>
             <td>Volume Plate</td>
-            <td><span style="display:inline-flex;gap:8px;flex-wrap:wrap"><span class="plate">412</span><span class="plate">⌗ 12</span><span class="plate">01</span></span></td>
-            <td><strong>Ruled, not filled</strong>: a 2px ink rule with ink mono figures. Counts are inventory, not apparatus. Carries <strong>only a real count or order</strong> — a library's <span class="mono">totalItems</span>, a collection's <span class="mono">itemCount</span>, or a member's <span class="mono">order</span>. The filled yellow plate is reserved for the active state and for primary actions. Standalone items get no plate.</td>
+            <td><span style="display:inline-flex;gap:8px;flex-wrap:wrap"><span class="plate">412</span><span class="plate">12</span><span class="plate">01</span></span></td>
+            <td><strong>Ruled, not filled</strong>: a 2px ink rule with ink mono figures. Counts are inventory, not apparatus. Carries <strong>only a real count or order</strong> — a library's <span class="mono">totalItems</span>, a collection's <span class="mono">itemCount</span>, or a member's <span class="mono">order</span>. The filled yellow plate is reserved for the active state and for primary actions. Standalone items get no plate. <strong>Bare figures, no prefix</strong> — the container says what the number is: the board head's plate belongs to the collection, a member's belongs to its frame.</td>
           </tr>
           <tr>
             <td>Plate Line</td>
