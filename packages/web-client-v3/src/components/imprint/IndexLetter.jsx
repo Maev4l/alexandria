@@ -1,49 +1,49 @@
-import { cn } from '@/lib/cn';
-import { isAlphanumericLabel } from '@/lib/sort';
-
 // A separator, not a heading: it marks position in the stream, it does not title a section.
 //
-// Yellow belongs here — an index letter is the apparatus of finding, not inventory. But
-// --imprint on --paper measures 1.55:1, so yellow cannot describe a shape on paper at all: it
-// can only be a ground with ink on it, or a fill inside an ink outline. The ink stroke is
-// therefore the entire contrast mechanism, not decoration, which is why 76px reads as
-// monumental — a stroked yellow letter reads larger than its size.
+// ROUND 2 (was: --imprint fill + --ink text-stroke). DESIGN.md §2 says yellow can only be a
+// GROUND with ink on it, or a FILL inside an ink outline — a stroked-fill letter is the second
+// construction, and that construction cannot work: `-webkit-text-stroke` traces every stroke of
+// the glyph independently, so it collides with itself wherever a counter is narrower than the
+// stroke. That is structural, not tunable. Round 1 (commit a96d086) spent an entire parameter
+// sweep — weight down to 300, stretch up to 125%, stroke down to 0.3px — trying to out-thin the
+// collision on `M`/`N`/`P`, and it never fully closed, because thinning the stroke also thins the
+// one thing that makes yellow-on-paper legible at all (~1.55:1 unaided). That fix was reverted:
+// rendered against the real stream (`/libraries/lib-huge`, not a lab crop), the residual mark on
+// `M`/`N` was still plainly visible at reading size, so it had converted a rendering defect into
+// a legibility defect without actually curing the defect it existed to fix.
 //
-// P1 FIX (was 2px stroke / weight 900 / stretch 62.5%): DESIGN.md's old claim that a stroke
-// only collides on a glyph with crossing strokes was wrong — the real mechanism is counter
-// width against stroke width, and at the old parameters `M`, `N` and `P` all had counters too
-// narrow for a 2px stroke to trace without self-intersecting. Calibrated against rendered
-// crops through this project's OWN dev server (see scripts/check-index-letter.mjs) — a
-// hand-rolled recreation with identical-looking CSS measured a glyph ~15% WIDER than this app
-// ever renders (a Chrome font-matching quirk tied to the font-family fallback chain), which
-// silently hid the collision during the first calibration pass. `weight: 400` and
-// `stretch: 100%` open the counters; `0.85px` is the thinnest stroke that still traces every
-// glyph as a continuous line at 76px. `P` and `Œ` are fully clean at these values; `M` and `N`
-// keep one small residual mark at their sharpest interior angles that no combination tried
-// (weight down to 300, stretch up to the font's 125% ceiling, stroke down to 0.3px) removed
-// entirely — see the P1 fix report for the sweep. That mark is a short tick, not the doubled
-// outline / self-crossing line the old parameters produced, so it ships as the least-bad
-// result rather than chasing a perfect one at the cost of the letter reading as regular-weight
-// body text instead of a monumental marker.
+// Two collision-free alternatives were rendered against the same crop set (M N P Œ & 1) and the
+// same real stream. A third — solid ink knocked onto an --imprint plate around the letter — was
+// also rendered per the design session's instruction to judge it from output rather than reject
+// it on paper; in the stream shot it read as a tappable chip (the same silhouette as PlateButton's
+// primary variant), which is exactly the risk DESIGN.md's palette law warns about: a filled
+// --imprint shape is reserved for the active/selected state and primary actions, and painting one
+// on every index letter in a 1000-item stream would make every separator look like a button.
 //
-// The treatment is bounded by the glyph rather than patched per symbol. Alphanumerics are
-// single-outline shapes and take the stroke cleanly. Anything else — &, @, %, *, « — crosses
-// itself, and the stroke collides with itself in the counters, so those render solid ink at
-// 18:1 instead. Solid ink holds for any character the data can ever produce.
+// SHIPPED: solid --ink letter, no stroke, no fill — 18.18:1, the same ratio as every other run of
+// body text. No counter can close because there is no offset outline to collide with itself, for
+// any glyph the server's fold can produce, at any weight. `--imprint` did not leave the index
+// apparatus: it moved from the shape to the 4px rule beneath it (`border-imprint`), which is the
+// same "state lives on edges, not on content" discipline (the Iridescent Edge donation, DESIGN.md
+// §1) the rest of the system already follows. The letterform itself is UNCHANGED from round 1's
+// original — weight 900, stretch 62.5%, 76px — because nothing about solid ink required
+// softening it; the "stroke reads larger than its size" premise that justified 76px never applied
+// to a fill with no stroke, and 76px still reads as monumental with no width/weight concession.
+//
+// This also collapses the alphanumeric/symbol split entirely: every glyph the fold can produce —
+// letters, digits, Œ, Æ, and `&`/`#`/`@`/every character that used to need the solid-ink carve-out
+// — now takes the exact same treatment, because there is no longer a stroke for any of them to
+// collide with. `isAlphanumericLabel` (src/lib/sort.js) is no longer imported here for that
+// reason; it remains exported for its own tests and any other caller.
 const IndexLetter = ({ letter, count }) => (
   <div
     role="separator"
     aria-label={`Titles beginning ${letter}`}
-    className="sticky top-0 z-10 flex items-end justify-between border-b-4 border-ink bg-paper px-4"
+    className="sticky top-0 z-10 flex items-end justify-between border-b-4 border-imprint bg-paper px-4"
   >
     <span
       aria-hidden="true"
-      className={cn(
-        'text-[76px] font-normal leading-[0.82] tracking-[-0.03em] [font-stretch:100%]',
-        isAlphanumericLabel(letter)
-          ? 'text-imprint [-webkit-text-stroke:0.85px_var(--ink)]'
-          : 'text-ink',
-      )}
+      className="text-[76px] font-black leading-[0.82] tracking-[-0.03em] text-ink [font-stretch:62.5%]"
     >
       {letter}
     </span>

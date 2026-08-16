@@ -15,7 +15,11 @@ import IndexLetter from '@/components/imprint/IndexLetter.jsx';
 // by attribute instead of by scrolling a stream into view — IndexLetter itself stays untouched.
 const HARD = ['M', 'N', 'P', 'Œ'];
 const CLEAN = ['A', 'L', 'V', 'Z', '1'];
-const SYMBOL = ['#'];
+// '&' added for round 2 (index-letter treatment re-decision): the task's fixed crop set names
+// it explicitly. Under the shipped solid-ink treatment every glyph — alphanumeric or symbol —
+// takes the identical render, so '&' and '#' are redundant as *treatments*; both stay because
+// the guard checks each individually, and a second symbol costs nothing to keep covered.
+const SYMBOL = ['#', '&'];
 
 const IndexLetterHarness = () => (
   <div style={{ background: 'var(--paper)' }}>
