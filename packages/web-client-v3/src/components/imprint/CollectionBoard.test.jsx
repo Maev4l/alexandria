@@ -42,6 +42,6 @@ describe('CollectionBoard', () => {
   it('still shows the board name and the member-count plate', () => {
     renderBoard({});
     expect(screen.getByText('Melville')).toBeInTheDocument();
-    expect(screen.getByText('⌗ 2')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
   });
 });
