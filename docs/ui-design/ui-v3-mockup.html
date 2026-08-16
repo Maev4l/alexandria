@@ -172,15 +172,22 @@
   }
   .tag-shared { color: var(--shared); font-weight: 700; }
 
-  /* index letter */
+  /* index letter — solid ink, unstroked, with the yellow on the rule beneath.
+     It was an --imprint fill inside a 2px --ink text-stroke until rendered crops
+     showed the stroke closing the counters of P, M and N. That is structural, not
+     tunable: -webkit-text-stroke traces each stroke of a glyph independently, so
+     it collides with itself wherever counters are tight. §2 licenses two uses of
+     yellow — a ground with ink on top, or a fill inside an ink outline — and only
+     the first is safe at display size. One treatment now covers every label,
+     letters and symbols alike, so the old symbol carve-out is gone. */
   .index-letter {
     display: flex; align-items: flex-end; justify-content: space-between;
-    border-bottom: 4px solid var(--ink); padding: 0 calc(var(--d) * 2);
+    border-bottom: 4px solid var(--imprint); padding: 0 calc(var(--d) * 2);
     background: var(--paper);
   }
   .index-letter .glyph {
     font-size: 76px; font-weight: 900; font-stretch: 62.5%; line-height: .82;
-    letter-spacing: -.03em; color: var(--imprint); -webkit-text-stroke: 2px var(--ink);
+    letter-spacing: -.03em; color: var(--ink);
   }
   .index-letter .count { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); padding-bottom: var(--d); font-variant-numeric: tabular-nums; }
 

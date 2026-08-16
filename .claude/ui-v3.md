@@ -466,7 +466,20 @@ Nothing is built. No application code exists in `packages/web-client-v3`.
 - [x] Design system (`packages/web-client-v3/DESIGN.md`)
 - [x] IA, routes, screen and flow specification (this file)
 
-**Build — slices A and B complete** (`docs/superpowers/plans/2026-08-13-web-client-v3.md`)
+**Build — slices A, B and C complete** (`docs/superpowers/plans/2026-08-13-web-client-v3.md`)
+
+Slice C: item detail on the black cover with its loan ledger inline, item history, and the
+manual item forms. Also, from use rather than from plan: the type markers retired, the detail
+actions un-menued, a password reveal, and the ledger's missing borrower. 339 unit tests, 59
+browser checks.
+
+Its most useful output was not a screen. Three rules turned out to have been written for **one
+route to a hazard** while the others stayed open — a ground declared without a foreground, a
+label declared without the action behind it, a `git add` guard that never mentioned `git stash`.
+Each was found by a reader or a reviewer rather than by a check. The half-declaration rule was
+then recorded in `DESIGN.md` §2 and **violated five more times in the next two commits**, which
+is the finding that matters: recording a rule does not enforce it, and the interval between
+writing one and breaking it can be a single commit.
 
 Slice A: the libraries root reproduced against the comp, behind real Cognito auth (verified
 against the live pool by the user), with library CRUD and sharing.
@@ -491,19 +504,24 @@ Two suites, with a division that matters: `yarn test` asserts rules are DECLARED
       them; a record without tokens produced "There is already a signed in user")
 - [x] App shell: header with pinned search and a per-screen right slot, single stack, no tab bar
 - [x] Libraries root with two sections, actions sheet, share/unshare, delete
-- [ ] Component vocabulary — partial: Volume Plate, Shared Ribbon, Row Actions, Sheet,
-      Plate Button, Field, Marks done. Volume Frame, Plate Line, Index Letter,
-      Overprint Stamp, Collection Board, Detail Marks, Ledger Row arrive with slices B and C.
-      **Spine Rule and Type Tag were retired before being built** — type is not marked (§4)
+- [x] Component vocabulary — Volume Plate, Shared Ribbon, Row Actions, Sheet, Plate Button,
+      Field, Marks, Volume Frame, Plate Line, Index Letter, Overprint Stamp, Collection Board,
+      Detail Marks and Ledger Row all built. **Spine Rule and Type Tag were retired before
+      being built** — type is not marked (§4)
 - [x] LibraryBrowse: alphabetical stream, sticky index letters, collection boards,
       partial-collection continuation — measured at 1000 items: 0.0px scroll drift when a
       continuation board merges above the viewport, sticky letters hold, p95 26.3ms
 - [x] Lend / return / delete, with the toast primitive (confirmations only, never failures)
 - [x] Collections: create, edit, delete-as-orphaning
-- [ ] ItemDetail on the black cover, deep-linkable, inline loan ledger
-- [ ] Add flows: ISBN scan, cover OCR, manual paths, preview-before-commit
-- [ ] Edit forms with the collection/order invariant
-- [ ] Lend / return / history
+- [x] ItemDetail on the black cover, deep-linkable, inline loan ledger — with the marks column
+      beside the hero carrying `IN <library>`, sharing and the stamp, and the actions laid out
+      as what they are rather than gathered behind a menu
+- [ ] Add flows: ISBN scan, cover OCR, preview-before-commit — `AddBook`, `AddVideo` and both
+      detection-results screens are still placeholder stubs
+- [x] Manual entry and edit forms (`ItemForm`, `NewBook`, `NewVideo`, `EditItem`) with the
+      collection/order invariant enforced in the form
+- [x] Lend / return / history — `ItemHistory` paginated, events paired client-side into loans,
+      each row naming its borrower from the `LENT` event
 - [ ] Search surface with recents and honest match-scope
 - [ ] Settings, Account, About
 - [x] PWA update prompt — pulled ahead of slice C because without it the app cannot be
