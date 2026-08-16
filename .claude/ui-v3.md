@@ -395,6 +395,18 @@ bought a worse problem: below the loan ledger and below "Full record", a lone `D
 though it deletes the *record*, which is a real action this app offers elsewhere. Grouped with
 Lend and Edit it can only mean the item. Distance separated the button from its own subject.
 
+**A guard's exclusion must be justified by a measurement, not by a prediction.** A scanner shipped
+with one file excluded, commented as keeping the suite green on a defect it could not fix. The
+reviewer did not argue with the justification — it copied the scanner's logic into a throwaway
+script, ran it against that file with the exclusion removed, and got **zero violations**. The guard
+had been blind to that bug either way.
+
+So it was neither an honest carve-out nor false confidence: a **no-op wearing a comment**. It
+protected nothing, permanently removed a file from coverage, and carried no expiry and nothing to
+prompt its removal — the worst combination, because the comment made it look considered. Before
+excluding anything from a check, run the check without the exclusion and record what it actually
+reports. If the answer is "nothing", there was never a reason.
+
 **Touch.** Minimum 48px targets. Primary actions in thumb reach. Long-press is always duplicated
 by a visible affordance, since long-press alone is undiscoverable.
 
