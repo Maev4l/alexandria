@@ -37,7 +37,17 @@ const DetailMarks = ({ item, library, loans }) => {
           </span>{' '}
           <Link
             to={`/libraries/${item.libraryId}`}
-            className="text-cover-body underline underline-offset-[3px]"
+            // 48px floor (P1 #4): this Link is genuinely inline, mid-sentence with "In" and
+            // the space before it — vertical margin has no effect at all on an inline
+            // (non-block) box, so the negative-margin idiom RowActions uses cannot apply
+            // here. A `::before` hit-box does: absolutely positioned against the Link's own
+            // `relative`, it extends the tappable region without asking the surrounding text
+            // flow (or the flex column stacking this line above the sharing mark) to give it
+            // any more room than it already has, so the green edge rule on the sharing mark
+            // below (DESIGN.md §6: an edge rule never displaces content) stays exactly where
+            // it is regardless of how this expands. -inset-y-[17px] takes the ~15px line to
+            // ~49px.
+            className="relative text-cover-body underline underline-offset-[3px] before:absolute before:inset-x-0 before:-inset-y-[17px] before:content-['']"
           >
             {libraryName}
           </Link>

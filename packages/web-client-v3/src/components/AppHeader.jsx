@@ -40,13 +40,23 @@ const AppHeader = ({
         )}
         {wordmark && <span className="caps truncate text-xs font-extrabold tracking-[0.2em]">Alexandria</span>}
         {title && (
-          // Content title: never uppercased, because it may be a long French name.
+          // 48px floor (P1 #4): the text alone only stood 25px tall, sitting inside 48px of
+          // space that the header row already reserves (every title screen also carries a
+          // back button, which is already size-12 — but the row's own min-h-12 guarantees the
+          // floor even on the rare screen that doesn't). Rather than lean on that coincidence,
+          // the button claims its own min-h-12 directly, so it is 48px on its own terms. The
+          // truncating text moves to an inner span: once the button itself is a flex box, a
+          // flex item's default min-width:auto would otherwise block the shrink `truncate`
+          // needs (min-w-0 here breaks that), and `truncate` needs a block-level box to
+          // establish overflow/ellipsis rather than a `<button>`'s implied inline content.
           <button
             type="button"
             onClick={onTitleTap}
-            className="truncate text-left text-xl font-extrabold leading-tight"
+            className="flex min-h-12 min-w-0 items-center text-left"
           >
-            {title}
+            <span className="block min-w-0 truncate text-xl font-extrabold leading-tight">
+              {title}
+            </span>
           </button>
         )}
       </div>

@@ -21,7 +21,20 @@ const LibraryRow = ({ library, onActions }) => {
       <div className="flex min-h-16 items-start gap-4 p-4">
         <Link
           to={`/libraries/${library.id}`}
-          className="flex min-w-0 flex-1 items-start gap-4"
+          // 48px floor (P1 #4): the link's own rendered box is only as tall as its content —
+          // one line (~25px) for a bare row, two (~45px) with a sub-line — because it is a
+          // flex item and nothing forces it taller. A fixed negative margin sized to reach
+          // 48px from the SHORT case would understate what the flex row measures the TALL
+          // (sub-line) case as needing, since the row's own height is computed from each
+          // item's un-stretched size — that shrinks an 80px sub-line row toward 64px, exactly
+          // the regression this task warns against, not merely a risk of it (verified by hand
+          // before writing this). A `::before` hit-box sidesteps it entirely: absolutely
+          // positioned, so it can never contribute to the row's own auto-height regardless of
+          // how tall the real content is, in either case. -inset-y-4 clears 48px even in the
+          // one-line case (~25+32=57) with room to spare in the two-line case, and stays
+          // safely inside the row's own 16px padding on the tightest (one-line, 64px) row —
+          // never reaching into the row above or below.
+          className="relative flex min-w-0 flex-1 items-start gap-4 before:absolute before:inset-x-0 before:-inset-y-4 before:content-['']"
           {...longPress}
         >
           {/* Fixed 56px column so a 3-digit and a 2-digit count leave titles on one edge. */}

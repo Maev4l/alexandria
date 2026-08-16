@@ -40,7 +40,12 @@ const SearchField = ({ className }) => {
       <button
         type="submit"
         aria-label="Search"
-        className="on-imprint flex size-8 shrink-0 items-center justify-center text-ink"
+        // 48px floor (P1 #4): the field's own row is already 48px tall because the input
+        // above carries the same min-h-12, so growing this from a 32px icon square to the
+        // full size-12 box costs nothing — it only ever consumed slack that was already
+        // sitting unused inside the row, never inflating it. The icon itself stays 16px;
+        // only the tappable box grows.
+        className="on-imprint flex size-12 shrink-0 items-center justify-center text-ink"
       >
         <Search size={16} />
       </button>

@@ -265,7 +265,17 @@ const ItemDetail = () => {
               </div>
               <Link
                 to={`/libraries/${libraryId}/items/${itemId}/history`}
-                className="caps mt-4 inline-block text-[11px] font-extrabold text-imprint underline"
+                // 48px floor (P1 #4): a standalone navigational control (not a prose link —
+                // WCAG 2.5.5's inline-text exemption does not apply), whose text alone stood
+                // 15.4px tall. Same `::before` hit-box as DetailMarks' "In" link, chosen here
+                // too rather than the real-padding-plus-negative-margin idiom: this link sits
+                // in normal block flow with nothing else measuring its natural height, so the
+                // margin idiom would have been safe here specifically, but a single technique
+                // for every enlarged text link is easier to verify than picking per-site.
+                // -inset-y-4 (-16px) measured 47.4px in real Chrome — 0.6px under the floor,
+                // since 15.4px of text plus 32px doesn't quite clear it; -5 (-20px) does, with
+                // room to spare, and the action buttons below still sit ~9px clear of it.
+                className="relative caps mt-4 inline-block text-[11px] font-extrabold text-imprint underline before:absolute before:inset-x-0 before:-inset-y-5 before:content-['']"
               >
                 Full record
               </Link>
