@@ -19,13 +19,28 @@ const traverse = _traverse.default ?? _traverse;
 // `.num` span (a literal string in a ternary branch). Both are STATIC — the word was written
 // directly in the JSX at the call site — so an AST scan catches them.
 //
-// What this CANNOT catch: a word that arrives as a runtime value through a prop or a function
-// call — UnshareLibrary.jsx's `<span className="num">{email}</span>` renders an address that is
-// only ever a variable at this call site, never a string literal, so this scan is structurally
-// blind to it (flagged instead in .superpowers/sdd/2026-08-13-web-client-v3/f4-report.md). A
-// partial check that catches every literal and misses every interpolated one is still worth
-// having — it is exactly the shape both fixed bugs took — but it is not a substitute for reading
-// the rendered output, which is why this sweep also shot the screens by hand.
+// What this CANNOT catch, and why — two distinct gaps, not one:
+//
+// 1. A word that arrives as a runtime value through a prop or a function call.
+//    UnshareLibrary.jsx's `<span className="num">{email}</span>` renders an address that is
+//    only ever an Identifier at this call site, never a string literal — `collectLiterals`
+//    falls to its `default` case and contributes nothing, so this scan is structurally blind to
+//    it regardless of whether the file is scanned (flagged by hand instead, in
+//    .superpowers/sdd/2026-08-13-web-client-v3/f4-report.md).
+//
+// 2. A literal word passed as a CHILD into a wrapper component that applies `.num` itself.
+//    `VolumePlate.jsx` and `Field.jsx`'s counter span both do `<span className="num">{children}`
+//    — the `.num` class lives in the WRAPPER's file, not the caller's, so a caller like
+//    `<VolumePlate>{'NEW'}</VolumePlate>` carries no `"num"` substring anywhere in ITS own JSX.
+//    This single-file AST walk never resolves imports (same limit groundForeground.test.js
+//    documents), so a literal passed through such a wrapper is invisible even though it is
+//    exactly the kind of static literal gap 1 is not — the two gaps have different causes and
+//    neither is a subset of the other.
+//
+// A partial check that catches every literal written directly under a `.num`-classed element and
+// misses these two is still worth having — it is exactly the shape both fixed bugs took — but it
+// is not a substitute for reading the rendered output, which is why this sweep also shot the
+// screens by hand.
 const NUM_CLASS = /\bnum\b/;
 // An element that explicitly re-declares its own font opts back into the sans, the same idiom
 // ItemForm.jsx's `remaining()` uses for "left" beside a `.num`-wrapped figure — content nested
@@ -34,12 +49,14 @@ const FONT_OVERRIDE = /\bfont-sans\b/;
 
 const SRC_DIR = path.resolve(process.cwd(), 'src');
 
-// Held by a concurrent session as of this sweep (2026-08-16) — out of scope to edit here.
-// UnshareLibrary.jsx has a known, reported violation (a recipient's email address rendered
-// inside `.num`); excluding it keeps this guard green today rather than failing on a defect this
-// session is barred from fixing. Remove the exclusion once that session's own fix lands, so the
-// guard resumes covering the file — see .superpowers/sdd/2026-08-13-web-client-v3/f4-report.md.
-const HELD_FILES = new Set(['pages/UnshareLibrary.jsx']);
+// UnshareLibrary.jsx (held by another session) is deliberately NOT excluded from the scanned
+// set: its known violation — `<span className="num">{email}</span>` — is gap 1 above (a bare
+// Identifier), so this guard cannot see it whether or not the file is scanned, and an exclusion
+// would only cost the guard's coverage of any FUTURE literal-word violation elsewhere in the
+// file — precisely the class this scan can catch. Verified by copying this file's own
+// `collectLiterals`/`findViolations` and running them against UnshareLibrary.jsx directly:
+// zero violations, confirming the exclusion would have been a no-op wearing a comment, not a
+// real accommodation.
 
 const listSourceFiles = (dir) => {
   const out = [];
@@ -144,9 +161,7 @@ const findViolations = (file) => {
 };
 
 describe('mono text (DESIGN.md section 3, "the mono is for numerals only")', () => {
-  const files = listSourceFiles(SRC_DIR).filter(
-    (file) => !HELD_FILES.has(path.relative(SRC_DIR, file)),
-  );
+  const files = listSourceFiles(SRC_DIR);
 
   it('found more than zero .jsx files to check', () => {
     expect(files.length).toBeGreaterThan(20);
