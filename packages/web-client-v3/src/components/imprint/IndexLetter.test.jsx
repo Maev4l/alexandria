@@ -14,14 +14,27 @@ describe('IndexLetter', () => {
     expect(screen.queryByText(/volume/)).toBeNull();
   });
 
+  // The count is now split across two elements — the figure in `.num`, the word inherited sans
+  // (LedgerRow's "9 days" idiom) — so `getByText` can no longer match the whole phrase in one
+  // node; `toHaveTextContent` reads the concatenated text the way LedgerRow's own tests do.
   it('says one volume, not one volumes', () => {
-    render(<IndexLetter letter="A" count={1} />);
-    expect(screen.getByText('1 volume')).toBeInTheDocument();
+    const { container } = render(<IndexLetter letter="A" count={1} />);
+    expect(container.querySelector('.text-ink-soft')).toHaveTextContent('1 volume');
   });
 
   it('pluralises everything else', () => {
-    render(<IndexLetter letter="A" count={14} />);
-    expect(screen.getByText('14 volumes')).toBeInTheDocument();
+    const { container } = render(<IndexLetter letter="A" count={14} />);
+    expect(container.querySelector('.text-ink-soft')).toHaveTextContent('14 volumes');
+  });
+
+  // The seed instance for this sweep: "volume"/"volumes" is a word, not a numeral, so it must
+  // never sit inside `.num` (DESIGN.md §3) — only the figure is.
+  it('keeps the word out of the mono: only the figure is a numeral', () => {
+    const { container } = render(<IndexLetter letter="A" count={14} />);
+    const countLine = container.querySelector('.text-ink-soft');
+    const monoText = [...countLine.querySelectorAll('.num')].map((el) => el.textContent).join('');
+    expect(monoText).toBe('14');
+    expect(monoText).not.toMatch(/volume/);
   });
 
   it('names the tail bucket honestly rather than folding it to a letter', () => {

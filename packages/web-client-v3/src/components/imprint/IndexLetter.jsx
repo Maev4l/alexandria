@@ -39,10 +39,14 @@ const IndexLetter = ({ letter, count }) => (
     >
       {letter}
     </span>
-    {/* No count on the run still filling: it would grow while the reader looks at it. */}
+    {/* No count on the run still filling: it would grow while the reader looks at it.
+        Only the figure is a numeral — "volume"/"volumes" is a word, so it stays in the sans
+        (inherited, no override needed) and only the count itself takes `.num`, the same split
+        LedgerRow already makes for "9 days" (DESIGN.md §3: a word in mono is a category error).
+        This was the sweep's seed instance: invisible while both faces rendered as `system-ui`. */}
     {count != null && (
-      <span className="num pb-2 text-[11px] text-ink-soft">
-        {count} {count === 1 ? 'volume' : 'volumes'}
+      <span className="pb-2 text-[11px] text-ink-soft">
+        <span className="num">{count}</span> {count === 1 ? 'volume' : 'volumes'}
       </span>
     )}
   </div>
