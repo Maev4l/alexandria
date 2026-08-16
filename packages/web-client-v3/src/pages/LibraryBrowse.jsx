@@ -181,7 +181,9 @@ const LibraryBrowse = () => {
             </p>
           )}
           {isComplete && runs.length > 0 && (
-            <p className="caps border-t-2 border-ink p-4 text-center text-[11px] font-bold text-ink-soft">
+            // Left-aligned, like every other row in the stream: this was the one centred
+            // element in a system that otherwise never centres text.
+            <p className="caps border-t-2 border-ink p-4 text-[11px] font-bold text-ink-soft">
               End of the shelf
             </p>
           )}

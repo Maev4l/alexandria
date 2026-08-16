@@ -39,7 +39,7 @@ const AppHeader = ({
           </button>
         )}
         {wordmark && <span className="caps truncate text-xs font-extrabold tracking-[0.2em]">Alexandria</span>}
-        {title && (
+        {title && (onTitleTap ? (
           // 48px floor (P1 #4): the text alone only stood 25px tall, sitting inside 48px of
           // space that the header row already reserves (every title screen also carries a
           // back button, which is already size-12 — but the row's own min-h-12 guarantees the
@@ -58,7 +58,15 @@ const AppHeader = ({
               {title}
             </span>
           </button>
-        )}
+        ) : (
+          // No `onTitleTap` means there is nothing to activate: a `<button>` here announced
+          // "Fiction, button" and did nothing on tap, an interactive role with no behaviour.
+          // Plain text keeps the truncation without claiming a touch target it doesn't need —
+          // there is no gesture to reserve 48px of height for.
+          <span className="block min-w-0 truncate text-xl font-extrabold leading-tight">
+            {title}
+          </span>
+        ))}
       </div>
       {right}
     </div>

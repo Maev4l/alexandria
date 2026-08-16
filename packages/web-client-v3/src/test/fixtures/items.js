@@ -96,19 +96,24 @@ export const fictionItems = [
 
 export const itemsByLibrary = {
   'lib-fiction': fictionItems,
+  // Folded order (NFD, strip combining marks, NFC, lowercase — the server's fold, which the
+  // client reproduces to label buckets but never uses to sort): 'chinatown' before
+  // 'l’armee des ombres' — 'c' < 'l'. The fixture used to list "L'Armée" first, which rendered
+  // index letters L then C: non-monotonic, and a client-side sort would have masked it rather
+  // than fixing the actual bug, which is server-order fidelity in the fixture itself.
   'lib-films': [
-    film('item-armee', 'L’Armée des ombres', {
-      libraryId: 'lib-films',
-      libraryName: 'Films',
-      releaseYear: 1969,
-      duration: 145,
-    }),
     film('item-chinatown', 'Chinatown', {
       libraryId: 'lib-films',
       libraryName: 'Films',
       directors: ['Roman Polanski'],
       releaseYear: 1974,
       duration: 130,
+    }),
+    film('item-armee', 'L’Armée des ombres', {
+      libraryId: 'lib-films',
+      libraryName: 'Films',
+      releaseYear: 1969,
+      duration: 145,
     }),
   ],
   'lib-empty': [],

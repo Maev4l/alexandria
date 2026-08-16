@@ -63,6 +63,22 @@ describe('AppHeader', () => {
     expect(onTitleTap).toHaveBeenCalledOnce();
   });
 
+  // The title used to render as a <button> even with no onTitleTap, so a screen reader announced
+  // "Fiction, button" for a control that did nothing on activation.
+  it('renders the title as plain text, not a button, when there is no onTitleTap to fire', () => {
+    renderHeader({ title: 'Fiction', onBack: () => {} });
+    const title = screen.getByText('Fiction');
+    expect(title.tagName).toBe('SPAN');
+    expect(screen.queryByRole('button', { name: /fiction/i })).toBeNull();
+  });
+
+  it('renders the title as a button, with the 48px touch target, only when onTitleTap is given', () => {
+    renderHeader({ title: 'Fiction', onBack: () => {}, onTitleTap: vi.fn() });
+    const button = screen.getByRole('button', { name: /fiction/i });
+    expect(button.className).toContain('min-h-12');
+    expect(button.className).toContain('min-w-0');
+  });
+
   it('renders whatever the right slot is given, since it differs per screen', () => {
     renderHeader({ wordmark: true, right: <span>JR</span> });
     expect(screen.getByText('JR')).toBeInTheDocument();
