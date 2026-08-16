@@ -15,11 +15,14 @@ import IndexLetter from '@/components/imprint/IndexLetter.jsx';
 // by attribute instead of by scrolling a stream into view — IndexLetter itself stays untouched.
 const HARD = ['M', 'N', 'P', 'Œ'];
 const CLEAN = ['A', 'L', 'V', 'Z', '1'];
-// '&' added for round 2 (index-letter treatment re-decision): the task's fixed crop set names
-// it explicitly. Under the shipped solid-ink treatment every glyph — alphanumeric or symbol —
-// takes the identical render, so '&' and '#' are redundant as *treatments*; both stay because
-// the guard checks each individually, and a second symbol costs nothing to keep covered.
-const SYMBOL = ['#', '&'];
+// F3: expanded beyond '#'/'&' to re-test the symbol carve-out itself — the claim that these
+// self-cross and collide with a stroke was made in system-ui fallback (same contaminated round
+// as the letters that turned out fine) and had never been checked in real Archivo. Set covers
+// every ASCII punctuation mark named anywhere in this codebase's own comments/history as a
+// character a title's folded first character could plausibly be: '@'/'*'/'%' (old carve-out
+// comment), quotes and parens (real content in fixtures — curly quotes, "l'ordre" — plus the
+// ASCII form a title could start with).
+const SYMBOL = ['#', '&', '@', '*', '"', "'", '(', ')', '%'];
 
 const IndexLetterHarness = () => (
   <div style={{ background: 'var(--paper)' }}>

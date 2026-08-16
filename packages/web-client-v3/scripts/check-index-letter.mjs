@@ -2,43 +2,61 @@
 // Guards IndexLetter.jsx's rendering treatment against silent regression.
 //
 // jsdom renders no text at all, so nothing about a glyph's actual pixels — a stroke colliding
-// with itself inside a counter, or a fill sitting where it shouldn't — can be asserted in a unit
-// test. That is exactly why the original stroke-collision defect shipped undetected under 184
-// passing unit tests. This check renders the REAL component through the project's own dev
-// server (real font, real Tailwind stylesheet, real DOM) via the dev-index-letter.html harness,
-// and inspects actual pixels.
+// with itself inside a counter, or a fragmented fill — can be asserted in a unit test. This check
+// renders the REAL component through the project's own dev server (real font, real Tailwind
+// stylesheet, real DOM) via the dev-index-letter.html harness, and inspects actual pixels.
 //
-// ROUND 2 HISTORY (see IndexLetter.jsx's header for the full account): round 1 shipped a
-// stroked-imprint-fill letter (0.85px stroke / weight 400 / stretch 100%) that reduced but never
-// eliminated a stroke self-collision on M/N. That was reverted — rendered against the real
-// stream, the residual mark was still visible at reading size. Round 2 replaced the whole
-// construction: SOLID INK, no stroke, no fill, with --imprint moved to the 4px rule beneath the
-// letter instead of living on the letter itself. A solid fill has no offset outline to collide
-// with, for any glyph, at any weight — so the checks below assert an ABSENCE (no imprint-colored
-// pixel anywhere in a glyph's own crop) rather than measuring how small a collision has become.
+// F3 HISTORY: round 2 shipped solid ink (no stroke) after judging the stroked construction
+// (Candidate F) to collide on M/N/P at this weight/stretch/size — but every one of those crops
+// was rendered in `system-ui` fallback (the shipped Archivo binary held only a space and `A` at
+// the time), at a `font-stretch: 62.5%` a width-less fallback face silently ignores. Re-tested in
+// the real, fixed Archivo: F does not collide, and the browse-stream comparison (solid ink at
+// 76px reads as oversized content, the same colour as row titles, not as a mark) is what actually
+// decided the reversion. Candidate F is restored. See IndexLetter.jsx's own header for the full
+// account, and .superpowers/sdd/2026-08-13-web-client-v3/f3-report.md for the measurements below.
 //
-// Two layers, because either alone misses a real regression:
-//   1. Computed style is PINNED: weight 900 / stretch 62.5% (the original letterform, unchanged
-//      by this fix — nothing about solid ink needed softening it), stroke width 0px (none at
-//      all — catches a reintroduced `-webkit-text-stroke` before it can ever collide), text
-//      color ink (not imprint), and the separator's own border-bottom-color is imprint (the rule
-//      is where the accent lives now).
-//   2. Pixel inspection of the actually rendered glyphs, because a declared value surviving the
-//      cascade is not the same claim as "no yellow pixel actually landed inside this glyph." Each
-//      glyph's own crop is checked for (a) zero imprint-classified pixels — this fails hard
-//      against both prior treatments: round 1's stroked-imprint-fill (majority-imprint pixels)
-//      and the plate candidate considered and rejected this round (imprint fill surrounding the
-//      letter) — and (b) a real ink glyph actually rendered (not a blank crop). P and Œ also keep
-//      a targeted check that their enclosed counter (the bowl; the O) is genuinely open, since
-//      solid ink COULD in principle be heavy enough to bridge one even with no stroke involved.
+// The alphanumeric/symbol carve-out this file used to check for is GONE — the claim that symbols
+// self-collide (specifically: "# resolves into nine separate yellow quadrilaterals") came from
+// the same contaminated round and does not hold in real Archivo (measured below: `#`'s fill is
+// 96%+ one connected piece). One treatment, one set of checks, for every glyph.
+//
+// Three layers:
+//   1. Computed style is PINNED: weight 900 / stretch 62.5% (unchanged since round 1), stroke
+//      width 2px (F's mechanism — an offset ink outline), fill color imprint (not ink), and the
+//      separator's own border-bottom-color is ink (the accent moved OFF the rule and back onto
+//      the letter itself — the reverse of round 2's move).
+//   2. Enclosed-counter openness for M, N, P, Œ — the four glyphs the historical collision claim
+//      named. M/N's counters open at the glyph's own cap-height (not a closed loop like P/Œ's),
+//      so a naive 4-edge flood-fill wrongly treats them as connected to the exterior regardless
+//      of health — this shipped undetected in the F2b round, which could only ever report 0.0 for
+//      M/N and correctly flagged that as a known limitation rather than evidence. Fixed by (a)
+//      trimming the pixel grid to the ink's own bounding box, and (b) seeding the flood-fill only
+//      from the trimmed grid's LEFT/RIGHT columns, not its top/bottom rows — a notch that opens at
+//      cap-height can still have paper reaching that same top row (diagonal apexes commonly
+//      undershoot flat-topped stems slightly), so seeding the top row lets the flood walk straight
+//      across it. Validated against a synthetic stroke-width sweep (2/4/6/8px) before trusting it:
+//      the metric drops monotonically as a real collision is manufactured, and the 2px value
+//      matches the real-component measurement exactly (see f3-report.md).
+//   3. Fill-connectivity for `#` — the one glyph with a specific historical fragmentation claim
+//      attached to it. Counts connected components of imprint-classified pixels; a genuinely
+//      fragmented fill (the claimed "nine separate quadrilaterals") would show as several
+//      similar-sized components, not one dominant one plus antialiasing noise.
+//
+// NOT automated per-symbol: `&`, `@`, `%` all have real counters and were confirmed open by direct
+// visual inspection (crops in f3-report.md) plus the fill-connectivity check above, but the
+// enclosed-counter algorithm above proved unreliable on `&`'s more complex, non-convex silhouette
+// (its crossbar stroke's sidebearing meant the trim+cols-only heuristic misread real ink near the
+// crop edge as exterior background) — an automated check that produces a false reading is worse
+// than no automated check, so `&`'s counter-openness rests on the crops, not a pinned number here.
+// `%` and `"` are correctly MULTI-piece by design (a percent sign's rings don't touch its slash;
+// a double quote is two unconnected wedges) — a blanket "one connected piece" assertion across
+// every glyph would be wrong for these, which is why layer 3 targets `#` specifically rather than
+// every glyph in the set.
 import fs from 'fs';
 import puppeteer from 'puppeteer-core';
 import sharp from 'sharp';
 import { startFixtureServer, stopFixtureServer } from './fixture-server.mjs';
 
-// A dedicated port and env var: 5198 already belongs to profile-stream.mjs's PROFILE_PORT and
-// 5199 to check-browser.mjs's CHECK_PORT — sharing either risks a collision if two of these
-// checks are ever run together (CI, or a developer with both in a split terminal).
 const PORT = Number(process.env.INDEX_LETTER_CHECK_PORT ?? 5197);
 const BASE = `http://localhost:${PORT}`;
 const MAC_CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -58,23 +76,17 @@ const record = (ok, label, detail) => {
   }
 };
 
-// The calibrated parameters. A future change to IndexLetter.jsx's treatment must update these
-// deliberately — that is the point of a pin. Weight/stretch are round 1's ORIGINAL values,
-// unchanged by round 2 — only the stroke (now none) and the fill (now ink, not imprint) moved.
-const EXPECTED_STYLE = { fontWeight: '900', fontStretch: '62.5%', strokeWidth: '0px' };
-const EXPECTED_COLOR = 'rgb(11, 11, 11)'; // --ink
-const EXPECTED_BORDER = 'rgb(242, 194, 0)'; // --imprint — the rule, not the letter, carries it now
+// Candidate F's calibrated parameters. Weight/stretch/size are unchanged since round 1; stroke
+// width, fill color and border color are F's own (the reverse of round 2's ink-fill/imprint-rule
+// pairing).
+const EXPECTED_STYLE = { fontWeight: '900', fontStretch: '62.5%', strokeWidth: '2px' };
+const EXPECTED_COLOR = 'rgb(242, 194, 0)'; // --imprint — the fill, restored to the letter itself
+const EXPECTED_BORDER = 'rgb(11, 11, 11)'; // --ink — the rule, no longer carrying the accent
 
-// Color classification by nearest of the three palette tokens actually in play on this element
-// (paper ground, ink glyph, imprint — which after round 2 should never appear inside a glyph's
-// own crop at all). Screenshots are PNG (no alpha blending against a non-paper backdrop), so
-// nearest-of-three is unambiguous except at antialiased edges, which is fine — this measures
-// interior regions in bulk, not edges.
 const PAPER = [246, 246, 243];
 const INK = [11, 11, 11];
 const IMPRINT = [242, 194, 0];
 const dist2 = (a, b) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2;
-
 const classify = (r, g, b) => {
   const px = [r, g, b];
   const dPaper = dist2(px, PAPER);
@@ -100,8 +112,33 @@ const readPixels = async (buffer) => {
   return { grid, width, height };
 };
 
-// BFS from the border inward over paper-classified pixels only. Anything paper-classified but
-// NOT reached this way is enclosed by ink — a genuine counter (or, if bridged, no longer one).
+// Trims the grid to the bounding box of ink-classified pixels — needed so a counter that opens
+// at the glyph's own cap-height isn't falsely connected to line-box padding above it.
+const trimToInkBBox = ({ grid, width, height }) => {
+  let minX = width;
+  let maxX = -1;
+  let minY = height;
+  let maxY = -1;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (grid[y][x] === 'ink') {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return null;
+  const trimmed = [];
+  for (let y = minY; y <= maxY; y += 1) trimmed.push(grid[y].slice(minX, maxX + 1));
+  return { grid: trimmed, width: maxX - minX + 1, height: maxY - minY + 1 };
+};
+
+// Flood-fill seeded ONLY from the left/right columns (not top/bottom rows) — see file header for
+// why. This is the corrected, general-purpose version of the check; it produces identical results
+// to a standard 4-edge flood for P/Œ (true closed loops) and correctly stops false-connecting M/N's
+// open-topped notches to the exterior.
 const largestEnclosedPaperRatio = ({ grid, width, height }) => {
   const outside = Array.from({ length: height }, () => Array.from({ length: width }, () => false));
   const queue = [];
@@ -111,10 +148,6 @@ const largestEnclosedPaperRatio = ({ grid, width, height }) => {
       queue.push([x, y]);
     }
   };
-  for (let x = 0; x < width; x += 1) {
-    enqueue(x, 0);
-    enqueue(x, height - 1);
-  }
   for (let y = 0; y < height; y += 1) {
     enqueue(0, y);
     enqueue(width - 1, y);
@@ -172,9 +205,47 @@ const largestEnclosedPaperRatio = ({ grid, width, height }) => {
   return best / (width * height);
 };
 
-// Share of a glyph's own crop that classifies as ink, or as imprint. After round 2 every glyph
-// should be ink-only (plus paper background) — an imprint share above ~zero means a fill or a
-// stroke painted yellow pixels where none belong.
+// Connected components of a single color class — used for the `#` fragmentation check.
+const connectedComponentSizes = (grid, width, height, colorKey) => {
+  const seen = Array.from({ length: height }, () => Array.from({ length: width }, () => false));
+  const sizes = [];
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (grid[y][x] === colorKey && !seen[y][x]) {
+        let area = 0;
+        const stack = [[x, y]];
+        seen[y][x] = true;
+        while (stack.length) {
+          const [cx, cy] = stack.pop();
+          area += 1;
+          for (const [dx, dy] of [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ]) {
+            const nx = cx + dx;
+            const ny = cy + dy;
+            if (
+              nx >= 0 &&
+              nx < width &&
+              ny >= 0 &&
+              ny < height &&
+              grid[ny][nx] === colorKey &&
+              !seen[ny][nx]
+            ) {
+              seen[ny][nx] = true;
+              stack.push([nx, ny]);
+            }
+          }
+        }
+        sizes.push(area);
+      }
+    }
+  }
+  return sizes;
+};
+
 const colorRatios = ({ grid, width, height }) => {
   let ink = 0;
   let imprint = 0;
@@ -188,6 +259,19 @@ const colorRatios = ({ grid, width, height }) => {
   return { inkRatio: ink / total, imprintRatio: imprint / total };
 };
 
+// Looks a glyph's wrapper up by dataset comparison in-page rather than building a CSS attribute
+// selector string — several test glyphs (`"`, `'`) cannot be safely interpolated into a CSS
+// selector's quoted value at all without escaping, and `CSS.escape` on `"` still produced a
+// selector Puppeteer's own query-handler rejected. Comparing `dataset.glyph` in JS sidesteps CSS
+// quoting entirely, for any character the fold could ever produce.
+const glyphSpan = async (page, letter) => {
+  const handle = await page.evaluateHandle((glyph) => {
+    const wrapper = [...document.querySelectorAll('[data-glyph]')].find((w) => w.dataset.glyph === glyph);
+    return wrapper ? wrapper.querySelector('[aria-hidden="true"]') : null;
+  }, letter);
+  return handle.asElement();
+};
+
 console.log(`starting a plain dev server on :${PORT} for the IndexLetter harness\n`);
 const server = await startFixtureServer({ port: PORT, readyPath: '/dev-index-letter.html' });
 const browser = await puppeteer.launch({ executablePath: resolveChrome(), headless: true });
@@ -195,7 +279,7 @@ const browser = await puppeteer.launch({ executablePath: resolveChrome(), headle
 try {
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 2200, deviceScaleFactor: 2 });
-  await page.goto(`${BASE}/dev-index-letter.html`, { waitUntil: 'networkidle0' });
+  await page.goto(`${BASE}/dev-index-letter.html`, { waitUntil: 'networkidle0', timeout: 30_000 });
   await page.waitForSelector('[data-glyph]', { timeout: 15_000 });
   await page.evaluate(() => document.fonts.ready);
 
@@ -219,67 +303,79 @@ try {
   }
   record(
     style.color === EXPECTED_COLOR,
-    'the glyph is solid ink, not imprint',
+    'the glyph fill is imprint, not ink',
     `expected ${EXPECTED_COLOR}, got ${style.color}`,
   );
 
-  console.log('\nthe accent lives on the rule, not the letter (Iridescent Edge: edges, not content)');
+  console.log('\nthe accent lives on the letter again (the stroke IS the yellow-on-paper contrast mechanism)');
   const borderColor = await page.evaluate(() => {
     const el = document.querySelector('[data-glyph="A"] [role="separator"]');
     return getComputedStyle(el).borderBottomColor;
   });
   record(
     borderColor === EXPECTED_BORDER,
-    "the separator's border-bottom-color is --imprint",
+    "the separator's border-bottom-color is --ink",
     `expected ${EXPECTED_BORDER}, got ${borderColor}`,
   );
 
-  console.log('\nP and Œ: the enclosed counter is genuinely open (solid ink alone cannot bridge it)');
-  // RE-DERIVED (F2b) against the real shipped Archivo binary — the 0.03/0.07 pair this replaces
-  // was calibrated round 2, which shipped (commit fe8fcce) BEFORE the font fix (commit 20d2db7),
-  // so it was set against ~0.057/~0.100 measured in SYSTEM-UI FALLBACK, not Archivo. Real Archivo's
-  // solid-ink counters at 900/62.5%/76px measure smaller than the fallback glyph's did: P 0.0301,
-  // Œ 0.0721 (measured via scratchpad/derive-guard-values.mjs, same classify/BFS logic as below).
-  // The prior pair (0.03/0.07) was therefore passing on razor-thin, accidental margin — P's real
-  // measurement (0.0301) cleared its own threshold (0.03) by three ten-thousandths, no safety
-  // margin at all, and a single subpixel-AA difference between Chrome versions could have flipped
-  // it red for a reason having nothing to do with a real collision. New thresholds keep the same
-  // "margin below the measured value" discipline the old comment described, now applied to the
-  // real number: P 0.0301 → 0.02 (33% margin), Œ 0.0721 → 0.05 (31% margin) — comfortably clear of
-  // the healthy value, comfortably far from 0 (which is what an actual bridge produces).
-  const ENCLOSED_MIN = { P: 0.02, Œ: 0.05 };
+  console.log('\nM, N, P, Œ: the counter is genuinely open (stroke does not bridge it)');
+  // RE-DERIVED (F3), against real Archivo, real component, real F treatment. Each threshold sits
+  // at roughly half its own real worst-case-clean measurement — comfortably below the healthy
+  // value, comfortably above 0 (what an actual bridge produces). Full separation figures (worst
+  // clean / best synthetic-failing / margin) are recorded in f3-report.md; summarized here:
+  //   M: real clean 0.0428 (synthetic collision sweep: 4px stroke→0.0249, 6px→0.0125, 8px→0.0049)
+  //   N: real clean 0.0250 (synthetic: 3px→0.0170, 4px→0.0107)
+  //   P: real clean 0.0231 (synthetic: 3px→0.0149, 4px→0.0071)
+  //   Œ: real clean 0.0657 (synthetic: 4px→0.0710, 6px→0.0498 — a different rendering context
+  //      than the harness measurement, see f3-report.md; direction still monotonic-down)
+  const ENCLOSED_MIN = { M: 0.02, N: 0.012, P: 0.011, Œ: 0.03 };
   for (const [letter, min] of Object.entries(ENCLOSED_MIN)) {
-    const el = await page.$(`[data-glyph="${letter}"] [aria-hidden="true"]`);
+    const el = await glyphSpan(page, letter);
     const buffer = await el.screenshot();
-    const ratio = largestEnclosedPaperRatio(await readPixels(buffer));
+    const trimmed = trimToInkBBox(await readPixels(buffer));
+    const ratio = trimmed ? largestEnclosedPaperRatio(trimmed) : 0;
     record(
       ratio >= min,
-      `${letter}'s largest enclosed counter is at least ${min} of its frame`,
-      `measured ${ratio.toFixed(3)}`,
+      `${letter}'s largest enclosed counter is at least ${min} of its (trimmed) frame`,
+      `measured ${ratio.toFixed(4)}`,
     );
   }
 
-  console.log('\nevery glyph renders solid ink with ZERO imprint pixels in its own crop');
-  // The full crop set the round-2 brief named, plus the previously-hard set and the previously
-  // clean set: after collapsing the alphanumeric/symbol split, every one of these must now take
-  // the identical treatment. A non-zero imprint share here fails against BOTH prior treatments —
-  // round 1's stroked-imprint-fill (majority imprint) and the plate candidate rejected this round
-  // (imprint fill framing the letter).
-  // 0.01 was too tight: a flat-bottomed glyph (L, whose foot spans its full width) can catch a
-  // hairline of the adjacent imprint border rule in its own screenshot bounding box, from
-  // sub-pixel rounding of that box's height — confirmed by inspecting L's crop directly, which
-  // shows a clean solid glyph with no yellow visible to the eye. 0.02 clears that artifact by a
-  // wide margin while still failing hard against an actual fill or plate (double-digit percent).
-  const IMPRINT_MAX = 0.02;
-  const INK_MIN = 0.1;
-  for (const letter of ['M', 'N', 'P', 'Œ', 'A', 'L', 'V', 'Z', '1', '#', '&']) {
-    const el = await page.$(`[data-glyph="${letter}"] [aria-hidden="true"]`);
+  console.log("\n# : the fill is one connected piece, not fragmented (the historical claim, now checked)");
+  // Real measured: 96.6% in one component, rest is antialiasing noise (1-53px specks) — see
+  // f3-report.md's connected-components dump. Floor set well below that and well above where a
+  // genuine 9-way fragmentation would land (~11% each).
+  const HASH_LARGEST_COMPONENT_MIN = 0.85;
+  {
+    const el = await glyphSpan(page, '#');
+    const buffer = await el.screenshot();
+    const { grid, width, height } = await readPixels(buffer);
+    const components = connectedComponentSizes(grid, width, height, 'imprint').sort((a, b) => b - a);
+    const total = components.reduce((a, b) => a + b, 0);
+    const largestShare = total ? components[0] / total : 0;
+    record(
+      largestShare >= HASH_LARGEST_COMPONENT_MIN,
+      `# 's fill is at least ${HASH_LARGEST_COMPONENT_MIN * 100}% one connected piece`,
+      `measured ${(largestShare * 100).toFixed(1)}% in the largest of ${components.length} components`,
+    );
+  }
+
+  console.log('\nevery glyph shows both colors (stroke and fill both actually render)');
+  // Lightweight regression net, not a shape assertion: catches the stroke or the fill vanishing
+  // wholesale (e.g., stroke width reverting to 0, or fill color reverting to ink) for ANY glyph
+  // the fold can produce, including the newly-tested symbol set. Floors are well below every
+  // glyph's own measured ratio (thinnest glyphs — quotes — still clear 0.10/0.17).
+  const INK_MIN = 0.05;
+  const IMPRINT_MIN = 0.1;
+  const ALL_GLYPHS = ['M', 'N', 'P', 'Œ', 'A', 'L', 'V', 'Z', '1', '#', '&', '@', '*', '"', "'", '(', ')', '%'];
+  for (const letter of ALL_GLYPHS) {
+    const el = await glyphSpan(page, letter);
     const buffer = await el.screenshot();
     const { inkRatio, imprintRatio } = colorRatios(await readPixels(buffer));
     record(
-      imprintRatio <= IMPRINT_MAX && inkRatio >= INK_MIN,
-      `${letter} is solid ink with no imprint pixels`,
-      `ink ratio ${inkRatio.toFixed(3)} (want ≥ ${INK_MIN}), imprint ratio ${imprintRatio.toFixed(3)} (want ≤ ${IMPRINT_MAX})`,
+      inkRatio >= INK_MIN && imprintRatio >= IMPRINT_MIN,
+      `${letter} shows both stroke (ink) and fill (imprint)`,
+      `ink ratio ${inkRatio.toFixed(3)} (want ≥ ${INK_MIN}), imprint ratio ${imprintRatio.toFixed(3)} (want ≥ ${IMPRINT_MIN})`,
     );
   }
 } finally {
