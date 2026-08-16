@@ -57,7 +57,11 @@ const UnshareLibrary = () => {
         search={false}
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <main className="min-h-0 flex-1 overflow-y-auto">
+        {/* The header already names the library visibly ("Unshare Fiction" / "Unshare"), so
+            the <h1> mirrors it hidden rather than printing it a second time on screen. */}
+        <h1 className="sr-only">{library ? `Unshare ${library.name}` : 'Unshare'}</h1>
+
         {error && (
           <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
             {error}
@@ -92,7 +96,7 @@ const UnshareLibrary = () => {
             </button>
           );
         })}
-      </div>
+      </main>
 
       {/* The bar keeps its height whether or not there is an action in it, so the content
           above never jumps. "Absent, not disabled" is about what a reader MAY not do; here

@@ -90,6 +90,16 @@ export const handleMockRequest = (method, url, body) => {
     return ok({ collections: collectionsByLibrary[collectionsMatch[1]] ?? [] });
   }
 
+  // The single-collection GET (EditCollection's cold-load) — a header only, per the API and
+  // DESIGN.md's "collections stay inline" note; never the member items.
+  const collectionMatch = path.match(/^\/libraries\/([^/]+)\/collections\/([^/]+)$/);
+  if (method === 'GET' && collectionMatch) {
+    const found = (collectionsByLibrary[collectionMatch[1]] ?? []).find(
+      (c) => c.id === collectionMatch[2],
+    );
+    return found ? ok(found) : notFound();
+  }
+
   if (method === 'POST' && path === '/search') return ok({ results: searchResults });
 
   // Writes acknowledge with the empty body the real API returns, so the client's

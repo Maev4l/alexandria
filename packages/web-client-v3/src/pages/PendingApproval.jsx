@@ -10,16 +10,20 @@ const PendingApproval = () => {
       <span className="caps mt-8 inline-block self-start border-2 border-out px-2 py-1 text-[11px] font-extrabold tracking-[0.14em] text-ink">
         Pending approval
       </span>
-      <h1 className="mt-4 text-[32px] font-extrabold leading-[1.06]">
-        Your request is with an administrator
-      </h1>
-      <p className="mt-4 max-w-prose text-sm text-ink-soft">
-        Alexandria is a private catalogue, so every new account is approved by hand. You will not
-        be notified here — sign in again later and you will be through.
-      </p>
-      <PlateButton variant="secondary" className="mt-8 self-start" onClick={signOut}>
-        Sign out
-      </PlateButton>
+      {/* Not a route (App.jsx's Gate renders this in place of the router), but still a real
+          screen a reader lands on, so it gets the same landmark and heading discipline. */}
+      <main className="flex flex-1 flex-col">
+        <h1 className="mt-4 text-[32px] font-extrabold leading-[1.06]">
+          Your request is with an administrator
+        </h1>
+        <p className="mt-4 max-w-prose text-sm text-ink-soft">
+          Alexandria is a private catalogue, so every new account is approved by hand. You will
+          not be notified here — sign in again later and you will be through.
+        </p>
+        <PlateButton variant="secondary" className="mt-8 self-start" onClick={signOut}>
+          Sign out
+        </PlateButton>
+      </main>
     </div>
   );
 };

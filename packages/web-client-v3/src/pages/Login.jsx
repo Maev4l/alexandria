@@ -44,50 +44,54 @@ const Login = () => {
       <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-[11px] font-extrabold tracking-[0.16em] text-ink">
         Alexandria
       </span>
-      <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Sign in</h1>
+      {/* This screen carries no separate header component, so <main> wraps everything below
+          the wordmark badge rather than a nested subset of it. */}
+      <main>
+        <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Sign in</h1>
 
-      {(oauthMessage?.type === 'success' || notice) && (
-        <p role="status" className="mb-6 border-t-2 border-imprint bg-paper-deep p-4 text-sm text-ink">
-          {oauthMessage?.type === 'success' ? oauthMessage.text : notice}
-        </p>
-      )}
+        {(oauthMessage?.type === 'success' || notice) && (
+          <p role="status" className="mb-6 border-t-2 border-imprint bg-paper-deep p-4 text-sm text-ink">
+            {oauthMessage?.type === 'success' ? oauthMessage.text : notice}
+          </p>
+        )}
 
-      {(error || oauthMessage?.type === 'error') && (
-        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
-          {error ?? oauthMessage.text}
-        </p>
-      )}
+        {(error || oauthMessage?.type === 'error') && (
+          <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
+            {error ?? oauthMessage.text}
+          </p>
+        )}
 
-      <form onSubmit={onSubmit} noValidate>
-        <Field
-          label="Email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <Field
-          label="Password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <PlateButton type="submit" disabled={isBusy} className="w-full">
-          {isBusy ? 'Signing in' : 'Sign in'}
+        <form onSubmit={onSubmit} noValidate>
+          <Field
+            label="Email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Field
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <PlateButton type="submit" disabled={isBusy} className="w-full">
+            {isBusy ? 'Signing in' : 'Sign in'}
+          </PlateButton>
+        </form>
+
+        <PlateButton variant="secondary" className="mt-4 w-full" onClick={signInWithGoogle}>
+          Continue with Google
         </PlateButton>
-      </form>
 
-      <PlateButton variant="secondary" className="mt-4 w-full" onClick={signInWithGoogle}>
-        Continue with Google
-      </PlateButton>
-
-      <p className="mt-8 text-sm">
-        No account yet?{' '}
-        <Link to="/signup" className="font-bold underline">
-          Create one
-        </Link>
-      </p>
+        <p className="mt-8 text-sm">
+          No account yet?{' '}
+          <Link to="/signup" className="font-bold underline">
+            Create one
+          </Link>
+        </p>
+      </main>
     </div>
   );
 };

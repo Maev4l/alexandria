@@ -35,34 +35,39 @@ const NewLibrary = () => {
   return (
     <div className="min-h-dvh bg-paper">
       <AppHeader title="New library" onBack={() => navigate(-1)} search={false} />
-      <form className="p-4" onSubmit={onSubmit} noValidate>
-        {error && (
-          <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
-            {error}
-          </p>
-        )}
-        {/* Both limits are short enough to hit, so the count is shown rather than the field
-            silently refusing the next keystroke. */}
-        <Field
-          label="Name"
-          maxLength={NAME_MAX}
-          counter={NAME_MAX - name.length}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-        <Field
-          label="Description"
-          as="textarea"
-          rows={3}
-          maxLength={DESCRIPTION_MAX}
-          counter={DESCRIPTION_MAX - description.length}
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-        />
-        <PlateButton type="submit" disabled={isBusy || !name.trim()}>
-          {isBusy ? 'Creating' : 'Create library'}
-        </PlateButton>
-      </form>
+      <main>
+        {/* The header already shows this title visibly, so the <h1> duplicating it stays
+            hidden — nothing is labelled twice. */}
+        <h1 className="sr-only">New library</h1>
+        <form className="p-4" onSubmit={onSubmit} noValidate>
+          {error && (
+            <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
+              {error}
+            </p>
+          )}
+          {/* Both limits are short enough to hit, so the count is shown rather than the field
+              silently refusing the next keystroke. */}
+          <Field
+            label="Name"
+            maxLength={NAME_MAX}
+            counter={NAME_MAX - name.length}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <Field
+            label="Description"
+            as="textarea"
+            rows={3}
+            maxLength={DESCRIPTION_MAX}
+            counter={DESCRIPTION_MAX - description.length}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
+          <PlateButton type="submit" disabled={isBusy || !name.trim()}>
+            {isBusy ? 'Creating' : 'Create library'}
+          </PlateButton>
+        </form>
+      </main>
     </div>
   );
 };

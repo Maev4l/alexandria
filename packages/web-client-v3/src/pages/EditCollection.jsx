@@ -69,11 +69,14 @@ const EditCollection = () => {
           onBack={() => navigate(`/libraries/${libraryId}`)}
           search={false}
         />
-        <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
-          {status === 'missing'
-            ? 'That collection is not in this library any more.'
-            : 'Could not load that collection. Check your connection and try again.'}
-        </p>
+        <main className="p-4">
+          <h1 className="sr-only">Not found</h1>
+          <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
+            {status === 'missing'
+              ? 'That collection is not in this library any more.'
+              : 'Could not load that collection. Check your connection and try again.'}
+          </p>
+        </main>
       </div>
     );
   }
@@ -81,37 +84,42 @@ const EditCollection = () => {
   return (
     <div className="min-h-dvh bg-paper">
       <AppHeader title="Edit collection" onBack={() => navigate(-1)} search={false} />
-      <form className="p-4" onSubmit={onSubmit} noValidate>
-        {error && (
-          <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
-            {error}
-          </p>
-        )}
-        <Field
-          label="Name"
-          maxLength={NAME_MAX}
-          counter={NAME_MAX - name.length}
-          value={name}
-          error={nameError}
-          hint="Unique within this library."
-          onChange={(event) => {
-            setName(event.target.value);
-            setNameError(null);
-          }}
-        />
-        <Field
-          label="Description"
-          as="textarea"
-          rows={3}
-          maxLength={DESCRIPTION_MAX}
-          counter={DESCRIPTION_MAX - description.length}
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-        />
-        <PlateButton type="submit" disabled={isBusy || !name.trim()}>
-          {isBusy ? 'Saving' : 'Save changes'}
-        </PlateButton>
-      </form>
+      <main>
+        {/* The header already shows this title visibly, so the <h1> duplicating it stays
+            hidden — nothing is labelled twice. */}
+        <h1 className="sr-only">Edit collection</h1>
+        <form className="p-4" onSubmit={onSubmit} noValidate>
+          {error && (
+            <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
+              {error}
+            </p>
+          )}
+          <Field
+            label="Name"
+            maxLength={NAME_MAX}
+            counter={NAME_MAX - name.length}
+            value={name}
+            error={nameError}
+            hint="Unique within this library."
+            onChange={(event) => {
+              setName(event.target.value);
+              setNameError(null);
+            }}
+          />
+          <Field
+            label="Description"
+            as="textarea"
+            rows={3}
+            maxLength={DESCRIPTION_MAX}
+            counter={DESCRIPTION_MAX - description.length}
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+          />
+          <PlateButton type="submit" disabled={isBusy || !name.trim()}>
+            {isBusy ? 'Saving' : 'Save changes'}
+          </PlateButton>
+        </form>
+      </main>
     </div>
   );
 };

@@ -36,7 +36,9 @@ describe('Libraries', () => {
   it('splits the list into mine and shared with me, mine first', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Fiction')).toBeInTheDocument());
-    const heads = screen.getAllByRole('separator');
+    // The product's primary IA division, promoted from role="separator" to a real <h2> so it is
+    // reachable navigating by heading — see the comment beside StreamHead in Libraries.jsx.
+    const heads = screen.getAllByRole('heading', { level: 2 });
     expect(heads[0]).toHaveTextContent(/mine/i);
     expect(heads[1]).toHaveTextContent(/shared with me/i);
   });
@@ -44,8 +46,9 @@ describe('Libraries', () => {
   it('counts each section', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText('Fiction')).toBeInTheDocument());
-    expect(screen.getAllByRole('separator')[0]).toHaveTextContent('3');
-    expect(screen.getAllByRole('separator')[1]).toHaveTextContent('1');
+    const heads = screen.getAllByRole('heading', { level: 2 });
+    expect(heads[0]).toHaveTextContent('3');
+    expect(heads[1]).toHaveTextContent('1');
   });
 
   it('offers the primary action to create a library', async () => {

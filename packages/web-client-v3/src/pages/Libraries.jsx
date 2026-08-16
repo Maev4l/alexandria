@@ -8,16 +8,19 @@ import PullToRefresh from '@/components/PullToRefresh.jsx';
 import { useLibraries } from '@/state/LibrariesContext.jsx';
 import { useAuth } from '@/auth/AuthContext.jsx';
 
-// Index letters are separators, not headings; so are these section heads. Exposing them as
-// separators keeps the screen's heading outline honest.
+// Index letters (IndexLetter.jsx) mark POSITION within one alphabetical stream and stay
+// role="separator" — they are not structure, just a place a reader currently is. "Mine" and
+// "Shared with me" are a different thing: the product's primary IA division (PRODUCT.md,
+// ui-v3.md §2) between two real, labelled sections. Exposing that division only as a separator
+// made it structurally unreachable to a screen reader navigating by heading — the shared
+// section had no heading to land on at all. Promoted to <h2> so the outline says what the
+// screen actually contains; the separator role stays reserved for the index letters it was
+// built for.
 const StreamHead = ({ label, count }) => (
-  <div
-    role="separator"
-    className="flex items-center justify-between border-b border-ink px-4 pb-1 pt-4 text-[11px] font-extrabold uppercase tracking-[0.16em]"
-  >
+  <h2 className="flex items-center justify-between border-b border-ink px-4 pb-1 pt-4 text-[11px] font-extrabold uppercase tracking-[0.16em]">
     <span>{label}</span>
     <span className="num tracking-normal text-ink-soft">{count}</span>
-  </div>
+  </h2>
 );
 
 // A ruled frame at the right proportions, so the layout does not move when content lands.
@@ -54,48 +57,55 @@ const Libraries = () => {
       />
 
       <PullToRefresh onRefresh={refresh} className="min-h-0 flex-1">
-        {error && (
-          // Recovery is a control, not an instruction to perform a gesture.
-          <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">
-            <p className="text-sm">{error}</p>
-            <PlateButton variant="secondary" className="mt-4" onClick={refresh}>
-              Try again
-            </PlateButton>
-          </div>
-        )}
+        <main>
+          {/* The app's home screen — and, per the critique this fixes, the one route whose
+              heading outline was entirely empty. The header carries the wordmark, not this
+              screen's name, so the <h1> is visually hidden rather than a second visible copy. */}
+          <h1 className="sr-only">Libraries</h1>
 
-        {isLoading && !error && (
-          <>
-            <StreamHead label="Mine" count="—" />
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
-          </>
-        )}
+          {error && (
+            // Recovery is a control, not an instruction to perform a gesture.
+            <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">
+              <p className="text-sm">{error}</p>
+              <PlateButton variant="secondary" className="mt-4" onClick={refresh}>
+                Try again
+              </PlateButton>
+            </div>
+          )}
 
-        {!isLoading && !error && (
-          <>
-            <StreamHead label="Mine" count={owned.length} />
-            {owned.length === 0 && (
-              <p className="caps border-b-2 border-ink p-4 text-xs font-bold text-ink-soft">
-                No libraries yet — start one below
-              </p>
-            )}
-            {owned.map((library) => (
-              <LibraryRow key={library.id} library={library} onActions={setActionsFor} />
-            ))}
+          {isLoading && !error && (
+            <>
+              <StreamHead label="Mine" count="—" />
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </>
+          )}
 
-            {sharedWithMe.length > 0 && (
-              <>
-                <StreamHead label="Shared with me" count={sharedWithMe.length} />
-                {/* No actions: read-only means the affordance is absent, not disabled. */}
-                {sharedWithMe.map((library) => (
-                  <LibraryRow key={library.id} library={library} />
-                ))}
-              </>
-            )}
-          </>
-        )}
+          {!isLoading && !error && (
+            <>
+              <StreamHead label="Mine" count={owned.length} />
+              {owned.length === 0 && (
+                <p className="caps border-b-2 border-ink p-4 text-xs font-bold text-ink-soft">
+                  No libraries yet — start one below
+                </p>
+              )}
+              {owned.map((library) => (
+                <LibraryRow key={library.id} library={library} onActions={setActionsFor} />
+              ))}
+
+              {sharedWithMe.length > 0 && (
+                <>
+                  <StreamHead label="Shared with me" count={sharedWithMe.length} />
+                  {/* No actions: read-only means the affordance is absent, not disabled. */}
+                  {sharedWithMe.map((library) => (
+                    <LibraryRow key={library.id} library={library} />
+                  ))}
+                </>
+              )}
+            </>
+          )}
+        </main>
       </PullToRefresh>
 
       <div className="pad-bottom-safe border-t-2 border-ink bg-paper p-4">

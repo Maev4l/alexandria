@@ -49,48 +49,52 @@ const SignUp = () => {
       <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-[11px] font-extrabold tracking-[0.16em] text-ink">
         Alexandria
       </span>
-      <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Create an account</h1>
+      {/* This screen carries no separate header component, so <main> wraps everything below
+          the wordmark badge rather than a nested subset of it. */}
+      <main>
+        <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Create an account</h1>
 
-      {error && (
-        <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
-          {error}
+        {error && (
+          <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
+            {error}
+          </p>
+        )}
+
+        <form onSubmit={onSubmit} noValidate>
+          <Field
+            label="Email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Field
+            label="Display name"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Field
+            label="Password"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            // Name what is missing while they type, rather than rejecting on submit.
+            hint={issues.length > 0 ? `Needs ${issues.join(', ')}` : 'Meets every requirement'}
+          />
+          <PlateButton type="submit" disabled={isBusy || !canSubmit} className="w-full">
+            {isBusy ? 'Creating' : 'Create account'}
+          </PlateButton>
+        </form>
+
+        <p className="mt-8 text-sm">
+          Already have one?{' '}
+          <Link to="/login" className="font-bold underline">
+            Sign in
+          </Link>
         </p>
-      )}
-
-      <form onSubmit={onSubmit} noValidate>
-        <Field
-          label="Email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <Field
-          label="Display name"
-          autoComplete="name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Field
-          label="Password"
-          type="password"
-          autoComplete="new-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          // Name what is missing while they type, rather than rejecting on submit.
-          hint={issues.length > 0 ? `Needs ${issues.join(', ')}` : 'Meets every requirement'}
-        />
-        <PlateButton type="submit" disabled={isBusy || !canSubmit} className="w-full">
-          {isBusy ? 'Creating' : 'Create account'}
-        </PlateButton>
-      </form>
-
-      <p className="mt-8 text-sm">
-        Already have one?{' '}
-        <Link to="/login" className="font-bold underline">
-          Sign in
-        </Link>
-      </p>
+      </main>
     </div>
   );
 };
