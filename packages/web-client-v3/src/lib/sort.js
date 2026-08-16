@@ -14,10 +14,10 @@ export const foldForSort = (value) =>
 //
 // An earlier version collapsed digits and ASCII punctuation into a single `#` bucket. That
 // bought a handful of saved rows and cost the one thing an index letter exists for — telling
-// the reader exactly where they are — and it invented a glyph that could not be drawn: `#` is
-// four strokes crossing twice, and the 2px ink stroke that gives every other label its
-// contrast collided with itself in the counters. Near-empty head buckets are rare, truthful
-// and cheap.
+// the reader exactly where they are — for a saving that turned out not to be needed: `#` reads
+// fine on its own (IndexLetter.jsx; scripts/check-index-letter.mjs measures its fill at 96%+ one
+// connected piece in the real Archivo binary). Near-empty head buckets are rare, truthful and
+// cheap regardless.
 //
 // A title can fold to nothing even when it is not empty: one whose first character is a bare
 // combining mark loses it to the NFD strip. Falling back to the RAW first character keeps the
@@ -29,10 +29,3 @@ export const indexLetterFor = (title) => {
   if (folded) return folded.toUpperCase();
   return (title ?? '').charAt(0).toUpperCase();
 };
-
-// The index letter's treatment is bounded by the GLYPH, not patched per symbol. Alphanumerics
-// — letters, digits, Œ, Æ, accented caps — are single-outline shapes that take the 2px ink
-// stroke cleanly. Everything else drops to solid ink, which has no outline to collide with
-// itself and holds at any weight and width for any character the data can produce: &, @, %, *
-// and « all cross themselves and would all have broken a per-symbol fix.
-export const isAlphanumericLabel = (label) => /^[\p{L}\p{N}]$/u.test(label ?? '');

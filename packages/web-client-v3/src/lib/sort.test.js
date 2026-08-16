@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { foldForSort, indexLetterFor, isAlphanumericLabel } from './sort.js';
+import { foldForSort, indexLetterFor } from './sort.js';
 
 describe('foldForSort', () => {
   it('reproduces the server fold: strip diacritics, lowercase', () => {
@@ -61,24 +61,5 @@ describe('indexLetterFor', () => {
     expect(indexLetterFor('\u0301')).toBe('\u0301');
     expect(indexLetterFor('')).toBe('');
     expect(indexLetterFor(undefined)).toBe('');
-  });
-});
-
-describe('isAlphanumericLabel', () => {
-  it('accepts letters, digits and ligatures — all single-outline glyphs', () => {
-    ['A', 'Z', 'É', 'Œ', 'Æ', '1', '9'].forEach((label) => {
-      expect(isAlphanumericLabel(label)).toBe(true);
-    });
-  });
-
-  it('rejects every character that crosses itself and would collide under a stroke', () => {
-    ['#', '&', '@', '%', '*', '«', '"'].forEach((label) => {
-      expect(isAlphanumericLabel(label)).toBe(false);
-    });
-  });
-
-  it('rejects an absent label', () => {
-    expect(isAlphanumericLabel('')).toBe(false);
-    expect(isAlphanumericLabel(undefined)).toBe(false);
   });
 });
