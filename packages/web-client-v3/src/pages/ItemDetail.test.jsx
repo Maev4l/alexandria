@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, MemoryRouter, RouterProvider, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { handleMockRequest } from '../../tools/mock-api.js';
+import { handleMockRequest, resetMockState } from '../../tools/mock-api.js';
 import ItemDetail from './ItemDetail.jsx';
 import { LibrariesProvider } from '@/state/LibrariesContext.jsx';
 import { ToastProvider } from '@/state/ToastContext.jsx';
@@ -24,6 +24,10 @@ const renderPage = (itemId) =>
   );
 
 beforeEach(() => {
+  // Every test in this file shares one module instance of the mock's write-backed state
+  // (tools/mock-api.js), so a test that posts a real event must not inherit the previous test's
+  // mutation of the same fixture item.
+  resetMockState();
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url) => {
@@ -113,6 +117,54 @@ describe('the primary action acts or asks for exactly what it needs — never a 
     renderPage('item-lent');
     await userEvent.click(await screen.findByRole('button', { name: /mark returned/i }));
     expect(await screen.findByText(/le grand sommeil is back/i)).toBeInTheDocument();
+  });
+
+  // A prior audit could not tell "the mock returns the item unchanged" from "the UI never
+  // re-reads" apart from the toast alone — both look identical to a reader watching only the
+  // confirmation. This pins the actual screen content: the re-read this component performs
+  // (`load()`, see the comment above `markReturned`) is only proof of life if the SOURCE it
+  // reads from reflects the write. `item-lent` starts lentTo: 'Marie' with an open loan as its
+  // newest event (src/test/fixtures/events.js); after a real RETURNED write both must flip.
+  //
+  // This needs its own fetch stub: the file's default one (above) forces every call through
+  // `handleMockRequest('GET', path)` regardless of the real method, which happens to be harmless
+  // for every OTHER test here (none of them inspect post-write state) but would silently hide
+  // the very defect this test exists to catch — a write dispatched as 'GET' never reaches
+  // mock-api.js's POST branch, so the mutation this test is proving would never run.
+  it('clears the stamp and closes the open loan once the return is recorded', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        const method = options.method ?? 'GET';
+        const body = options.body ? JSON.parse(options.body) : undefined;
+        const result = handleMockRequest(method, path, body);
+        return {
+          ok: result.status < 400,
+          status: result.status,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => result.body,
+        };
+      }),
+    );
+    renderPage('item-lent');
+    expect(await screen.findByText(/out · marie/i)).toBeInTheDocument();
+    expect(screen.getByText(/still out/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /mark returned/i }));
+    await screen.findByText(/le grand sommeil is back/i);
+
+    expect(screen.queryByText(/out · marie/i)).toBeNull();
+    expect(screen.queryByText(/still out/i)).toBeNull();
+    expect(screen.getByRole('button', { name: /^lend$/i })).toBeInTheDocument();
   });
 
   it('"Lend" opens a sheet holding ONLY the lend form — no Edit, no Delete, no menu', async () => {

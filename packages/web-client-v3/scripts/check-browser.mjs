@@ -229,6 +229,77 @@ try {
     record(back.every(Boolean), 'Shift+Tab never leaves the sheet', `${back.filter(Boolean).length}/8 inside`);
   }
 
+  // ---- Item detail's delete confirmation is announced and keeps focus, in a real browser ----
+  // Measured by the critique, in a real browser, not jsdom: `document.activeElement` was BODY
+  // after clicking Delete. jsdom cannot be evidence here for the same structural reason the
+  // sheet's own trap above needs Chrome — but there is a second, sharper reason specific to this
+  // control: the confirmation REPLACES the trigger in the same commit (a ternary swap, not an
+  // overlay), so whether the browser actually settles focus on "Keep it" rather than reverting it
+  // to <body> mid-swap is exactly the kind of real-DOM timing fact a simulated environment cannot
+  // stand in for.
+  console.log('item detail: the delete confirmation is announced and keeps focus');
+  {
+    await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main h1');
+
+    const clickButtonByText = (text) =>
+      page.evaluate((label) => {
+        const btn = [...document.querySelectorAll('main button')].find(
+          (el) => el.textContent.trim().toLowerCase() === label,
+        );
+        btn?.click();
+      }, text.toLowerCase());
+
+    await clickButtonByText('Delete');
+    await page.waitForSelector('[role=alertdialog]', { timeout: 10_000 });
+
+    const reveal = await page.evaluate(() => {
+      const dialog = document.querySelector('[role=alertdialog]');
+      const active = document.activeElement;
+      const describedBy = dialog?.getAttribute('aria-describedby');
+      return {
+        hasDialog: Boolean(dialog),
+        hasAccessibleName: Boolean(dialog?.getAttribute('aria-label')?.trim()),
+        hasAccessibleDescription: Boolean(describedBy && document.getElementById(describedBy)),
+        focusedText: active === document.body ? null : active?.textContent?.trim(),
+        focusedIsBody: active === document.body,
+      };
+    });
+
+    record(reveal.hasDialog, 'the confirmation exposes role="alertdialog"', JSON.stringify(reveal));
+    record(reveal.hasAccessibleName, 'the alertdialog carries an accessible name', JSON.stringify(reveal));
+    record(
+      reveal.hasAccessibleDescription,
+      'the alertdialog carries an accessible description',
+      JSON.stringify(reveal),
+    );
+    record(
+      !reveal.focusedIsBody && reveal.focusedText?.toLowerCase() === 'keep it',
+      'focus moves to "Keep it" on reveal — the safe default, never "Delete for good"',
+      `focusedText: ${JSON.stringify(reveal.focusedText)}, focusedIsBody: ${reveal.focusedIsBody}`,
+    );
+
+    // Cancel, then confirm focus RETURNS to the trigger — a fresh "Delete" button, remounted the
+    // instant the confirmation closes — rather than falling back to <body>.
+    await clickButtonByText('Keep it');
+    await page.waitForFunction(
+      () => !document.querySelector('[role=alertdialog]'),
+      { timeout: 10_000 },
+    );
+    const afterCancel = await page.evaluate(() => {
+      const active = document.activeElement;
+      return {
+        focusedText: active === document.body ? null : active?.textContent?.trim(),
+        focusedIsBody: active === document.body,
+      };
+    });
+    record(
+      !afterCancel.focusedIsBody && afterCancel.focusedText?.toLowerCase() === 'delete',
+      'focus returns to the Delete trigger on cancel, not <body>',
+      `focusedText: ${JSON.stringify(afterCancel.focusedText)}, focusedIsBody: ${afterCancel.focusedIsBody}`,
+    );
+  }
+
   // ---- Pull to refresh actually fires, at the right amount of finger travel ----
   // A whole class of defect no screenshot and no unit test can see. This one shipped: the
   // trigger was written against the damped offset rather than the travel, so it needed 160px;

@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { cn } from '@/lib/cn';
 
 // Primary is a chrome-yellow plate, secondary a ruled outline, destructive a red outline.
@@ -25,21 +26,30 @@ const VARIANTS = {
 // --imprint would be a new colour meaning "disabled", which palette law forbids, and it drags
 // its own label under the contrast floor. The outline filling in IS the affordance that says
 // the form is now valid.
-const PlateButton = ({ variant = 'primary', disabled = false, className, children, ...props }) => (
-  <button
-    type="button"
-    disabled={disabled}
-    className={cn(
-      'caps min-h-12 px-4 py-2 text-xs font-extrabold tracking-[0.12em]',
-      'transition-colors duration-[var(--press-fast)] ease-linear',
-      disabled && variant === 'primary' ? VARIANTS.secondary : VARIANTS[variant],
-      disabled && 'cursor-not-allowed',
-      className,
-    )}
-    {...props}
-  >
-    {children}
-  </button>
+// forwardRef exists for exactly one caller today: ItemDetail's delete confirmation moves focus
+// onto "Keep it" the moment it is revealed (the safe default, never the destructive button), the
+// same "focus the thing that just appeared" mechanism Sheet.jsx already uses for its panel. That
+// caller needs the real DOM node, not a React element.
+const PlateButton = forwardRef(
+  ({ variant = 'primary', disabled = false, className, children, ...props }, ref) => (
+    <button
+      ref={ref}
+      type="button"
+      disabled={disabled}
+      className={cn(
+        'caps min-h-12 px-4 py-2 text-xs font-extrabold tracking-[0.12em]',
+        'transition-colors duration-[var(--press-fast)] ease-linear',
+        disabled && variant === 'primary' ? VARIANTS.secondary : VARIANTS[variant],
+        disabled && 'cursor-not-allowed',
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  ),
 );
+
+PlateButton.displayName = 'PlateButton';
 
 export default PlateButton;

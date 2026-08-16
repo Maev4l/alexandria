@@ -19,7 +19,23 @@ const decodeToken = (token) => Number(Buffer.from(token, 'base64url').toString('
 const flatten = (entries) =>
   entries.flatMap((entry) => (entry.type === COLLECTION ? [entry, ...(entry.items ?? [])] : [entry]));
 
-export const handleMockRequest = (method, url) => {
+// Mutable working copies, deep-cloned from the imported fixtures rather than the fixtures
+// themselves. A LENT/RETURNED write has to be visible to the NEXT read against this same mock
+// (that is the whole point of exercising the re-read-after-write path) but the raw fixture
+// objects are imported directly by other tests and components that assume they are inert data,
+// not a database. Mutating them in place would make this module's write handling leak into
+// every other consumer of `itemsByLibrary`/`eventsByItem` within the same test file.
+let itemsState = structuredClone(itemsByLibrary);
+let eventsState = structuredClone(eventsByItem);
+
+// Exposed so a test file that exercises writes can start each test from a clean fixture instead
+// of the previous test's mutations — tests in one file share this module's instance.
+export const resetMockState = () => {
+  itemsState = structuredClone(itemsByLibrary);
+  eventsState = structuredClone(eventsByItem);
+};
+
+export const handleMockRequest = (method, url, body) => {
   const { pathname, searchParams } = new URL(url, 'http://localhost');
   const path = pathname.replace(/^\/api\/v1/, '');
 
@@ -28,7 +44,7 @@ export const handleMockRequest = (method, url) => {
   const itemsMatch = path.match(/^\/libraries\/([^/]+)\/items$/);
   if (method === 'GET' && itemsMatch) {
     // lib-huge exists for the scale profile only and is absent from the library list.
-    const all = itemsMatch[1] === 'lib-huge' ? hugeItems : (itemsByLibrary[itemsMatch[1]] ?? []);
+    const all = itemsMatch[1] === 'lib-huge' ? hugeItems : (itemsState[itemsMatch[1]] ?? []);
     const limit = Math.min(Number(searchParams.get('limit') ?? 10), 50);
     const offset = searchParams.has('nextToken') ? decodeToken(searchParams.get('nextToken')) : 0;
     const page = all.slice(offset, offset + limit);
@@ -38,15 +54,36 @@ export const handleMockRequest = (method, url) => {
 
   const itemMatch = path.match(/^\/libraries\/([^/]+)\/items\/([^/]+)$/);
   if (method === 'GET' && itemMatch) {
-    const found = flatten(itemsByLibrary[itemMatch[1]] ?? []).find((i) => i.id === itemMatch[2]);
+    const found = flatten(itemsState[itemMatch[1]] ?? []).find((i) => i.id === itemMatch[2]);
     // Collections are not items on this route in the real API either.
     return found && found.type !== COLLECTION ? ok(found) : notFound();
   }
 
-  const eventsMatch = path.match(/^\/libraries\/[^/]+\/items\/([^/]+)\/events$/);
-  if (method === 'GET' && eventsMatch) return ok({ events: eventsByItem[eventsMatch[1]] ?? [] });
-  if (method === 'POST' && eventsMatch) return { status: 201, body: null };
-  if (method === 'DELETE' && eventsMatch) return ok(null);
+  const eventsMatch = path.match(/^\/libraries\/([^/]+)\/items\/([^/]+)\/events$/);
+  if (eventsMatch) {
+    const [, eventsLibraryId, eventsItemId] = eventsMatch;
+    if (method === 'GET') return ok({ events: eventsState[eventsItemId] ?? [] });
+    if (method === 'POST') {
+      // Mutations return empty bodies by design (openapi.yaml), so the only way the client can
+      // observe this write is by re-reading — which means THIS mock has to actually apply it,
+      // the same way the real handler updates DynamoDB before the client's next GET. Without
+      // this, a correct re-reading UI and a UI that never re-reads look identical against
+      // fixtures: both would show the stale state.
+      const item = flatten(itemsState[eventsLibraryId] ?? []).find((i) => i.id === eventsItemId);
+      if (item) {
+        if (body?.type === 'RETURNED') delete item.lentTo;
+        else if (body?.type === 'LENT' && body?.event) item.lentTo = body.event;
+      }
+      const events = eventsState[eventsItemId] ?? (eventsState[eventsItemId] = []);
+      // Newest first, matching the real API and the fixture's own documented order.
+      events.unshift({ date: new Date().toISOString(), type: body?.type, event: body?.event });
+      return { status: 201, body: null };
+    }
+    if (method === 'DELETE') {
+      eventsState[eventsItemId] = [];
+      return ok(null);
+    }
+  }
 
   const collectionsMatch = path.match(/^\/libraries\/([^/]+)\/collections$/);
   if (method === 'GET' && collectionsMatch) {

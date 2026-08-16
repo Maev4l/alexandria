@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import VolumeFrame from '@/components/imprint/VolumeFrame.jsx';
@@ -76,6 +76,13 @@ const ItemDetail = () => {
   // Inline, because a toast is never the only report of a failure (DESIGN.md, "Errors").
   const [actionError, setActionError] = useState(null);
   const { confirm } = useToast();
+  // Accessible name/description for the confirmation's `role="alertdialog"` — see the effect
+  // below for why it needs an id rather than just visible text.
+  const deleteDescriptionId = useId();
+  // Where focus lands the instant the confirmation is revealed, and where it returns on cancel.
+  // See the effect below for why these are refs rather than `document.activeElement`.
+  const keepItRef = useRef(null);
+  const deleteTriggerRef = useRef(null);
 
   // Deliberately does NOT flip `status` to 'loading' itself — that is left to the effect below,
   // which owns the initial/route-driven fetch. `onChanged` calls this directly after a lend or
@@ -134,6 +141,27 @@ const ItemDetail = () => {
       setIsReturning(false);
     }
   };
+
+  // Sheet.jsx's own mechanism reads `document.activeElement` to remember its opener, which works
+  // there because a Sheet is an overlay: the trigger stays mounted underneath it. This
+  // confirmation is not an overlay — the ternary below REPLACES the Delete trigger with the
+  // confirmation block in the same commit, so the trigger is already gone from the document by
+  // the time any effect could read `document.activeElement`. Reading it here would just capture
+  // whatever the browser defaults an unmounted-focus to (measured: `<body>`) — which is exactly
+  // the defect this replaces, not a fix for it. So this holds a ref to each control instead:
+  // `keepItRef` for the safe default the reader lands on, `deleteTriggerRef` for the Delete
+  // button a fresh copy of which remounts the instant they cancel. React attaches refs and
+  // commits the DOM change in the same phase, before this effect's cleanup runs, so
+  // `deleteTriggerRef.current` is already the NEW node by the time cancel calls `.focus()` on it.
+  //
+  // Focus goes to "Keep it" on reveal, never "Delete for good" — the safe default for the single
+  // most destructive control in the app, which also takes the lending history with it.
+  useEffect(() => {
+    if (isConfirmingDelete) keepItRef.current?.focus();
+    return () => {
+      if (isConfirmingDelete) deleteTriggerRef.current?.focus();
+    };
+  }, [isConfirmingDelete]);
 
   const deleteItem = async () => {
     if (!item) return;
@@ -287,18 +315,35 @@ const ItemDetail = () => {
                   reflow, not a second layout, and not an overflow. */}
               <div className="mt-6 flex flex-wrap gap-2">
                 {isConfirmingDelete ? (
-                  <>
-                    <p className="mb-4 w-full text-sm">
+                  // `alertdialog`, not `dialog`: this is an inline reveal in the page flow, not
+                  // a modal overlay (Sheet.jsx already owns that pattern) — but it is still an
+                  // interruption asking for a decision, which is exactly what `alertdialog`
+                  // announces. `aria-label` names it without repeating the description word for
+                  // word; `aria-describedby` points at the same paragraph a sighted reader
+                  // already sees, so nothing is written twice (DESIGN.md, "nothing is labelled
+                  // twice") — it is exposed once, to both audiences, the same content.
+                  <div
+                    role="alertdialog"
+                    aria-label={`Delete ${item.title}?`}
+                    aria-describedby={deleteDescriptionId}
+                    className="flex w-full flex-wrap gap-2"
+                  >
+                    <p id={deleteDescriptionId} className="mb-4 w-full text-sm">
                       Delete <strong>{item.title}</strong> from this library? Its lending history
                       goes with it. This cannot be undone.
                     </p>
                     <PlateButton variant="danger" disabled={isDeleting} onClick={deleteItem}>
                       {isDeleting ? 'Deleting' : 'Delete for good'}
                     </PlateButton>
-                    <PlateButton variant="secondary" onClick={() => setIsConfirmingDelete(false)}>
+                    {/* The safe default gets the ref, never the destructive button beside it. */}
+                    <PlateButton
+                      ref={keepItRef}
+                      variant="secondary"
+                      onClick={() => setIsConfirmingDelete(false)}
+                    >
                       Keep it
                     </PlateButton>
-                  </>
+                  </div>
                 ) : (
                   <>
                     {item.lentTo ? (
@@ -314,7 +359,11 @@ const ItemDetail = () => {
                     >
                       Edit
                     </PlateButton>
-                    <PlateButton variant="danger" onClick={() => setIsConfirmingDelete(true)}>
+                    <PlateButton
+                      ref={deleteTriggerRef}
+                      variant="danger"
+                      onClick={() => setIsConfirmingDelete(true)}
+                    >
                       Delete
                     </PlateButton>
                   </>
