@@ -237,6 +237,12 @@ try {
   // overlay), so whether the browser actually settles focus on "Keep it" rather than reverting it
   // to <body> mid-swap is exactly the kind of real-DOM timing fact a simulated environment cannot
   // stand in for.
+  //
+  // NOT `[role=alertdialog]`: round 1 shipped that role with neither of the modal behaviours AT
+  // expects from it (a focus trap, Escape-to-dismiss) — announcing a modal that does not act like
+  // one, in the same direction as the original "announces nothing" defect. This is inline page
+  // content, so it is named as a labelled `group`, and the announcement travels on a live region
+  // (the description paragraph itself) plus the focus move, not on the role.
   console.log('item detail: the delete confirmation is announced and keeps focus');
   {
     await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
@@ -251,26 +257,33 @@ try {
       }, text.toLowerCase());
 
     await clickButtonByText('Delete');
-    await page.waitForSelector('[role=alertdialog]', { timeout: 10_000 });
+    await page.waitForSelector('[role=group]', { timeout: 10_000 });
 
     const reveal = await page.evaluate(() => {
-      const dialog = document.querySelector('[role=alertdialog]');
+      const group = document.querySelector('[role=group]');
       const active = document.activeElement;
-      const describedBy = dialog?.getAttribute('aria-describedby');
+      const live = group?.querySelector('[aria-live]');
       return {
-        hasDialog: Boolean(dialog),
-        hasAccessibleName: Boolean(dialog?.getAttribute('aria-label')?.trim()),
-        hasAccessibleDescription: Boolean(describedBy && document.getElementById(describedBy)),
+        hasGroup: Boolean(group),
+        hasAccessibleName: Boolean(group?.getAttribute('aria-label')?.trim()),
+        // The description is carried by a live region INSIDE the group, not a dialog's implicit
+        // one — `aria-live="assertive"` with `aria-atomic="true"` on the same node that already
+        // holds the visible text, so nothing is written twice.
+        hasLiveDescription:
+          Boolean(live) &&
+          live.getAttribute('aria-live') === 'assertive' &&
+          live.getAttribute('aria-atomic') === 'true' &&
+          live.textContent.trim().length > 0,
         focusedText: active === document.body ? null : active?.textContent?.trim(),
         focusedIsBody: active === document.body,
       };
     });
 
-    record(reveal.hasDialog, 'the confirmation exposes role="alertdialog"', JSON.stringify(reveal));
-    record(reveal.hasAccessibleName, 'the alertdialog carries an accessible name', JSON.stringify(reveal));
+    record(reveal.hasGroup, 'the confirmation exposes role="group"', JSON.stringify(reveal));
+    record(reveal.hasAccessibleName, 'the group carries an accessible name', JSON.stringify(reveal));
     record(
-      reveal.hasAccessibleDescription,
-      'the alertdialog carries an accessible description',
+      reveal.hasLiveDescription,
+      'the confirmation text is an assertive, atomic live region — the announcement, not a dialog role',
       JSON.stringify(reveal),
     );
     record(
@@ -279,11 +292,20 @@ try {
       `focusedText: ${JSON.stringify(reveal.focusedText)}, focusedIsBody: ${reveal.focusedIsBody}`,
     );
 
+    // The honest half of dropping `alertdialog`: this genuinely is not a dialog, so Tab must be
+    // FREE to leave it — unlike the sheet's real trap checked above. Proving this is what makes
+    // "group, not alertdialog" more than a label swap.
+    await page.keyboard.press('Tab');
+    const afterTab = await page.evaluate(
+      () => !document.querySelector('[role=group]')?.contains(document.activeElement),
+    );
+    record(afterTab, 'Tab is free to leave the confirmation — a group, not a trapped dialog', String(afterTab));
+
     // Cancel, then confirm focus RETURNS to the trigger — a fresh "Delete" button, remounted the
     // instant the confirmation closes — rather than falling back to <body>.
     await clickButtonByText('Keep it');
     await page.waitForFunction(
-      () => !document.querySelector('[role=alertdialog]'),
+      () => !document.querySelector('[role=group]'),
       { timeout: 10_000 },
     );
     const afterCancel = await page.evaluate(() => {

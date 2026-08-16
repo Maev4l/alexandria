@@ -58,7 +58,7 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('every route reachable from a primary affordance renders something with an exit', () => {
+describe('the two loudest wired affordances named by the critique do not dead-end', () => {
   it('the libraries root\'s pinned Search Field does not dead-end', async () => {
     renderApp('/libraries');
     // Wait for the real root screen (not the Suspense fallback) to have actually landed.

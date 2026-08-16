@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import VolumeFrame from '@/components/imprint/VolumeFrame.jsx';
@@ -76,9 +76,6 @@ const ItemDetail = () => {
   // Inline, because a toast is never the only report of a failure (DESIGN.md, "Errors").
   const [actionError, setActionError] = useState(null);
   const { confirm } = useToast();
-  // Accessible name/description for the confirmation's `role="alertdialog"` — see the effect
-  // below for why it needs an id rather than just visible text.
-  const deleteDescriptionId = useId();
   // Where focus lands the instant the confirmation is revealed, and where it returns on cancel.
   // See the effect below for why these are refs rather than `document.activeElement`.
   const keepItRef = useRef(null);
@@ -315,20 +312,28 @@ const ItemDetail = () => {
                   reflow, not a second layout, and not an overflow. */}
               <div className="mt-6 flex flex-wrap gap-2">
                 {isConfirmingDelete ? (
-                  // `alertdialog`, not `dialog`: this is an inline reveal in the page flow, not
-                  // a modal overlay (Sheet.jsx already owns that pattern) — but it is still an
-                  // interruption asking for a decision, which is exactly what `alertdialog`
-                  // announces. `aria-label` names it without repeating the description word for
-                  // word; `aria-describedby` points at the same paragraph a sighted reader
-                  // already sees, so nothing is written twice (DESIGN.md, "nothing is labelled
-                  // twice") — it is exposed once, to both audiences, the same content.
+                  // NOT `alertdialog`: that role is a variant of `dialog` and assistive tech
+                  // expects it to behave like one — focus trapped inside, Escape dismisses.
+                  // Neither is true here (round 1 shipped the role with neither, which is the
+                  // opposite defect — announcing a modal that does not act like one). This block
+                  // genuinely is inline page content that appeared and must be noticed, not an
+                  // overlay, so it is named as exactly that: a labelled `group` of controls, with
+                  // the description carried by `aria-live` rather than a dialog's implicit one.
+                  // `aria-label` on the group and the live-announced text below are two DIFFERENT
+                  // facts (what this is vs. what it says), not the same fact twice.
                   <div
-                    role="alertdialog"
+                    role="group"
                     aria-label={`Delete ${item.title}?`}
-                    aria-describedby={deleteDescriptionId}
                     className="flex w-full flex-wrap gap-2"
                   >
-                    <p id={deleteDescriptionId} className="mb-4 w-full text-sm">
+                    {/* The live region IS the visible description — one node serves both
+                        audiences, so nothing is written twice. `assertive` + `atomic`: a
+                        destructive confirmation is exactly the "read it now, read all of it"
+                        case `aria-live` exists for, and the immediately-following focus move
+                        (below) is the second, redundant channel for the same announcement —
+                        belt and suspenders for the AT/browser combinations that only pick up
+                        one of the two. */}
+                    <p aria-live="assertive" aria-atomic="true" className="mb-4 w-full text-sm">
                       Delete <strong>{item.title}</strong> from this library? Its lending history
                       goes with it. This cannot be undone.
                     </p>
