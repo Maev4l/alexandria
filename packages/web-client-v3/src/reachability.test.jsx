@@ -1,12 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import AppRoutes from './routes.jsx';
-import { LibrariesProvider } from '@/state/LibrariesContext.jsx';
-import { ToastProvider } from '@/state/ToastContext.jsx';
-import { libraries } from '@/test/fixtures';
-import { handleMockRequest } from '../tools/mock-api.js';
+import { renderApp, stubFetch } from '@/test/appHarness.jsx';
 
 // The critique's own words: "Verification is excellent at what it measures and silent on
 // whether the product works — nobody tapped the yellow box." Every other test in this app
@@ -27,34 +22,7 @@ vi.mock('@/auth/AuthContext.jsx', () => ({
   useAuth: () => ({ user: { id: 'OWNER1', initials: 'JR', email: 'jr@example.com', approved: true } }),
 }));
 
-const renderApp = (initialPath) =>
-  render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <LibrariesProvider>
-        <ToastProvider>
-          <AppRoutes />
-        </ToastProvider>
-      </LibrariesProvider>
-    </MemoryRouter>,
-  );
-
-beforeEach(() => {
-  vi.stubGlobal(
-    'fetch',
-    vi.fn(async (url) => {
-      const path = String(url);
-      const result = path.endsWith('/libraries')
-        ? { status: 200, body: { libraries } }
-        : handleMockRequest('GET', path);
-      return {
-        ok: result.status < 400,
-        status: result.status,
-        headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => result.body,
-      };
-    }),
-  );
-});
+beforeEach(stubFetch);
 
 afterEach(() => vi.unstubAllGlobals());
 

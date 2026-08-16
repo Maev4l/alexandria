@@ -33,6 +33,22 @@ vi.mock('aws-amplify/auth', () => ({
 
 vi.mock('aws-amplify/utils', () => ({ Hub: { listen: () => () => {} } }));
 
+// jsdom does not implement IntersectionObserver at all (not "returns nothing useful" — the
+// global is simply undefined), so any component that reads it — LibraryBrowse's
+// infinite-scroll sentinel — throws the moment it mounts in a test, with no scroll ever
+// occurring to trigger it. This is an environment gap, not app behavior worth asserting on, so
+// it is stubbed globally here rather than in the one test that first happened to hit it: the
+// next screen to use IntersectionObserver would hit the identical crash otherwise.
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = class {
+    observe() {}
+
+    unobserve() {}
+
+    disconnect() {}
+  };
+}
+
 afterEach(() => {
   cleanup();
 });
