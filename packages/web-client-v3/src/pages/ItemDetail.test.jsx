@@ -63,7 +63,14 @@ describe('ItemDetail', () => {
 
   it('carries the record inline, not only behind the history screen', async () => {
     renderPage('item-lent');
-    await waitFor(() => expect(screen.getByText(/still out/i)).toBeInTheDocument());
+    // Marie's loan (item-lent's newest event) is open: the ruling states an open loan as
+    // `LENT <date>` alone — no "still out", no second half (DetailMarks' stamp already says
+    // it's out; a row echoing that would label the same fact twice). `LENT` and the date sit in
+    // separate elements (label vs. mono value), so the check reads the row's full text content
+    // rather than `getByText`, which only matches a single node's own direct text.
+    await waitFor(() =>
+      expect(screen.getByText('Marie').closest('div')).toHaveTextContent(/lent 07 aug 2026/i),
+    );
   });
 
   // Round 5 critique #5: `item-lent`'s fixture events (src/test/fixtures/events.js) pair to
@@ -73,7 +80,9 @@ describe('ItemDetail', () => {
   describe('"Full record" only appears when there is genuinely more', () => {
     it('is absent when the inline preview already shows every loan', async () => {
       renderPage('item-lent');
-      await waitFor(() => expect(screen.getByText(/still out/i)).toBeInTheDocument());
+      await waitFor(() =>
+        expect(screen.getByText('Marie').closest('div')).toHaveTextContent(/lent 07 aug 2026/i),
+      );
       expect(screen.queryByRole('link', { name: /full record/i })).toBeNull();
     });
 
@@ -249,13 +258,19 @@ describe('the primary action acts or asks for exactly what it needs — never a 
     );
     renderPage('item-lent');
     expect(await screen.findByText(/out · marie/i)).toBeInTheDocument();
-    expect(screen.getByText(/still out/i)).toBeInTheDocument();
+    // Before the return: Marie's row states only the LENT half (open loan, no second date).
+    const marieRow = screen.getByText('Marie').closest('div');
+    expect(marieRow).toHaveTextContent(/lent/i);
+    expect(marieRow).not.toHaveTextContent(/returned/i);
 
     await userEvent.click(screen.getByRole('button', { name: /mark returned/i }));
     await screen.findByText(/le grand sommeil is back/i);
 
     expect(screen.queryByText(/out · marie/i)).toBeNull();
-    expect(screen.queryByText(/still out/i)).toBeNull();
+    // After the return: the loan is closed, so the row gains the RETURNED half.
+    await waitFor(() =>
+      expect(screen.getByText('Marie').closest('div')).toHaveTextContent(/returned/i),
+    );
     expect(screen.getByRole('button', { name: /^lend$/i })).toBeInTheDocument();
   });
 

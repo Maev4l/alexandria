@@ -78,20 +78,25 @@ describe('ItemHistory', () => {
       }),
     );
     renderPage();
-    // Every LedgerRow pairs a `lentAt → returnedAt` (or `→ still out`) range with an arrow —
-    // the stable, already-established visual marker of one loan, rather than a test-only hook.
-    await waitFor(() => expect(screen.getAllByText(/→/)).toHaveLength(4));
+    // Every LedgerRow carries exactly one `Lent` label, open or closed — the stable,
+    // already-established visual marker of one loan (the ruling dropped the `→` connector that
+    // used to serve this role: DESIGN.md, LedgerRow.jsx), rather than a test-only hook.
+    await waitFor(() => expect(screen.getAllByText(/^lent$/i)).toHaveLength(4));
   });
 
-  it('stamps an open loan as still out', async () => {
+  it('stamps an open loan OUT, with no "still out" text on the date line', async () => {
     renderPage();
-    expect(await screen.findByText(/still out/i)).toBeInTheDocument();
+    // item-lent's most recent loan (Marie) is open — item history boxes its rows, so the bare
+    // Overprint Stamp carries "is it out", and the date line states only `LENT <date>` (no
+    // second half, per the ruling: an open loan has no second date to label).
+    expect(await screen.findByLabelText(/^on loan$/i)).toBeInTheDocument();
+    expect(screen.queryByText(/still out/i)).toBeNull();
   });
 
   it('shows "Never lent" rather than an empty list when the item has no events', async () => {
     renderPage('item-1984');
     expect(await screen.findByText(/never lent/i)).toBeInTheDocument();
-    expect(screen.queryByText(/→/)).toBeNull();
+    expect(screen.queryByText(/^lent$/i)).toBeNull();
   });
 
   it('says the clear action removes the entire record, before it acts', async () => {
@@ -154,11 +159,11 @@ describe('ItemHistory', () => {
     renderPage();
     const loadMore = await screen.findByRole('button', { name: /load more/i });
     // One loan so far (the open "New" one) — the "Old" one is still on the next page.
-    expect(screen.getAllByText(/→/)).toHaveLength(1);
+    expect(screen.getAllByText(/^lent$/i)).toHaveLength(1);
     await userEvent.click(loadMore);
     // Once the second page lands, both pages' events are paired together into one full list —
     // pairing must see the whole history, since a loan can straddle a page boundary.
-    await waitFor(() => expect(screen.getAllByText(/→/)).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText(/^lent$/i)).toHaveLength(2));
     expect(screen.queryByRole('button', { name: /load more/i })).toBeNull();
   });
 
@@ -199,7 +204,7 @@ describe('ItemHistory', () => {
     // Recovery is a control: the same page can be retried, not just re-read about.
     const retry = screen.getByRole('button', { name: /try again/i });
     await userEvent.click(retry);
-    await waitFor(() => expect(screen.getAllByText(/→/)).toHaveLength(2));
+    await waitFor(() => expect(screen.getAllByText(/^lent$/i)).toHaveLength(2));
     // The error clears once the retry succeeds.
     expect(screen.queryByRole('alert')).toBeNull();
   });
@@ -282,7 +287,7 @@ describe('ItemHistory', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(screen.getByText(/never lent/i)).toBeInTheDocument();
-      expect(screen.queryByText(/→/)).toBeNull();
+      expect(screen.queryByText(/^lent$/i)).toBeNull();
     });
   });
 
@@ -306,7 +311,7 @@ describe('ItemHistory', () => {
     );
     // lib-shared-in carries `sharedFrom`, so item-shared is read-only — same gate as ItemDetail.
     renderAt('lib-shared-in', 'item-shared');
-    await screen.findByText(/→/);
+    await screen.findByText(/^lent$/i);
     expect(screen.queryByRole('button', { name: /clear the record/i })).toBeNull();
   });
 });

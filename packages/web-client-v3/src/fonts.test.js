@@ -70,17 +70,22 @@ const LATIN_EXTENDED_A = Array.from({ length: 0x17f - 0x100 + 1 }, (_, i) => 0x1
 const FRENCH_DIACRITICS = [...'éèàùçîôëï'].map((c) => c.codePointAt(0));
 const OE_AE_LIGATURES = [...'ŒÆœæ'].map((c) => c.codePointAt(0));
 const MIDDOT = 0xb7; // '·' — every Plate Line ("AUTHOR · ISBN"), OverprintStamp, SharedRibbon.
-const RIGHTWARDS_ARROW = 0x2192; // '→' — LedgerRow's "out → back" pairing.
+// '→' is no longer rendered anywhere: LedgerRow.jsx dropped the "out → back" connector
+// (DESIGN.md ruling, ui-v3.md) precisely because this glyph is absent from both faces. The
+// constant and the confirmation test below stay — they document a verified upstream gap, not
+// current usage, and exist so a future re-introduction of the glyph is caught here first.
+const RIGHTWARDS_ARROW = 0x2192;
 
 // Source sweep (excluding comments, which do not render): the other literal non-ASCII
 // characters this codebase actually puts on screen, beyond the report's own named minimum.
 // Each is legitimately reachable via either family's General Punctuation coverage (U+2000–
 // U+206F), which both "latin" cuts declare — see EditCollection.jsx / NewCollection.jsx
-// (curly quotes in the duplicate-name error), Libraries.jsx / ItemHistory.jsx (em dash),
-// LedgerRow.test.jsx fixture text (right single quote), and lib/format.js (prime mark for
-// film runtime, "118′").
+// (curly quotes in the duplicate-name error), Libraries.jsx / ItemHistory.jsx / LedgerRow.jsx
+// (em dash — LedgerRow uses it to stand in for an unresolved loan's unrecorded return date,
+// labelled `RETURNED —`, distinct from the connector `→` this same file replaced), and
+// lib/format.js (prime mark for film runtime, "118′").
 const OTHER_RENDERED_PUNCTUATION = {
-  'em dash — (Libraries.jsx, ItemHistory.jsx, …)': 0x2014,
+  'em dash — (Libraries.jsx, ItemHistory.jsx, LedgerRow.jsx, …)': 0x2014,
   'left double quotation mark " (EditCollection.jsx, NewCollection.jsx)': 0x201c,
   'right double quotation mark " (EditCollection.jsx, NewCollection.jsx)': 0x201d,
   "right single quotation mark ’ (fixtures: l’ordre, d’Islande, …)": 0x2019,
@@ -122,13 +127,15 @@ describe.each(Object.entries(FAMILIES))('%s — shipped woff2 glyph coverage', (
   // Neither Archivo v25 nor Chivo Mono v11 includes U+2192 in ANY cut Google serves for
   // either family — checked all three (vietnamese, latin-ext, latin); latin declares U+2191
   // and U+2193 (up/down) individually but never U+2192. No amount of correct subsetting on
-  // our part produces this glyph: it is not in the upstream font at all. The rendered
-  // "out → back" text (LedgerRow.jsx, styled `.num` → Chivo Mono) therefore falls back, for
-  // this one glyph only, to the CSS stack's `ui-monospace, monospace` — the ordinary,
-  // intentional purpose of a fallback list, and a different situation in kind from the P0
-  // this suite replaces (where the ENTIRE alphabet silently fell back with no unicode-range
-  // to even scope the failure). If a future Google release adds the glyph, this assertion
-  // flips to `true` and must fail loudly here, forcing the comment above to be corrected
+  // our part produces this glyph: it is not in the upstream font at all. LedgerRow.jsx used to
+  // render it (`out → back`, styled `.num` → Chivo Mono), which fell back, for that one glyph
+  // only, to the CSS stack's `ui-monospace, monospace` — a mixed-face line in a system that
+  // names exactly two faces. The design ruling replaced the connector with labelling both
+  // endpoints (`LENT <date>`, `LENT <date> · RETURNED <date>`) rather than working around the
+  // gap, so nothing in this codebase renders U+2192 any more — this test and the constant above
+  // stay only as a record of *why*, so the gap is not silently "fixed" by re-introducing a
+  // glyph neither shipped font actually draws. If a future Google release adds the glyph, this
+  // assertion flips to `true` and must fail loudly here, forcing this comment to be corrected
   // rather than silently going stale.
   it('confirms the rightwards arrow is a known, unfixable gap in the upstream font (not ours to close by re-fetching)', () => {
     expect(hasGlyph(RIGHTWARDS_ARROW)).toBe(false);

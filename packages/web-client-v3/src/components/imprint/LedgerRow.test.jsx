@@ -23,6 +23,18 @@ const openLoan = {
   unresolved: false,
 };
 
+// The third shape `pairLoanEvents` produces (loans.js): a LENT superseded by another LENT with
+// no RETURNED in between. Unlike an open loan this one DID end — something else started
+// afterwards — it just has no recorded return date.
+const unresolvedLoan = {
+  name: 'Léa',
+  lentAt: '2026-03-11T14:00:00Z',
+  returnedAt: null,
+  days: 70,
+  open: false,
+  unresolved: true,
+};
+
 describe('LedgerRow', () => {
   // Defect 1: `loan.name` was set by pairLoanEvents and never rendered, so the row answered
   // "when" but never "who" — the exact question PRODUCT.md says the product exists for.
@@ -51,10 +63,45 @@ describe('LedgerRow', () => {
     expect(lines[1]).toHaveTextContent('18 Aug 2026');
   });
 
-  it('states an open loan as "still out" on the date line, never a due date', () => {
-    render(<LedgerRow loan={openLoan} />);
-    expect(screen.getByText(/still out/i)).toBeInTheDocument();
+  // The ruling: an open loan has no second half at all — not "still out", nothing. There is no
+  // second date, and the loan is already stamped OUT elsewhere (DetailMarks on the cover, or
+  // this row's own bare OverprintStamp when boxed) — printing "still out" beside that stamp
+  // would say the same thing twice.
+  it('states an open loan as LENT <date> alone — no "still out", no second half', () => {
+    const { container } = render(<LedgerRow loan={openLoan} />);
+    const dateLine = container.firstChild.children[1];
+    expect(dateLine).toHaveTextContent('Lent 07 Aug 2026');
+    expect(screen.queryByText(/still out/i)).toBeNull();
+    expect(screen.queryByText(/returned/i)).toBeNull();
     expect(screen.queryByText(/overdue|due/i)).toBeNull();
+  });
+
+  it('states a closed loan as LENT <date> · RETURNED <date>, both labels present', () => {
+    const { container } = render(<LedgerRow loan={closedLoan} />);
+    const dateLine = container.firstChild.children[1];
+    expect(dateLine).toHaveTextContent('Lent 01 Aug 2026 · Returned 18 Aug 2026');
+  });
+
+  // An unresolved pairing is a different fact from an open loan — the loan DID end, the return
+  // just was never recorded — so it must not silently render identically to "still open". It
+  // keeps the RETURNED label and stands an em dash in for the missing date.
+  it('states an unresolved loan as LENT <date> · RETURNED — (a labelled unknown, not "open")', () => {
+    const { container } = render(<LedgerRow loan={unresolvedLoan} />);
+    const dateLine = container.firstChild.children[1];
+    expect(dateLine).toHaveTextContent('Lent 11 Mar 2026 · Returned —');
+  });
+
+  it('never reads identically to an open loan: RETURNED is present for unresolved, absent for open', () => {
+    const openDates = render(<LedgerRow loan={openLoan} />).container.firstChild.children[1];
+    const unresolvedDates = render(<LedgerRow loan={unresolvedLoan} />).container.firstChild
+      .children[1];
+    expect(openDates).not.toHaveTextContent(/returned/i);
+    expect(unresolvedDates).toHaveTextContent(/returned/i);
+  });
+
+  it('never renders the rightwards arrow anywhere — the glyph neither face has', () => {
+    render(<LedgerRow loan={closedLoan} />);
+    expect(screen.queryByText(/→/)).toBeNull();
   });
 
   // The name is content and authored by whoever typed it into the Lend sheet — it sets in the
@@ -62,16 +109,28 @@ describe('LedgerRow', () => {
   // DESIGN.md section 3): a name in mono is the category error the Plate Line already warns
   // about, and this component must not import it.
   it('sets the name in the sans and keeps the mono reserved for dates and the day count', () => {
-    const { container } = render(<LedgerRow loan={closedLoan} />);
+    render(<LedgerRow loan={closedLoan} />);
     const name = screen.getByText('Jean-Raymond');
     expect(name.className).not.toMatch(/\bnum\b/);
     expect(name.closest('.num')).toBeNull();
 
     const duration = screen.getByText('17 days');
     expect(duration.closest('.num')).not.toBeNull();
+  });
 
+  // Line 2 is now mixed: LENT/RETURNED are interface labels and take the sans (`caps`, never
+  // `.num`), while only the date values themselves are numerals. A name in mono was the
+  // category error the Plate Line warns about (§3) — a LABEL in mono would be the same error.
+  it('keeps LENT/RETURNED in the sans (caps) and only the dates themselves in the mono', () => {
+    const { container } = render(<LedgerRow loan={closedLoan} />);
     const dateLine = container.firstChild.children[1];
-    expect(dateLine.className).toMatch(/\bnum\b/);
+    const labels = [...dateLine.querySelectorAll('.caps')].map((el) => el.textContent);
+    expect(labels).toEqual(['Lent', 'Returned']);
+    for (const label of dateLine.querySelectorAll('.caps')) {
+      expect(label.className).not.toMatch(/\bnum\b/);
+    }
+    const dateValues = [...dateLine.querySelectorAll('.num')].map((el) => el.textContent);
+    expect(dateValues).toEqual(['01 Aug 2026', '18 Aug 2026']);
   });
 
   // Defect 2: the row must be able to take inset padding when it sits inside a bordered card

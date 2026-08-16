@@ -775,17 +775,23 @@ try {
       const rowSpans = firstRow ? [...firstRow.querySelectorAll('span')] : [];
       const nameEl = rowSpans.find((el) => el.textContent.trim() === 'Marie');
       const durationEl = rowSpans.find((el) => /^\d+ days$/.test(el.textContent.trim()));
-      // Line 2 (the date range) is the row's second direct child.
+      // Line 2 (the date range) is the row's second direct child. It is now MIXED — `LENT` is
+      // an interface label in the sans, only the date value itself is mono — so its own font
+      // isn't checked as one span; the label and the date value are checked separately.
       const dateLine = firstRow?.children[1];
+      const dateLabelEl = dateLine?.querySelector('.caps');
+      const dateValueEl = dateLine?.querySelector('.num');
       return {
-        found: Boolean(h1 && firstRow && nameEl && durationEl && dateLine),
+        found: Boolean(h1 && firstRow && nameEl && durationEl && dateLine && dateLabelEl && dateValueEl),
         lineCount: firstRow?.children.length,
+        dateLineText: dateLine?.textContent,
         h1Left: h1?.getBoundingClientRect().left,
         rowLeft: firstRow?.getBoundingClientRect().left,
         rowPaddingLeft: firstRow ? getComputedStyle(firstRow).paddingLeft : null,
         nameFont: nameEl ? getComputedStyle(nameEl).fontFamily : null,
         durationFont: durationEl ? getComputedStyle(durationEl).fontFamily : null,
-        dateFont: dateLine ? getComputedStyle(dateLine).fontFamily : null,
+        dateLabelFont: dateLabelEl ? getComputedStyle(dateLabelEl).fontFamily : null,
+        dateValueFont: dateValueEl ? getComputedStyle(dateValueEl).fontFamily : null,
       };
     });
 
@@ -806,9 +812,19 @@ try {
       facts.durationFont,
     );
     record(
-      Boolean(facts.dateFont?.includes('Chivo Mono')),
-      'the date range resolves in the mono',
-      facts.dateFont,
+      Boolean(facts.dateLabelFont) && !facts.dateLabelFont.includes('Chivo Mono'),
+      'the LENT/RETURNED labels resolve in the sans, not the mono',
+      facts.dateLabelFont,
+    );
+    record(
+      Boolean(facts.dateValueFont?.includes('Chivo Mono')),
+      'the date value itself resolves in the mono',
+      facts.dateValueFont,
+    );
+    record(
+      facts.dateLineText === 'Lent 07 Aug 2026',
+      'an open loan states LENT <date> alone — no "still out", no connector, no second half',
+      facts.dateLineText,
     );
     record(
       facts.rowPaddingLeft === '0px',
