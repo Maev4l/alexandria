@@ -235,12 +235,19 @@ try {
   );
 
   console.log('\nP and Œ: the enclosed counter is genuinely open (solid ink alone cannot bridge it)');
-  // Thresholds recalibrated for round 2: a solid-ink glyph crops tighter than the old
-  // stroked-fill one did (no 2px/0.85px stroke padding the bounding box outward), so the
-  // enclosed-counter share is naturally smaller here even though both counters are fully open —
-  // confirmed visually (scratchpad crops) before lowering these. Margin kept below the measured
-  // ~0.057 / ~0.100 so a genuine bridge (which would push the ratio toward 0) is still caught.
-  const ENCLOSED_MIN = { P: 0.03, Œ: 0.07 };
+  // RE-DERIVED (F2b) against the real shipped Archivo binary — the 0.03/0.07 pair this replaces
+  // was calibrated round 2, which shipped (commit fe8fcce) BEFORE the font fix (commit 20d2db7),
+  // so it was set against ~0.057/~0.100 measured in SYSTEM-UI FALLBACK, not Archivo. Real Archivo's
+  // solid-ink counters at 900/62.5%/76px measure smaller than the fallback glyph's did: P 0.0301,
+  // Œ 0.0721 (measured via scratchpad/derive-guard-values.mjs, same classify/BFS logic as below).
+  // The prior pair (0.03/0.07) was therefore passing on razor-thin, accidental margin — P's real
+  // measurement (0.0301) cleared its own threshold (0.03) by three ten-thousandths, no safety
+  // margin at all, and a single subpixel-AA difference between Chrome versions could have flipped
+  // it red for a reason having nothing to do with a real collision. New thresholds keep the same
+  // "margin below the measured value" discipline the old comment described, now applied to the
+  // real number: P 0.0301 → 0.02 (33% margin), Œ 0.0721 → 0.05 (31% margin) — comfortably clear of
+  // the healthy value, comfortably far from 0 (which is what an actual bridge produces).
+  const ENCLOSED_MIN = { P: 0.02, Œ: 0.05 };
   for (const [letter, min] of Object.entries(ENCLOSED_MIN)) {
     const el = await page.$(`[data-glyph="${letter}"] [aria-hidden="true"]`);
     const buffer = await el.screenshot();
