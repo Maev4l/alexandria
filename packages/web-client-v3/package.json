@@ -15,6 +15,7 @@
     "fonts": "node scripts/fetch-fonts.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "check:browser": "node scripts/check-browser.mjs",
+    "check:index-letter": "node scripts/check-index-letter.mjs",
     "profile:stream": "node scripts/profile-stream.mjs"
   },
   "dependencies": {
