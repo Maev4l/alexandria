@@ -45,9 +45,24 @@ const DetailMarks = ({ item, library, loans }) => {
             // flow (or the flex column stacking this line above the sharing mark) to give it
             // any more room than it already has, so the green edge rule on the sharing mark
             // below (DESIGN.md §6: an edge rule never displaces content) stays exactly where
-            // it is regardless of how this expands. -inset-y-[17px] takes the ~15px line to
-            // ~49px.
-            className="relative text-cover-body underline underline-offset-[3px] before:absolute before:inset-x-0 before:-inset-y-[17px] before:content-['']"
+            // it is regardless of how this expands.
+            //
+            // The inset is ASYMMETRIC, not -inset-y-N: the column's own gap-2 (8px) between
+            // this line and the sharing mark below is under half of what a ~15px line needs
+            // (~16.5px/side) to clear 48px, so a symmetric inset unavoidably eats into that
+            // sibling's own box — harmless today only because SharedRibbon has no click
+            // handler of its own to steal a tap from (a future one would silently lose its
+            // top ~7px with no error to report, per ui-v3.md §7's "defects that cannot be
+            // reported"). This link is the column's FIRST item, beside a 198px VolumeFrame,
+            // so there is ~25px of genuinely free space above it (down to the header's own
+            // bottom edge) and only ~10px below before the sharing mark's box starts.
+            // -top-[30px]/-bottom-[8px] spends that asymmetrically: 8px down leaves a real
+            // ~2px clear of the sharing mark (verified in real Chrome, never overlapping it),
+            // and the remaining reach goes up, past the header's edge into its own dead
+            // space — confirmed harmless there too: this link's hit-box never leaves its own
+            // ~188–231px column, clear of both the header's back button (4–52px) and its
+            // search button (326–374px).
+            className="relative text-cover-body underline underline-offset-[3px] before:absolute before:inset-x-0 before:-top-[30px] before:-bottom-[8px] before:content-['']"
           >
             {libraryName}
           </Link>
