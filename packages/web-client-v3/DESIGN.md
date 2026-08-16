@@ -100,14 +100,12 @@ fact explains the whole system: the plate works because ink figures sit on yello
 primary action works because its caps are ink. Any future use of yellow that has no ink doing the
 describing is unreadable, not subtle.
 
-**Of those two constructions, only the first is safe at display size.** The index letter was
-originally the second — an `--imprint` fill inside a 2px `--ink` text-stroke — and that construction
-failed, not at some parameter but structurally: `-webkit-text-stroke` traces each stroke of a glyph
-independently, so wherever counters are tight the outline collides with itself. It is not tunable
-(see §4). The letter is now **solid `--ink`, unstroked**, and yellow moved to the 4px index rule
-beneath it, where it marks the finding apparatus on an edge rather than being asked to describe a
-letterform. When yellow must appear at display size, give it a ground and set ink on top; do not
-reach for an outline.
+**The second construction carries a condition.** `-webkit-text-stroke` traces each stroke of a
+glyph independently, so the outline collides with itself wherever a counter is narrower than twice
+the stroke — a fill inside an outline is only safe where the face's counters are wide enough at the
+weight and width in use. The index letter is that construction, verified in real Archivo at 76px /
+wght 900 / wdth 62.5% against pixel crops (§4). It is not a licence to use an outline at any size in
+any face: measure the counters, do not assume them.
 
 That restriction is not a workaround; it is the Iridescent Edge discipline enforced by
 arithmetic. State lives on edges.
@@ -232,15 +230,14 @@ it covers.
 | Tag & plate caps | 10 | 800, tracking +0.16em | uppercase |
 | Numerals (mono) | 13 | 400 | — |
 
-**The index letter is solid `--ink`, unstroked**, with `--imprint` on the 4px rule beneath it. An
-earlier build filled it `--imprint` inside a 2px `--ink` text-stroke; that construction is retired
-because the stroke collides with itself in tight counters and no parameter fixes it (§4).
+**The index letter is filled `--imprint` with a 2px `--ink` text-stroke**, not solid ink, over a 4px
+`--ink` rule. That is what gives the monumental letter its printed weight without turning a quarter
+of the viewport black, and it is why it can sit at 76px rather than 96–120: a stroked yellow letter
+reads larger than its size.
 
-76px survived the change and was **re-picked from rendered output, not kept out of deference to this
-table** — the earlier justification for it (that a stroked yellow letter reads larger than its size)
-died with the stroke, so the size had to be re-earned and was. Weight 900 and width 62.5% are
-unchanged: the whole point of the new construction is that it holds the letterform this table
-specifies instead of trading it away.
+The treatment was withdrawn for one round on crops rendered in the wrong font, and restored on crops
+rendered in the right one — see §4. **76px, wght 900 and wdth 62.5% are now verified against
+pixel-level crops in real Archivo**, not inherited from the comp and not derived.
 
 ### The caps utility carries case, never weight
 
@@ -468,7 +465,7 @@ the index letters, the active state, primary actions. Counts are inventory, not 
 | Library row plate | `--imprint` fill | `--ink` figures in a 2px ruled plate, no fill |
 | Collection board count | `--imprint` fill | same ruled treatment |
 | Collection member order | `--imprint` fill | same ruled treatment |
-| Index letter | `--imprint` filled, `--ink` stroked | solid `--ink` letter; the yellow moved to its 4px rule. Still finding apparatus — but on an edge, because an outline cannot describe a letterform (§4) |
+| Index letter | `--imprint` filled, `--ink` stroked | unchanged — finding apparatus, and the loudest yellow in the stream |
 | Primary action | `--imprint` plate | unchanged |
 
 The plate survives as a structural device; only its fill changes. And the rule now reads as one
@@ -504,43 +501,60 @@ Folding `Œuvres complètes` to a display "O" would be a lie: it sits after Z, n
 reader sent to the Os would not find it. Rendered, the honest `Œ` also turned out to be the best
 piece of lettering in the set.
 
-### One treatment, and why there used to be two
+### The stroke, and the two months it was wrongly withdrawn
 
-**Every label takes the same treatment: solid `--ink`, unstroked, at 76px / wght 900 / wdth 62.5%,
-with `--imprint` on the 4px rule beneath.** Letters, digits, ligatures and punctuation alike. There
-is no alphanumeric bucket and no symbol carve-out, because solid ink is 18:1 on paper, has no
-outline to collide with itself, and holds at any weight or width for any glyph the fold can produce.
+**The index letter is an `--imprint` fill inside a 2px `--ink` text-stroke, at 76px / wght 900 /
+wdth 62.5%, over a 4px `--ink` rule.** Verified against pixel-level crops in the real face: at the
+`M`'s centre vertex the counter is fully open, paper running clean to the point. `M`, `N`, `P` and
+`Œ` are all clean.
 
-That single rule replaces roughly a page of exceptions, and the history is kept because the way it
-was got wrong is more instructive than the answer.
+This treatment was **withdrawn and then restored**, and the round trip is the most instructive thing
+in this document.
 
-The letter was originally an `--imprint` fill inside a 2px `--ink` text-stroke. `-webkit-text-stroke`
-traces each stroke of a glyph independently, so wherever two outlines meet they collide — in `#`,
-four strokes crossing twice, the character resolved into nine separate yellow quadrilaterals. A
-carve-out was written for symbols, on the stated grounds that the collision was invisible "in a
-glyph with one closed outline — every letter, every digit."
+`-webkit-text-stroke` traces each stroke of a glyph independently, so the outline collides with
+itself wherever a counter is narrower than twice the stroke. That is a real mechanism and it still
+governs — but whether it *bites* depends on the face. Crops appeared to show `P` collapsing into a
+doubled outline, `M` scarring at the vertex, `N` growing a spurious diagonal, and the treatment was
+replaced with a solid-ink letter.
 
-**That premise was false, and it licensed a shipped defect for two slices.** The collision is
-governed by **counter width against stroke width**, not by how many outlines a glyph has. At 76px,
-wght 900, wdth 62.5%, a 2px stroke closes the counters of ordinary capitals: rendered crops showed
-`P` collapsing into a doubled nested outline, `M` reducing both counters to slivers with a scar at
-the centre vertex, and `N` growing a spurious diagonal at the junction, while `A`, `L`, `V`, `Z` and
-`1` stayed clean. Nobody looked, because this document said there was nothing to look at.
+**Every one of those crops was rendered in `system-ui`,** because the shipped Archivo contained a
+space and the letter `A` and nothing else (§3). And `font-stretch: 62.5%` is **silently ignored by a
+face with no width axis** — so a *condensed* treatment was judged on glyphs that were never
+condensed. In real Archivo the `wdth` axis engages, narrowing glyphs by 27–44%, and the counters
+stay open. The one glyph in that test set judged clean, `A`, was the only one Archivo actually drew.
 
-Three treatments were then rendered through the real app rather than reasoned about, and the two
-that lost are recorded so they are not re-proposed:
+So the withdrawal was correct on the evidence available and wrong about the world. Restoring it cost
+nothing but the willingness to re-measure, which is why the ruling that replaced it was written to
+expire: *parameters are set from rendered output and never from reasoning; re-verify against crops
+whenever weight, width or stroke changes.*
+
+**The rejected alternatives are kept, because two of them are still right:**
 
 | Candidate | Outcome |
 |---|---|
-| Keep the stroke, accept the residual | **Rejected.** The scar on `M` is legible in a native-size crop taken from the raw stream screenshot, not only under magnification, across three independent captures. |
-| Retune the stroke (0.85px / wght 400 / wdth 100%) | **Rejected twice over.** `M` and `N` keep a residual at *every* combination down to wght 300 / wdth 125% / 0.3px, so it mitigates rather than fixes — and it abandons the letterform §3 specifies while thinning the stroke below what makes the yellow legible at all. It trades a glyph that renders wrong for one that renders faint, and §2 calls faint unreadable rather than subtle. |
-| Ink letter on an `--imprint` plate | **Rejected on palette law, confirmed from the crop.** In the live stream it reads as a tappable chip, because it lands on the same silhouette as `PlateButton`'s primary variant. A passive separator must not wear the active-state treatment. |
+| Retune the stroke (0.85px / wght 400 / wdth 100%) | **Still rejected, on grounds the font fix does not touch.** It abandons the letterform §3 specifies and thins the stroke below what makes yellow legible at all — §2 calls that unreadable rather than subtle. It traded a glyph that rendered wrong for one that renders faint. |
+| Ink letter on an `--imprint` plate | **Still rejected on palette law.** In the live stream it reads as a tappable chip, landing on the same silhouette as `PlateButton`'s primary variant. A passive separator must not wear the active-state treatment. |
+| Solid `--ink` letter, yellow on the rule | **Correct, and shipped for one round, but beaten on the job.** Solid ink cannot collide in any face — genuinely more robust. But at 76px it is the same colour as the row titles beneath it, so it reads as oversized content rather than as a mark, and it moves `--imprint` off the primary wayfinding device in a thousand-item stream. §4's *Where the yellow goes* exists precisely to stop that. Robustness lost to legibility of purpose, on the stream shot rather than the crop. |
 
-Two lessons outlive the letter. **A construction can fail structurally rather than parametrically** —
-the sweep across stroke widths was work done inside the wrong one of §2's two licensed uses of
-yellow, and no value in it was ever going to be right. And **the free option must be disproved, not
-assumed**: "change nothing" was checked hardest of the three, precisely because it was the outcome
-that cost nothing, and it was disqualified on evidence rather than waved away.
+Three lessons outlive the letter. **A construction can fail structurally rather than
+parametrically**, so a parameter sweep inside the wrong construction is wasted work. **The free
+option must be disproved, not assumed** — "change nothing" was checked hardest precisely because it
+cost nothing. And **evidence has a substrate**: every crop in the first round was true about what
+was on screen and false about the product, because nothing asserted that the font under the test
+was the font that ships.
+
+**The symbol bucket, and an admission that it is unverified.** Non-alphanumeric labels — `"`, `(`,
+`&`, `@`, `#` — take **solid `--ink`, unstroked**. Two reasons, and only the second currently has
+evidence behind it. The first is that `#`, four strokes crossing twice, was seen to resolve into
+nine separate quadrilaterals — **but that observation is from the contaminated round and has not
+been re-checked in real Archivo**, exactly like the letters that turned out to be fine. The second
+is independent of rendering and still stands: that bucket is not a letter, and reading as
+structurally different is true rather than merely convenient.
+
+So the carve-out is **retained on the second reason while the first is re-tested.** If the symbols
+also prove clean in the real face, the honest outcome is one treatment for every label and this
+paragraph goes away. Do not let it survive on the strength of a measurement we already know was
+taken in the wrong font.
 
 ---
 
@@ -553,7 +567,7 @@ that cost nothing, and it was disqualified on evidence rather than waved away.
 | **Search Field** | A **real text input**, never a link costumed as one: it takes the `--imprint` ground and is the loudest mark on the screen that carries it, because finding is the job this product exists for. **It is pinned on the libraries root and nowhere else.** A browse screen does not carry it — the field searches every library, so on a browse screen the loudest affordance would promise to leave the library being browsed. One field, one screen, no scope modes. It opens the full-screen search surface and returns the reader exactly where they were. |
 | **Plate Line** | The engraved line under a title. Book: `AUTHOR`. Film: `DIRECTOR · 1974`. On detail it gains the edition — `AUTHOR · ISBN`. Fields differ by type; the line's position does not. Names are set in the sans; only figures take the mono, so a film's year is mono and a person's name is not — §3 reserves mono for numerals, and a name in mono is a category error that digits beside it used to disguise. **It never carries the library.** The line is the *work*; a library is where a *copy* is kept. An early comp ran them together as `AUTHOR · ISBN · LIBRARY`, three categories in one dot-separated run, which set the shelf in the same tone as the author and made location read as identity. Location belongs to the Detail Marks. |
 | **Detail Marks** | The column beside the item-detail hero, holding everything true of the *copy* rather than the work: `IN <library>` as a link to it, the Shared Ribbon when the library is shared either way, and the Overprint Stamp when the item is out. Reading order is where it is filed → who else can see it → whether it is here. The ~210px next to a 132px frame was dead space; these three facts are one block and fill it. **The stamp lives here, not under the title rule** — an overprint stamp belongs on the cover. `IN` is an interface label and takes caps; the library name is content the reader authored and never does (§3), the same construction as `FROM <owner>`. The link is underlined rather than set in `--imprint`: it is navigation, not a primary action, and yellow beside the title rule would read as one. |
-| **Index Letter** | Monumental sticky letter — solid `--ink`, unstroked — over a 4px `--imprint` rule, marking the reader's position in the stream. One treatment for every label, letters and symbols alike (§4). Its label comes from the server's fold — see §4, *The index alphabet* — so it is not always A–Z. **Its count appears only on a closed run.** A run closes the instant a different letter appears after it in the stream, at which point the number is final; the run at the tail of the loaded stream shows no count at all, and no placeholder. A number that grows while the reader looks at it is worse than no number. The count is items — standalone entries plus each board's `itemCount`, counting a board once and ignoring its `partial` continuation. |
+| **Index Letter** | Monumental sticky letter — `--imprint` filled with a 2px `--ink` stroke — over a 4px `--ink` rule, marking the reader's position in the stream. Symbols take solid ink instead (§4). Its label comes from the server's fold — see §4, *The index alphabet* — so it is not always A–Z. **Its count appears only on a closed run.** A run closes the instant a different letter appears after it in the stream, at which point the number is final; the run at the tail of the loaded stream shows no count at all, and no placeholder. A number that grows while the reader looks at it is worse than no number. The count is items — standalone entries plus each board's `itemCount`, counting a board once and ignoring its `partial` continuation. |
 | **Overprint Stamp** | Rotated −4°, 0.9 opacity to read as ink over paper. **Outline 2px `--out`; caps set in `--ink`.** Red measures ~3.9:1 on paper — sound for rules and outlines, short of AA for small text — so the stamp's colour lives on its edge and its words stay in ink. Marks a lent item, and carries words, never colour alone. **On a row it reads `OUT` alone; the borrower and duration belong to item detail** (`OUT · MARIE · 6 DAYS`). `lentTo` permits 50 characters, which no row can hold, and the split follows the labelled-twice rule — the row answers *is it out*, the detail answers *who has it and how long*. Nothing is ever truncated. On detail the stamp and the ledger's first row **do** state the same loan, and that overlap is allowed: the stamp is current *state*, read beside the cover without looking for it; the ledger is the *record*, read only if you go down for it. The open loan is the single row where state and history coincide, and that coincidence is in the data, not in the design. Suppressing it either way would make one surface lie by omission — a stamp with no borrower, or a history missing its most recent loan — and `PRODUCT.md` requires lent-to-whom to be legible wherever the item appears, not a scroll away. |
 | **Shared Ribbon** | 4px `--shared` left edge rule plus a caps tag: `SHARED · N` outbound, `FROM <owner>` inbound. |
 | **Collection Board** | A grouped collection: 3px frame, member count in a plate, members inset by one division. Server-grouped, expandable in place. The board is filed alphabetically under the **collection's** name while its members run in `order`, not by title — so a board under "S" may legitimately open with *Aliens*. An earlier draft printed a `SERIES ORDER` caps label at the head to explain that, on the theory it would otherwise read as a sorting bug. It would not: **every member already carries a numbered plate**, and a numbered sequence needs no caption saying it is in sequence. The label restated what the numbers state — labelled twice, by the rule's plainest reading. The board's own name at the head is what files it; a named container filed under its name surprises nobody. |

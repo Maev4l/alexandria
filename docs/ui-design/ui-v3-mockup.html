@@ -210,22 +210,25 @@
   }
   .tag-shared { color: var(--shared); font-weight: 700; }
 
-  /* index letter — solid ink, unstroked, with the yellow on the rule beneath.
-     It was an --imprint fill inside a 2px --ink text-stroke until rendered crops
-     showed the stroke closing the counters of P, M and N. That is structural, not
-     tunable: -webkit-text-stroke traces each stroke of a glyph independently, so
-     it collides with itself wherever counters are tight. §2 licenses two uses of
-     yellow — a ground with ink on top, or a fill inside an ink outline — and only
-     the first is safe at display size. One treatment now covers every label,
-     letters and symbols alike, so the old symbol carve-out is gone. */
+  /* index letter — --imprint fill inside a 2px --ink stroke, over a 4px ink rule.
+     This treatment was withdrawn and then restored. It was rejected on crops
+     showing the stroke closing the counters of P, M and N — but those crops were
+     rendered in system-ui, because the shipped Archivo contained only a space and
+     the letter 'A', and `font-stretch: 62.5%` is silently IGNORED by a face with
+     no width axis. So a condensed treatment was judged on glyphs that were never
+     condensed. In real Archivo the wdth axis engages and the counters stay open:
+     the M's centre vertex has clean paper all the way down. The structural rule
+     in §2 still holds — an outline traced per stroke does collide wherever a
+     counter is narrower than twice the stroke — it simply does not bite in this
+     face at these parameters. Re-verify against crops if any of the three move. */
   .index-letter {
     display: flex; align-items: flex-end; justify-content: space-between;
-    border-bottom: 4px solid var(--imprint); padding: 0 calc(var(--d) * 2);
+    border-bottom: 4px solid var(--ink); padding: 0 calc(var(--d) * 2);
     background: var(--paper);
   }
   .index-letter .glyph {
     font-size: 76px; font-weight: 900; font-stretch: 62.5%; line-height: .82;
-    letter-spacing: -.03em; color: var(--ink);
+    letter-spacing: -.03em; color: var(--imprint); -webkit-text-stroke: 2px var(--ink);
   }
   .index-letter .count { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); padding-bottom: var(--d); font-variant-numeric: tabular-nums; }
 
@@ -387,7 +390,10 @@
   .t-lib { font-size: 24px; font-weight: 700; }
   .t-row { font-size: 17px; font-weight: 600; }
   .t-meta { font-size: 14px; }
-  .t-caps { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  /* Matches what the components actually set (10 / 800 / .16em). The specimen drifted
+     to 11 / 700 / .08em and disagreed with both DESIGN.md §3 and every real tag on
+     this page — a type specimen that does not match the type is worse than none. */
+  .t-caps { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
   .t-num { font-family: var(--mono); font-size: 13px; }
 
   .rules-demo { display: flex; flex-direction: column; gap: calc(var(--d) * 2); }
@@ -795,12 +801,12 @@
       numerals, ISBNs, runtimes and dates with tabular figures.
     </p>
 
-    <div class="typerow"><span class="spec">Index letter · 96–120 · w900 wd62</span><span class="t-index">C</span></div>
+    <div class="typerow"><span class="spec">Index letter · 76 · w900 wd62.5 · 2px ink stroke</span><span class="t-index">C</span></div>
     <div class="typerow"><span class="spec">Volume title · 32 · w800</span><span class="t-hero">Le Grand Sommeil</span></div>
-    <div class="typerow"><span class="spec">Library name · 24 · w700</span><span class="t-lib">Bandes dessinées</span></div>
+    <div class="typerow"><span class="spec">Library name · 22 · w700</span><span class="t-lib">Bandes dessinées</span></div>
     <div class="typerow"><span class="spec">Row title · 17 · w600</span><span class="t-row">Le Samouraï</span></div>
     <div class="typerow"><span class="spec">Metadata · 14 · w400</span><span class="t-meta">Jean-Pierre Melville</span></div>
-    <div class="typerow"><span class="spec">Tag &amp; plate caps · 11 · w700 · +.08em</span><span class="t-caps">Film · Shared · Out</span></div>
+    <div class="typerow"><span class="spec">Tag &amp; plate caps · 10 · w800 · +.16em</span><span class="t-caps">Shared · Out · From</span></div>
     <div class="typerow"><span class="spec">Numerals · mono 13 · tabular</span><span class="t-num">0147 · 9782070404209 · 130′</span></div>
 
     <div class="callout" style="margin-top:32px">
@@ -1001,13 +1007,19 @@
 
   <footer>
     <p>
-      <strong>Two honest disclosures.</strong>
+      <strong>One honest disclosure, and one correction.</strong>
       The titles, counts, dates and summary above are illustrative content authored for this comp,
       not real catalogue data — replace them with your own before treating any screen as final.
-      And unless Archivo and Chivo Mono are installed locally, this page falls back to a system
-      grotesque: no webfont is linked, because the built client self-hosts both faces as subset
-      woff2 rather than fetching them. Weight, width and tracking here approximate the specified
-      faces; the real app will read tighter and more condensed in the plates and index letters.
+    </p>
+    <p>
+      <strong>This page previously said no webfont was linked, and that was the most expensive
+      sentence in the document.</strong> It loaded whatever grotesque the reader's system supplied,
+      and so — through an unrelated subsetting bug — did the app. Both fell back to the same face,
+      so every reproduction pass agreed and a total failure of the typography survived three slices
+      of review. Matching was mistaken for correct. This comp now loads the same four committed
+      <span class="mono">woff2</span> binaries the client ships, with Google's unicode-ranges
+      verbatim, so it renders in Archivo and Chivo Mono or it visibly fails to.
+      A reproduction target must not share a failure mode with its subject.
     </p>
     <p style="margin-bottom:0">
       Specification of record: <span class="mono">packages/web-client-v3/DESIGN.md</span> ·
