@@ -55,6 +55,19 @@ const renderAt = (destinationPath, props = {}) =>
     </MemoryRouter>,
   );
 
+// Mounted alongside the real NewBook/NewVideo in the reachability tests below, so each row
+// asserts `location.state` directly rather than resting on those two forms continuing to read
+// only the query. That correctness is otherwise transitive — a state-carrying regression
+// upstream would starve a query-only reader and the Collection field would come up empty, which
+// the field check alone already catches, but a form that started reading BOTH would silently
+// keep passing on state while the field check stayed green, hiding that the mechanism had
+// drifted back to state. This is the check for that: a whole item type shipped with no manual
+// entry at all while 1098 tests passed, because nothing asserted state directly.
+const LocationStateProbe = () => {
+  const location = useLocation();
+  return <p>state:{location.state === null ? 'none' : JSON.stringify(location.state)}</p>;
+};
+
 describe('AddItemSheet', () => {
   // The bug this whole round fixes: `Enter by hand` needed a type to mean anything, so it was
   // never a peer of Book/Film — putting it beside them made choosing it silently default to
@@ -172,13 +185,22 @@ describe('AddItemSheet', () => {
               element={<AddItemSheet open onClose={() => {}} libraryId="lib-1" />}
             />
             <Route path="/libraries/:libraryId/add/book" element={<AddBook />} />
-            <Route path="/libraries/:libraryId/items/new/book" element={<NewBook />} />
+            <Route
+              path="/libraries/:libraryId/items/new/book"
+              element={
+                <>
+                  <LocationStateProbe />
+                  <NewBook />
+                </>
+              }
+            />
           </Routes>
         </MemoryRouter>,
       );
       await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
       await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
-      expect(await screen.findByLabelText(/^collection$/i)).toHaveValue('');
+      expect(await screen.findByText('state:none')).toBeInTheDocument();
+      expect(screen.getByLabelText(/^collection$/i)).toHaveValue('');
     });
 
     it('header "+" → Film → the stub\'s escape → NewVideo, no collection', async () => {
@@ -190,13 +212,22 @@ describe('AddItemSheet', () => {
               element={<AddItemSheet open onClose={() => {}} libraryId="lib-1" />}
             />
             <Route path="/libraries/:libraryId/add/video" element={<AddVideo />} />
-            <Route path="/libraries/:libraryId/items/new/video" element={<NewVideo />} />
+            <Route
+              path="/libraries/:libraryId/items/new/video"
+              element={
+                <>
+                  <LocationStateProbe />
+                  <NewVideo />
+                </>
+              }
+            />
           </Routes>
         </MemoryRouter>,
       );
       await userEvent.click(screen.getByRole('button', { name: /^film$/i }));
       await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
-      expect(await screen.findByLabelText(/^collection$/i)).toHaveValue('');
+      expect(await screen.findByText('state:none')).toBeInTheDocument();
+      expect(screen.getByLabelText(/^collection$/i)).toHaveValue('');
     });
 
     it('collection board → Book → the stub\'s escape → NewBook, collection selected', async () => {
@@ -215,14 +246,27 @@ describe('AddItemSheet', () => {
               }
             />
             <Route path="/libraries/:libraryId/add/book" element={<AddBook />} />
-            <Route path="/libraries/:libraryId/items/new/book" element={<NewBook />} />
+            <Route
+              path="/libraries/:libraryId/items/new/book"
+              element={
+                <>
+                  <LocationStateProbe />
+                  <NewBook />
+                </>
+              }
+            />
           </Routes>
         </MemoryRouter>,
       );
       await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
       await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+      // Not just "the field ends up right" — it must end up right BECAUSE OF THE QUERY. A form
+      // that quietly started reading `location.state` too would still show 'c1' here even after
+      // the mechanism regressed; asserting state is none is what catches that, rather than
+      // resting on NewBook's own source being read correctly.
+      expect(await screen.findByText('state:none')).toBeInTheDocument();
       // Anchored: a loose /collection/i also matches "Order in the collection".
-      expect(await screen.findByLabelText(/^collection$/i)).toHaveValue('c1');
+      expect(screen.getByLabelText(/^collection$/i)).toHaveValue('c1');
     });
 
     it('collection board → Film → the stub\'s escape → NewVideo, collection selected', async () => {
@@ -241,13 +285,22 @@ describe('AddItemSheet', () => {
               }
             />
             <Route path="/libraries/:libraryId/add/video" element={<AddVideo />} />
-            <Route path="/libraries/:libraryId/items/new/video" element={<NewVideo />} />
+            <Route
+              path="/libraries/:libraryId/items/new/video"
+              element={
+                <>
+                  <LocationStateProbe />
+                  <NewVideo />
+                </>
+              }
+            />
           </Routes>
         </MemoryRouter>,
       );
       await userEvent.click(screen.getByRole('button', { name: /^film$/i }));
       await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
-      expect(await screen.findByLabelText(/^collection$/i)).toHaveValue('c1');
+      expect(await screen.findByText('state:none')).toBeInTheDocument();
+      expect(screen.getByLabelText(/^collection$/i)).toHaveValue('c1');
     });
   });
 });
