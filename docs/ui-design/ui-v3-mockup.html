@@ -387,14 +387,18 @@
   .typerow .spec { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); flex: 0 0 190px; }
   .t-index { font-size: 76px; font-weight: 900; font-stretch: 62.5%; line-height: 1; letter-spacing: -.03em; }
   .t-hero { font-size: 32px; font-weight: 800; line-height: 1.06; }
-  .t-lib { font-size: 24px; font-weight: 700; }
+  /* These specimen sizes MUST equal the phone comps above, not approximate them. DESIGN.md §3 was
+     transcribed from this block rather than from the comps, and it inherited two wrong numbers:
+     the library name was 24 here against .vol-name's 22, and .t-num was 13 against a real mono
+     that is never larger than 12. A legend that drifts from its subject is worse than no legend. */
+  .t-lib { font-size: 22px; font-weight: 700; }
   .t-row { font-size: 17px; font-weight: 600; }
   .t-meta { font-size: 14px; }
   /* Matches what the components actually set (10 / 800 / .16em). The specimen drifted
      to 11 / 700 / .08em and disagreed with both DESIGN.md §3 and every real tag on
      this page — a type specimen that does not match the type is worse than none. */
   .t-caps { font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
-  .t-num { font-family: var(--mono); font-size: 13px; }
+  .t-num { font-family: var(--mono); font-size: 12px; }
 
   .rules-demo { display: flex; flex-direction: column; gap: calc(var(--d) * 2); }
   .rule-item { display: flex; align-items: center; gap: calc(var(--d) * 2); }
@@ -807,7 +811,9 @@
     <div class="typerow"><span class="spec">Row title · 17 · w600</span><span class="t-row">Le Samouraï</span></div>
     <div class="typerow"><span class="spec">Metadata · 14 · w400</span><span class="t-meta">Jean-Pierre Melville</span></div>
     <div class="typerow"><span class="spec">Tag &amp; plate caps · 10 · w800 · +.16em</span><span class="t-caps">Shared · Out · From</span></div>
-    <div class="typerow"><span class="spec">Numerals · mono 13 · tabular</span><span class="t-num">0147 · 9782070404209 · 130′</span></div>
+    <div class="typerow"><span class="spec">Numerals · mono 12 · tabular</span><span class="t-num">0147 · 9782070404209 · 130′</span></div>
+    <div class="typerow"><span class="spec">Button caps · 12 · w800 · +.12em</span><span class="t-caps" style="font-size:12px; letter-spacing:.12em">New library · Save changes</span></div>
+    <div class="typerow"><span class="spec">Member order · mono 9 · 1px rule</span><span class="t-num" style="font-size:9px; border:1px solid var(--ink); padding:0 3px">07</span></div>
 
     <div class="callout" style="margin-top:32px">
       <h3>The uppercase rule</h3>

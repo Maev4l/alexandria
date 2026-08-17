@@ -219,16 +219,57 @@ Sizes are in px at base 16. Line-height is expressed in divisions (§4).
 Values are the built comp's, `docs/ui-design/ui-v3-mockup.html`, which is law for the three screens
 it covers.
 
-| Role | Size | Weight / width | Case |
+**Content and display**
+
+| Role | Size | Weight / width | Family | Notes |
+|---|---|---|---|---|
+| Index letter | 76 | 900 / wdth 62.5% | sans | uppercase, line-height .82 |
+| Detail hero title | 32 | 800 | sans | line-height 1.06 |
+| Library row name | 22 | 700 | sans | line-height 1.15 |
+| Browse header title | 20 | 800 | sans | **a separate role from the row name** |
+| Row title | 17 | 600 | sans | items |
+| Collection board name | 17 | 700 | sans | the heavier of the two 17s |
+| Plate Line | 14 | 400 | sans | `--ink-soft`; its figures take mono 12 |
+| Detail summary, `IN <library>` value | 14 | 400 | sans | `--cover-body` |
+| Search field input, ledger name row, ribbon owner | 13 | 400 | sans | ribbon owner sets `text-transform: none` |
+
+**Mono — numerals only (§3, the mono rule)**
+
+| Role | Size | Weight | Notes |
 |---|---|---|---|
-| Index letter | 76 | 900 / wdth 62 | uppercase |
-| Volume title (detail hero) | 32 | 800 | as authored |
-| Library name | 22 | 700 | as authored |
-| Row title | 17 | 600 | as authored |
-| Metadata | 14 | 400 | as authored |
-| Plate Line | mono 11, `--ink-soft` | 400 | as authored |
-| Tag & plate caps | 10 | 800, tracking +0.16em | uppercase |
-| Numerals (mono) | 13 | 400 | — |
+| Count plate | 12 | 700 | tabular, in a 2px ruled plate |
+| Plate Line figures, detail plate line | 12 | 400 | `--cover-soft` on the cover |
+| Index letter count, ledger dates, ledger duration, library row sub | 11 | 400 | tabular |
+| **Collection member order plate** | **9** | 400 | tabular, in a **1px** rule — see §5 |
+
+**Caps — interface labels. Tracking is per-role and is not one value.**
+
+| Role | Size | Weight | Tracking |
+|---|---|---|---|
+| Wordmark | 12 | 800 | +0.20em |
+| Plate Button labels — every variant | 12 | 800 | +0.12em |
+| Section header (`MINE`, `SHARED WITH ME`) | 11 | 800 | +0.16em |
+| Account plate initials | 11 | 800 | — |
+| Ledger head, detail-marks label, shared ribbon caps, ledger date labels | 10 | 800 | +0.16em |
+| Overprint Stamp | 10 | 800 | +0.14em |
+
+The steps in use are **9, 10, 11, 12, 13, 14, 17, 20, 22, 32, 76**. Anything else is off the scale.
+
+**This table was wrong for four slices, and the mechanism is worth more than the correction.** Its
+eight rows were transcribed from the comp's own **type-specimen block** (`.t-index`, `.t-lib`,
+`.t-num`, `.t-caps` …) rather than from the phone comps the specimen was supposed to summarise — and
+the specimen disagrees with them: it sets the library name at 24 where `.vol-name` is 22, mono
+numerals at 13 where every real numeral is 12 or 11, and caps at 10 where a button label is 12. A
+later pass corrected the specimen's printed *labels* and left its *CSS* untouched, so that block now
+renders one size while claiming another.
+
+So the code was right and this document was wrong in six places at once, and a careful reviewer duly
+filed six false violations against correct code. **A summary of a design is not the design.** Derive
+from the artefact, never from a legend beside it — and where a legend exists, it is a third thing that
+can drift, not a shortcut to the first.
+
+The correction also resolves an internal contradiction: this table used to call the Plate Line `mono
+11` while §5 said only its figures take the mono. **§5 was right**, and the code follows §5.
 
 **The index letter is filled `--imprint` with a 2px `--ink` text-stroke**, not solid ink, over a 4px
 `--ink` rule. That is what gives the monumental letter its printed weight without turning a quarter
@@ -701,6 +742,16 @@ Recorded so later work does not quietly reintroduce it:
   rounded diagonal handle drawn by the browser, in a system with no radii and no diagonals; suppress
   it and let `rows` govern height. The same applies to any default the platform draws that the
   design never authored.
+
+  **One exception is permanent and is recorded so it is not "fixed": the open state of a
+  `<select>`.** The collection field's closed state is fully authored — 48px, a hand-drawn chevron,
+  2px bottom rule — but the opened list is drawn by the OS, and on iOS that means rounded corners and
+  a shadow, both of which §9 otherwise refuses. **This is not a defect and must not be closed by
+  building a custom listbox.** A hand-rolled option list forfeits the native picker's focus
+  management, type-ahead, VoiceOver rotor behaviour and hardware-keyboard handling, and would cost
+  more accessibility than the two radii it removes. The rule that survives is the one §9 already
+  states — suppress what the platform draws *where the design has a vocabulary for it* — and the
+  boundary is that a control's own popup layer does not.
 - Warm cream or linen grounds, serif display faces, terracotta accents, wooden or shelf
   materials — the category default, and v2's identity.
 - Rounded corners, drop shadows, glassmorphism, gradient fills.
