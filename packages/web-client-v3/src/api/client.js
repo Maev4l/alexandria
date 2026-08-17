@@ -35,13 +35,25 @@ export class PendingApprovalError extends Error {
 // Reader-facing copy for a non-2xx, non-403 response, per ui-v3.md §7: say what the app failed to
 // do and, where recovery is possible, what the reader can do next — never the server's own
 // phrasing, which `.claude/backend.md`'s own backlog plans to change out from under this client.
-// Keyed by status only for the two cases specific enough to name (400 is validation, generic
-// across every form in the app; 409 has exactly one source — a duplicate collection name,
-// `handlers/collections.go` — so it is named for that rather than left generic).
+// Keyed by status only for 400, which is validation and genuinely generic across every form in
+// the app.
+//
+// 409 is deliberately generic too, even though its only live source today
+// (`handlers/collections.go`'s CreateCollection and UpdateCollection, confirmed by grepping the
+// whole `api` package for `StatusConflict` — two call sites, both "duplicate name") is always a
+// duplicate collection name. That is a fact about ONE FIELD on ONE FORM, not about "the request",
+// so it does not belong in an app-wide status map: NewCollection.jsx and EditCollection.jsx both
+// intercept `err.status === 409` before this copy is ever read, and set their own field-level
+// message naming the collection (ui-v3.md: "duplicate-name rejection surfaced on the field, not
+// as a toast"). An earlier version of this entry named "library" specifically — wrong even for
+// the endpoint that exists, since the conflict is the collection's name, not the library's — and
+// would go on being wrong for any future 409 this map has no way to know about. One path per
+// condition: the field owns the specific copy, this entry is only the honest fallback if a 409
+// ever reaches here unhandled.
 const STATUS_COPY = {
   400: 'That request was not accepted. Check what you entered and try again.',
   404: 'That could not be found. It may have been moved or deleted.',
-  409: 'That name is already used in this library. Choose a different one.',
+  409: 'That conflicts with something that already exists. Check what you entered and try again.',
 };
 
 const copyForStatus = (status) => {

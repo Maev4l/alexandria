@@ -157,16 +157,22 @@ describe('ordinary failures are unchanged', () => {
 // printed "Unauthorized" on screen, because ApiError.message WAS data?.message. This section
 // asserts the negative directly against the real client — that a reader-facing slot never shows
 // a status word or the server's own text — for every status the app can actually hit, per
-// openapi.yaml and handlers/collections.go (400 validation, 404 item, 409 duplicate collection
-// name, 5xx). A test that only checked ApiError.message in isolation could not catch a call site
-// that concatenates or otherwise mishandles it; this checks the same string the DOM would show.
+// openapi.yaml and handlers/collections.go (400 validation, 404 item, 409 conflict, 5xx). A test
+// that only checked ApiError.message in isolation could not catch a call site that concatenates
+// or otherwise mishandles it; this checks the same string the DOM would show.
+//
+// 409's copy is deliberately generic ("conflicts with something that already exists"), not
+// "duplicate collection name" or "library" — that specific, correct copy is owned by
+// NewCollection.jsx/EditCollection.jsx, which read `err.status` before this map is ever
+// consulted. This test only pins that the app-wide fallback stays honest and server-word-free;
+// see the comment on STATUS_COPY in client.js for why the fallback must not name a screen.
 describe('a status maps to app-authored copy, never the server\'s own words', () => {
   beforeEach(() => vi.mocked(fetchAuthSession).mockResolvedValue(withToken));
 
   const cases = [
     [400, 'invalid request - name too long (max. 100 chars)', /not accepted/i],
     [404, 'item not found', /could not be found/i],
-    [409, 'collection with this name already exists', /already used/i],
+    [409, 'collection with this name already exists', /conflicts with something/i],
     [500, 'Unauthorized', /went wrong/i],
     [502, 'Unauthorized', /went wrong/i],
   ];
