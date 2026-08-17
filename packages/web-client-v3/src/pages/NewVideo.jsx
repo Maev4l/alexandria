@@ -9,8 +9,9 @@ const FILM = 1;
 
 // Manual entry, reached either from AddItemSheet's "Enter by hand" or as the fallback when
 // cover-OCR + TMDB search finds nothing (DESIGN.md, AddVideo). No item exists yet, so `initial`
-// starts from whatever the previous screen already knew — `location.state` — rather than
-// nothing, the same seeding NewBook does for the identical reason.
+// starts from whatever the previous screen already knew — the query string, `?collectionId=` —
+// the same seeding NewBook does for the identical reason: state is gone on a cold load, which
+// is exactly when the loss would be silent.
 const NewVideo = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ const NewVideo = () => {
         <h1 className="sr-only">New film</h1>
         <ItemForm
           type={FILM}
-          initial={seedFromAddFlowState(location.state)}
+          initial={seedFromAddFlowState(location.search)}
           collections={collections}
           onSubmit={onSubmit}
           submitLabel="Add film"

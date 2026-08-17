@@ -9,9 +9,11 @@ const BOOK = 0;
 
 // Manual entry, reached either from AddItemSheet's "Enter by hand" or as the fallback when
 // ISBN detection finds nothing (DESIGN.md, AddBook). No item exists yet, so `initial` starts
-// from whatever the previous screen already knew — `location.state` — rather than nothing:
-// arriving from a collection board's "Add an item" must not silently drop the collection the
-// reader just named, leaving them to notice and re-pick it from the dropdown.
+// from whatever the previous screen already knew — the query string, `?collectionId=` —
+// rather than nothing: arriving from a collection board's "Add an item" must not silently drop
+// the collection the reader just named, leaving them to notice and re-pick it from the
+// dropdown. The query, not `location.state`: state is gone on a cold load (a fresh tab, a deep
+// link, a PWA restart resuming this exact URL), which is exactly when the loss would be silent.
 const NewBook = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ const NewBook = () => {
         <h1 className="sr-only">New book</h1>
         <ItemForm
           type={BOOK}
-          initial={seedFromAddFlowState(location.state)}
+          initial={seedFromAddFlowState(location.search)}
           collections={collections}
           onSubmit={onSubmit}
           submitLabel="Add book"

@@ -4,11 +4,17 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import AddItemSheet from './AddItemSheet.jsx';
 
-// Prints whatever `location.state` carried, so a test can assert on what travelled with the
-// navigation rather than on the route path alone.
+// Prints both `location.state` and the query string, so a test can assert on whichever
+// mechanism actually carried the collection rather than on the route path alone. Book/Film
+// still travel via `state` (their destinations are unbuilt stubs, out of scope); Enter by hand
+// travels via the query (its destination, NewBook, is built and must survive a cold load).
 const LocationProbe = () => {
   const location = useLocation();
-  return <p>collection:{location.state?.collection?.id ?? 'none'}</p>;
+  return (
+    <p>
+      state:{location.state?.collection?.id ?? 'none'} search:{location.search || 'none'}
+    </p>
+  );
 };
 
 const renderAt = (destinationPath, props = {}) =>
@@ -25,12 +31,15 @@ const renderAt = (destinationPath, props = {}) =>
   );
 
 describe('AddItemSheet', () => {
-  it('carries the collection into Enter by hand, the same way it does Book and Film', async () => {
+  // Not `location.state`, unlike Book and Film: NewBook is a built screen a reader can cold-load
+  // (a fresh tab, a deep link, a PWA restart resuming this exact URL), and state does not
+  // survive that. The query does, which is the whole reason it moved.
+  it('carries the collection into Enter by hand via the query, not location.state', async () => {
     renderAt('/libraries/:libraryId/items/new/book', {
       collection: { id: 'c1', name: 'Blake et Mortimer' },
     });
     await userEvent.click(screen.getByRole('button', { name: /enter by hand/i }));
-    expect(screen.getByText('collection:c1')).toBeInTheDocument();
+    expect(screen.getByText('state:none search:?collectionId=c1')).toBeInTheDocument();
   });
 
   it('offers no Back from the header "+", where there is no menu to return to', () => {
