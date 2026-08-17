@@ -6339,7 +6339,254 @@ git commit -m "feat(web-v3): item forms holding the API's limits and the collect
 
 ---
 
+# Slice C½ — slice D's entry conditions
+
+Two tasks buildable now, because neither lives inside a capture stub. Both were settled with
+the user by the design session. **Slice D itself does not start until the user calls it.**
+
+---
+
+### Task 17a: The order field becomes conditionally optional — and stops sending `0`
+
+**Files:**
+- Modify: `packages/web-client-v3/src/lib/validate.js`
+- Modify: `packages/web-client-v3/src/components/ItemForm.jsx`
+- Test: `packages/web-client-v3/src/lib/validate.test.js`
+- Test: `packages/web-client-v3/src/components/ItemForm.test.jsx`
+
+**The constraint being removed was invented by this project, not by the API.** `.claude/ui-v3.md`
+said collection and order were mutually required and the form must enforce the pair. Half false,
+corrected at `e302fd1`. Verified against the Go source, not taken on report:
+
+| Claim | Source | Verdict |
+|---|---|---|
+| Order without a collection is rejected | `api/handlers/items.go:31` | **true** — keep enforcing it |
+| Order is optional when a collection is set | `api/handlers/items.go:36-40` | **true**, range checked only when present |
+| Create with no order → server ranks it last | `api/services/items.go:277-284` | **true**, `maxOrder + 1` |
+| Update auto-calculates only when the collection CHANGED | `api/services/items.go:188-196` | **true** — `isNewToCollection := oldCollectionId != *i.CollectionId` |
+
+**The field stays on every form** — re-ranking a filed item is the whole reason it exists. Only
+its optionality changes, decided by comparing the selected `collectionId` against
+`initial.collectionId`:
+
+| Case | Order | Empty means |
+|---|---|---|
+| New item, collection chosen | optional | omit — the server ranks it last |
+| Edit, collection **changed** (including newly set) | optional | omit — ranked last in the new collection |
+| Edit, collection **unchanged** | **required** | nothing, and clearing it corrupts the record |
+
+**Why the third row is required — verified, and worse than inferred.** The design session
+inferred that an order-nil item keeps a `CollectionId` while its `GSI1SK` flips to the
+no-collection form, and flagged the inference as unverified. It is correct:
+`internal/persistence/models.go:96-101` returns `item#<title>` whenever `order == nil || *order < 1`,
+regardless of the collection.
+
+But the consequence is not simply "sorts as a standalone while claiming membership". Grouping is a
+**two-pass lookup keyed on `CollectionId`**, not on sort order
+(`api/repositories/dynamodb/items.go:813`): the item is still pushed into
+`collectionItems[collectionId]`, and pass 2 nests it **only if its collection's header landed on
+the same page**. Since its sort key has moved into the standalone alphabet, far from its
+collection's block, usually it will not. So the same record renders **as a nested member on one
+page and a loose row carrying `collectionName` on another** — page-dependent, non-deterministic,
+and the hardest class of corruption to report. It also breaks the
+`coll.ItemCount > len(coll.Items)` bookkeeping that drives `partial` and `CollectionContexts`.
+
+Record the verified mechanism in the code comment, not the inference.
+
+- [ ] **Step 1: Write the failing validation tests**
+
+`validateCollectionOrder` needs a third input — whether the item is staying in a collection it is
+already in. Keep line 14's message (`Choose a collection, or clear the order.`) exactly: it
+mirrors a real handler rejection. Delete line 13's unconditional requirement.
+
+```js
+it('lets a new item omit its order — the server ranks it last', () => {
+  expect(validateCollectionOrder({ collectionId: 'c1', order: '' })).toBeNull();
+});
+
+it('lets an edit omit its order when the collection CHANGED', () => {
+  expect(
+    validateCollectionOrder({ collectionId: 'c2', order: '', initialCollectionId: 'c1' }),
+  ).toBeNull();
+});
+
+it('lets an edit omit its order when the collection is newly set', () => {
+  expect(
+    validateCollectionOrder({ collectionId: 'c1', order: '', initialCollectionId: '' }),
+  ).toBeNull();
+});
+
+it('REQUIRES the order when the collection is unchanged, because the server will not re-rank', () => {
+  expect(
+    validateCollectionOrder({ collectionId: 'c1', order: '', initialCollectionId: 'c1' }),
+  ).toMatch(/order/i);
+});
+
+it('still refuses an order with no collection', () => {
+  expect(validateCollectionOrder({ collectionId: '', order: '7' })).toMatch(/choose a collection/i);
+});
+```
+
+- [ ] **Step 2: Write the failing payload test — this is a live defect, not a new feature**
+
+`ItemForm.jsx:98` reads `order: values.collectionId ? Number(values.order) : null`. `Number('')`
+is **`0`**, and `handlers/items.go:38` rejects any order outside 1–1000. So the moment order
+becomes omittable, an empty box posts `order: 0` and earns a generic 400 with no field to fix —
+the exact failure the form exists to prevent. It is unreachable today only because line 13 blocks
+submission first; removing line 13 without this makes it reachable.
+
+```jsx
+it('omits the order rather than sending 0 when the box is empty', async () => {
+  // ...fill title, choose a collection, leave order empty, submit
+  expect(createBook).toHaveBeenCalledWith(
+    'lib-1',
+    expect.objectContaining({ collectionId: 'c1', order: null }),
+  );
+});
+```
+
+`order: null` is correct and `0` is not: a nil pointer reaches `handlers/items.go:31` as absent,
+which is only rejected when `CollectionId` is nil too.
+
+- [ ] **Step 3: Implement, then site the reason in the control's slot**
+
+Nothing on screen explains why an empty box is fine on one screen and not another, so this is
+§6's **second** form: the reason takes the control's own position in `--ink-soft` caps. Per
+`be76f66`, first check whether that slot has a same-colour ruled neighbour — if the submit button
+stands alone in its row, the simpler first form still applies and the second is unnecessary
+ceremony. Decide from the rendered row, not from this paragraph.
+
+- [ ] **Step 4: Run the tests, lint, commit**
+
+```bash
+yarn --cwd packages/web-client-v3 test
+yarn --cwd packages/web-client-v3 lint
+git add packages/web-client-v3
+git commit -m "fix(web-client-v3): order is optional unless the collection is unchanged, and never 0"
+```
+
+---
+
+### Task 17b: `CollectionActionsSheet` gains `Add an item`
+
+**Files:**
+- Modify: `packages/web-client-v3/src/components/CollectionActionsSheet.jsx`
+- Test: `packages/web-client-v3/src/components/CollectionActionsSheet.test.jsx`
+
+First entry in the sheet, reached by the board's existing Row Actions. It opens the Book/Film
+sheet and carries the collection into the add route, exactly as the header `+` does minus the
+collection.
+
+**The label does not name the collection.** The sheet heading already does — `Add an item`, not
+"Add to Blake et Mortimer". Nothing is labelled twice.
+
+The header `+` keeps adding standalone items, and **no control ever asks which collection**: that
+is in the IA anti-pattern table. A per-board `+` was considered and rejected — a permanent control
+on every board row of a thousand-item stream, competing with Row Actions for the same edge. The
+two-tap cost is paid once per cataloguing session, the same frequency argument that put `+` in the
+header rather than in thumb reach.
+
+**The destination is a stub and that is expected.** This task wires the route and passes the
+collection; it does not build what receives them.
+
+- [ ] **Step 1: Write the failing test**
+
+```jsx
+it('offers Add an item first, without repeating the collection name', async () => {
+  renderSheet({ collection: { id: 'c1', name: 'Blake et Mortimer' } });
+  const actions = screen.getAllByRole('button');
+  expect(actions[0]).toHaveAccessibleName(/add an item/i);
+  expect(actions[0]).not.toHaveAccessibleName(/blake/i);
+});
+
+it('carries the collection into the add route', async () => {
+  // choosing Book navigates to the library's add/book route with the collection in state
+});
+```
+
+- [ ] **Step 2: Implement, run the tests, lint, commit**
+
+```bash
+yarn --cwd packages/web-client-v3 test
+yarn --cwd packages/web-client-v3 lint
+git add packages/web-client-v3
+git commit -m "feat(web-client-v3): add an item from a collection board's actions"
+```
+
+---
+
 # Slice D — capture
+
+**Do not start these tasks until the user calls slice D.**
+
+## Design inputs settled before the slice starts
+
+Recorded so they are not re-litigated or invented mid-build. Four are the design session's
+rulings; three are open questions this session raised that are **not yet answered**.
+
+**C. Candidate rows carry artwork.** Detection returns `pictureUrl`; each candidate takes the
+standard 2:3 Volume Frame, ruled and empty when a resolver returns none. For films three remakes
+share a title and the poster is the fastest disambiguator — the one screen where artwork decides
+something rather than decorating.
+
+**D. There is no duplicate-ownership warning, deliberately.** Nothing tells the reader they may
+already own a scanned item. `POST /search` matches title, authors, directors, cast and collection
+— **not ISBN** — so a scan yields a code that cannot be looked up, and a title-based guess would
+be occasionally and confidently wrong. Silence beats a false positive in a bookshop. **If a "you
+may already own this" hint from a title search starts to look like a good idea, that is the thing
+being refused.**
+
+**E. The capture session declares where it is filing.** A persistent printed mark on both the
+capture screen and the candidate list: caps label plus the collection's own name, `FILING INTO` /
+*Blake et Mortimer*. **Printed, not a toast** — it must survive being ignored for a whole session
+of scans. Its **absence** is what says "standalone", so the two modes read apart with no mode
+switch.
+
+**F. The camera feed sits inside a Volume Frame, not full-bleed.** Full-bleed makes the camera the
+app, which is every other scanner and v2's. A feed inside the imprint's own 2:3 rule says *this is
+the object being catalogued*, and it leaves the bottom of the screen for the manual escape and the
+filing mark rather than floating controls over video. Structural — it drives layout and safe-area —
+so it is decided now.
+
+**The camera's surface is deliberately unspecified and must not be invented.** What marks the scan
+target, what distinguishes scanning from decoding from found, the permission-denied and no-result
+states — the design session designs those on device once a feed works. Build the viewport plain:
+correct aspect, correct safe-area, every state wired, no decoration. It will not be drafted from a
+static comp, because ink rules over a still image say nothing about whether they hold over a moving
+picture of a bright bookshelf in poor light — the same unverified substrate that produced the font
+crops, the type-scale table and the frame fills.
+
+## Open, raised by the build session and not yet answered
+
+**G. The fixture API has no `/detections` route.** `tools/mock-api.js` does not mention it, and both
+tasks post to it — so as written, neither screen is buildable or screenshot-able without AWS, which
+was Task 3's entire premise. This needs a fixture route **before** Task 18, carrying the awkward
+cases: every resolver failing, one failing, no match at all, and an OCR title needing correction.
+A prerequisite task, not a judgement call.
+
+**H. `location.state` is a refresh hole on both results screens.** Candidates travel in router
+state, so a refresh or a PWA restart lands on a screen with nothing. `ItemDetail` was deliberately
+made refresh-safe; these structurally cannot be, since candidates are not re-fetchable without
+re-posting the detection. **The designed state for a cold load needs specifying rather than
+discovering** — most likely a stamped notice returning to capture, but that is the design session's
+call, not this one's.
+
+**I. Neither suite can test the decoder.** Task 18 mocks `BarcodeScanner` in unit tests and the
+browser suite has no camera, so both suites test the *wiring*, not the decode. Stated here so a
+green suite is never read as coverage of the scanner — this project has hit that failure three
+times (the font cmap, the no-op exclusion, the wrap assertion that could not fail).
+
+## Already binding
+
+- Nothing is written before the reader confirms a candidate.
+- A per-resolver failure is shown **as a failure**, never silently dropped.
+- The manual path is always visible, never behind a fallback.
+- `@zxing` and `react-webcam` load **only** on the capture routes — `manualChunks` currently
+  carries `amplify` and `react` only, and most sessions are lookups, not cataloguing.
+- The five standing guards (`fonts`, `groundForeground`, `routeLandmarks`, `monoText` +
+  `monoRouteCoverage`, `routeExits`) already enforce landmarks, ground/foreground, the mono/sans
+  split and route exits on these screens. Tasks 18–19 predate them and do not restate them; they
+  will fail loudly, which is the point.
 
 ---
 
