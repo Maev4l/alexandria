@@ -684,6 +684,19 @@ screenshot — it was caught by shooting the comp, not by reading it.
 would start their titles at different x positions and rag the whole list. Reserve the column
 (56px at row scale) and centre the figure in it.
 
+**Before tuning two states apart, establish whether they can co-occur.** "Do these read too much
+alike" is a question about typography, and it is the second question. The first is whether a reader
+can ever see both at once — because if they cannot, there is nothing to distinguish and any rewording
+is invented work. `NO COMPLETE LOAN` and a row's `no return recorded` looked like siblings and were
+worth worrying about; the answer came from `loans.js`, not from the type. The caps state renders only
+when `loans.length === 0`, and an unresolved loan is still pushed onto that array, so the two are
+**structurally mutually exclusive**. Not "distinct enough" — unable to co-occur.
+
+This is the same move as the Overprint Stamp and the ledger's first row stating one loan (§5): the
+question was settled by what the data can produce, not by adjusting the design until it felt
+resolved. A structural answer holds under every future restyle. A perceptual one has to be re-argued
+every time something moves.
+
 **One left edge per element.** The two edge rules cannot collide, because they address different
 scopes: sharing is a library-level fact in this API — items are never individually shared — so
 `--shared` marks library rows and `--out` marks item rows. Inside a shared library an item on loan
