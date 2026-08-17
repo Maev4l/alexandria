@@ -50,13 +50,23 @@ describe('ItemActionsSheet', () => {
     expect(screen.getByLabelText(/who has it/i)).toHaveAttribute('maxLength', '50');
   });
 
-  it('keeps the lend action out of reach until a name is given', async () => {
+  it('drops the "50 LEFT" counter — a limit nobody at the door is near', async () => {
     renderSheet(atHome);
     await userEvent.click(screen.getByRole('button', { name: /^lend/i }));
-    // The reason is visible — an empty required field right above — so the action is a ruled
-    // outline that fills on validity rather than an inert control.
-    expect(screen.getByRole('button', { name: /record the loan/i })).toBeDisabled();
+    expect(screen.queryByText(/left/i)).toBeNull();
+  });
+
+  // The second place this exact defect shipped (LendSheet was the first): a disabled primary
+  // renders as a ruled outline, indistinguishable at rest from the "Back" outline beside it —
+  // DESIGN.md §6's SECOND form names the reason instead, in the button's own position, until
+  // the field is valid.
+  it('names the reason instead of showing a disabled twin of Back, until a name is given', async () => {
+    renderSheet(atHome);
+    await userEvent.click(screen.getByRole('button', { name: /^lend/i }));
+    expect(screen.queryByRole('button', { name: /record the loan/i })).toBeNull();
+    expect(screen.getByText(/a borrower's name/i)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/who has it/i), 'Marie');
+    expect(screen.queryByText(/a borrower's name/i)).toBeNull();
     expect(screen.getByRole('button', { name: /record the loan/i })).toBeEnabled();
   });
 

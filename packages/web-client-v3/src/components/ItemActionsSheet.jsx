@@ -91,31 +91,43 @@ const ItemActionsSheet = ({ item, libraryId, open, onClose, onChanged, onDeleted
           <Field
             label="Who has it"
             maxLength={NAME_MAX}
-            counter={NAME_MAX - borrower.length}
             value={borrower}
             onChange={(event) => setBorrower(event.target.value)}
           />
-          {/* Paired with a secondary, exactly as delete is paired with "Keep it". Lend was a
-              one-way door: its only controls were the field and the primary, so a reader who
-              tapped Lend by mistake could leave only by Escape — which a phone does not have —
-              or the scrim, which aria-modal hides from assistive tech. The same component was
-              modelling the same pattern two different ways. */}
-          <div className="flex gap-2">
-            <PlateButton
-              disabled={isBusy || !borrower.trim()}
-              onClick={() =>
-                run(
-                  () =>
-                    eventsApi.create(libraryId, item.id, {
-                      type: 'LENT',
-                      event: borrower.trim(),
-                    }),
-                  `${item.title} is out with ${borrower.trim()}`,
-                )
-              }
-            >
-              {isBusy ? 'Recording' : 'Record the loan'}
-            </PlateButton>
+          {/* Paired with a secondary, exactly as delete is paired with "Keep it" — Lend was a
+              one-way door before this pairing existed, and that fix is correct and unrelated
+              to the one below. "Back", not "Cancel": this returns to the sheet's own menu
+              rather than dismissing the sheet, so it keeps its own label.
+              §6's SECOND form (DESIGN.md, LendSheet's identical fix — same defect, second
+              place it shipped): a disabled primary renders as a ruled outline, and outline vs
+              outline is not a distinguishable pair when both sit on screen at once — "Record
+              the loan" and "Back" were the same shape at rest, in the flow PRODUCT.md times in
+              seconds. The reason takes the button's own position in `--ink-soft` caps instead
+              of a disabled twin of Back; the reason's `min-h-12` matches PlateButton's own so
+              the slot's height is reserved and the row does not resize on the swap. Also drops
+              the "50 LEFT" counter, a budget nobody at the door is near. */}
+          <div className="flex items-center gap-2">
+            {borrower.trim() ? (
+              <PlateButton
+                disabled={isBusy}
+                onClick={() =>
+                  run(
+                    () =>
+                      eventsApi.create(libraryId, item.id, {
+                        type: 'LENT',
+                        event: borrower.trim(),
+                      }),
+                    `${item.title} is out with ${borrower.trim()}`,
+                  )
+                }
+              >
+                {isBusy ? 'Recording' : 'Record the loan'}
+              </PlateButton>
+            ) : (
+              <p className="caps flex min-h-12 items-center text-[11px] font-bold text-ink-soft">
+                A borrower's name
+              </p>
+            )}
             <PlateButton variant="secondary" onClick={() => setMode('menu')}>
               Back
             </PlateButton>

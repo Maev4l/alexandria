@@ -37,6 +37,9 @@ describe('lend mode', () => {
   it('pairs its primary with the secondary, as delete does', async () => {
     openSheet();
     await userEvent.click(screen.getByRole('button', { name: /^lend$/i }));
+    // At rest the primary's slot holds the reason, not a disabled twin of "Back" (DESIGN.md §6
+    // second form) — the pairing is proven by typing a name and seeing both controls together.
+    await userEvent.type(screen.getByLabelText(/who has it/i), 'Marie');
     expect(screen.getByRole('button', { name: /record the loan/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
   });
