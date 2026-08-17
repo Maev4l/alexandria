@@ -6637,6 +6637,30 @@ exemption is not weak — it is *available because the code exists*, and would n
 otherwise. Refer with a stated lean rather than either deciding or shrugging: it stays useful, and it
 puts the decision where the bias is not.
 
+**K. `Enter by hand` lives on the capture screens, never in the type sheet** — fixed at `a08e882`
+after a **user found that a film could not be entered by hand at all**. `AddItemSheet` offered
+`Book` / `Film` / `Enter by hand`, and the third silently meant *Book*: `NewVideo` was unreachable
+from the entire add flow.
+
+**An option that requires a parameter its siblings exist to supply is not their peer.** It is a child
+of each of them, and placing it alongside them forces a silent default. The tell needs no running
+code — **if a menu entry cannot be described without referring to another entry's answer, it is at the
+wrong level.** v2 had this right and v3 regressed: v2's sheet is type-only and the escape lives inside
+each capture screen, where the type is already known.
+
+Two things about how it was missed, which matter more than the fix:
+
+- **The suite was defending it.** A test asserted `Enter by hand` stays present from a board — written
+  on this session's own instruction that it must never be scoped away. An assertion pinning a broken
+  control is the guard-passing-for-the-wrong-reason family in its worst form: the guard was
+  *enforcing* the defect. 1111 tests now; 1098 of them could not see this.
+- **A user tapping through the flow caught what no critique, suite or diff read did.** The four-path
+  reachability assertion (header and board × book and film, on a bare URL) is the check that should
+  have existed, and it now exists.
+
+So the capture screens each carry their escape as a **contract**, not a feature — `PRODUCT.md` requires
+a non-camera path always in reach, and the sheet is not where it can live.
+
 ## Already binding
 
 - Nothing is written before the reader confirms a candidate.
@@ -6815,22 +6839,29 @@ the manual routes already read (ruling J). Not `location.state`. Confirming a ca
 `itemsApi.createBook` and returns to `AddBook` for the next item — cataloguing is a batch
 activity, so the flow loops rather than exiting.
 
-- [ ] **Step 5: Close the state divergence — a REQUIRED acceptance criterion, not a nicety**
+- [ ] **Step 5: Keep the escape and the query contract this screen already has**
 
-`AddItemSheet`'s `Book` branch still passes `location.state`, because when it was written this
-screen was a stub with nothing to read a query. **Building this screen is what closes that**, and it
-must not depend on anyone remembering:
+**The state divergence this step used to schedule is already closed** — it closed the moment the stub
+gained its manual escape (`a08e882`), because the escape must *read* the collection to build its own
+link, which is what made `location.state` unsafe on this branch. `AddItemSheet`'s `Book` branch
+already appends `?collectionId=`, and both divergence notes are gone.
 
-- `AddItemSheet`'s `Book` branch appends `?collectionId=` instead of passing `{ state }`.
-- **This screen carries the same probe the manual branch got**: mount at a bare URL with
-  `?collectionId=` set, assert `location.state` is null, and assert the detection still runs against
-  the right collection. A test that only checks the collection arrives would pass under *either*
-  mechanism, which is why the null-state assertion is the load-bearing half.
-- Delete the divergence notes in `AddItemSheet.jsx` and `addFlowState.js` once they are false.
+So this step is now conservation rather than construction. Building the real screen must not lose:
 
-A deliberate divergence is acceptable only with **a named closing task and an assertion that fails if
-it is forgotten**. Thorough notes are exactly the shape that reads as finished — that is the
-half-declaration pattern, and the difference is whether something other than memory closes it.
+- **The manual-entry escape**, which is the reason the bug was fixed here rather than in the sheet: a
+  film could not be entered by hand at all because `Enter by hand` sat beside `Book` and `Film`
+  needing the type they supply. That escape is not an add-on to this screen; it is the screen's
+  contract. `PRODUCT.md` requires a non-camera path always in reach.
+- **The four-path reachability assertion** — header and board × book and film, each on a bare URL
+  asserting `location.state` is absent. Keep it green as the camera arrives; it is the assertion whose
+  absence let a whole item type ship with no manual entry, found by a user rather than by 1098 tests.
+- **`?collectionId=` as the only mechanism.** Task 18 threads `?isbn=` through the same door, so that
+  should mean reading one more parameter in `seedFromAddFlowState`, never a second branch.
+
+The rule that produced this, recorded because the plan itself demonstrated it: a deliberate
+divergence is acceptable only with **a named closing task and an assertion that fails if it is
+forgotten**, and this divergence was closed early by a *dependency* nobody scheduled — proof that
+"the destination cannot read it yet" is a fact with an expiry date, not a standing justification.
 
 - [ ] **Step 6: Run the tests, lint, commit**
 
@@ -6899,19 +6930,20 @@ saying the capture was not kept**: printed, not a toast, because it explains why
 different screen than the one they left. Neither results screen ever renders an empty candidate
 list as a spinner that never resolves.
 
-- [ ] **Step 4: Close the state divergence — a REQUIRED acceptance criterion, as in Task 18**
+- [ ] **Step 4: Keep the escape and the query contract, as in Task 18**
 
-`AddItemSheet`'s `Film` branch still passes `location.state`. Building this screen closes it:
-the branch appends `?collectionId=`, and **this screen carries the same probe** — bare URL,
-`?collectionId=` set, assert `location.state` is null, assert the right collection is still being
-filed into. The null-state assertion is the load-bearing half; a test that only checks the collection
-arrives would pass under either mechanism.
+**Already closed at `a08e882`** — `AddItemSheet`'s `Film` branch appends `?collectionId=` and this
+stub already carries its manual escape to `/items/new/video`. That escape is the fix for the live bug
+where **a film could not be entered by hand at all**, so it is this screen's contract and not
+decoration: keep it, and keep the four-path reachability assertion green as the camera arrives.
 
 **The OCR path is the one genuine exception and keeps `location.state`** (ruling H): the captured
-image is not URL-shaped and nobody kept the photograph. So assert both halves here — the typed-title
-path recovers from a bare URL, and the OCR path's cold load **redirects to `/add/video` with the
-printed line** saying the capture was not kept. Two mechanisms on one screen is correct here, and it
-is only correct because the asymmetry is in the data rather than in the convenience.
+image is not URL-shaped and nobody kept the photograph. Assert both halves — the typed-title path
+recovers from a bare URL, and the OCR path's cold load **redirects to `/add/video` with the printed
+line** saying the capture was not kept. Two mechanisms on one screen is correct here, and only because
+the asymmetry is in the **data** rather than in the convenience. That distinction is the whole test:
+`Book`/`Film` lost their exception the moment a dependency made it unsafe, and this one cannot,
+because no URL can carry a photograph nobody kept.
 
 - [ ] **Step 5: Run the tests, lint, commit**
 
