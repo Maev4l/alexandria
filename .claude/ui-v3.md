@@ -282,6 +282,27 @@ shown and is editable — OCR is fallible and the reader must be able to correct
 ### NewBook / NewVideo — manual entry
 Full forms honouring the API's limits: title ≤100, summary ≤4000, authors; or directors ≤100
 each, cast, `releaseYear` 1800–2100, `duration` 0–1000 minutes, `tmdbId`.
+
+**The collection pre-selection travels in `?collectionId=` here too — the query wins everywhere.**
+When `Enter by hand` is reached from a collection board, the form seeds its picker from the query
+rather than from `location.state`, for the same reason the results screens do: a cold load otherwise
+resumes filing **standalone**, silently.
+
+The counter-argument was that the loss is *visible* on a form — the picker sits on screen reading
+`None`, so the form declares what it does not know — and it does not hold. **Visibility is not
+recovery.** A picker reading `None` asks the reader to notice an absence they have no way to identify
+as a loss; they cannot tell they *had* chosen a board rather than simply never choosing one. It is
+also weaker than it sounds: `Collection` sits low on a form that scrolls, so the cue is frequently
+off-screen at the moment it would matter.
+
+The argument that actually settles it is one nobody needs to weigh per screen: **a rule requiring a
+judgement of "visible enough" on each surface will be applied inconsistently.** One mechanism for the
+whole add flow costs a query parameter and removes the judgement.
+
+**And where the picker exists, it IS the filing mark — do not print `FILING INTO` as well.** The mark
+(§ ruling E) exists on the capture and candidate screens because those have nothing that states the
+destination. A manual form has a collection control showing the collection; adding a caps mark above it
+would state one fact twice. Same fact, one place, chosen by which surface can already carry it.
 **Collection invariant — and it is one-directional, which this spec previously got wrong.** An
 **order without a collection** is rejected (`handlers/items.go:31`). A **collection without an order
 is not**: `handlers/items.go:36` comments "Order is optional - will be auto-calculated by service
@@ -593,6 +614,19 @@ was a no-op and the wrap assertion that could not fail. The pattern is specific 
 **a new guard must be seen to fail.** Break the thing it guards, watch it go red, then fix it. A
 guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
 from a comment.
+
+**The party that built a mechanism is the worst judge of whether a new ruling reaches it.** When a
+ruling lands on code already shipped, the argument for exemption arrives fully formed and feels
+principled — and it is available *because* it lets the work stand. The tell is not that the argument
+is weak; it is that you would not have thought of it if the code did not exist. Refer it rather than
+resolve it, and say which way you lean so the referral is useful rather than a shrug.
+
+The instance: a ruling that detection results must recover from the query landed on a manual-entry
+seeding helper built four commits earlier, and the defence — "on a form the loss is visible" — was
+sound-sounding and wrong (see *NewBook / NewVideo*). What broke it was noticing that a **separate**
+ruling would give the results screens the same visibility, so the distinction had never been
+load-bearing on either surface. **A distinction that dissolves when an unrelated decision ships was
+never the reason** — it was a coincidence doing the work of an argument.
 
 **A fixture must contain the failure cases, because the failure cases are the ones that go
 undesigned.** The fixture API needs `/detections`, and what it returns decides which states anyone
