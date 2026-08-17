@@ -3,10 +3,23 @@ import Sheet from '@/components/imprint/Sheet.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 
 // Adding starts inside the library being viewed, so the destination is never asked. This sheet
-// only chooses what kind of thing is arriving.
+// only chooses what kind of thing is arriving — Book or Film — and nothing else.
+//
+// `Enter by hand` used to live here too, and that was the bug: it needs a type to mean
+// anything, and Book/Film are the controls that supply one. Putting it beside them made it
+// look like their peer when it was actually downstream of them, so choosing it silently
+// defaulted to book — the only path a film could ever be entered by hand was broken, with
+// nothing on screen saying so. v2 has this right: its sheet is type-only, and the manual
+// escape lives inside each capture screen (AddBook/AddVideo), where the type is already known
+// and nothing needs to be assumed.
 //
 // `collection` is optional: absent for the header "+" (a standalone item), present when this
-// sheet is reused from a collection board's Row Actions.
+// sheet is reused from a collection board's Row Actions — and travels as a query parameter,
+// `?collectionId=`, on both branches. Not `location.state`: state is gone on a cold load (a
+// fresh tab, a deep link, a PWA restart resuming this exact URL), and AddBook/AddVideo now need
+// the collection to build their own manual-entry link, not merely to display one — so a reader
+// who explicitly chose a board must not silently resume filing standalone the moment either
+// stub becomes real.
 //
 // `onBack` is optional too, and for a different reason: the header "+" has no menu to return
 // to, so it renders no Back at all. Reached from a board's own menu, closing this sheet with
@@ -14,47 +27,21 @@ import PlateButton from '@/components/imprint/PlateButton.jsx';
 // repaired for — so that caller supplies `onBack` and gets one back to its own menu.
 const AddItemSheet = ({ open, onClose, libraryId, collection, onBack }) => {
   const navigate = useNavigate();
-  // Book/Film land on AddBook/AddVideo, still stubs (slice D). Their query contract
-  // (`?collectionId=`, per ui-v3.md's detection-results ruling) is specified but unbuilt, so
-  // this stays as router state until those screens exist to read it — converting it here would
-  // be building slice D from this file, not fixing this one.
-  //
-  // BLAST RADIUS, which is why leaving it is a judgement and not a shrug: both branches lead to
-  // stubs, so no reader can lose anything in the meantime — there is nothing there yet to drop a
-  // collection on the floor. The moment either screen becomes real this line is a live instance of
-  // the exact defect the other branch was repaired for. It is not left to memory: Tasks 18 and 19
-  // each carry the closing assertion as an acceptance criterion — the same probe the manual branch
-  // got, a bare URL with `?collectionId=` asserting `location.state` is null — so the divergence
-  // cannot survive its own closing task.
-  const state = collection ? { collection } : undefined;
-  // Enter by hand lands on NewBook, which IS built, and its collection travels as a query
-  // parameter rather than state — the mechanism ruled for the whole add flow: `location.state`
-  // is gone on a cold load (a fresh tab, a deep link, a PWA restart resuming this exact URL),
-  // so a reader who explicitly chose a board must not silently resume filing standalone.
-  const manualEntryPath = collection
-    ? `/libraries/${libraryId}/items/new/book?collectionId=${encodeURIComponent(collection.id)}`
-    : `/libraries/${libraryId}/items/new/book`;
+  const query = collection ? `?collectionId=${encodeURIComponent(collection.id)}` : '';
 
   return (
     <Sheet open={open} onClose={onClose} title="Add to this library">
       <div className="flex flex-col gap-2">
-        <PlateButton onClick={() => navigate(`/libraries/${libraryId}/add/book`, { state })}>
+        <PlateButton onClick={() => navigate(`/libraries/${libraryId}/add/book${query}`)}>
           Book
         </PlateButton>
-        <PlateButton onClick={() => navigate(`/libraries/${libraryId}/add/video`, { state })}>
+        <PlateButton onClick={() => navigate(`/libraries/${libraryId}/add/video${query}`)}>
           Film
-        </PlateButton>
-        {/* Always reachable, from every entry point, not a fallback after the camera fails —
-            so unlike New collection below, this one is never scoped away by `collection`. */}
-        <PlateButton variant="secondary" onClick={() => navigate(manualEntryPath)}>
-          Enter by hand
         </PlateButton>
         {/* Absent, not disabled, when opened from a board (DESIGN.md §6's read-only rule
             applied to a single option rather than a whole screen): filing into `collection` IS
             this sheet's premise here, and "New collection" means abandoning that to go make an
-            unrelated one. Narrowing by entry point is only right when an option contradicts the
-            premise, not merely when it looks less likely — Enter by hand looks equally unlikely
-            from a board and stays, because a non-camera path must always be in reach. */}
+            unrelated one. */}
         {!collection && (
           <PlateButton
             variant="secondary"

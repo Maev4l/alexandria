@@ -1,13 +1,38 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AddItemSheet from './AddItemSheet.jsx';
+import { collectionsApi } from '@/api';
+
+// Only `list` is stubbed — nothing else in this file calls the API. This is what lets the
+// reachability tests below mount the real AddBook/AddVideo stubs and the real NewBook/NewVideo
+// forms, so the collection picker has something to load.
+vi.mock('@/api', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    collectionsApi: { ...actual.collectionsApi, list: vi.fn() },
+  };
+});
+
+const AddBook = (await import('@/pages/AddBook.jsx')).default;
+const AddVideo = (await import('@/pages/AddVideo.jsx')).default;
+const NewBook = (await import('@/pages/NewBook.jsx')).default;
+const NewVideo = (await import('@/pages/NewVideo.jsx')).default;
+
+beforeEach(() => {
+  vi.mocked(collectionsApi.list)
+    .mockReset()
+    .mockResolvedValue({ collections: [{ id: 'c1', name: 'Blake et Mortimer', itemCount: 4 }] });
+});
 
 // Prints both `location.state` and the query string, so a test can assert on whichever
-// mechanism actually carried the collection rather than on the route path alone. Book/Film
-// still travel via `state` (their destinations are unbuilt stubs, out of scope); Enter by hand
-// travels via the query (its destination, NewBook, is built and must survive a cold load).
+// mechanism actually carried the collection rather than on the route path alone. Every branch
+// now travels via the query: Book/Film land on AddBook/AddVideo, which are still stubs but,
+// once the manual escape is added to them (Enter by hand's new home), need the collection to
+// build their own link — so `location.state`, lost on a cold load, is no longer safe for them
+// either.
 const LocationProbe = () => {
   const location = useLocation();
   return (
@@ -31,15 +56,53 @@ const renderAt = (destinationPath, props = {}) =>
   );
 
 describe('AddItemSheet', () => {
-  // Not `location.state`, unlike Book and Film: NewBook is a built screen a reader can cold-load
-  // (a fresh tab, a deep link, a PWA restart resuming this exact URL), and state does not
-  // survive that. The query does, which is the whole reason it moved.
-  it('carries the collection into Enter by hand via the query, not location.state', async () => {
-    renderAt('/libraries/:libraryId/items/new/book', {
+  // The bug this whole round fixes: `Enter by hand` needed a type to mean anything, so it was
+  // never a peer of Book/Film — putting it beside them made choosing it silently default to
+  // book, with no film ever reachable by hand. Checked from BOTH entry points: the header "+"
+  // (no collection) and a board (collection present), since the defect did not depend on which.
+  it('never offers Enter by hand — it needs a type, which is not this sheet\'s job to assume', () => {
+    render(
+      <MemoryRouter>
+        <AddItemSheet open onClose={() => {}} libraryId="lib-1" />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('button', { name: /enter by hand/i })).toBeNull();
+  });
+
+  it('never offers Enter by hand from a board either', () => {
+    render(
+      <MemoryRouter>
+        <AddItemSheet
+          open
+          onClose={() => {}}
+          libraryId="lib-1"
+          collection={{ id: 'c1', name: 'Blake et Mortimer' }}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByRole('button', { name: /enter by hand/i })).toBeNull();
+  });
+
+  it('carries the collection into Book via the query, not location.state', async () => {
+    renderAt('/libraries/:libraryId/add/book', {
       collection: { id: 'c1', name: 'Blake et Mortimer' },
     });
-    await userEvent.click(screen.getByRole('button', { name: /enter by hand/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
     expect(screen.getByText('state:none search:?collectionId=c1')).toBeInTheDocument();
+  });
+
+  it('carries the collection into Film via the query, not location.state', async () => {
+    renderAt('/libraries/:libraryId/add/video', {
+      collection: { id: 'c1', name: 'Blake et Mortimer' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /^film$/i }));
+    expect(screen.getByText('state:none search:?collectionId=c1')).toBeInTheDocument();
+  });
+
+  it('sends no query at all from the header "+", where there is no collection to carry', async () => {
+    renderAt('/libraries/:libraryId/add/book');
+    await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
+    expect(screen.getByText('state:none search:none')).toBeInTheDocument();
   });
 
   it('offers no Back from the header "+", where there is no menu to return to', () => {
@@ -93,17 +156,98 @@ describe('AddItemSheet', () => {
     expect(screen.getByRole('button', { name: /new collection/i })).toBeInTheDocument();
   });
 
-  it('keeps Enter by hand present from a board too — a non-camera path is never scoped away', () => {
-    render(
-      <MemoryRouter>
-        <AddItemSheet
-          open
-          onClose={() => {}}
-          libraryId="lib-1"
-          collection={{ id: 'c1', name: 'Blake et Mortimer' }}
-        />
-      </MemoryRouter>,
-    );
-    expect(screen.getByRole('button', { name: /enter by hand/i })).toBeInTheDocument();
+  // The replacement for the test that pinned the original bug in place ("keeps Enter by hand
+  // present from a board too"). After removing Enter by hand from this sheet, EVERY path to add
+  // an item runs through a stub (AddBook/AddVideo), so what needs verifying is not "is the
+  // control here" but "does each of the four real paths actually arrive, with the collection
+  // carried correctly end to end" — a bare URL, no router state, exactly what a cold load looks
+  // like. A removed test with no replacement is how the original bug shipped unnoticed.
+  describe('reachability: every path runs through a stub, end to end', () => {
+    it('header "+" → Book → the stub\'s escape → NewBook, no collection', async () => {
+      render(
+        <MemoryRouter initialEntries={['/libraries/lib-1']}>
+          <Routes>
+            <Route
+              path="/libraries/:libraryId"
+              element={<AddItemSheet open onClose={() => {}} libraryId="lib-1" />}
+            />
+            <Route path="/libraries/:libraryId/add/book" element={<AddBook />} />
+            <Route path="/libraries/:libraryId/items/new/book" element={<NewBook />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
+      await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+      expect(await screen.findByLabelText(/^collection$/i)).toHaveValue('');
+    });
+
+    it('header "+" → Film → the stub\'s escape → NewVideo, no collection', async () => {
+      render(
+        <MemoryRouter initialEntries={['/libraries/lib-1']}>
+          <Routes>
+            <Route
+              path="/libraries/:libraryId"
+              element={<AddItemSheet open onClose={() => {}} libraryId="lib-1" />}
+            />
+            <Route path="/libraries/:libraryId/add/video" element={<AddVideo />} />
+            <Route path="/libraries/:libraryId/items/new/video" element={<NewVideo />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: /^film$/i }));
+      await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+      expect(await screen.findByLabelText(/^collection$/i)).toHaveValue('');
+    });
+
+    it('collection board → Book → the stub\'s escape → NewBook, collection selected', async () => {
+      render(
+        <MemoryRouter initialEntries={['/libraries/lib-1']}>
+          <Routes>
+            <Route
+              path="/libraries/:libraryId"
+              element={
+                <AddItemSheet
+                  open
+                  onClose={() => {}}
+                  libraryId="lib-1"
+                  collection={{ id: 'c1', name: 'Blake et Mortimer' }}
+                />
+              }
+            />
+            <Route path="/libraries/:libraryId/add/book" element={<AddBook />} />
+            <Route path="/libraries/:libraryId/items/new/book" element={<NewBook />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
+      await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+      // Anchored: a loose /collection/i also matches "Order in the collection".
+      expect(await screen.findByLabelText(/^collection$/i)).toHaveValue('c1');
+    });
+
+    it('collection board → Film → the stub\'s escape → NewVideo, collection selected', async () => {
+      render(
+        <MemoryRouter initialEntries={['/libraries/lib-1']}>
+          <Routes>
+            <Route
+              path="/libraries/:libraryId"
+              element={
+                <AddItemSheet
+                  open
+                  onClose={() => {}}
+                  libraryId="lib-1"
+                  collection={{ id: 'c1', name: 'Blake et Mortimer' }}
+                />
+              }
+            />
+            <Route path="/libraries/:libraryId/add/video" element={<AddVideo />} />
+            <Route path="/libraries/:libraryId/items/new/video" element={<NewVideo />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+      await userEvent.click(screen.getByRole('button', { name: /^film$/i }));
+      await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+      expect(await screen.findByLabelText(/^collection$/i)).toHaveValue('c1');
+    });
   });
 });
