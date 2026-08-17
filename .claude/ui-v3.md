@@ -533,6 +533,13 @@ duplicate-name rejection had never actually reached the field this spec requires
 is not a protocol. Branch on status codes, and treat any regex over a server message as a defect
 report about the endpoint.
 
+**Moving a control invalidates every description of where it used to live — and those descriptions sit
+in files the change never touches.** After the manual escape moved out of the type sheet, `NewBook` and
+`NewVideo` still named `AddItemSheet` as its home. Their *behaviour* correctly needed no change, which
+is exactly why nobody opened them: a diff-driven review sees only files that had to move. Third
+instance of this shape, after the duplicate-name regex and the `pictureUrl` gate. The search is not
+"what breaks" but "what now says something false".
+
 **A control labelled with a specific action performs that action.** A label is a promise. A button
 reading `Mark returned` that opens a menu offering Edit, Lend and Delete breaks it twice over: the
 reader is made to choose again, from options they did not ask for, and the one thing they *did* ask
@@ -629,6 +636,23 @@ was a no-op and the wrap assertion that could not fail. The pattern is specific 
 guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
 from a comment.
 
+**Worse than a guard that misses a defect is a guard that enforces one.** `Enter by hand` was
+specified as unconditionally present in the type sheet, and a test was written asserting exactly that
+— so the suite was **pinning a broken control**, holding in place a menu entry that made a whole item
+type unenterable by hand. Every earlier instance in this project was a check blind to a defect; this
+is the first where the check was the mechanism. The lesson is not about tests: **an assertion inherits
+the correctness of the rule it encodes, and adds nothing to it.** Writing one down is therefore the
+moment to ask whether the rule is right, because after that the suite will defend it against the next
+reader who notices.
+
+**And a strengthened assertion should be shown to catch what its predecessor missed, not merely to
+fail.** "Break it and watch it go red" is satisfied by any failure, which is a weaker bar than it
+sounds. The right demonstration here reproduced the *specific* silent-regression shape — forwarding
+`location.state` **on top of** an already-correct query — and showed the new probe fails on it **while
+the collection field still reads as correctly selected**. That proves the old assertion could not have
+caught it. Passing is evidence about the new check; failing on the old blind spot is evidence about
+the gap, which is the thing being closed.
+
 **A verification chain must never contain a relative `cd`, because exit 0 from the wrong directory is
 indistinguishable from a pass.** `yarn lint` and `yarn build` both reported success from the repo root,
 where neither script exists, after a relative `cd` from an already-nested working directory failed
@@ -663,6 +687,18 @@ that `location.state` is null — so the divergence cannot survive its own closi
 Note also why the divergence is safe meanwhile: the branches that still pass state lead to stubs, so
 no reader can lose anything. **A temporary divergence needs its blast radius stated, not just its
 existence.**
+
+**"The destination cannot read it yet" is a fact with an expiry date, not a standing exemption.** That
+divergence closed in the same commit as an unrelated fix, and by a route nobody scheduled: giving the
+capture stubs a manual escape meant those stubs had to **read** the collection to build their own link
+— which is precisely the capability whose absence had justified the exemption. The closing assertion I
+required turned out to be unnecessary because the dependency closed it first, which is the good
+outcome and not an argument against requiring it.
+
+The test for whether an exception is real, then: **the asymmetry must be in the data, not in the
+convenience.** The OCR path keeps `location.state` permanently, because no URL can carry a photograph
+nobody kept — that is a fact about the world. "The other screen is a stub" was a fact about our
+schedule, and facts about the schedule expire.
 
 **The party that built a mechanism is the worst judge of whether a new ruling reaches it.** When a
 ruling lands on code already shipped, the argument for exemption arrives fully formed and feels
