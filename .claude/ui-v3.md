@@ -615,6 +615,24 @@ was a no-op and the wrap assertion that could not fail. The pattern is specific 
 guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
 from a comment.
 
+**A verification chain must never contain a relative `cd`, because exit 0 from the wrong directory is
+indistinguishable from a pass.** `yarn lint` and `yarn build` both reported success from the repo root,
+where neither script exists, after a relative `cd` from an already-nested working directory failed
+silently. Two zeros that looked exactly like two passes. Re-run from the right place they were
+genuinely clean — so nothing was broken, but the *reading* was worthless and was one keystroke from
+being reported as evidence.
+
+The same drift hit this document's own author in the same session: a critique snapshot was written into
+`docs/ui-design/.impeccable/` rather than the repo's store, because the shell's working directory had
+persisted from an earlier `cd`. It created a second, empty trend history that reported the run as the
+first ever for that target, silently discarding three prior scores. Nothing errored.
+
+Use absolute paths, or print `pwd` as part of the chain. And note the family this belongs to: the font
+crops rendered in the wrong face, the type scale read off the wrong artefact, the fixtures that
+misrepresented cover density. **Every one was a true answer about the wrong substrate.** The recurring
+defect in this project is not faulty reasoning; it is sound reasoning run against something nobody
+confirmed was the thing under test.
+
 **A deliberate temporary divergence is acceptable only with a named closing task and an assertion that
 will fail if it is forgotten — a comment is not enough.** This is what separates a marked divergence
 from the half-declaration pattern that has cost this project five violations in two commits: not that
