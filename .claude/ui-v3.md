@@ -260,8 +260,39 @@ shown and is editable — OCR is fallible and the reader must be able to correct
 ### NewBook / NewVideo — manual entry
 Full forms honouring the API's limits: title ≤100, summary ≤4000, authors; or directors ≤100
 each, cast, `releaseYear` 1800–2100, `duration` 0–1000 minutes, `tmdbId`.
-**Collection invariant:** collection and order are both required if either is set, and order is
-1–1000. The form enforces the pair, since the backend only validates it at the handler.
+**Collection invariant — and it is one-directional, which this spec previously got wrong.** An
+**order without a collection** is rejected (`handlers/items.go:31`). A **collection without an order
+is not**: `handlers/items.go:36` comments "Order is optional - will be auto-calculated by service
+layer if not provided", and `services/items.go` sets `order = maxOrder + 1` from
+`GetMaxOrderInCollection`, which reads the collection's real items. An empty collection yields
+`maxOrder = 0`, so its first item gets `1`.
+
+This spec used to assert the pair was mutually required and that the form must enforce it. That was
+false, and the form was built to it — so an invented constraint became shipped behaviour. Server-side
+ranking is also strictly better than anything the client could do: the collection endpoint returns
+`itemCount` but **not its members**, so a client computing `itemCount + 1` would collide with an
+existing order in any collection containing a gap.
+
+**The order field stays on every form** — a reader must be able to re-rank an item after it is filed,
+which is the whole reason the field exists. What changes is when it may be empty, and there are three
+cases the form can distinguish exactly by comparing the selected `collectionId` against
+`initial.collectionId`:
+
+| Case | Order | Empty means |
+|---|---|---|
+| New item, collection chosen | optional | file it last; the server computes the rank |
+| Edit, collection **changed** (including newly set) | optional | file it last in the new collection |
+| Edit, collection **unchanged** | **required** | nothing — and clearing it is a hazard |
+
+The third row is the one that needs care. `services/items.go` auto-calculates only when
+`isNewToCollection` — `oldCollectionId != newCollectionId` — so on an item staying in its current
+collection, omitting `order` does **not** re-rank it: the order is simply set to nil, leaving a record
+that carries `CollectionId` and `CollectionName` with no rank. Per `backend.md`'s key patterns that
+also changes its `GSI1SK` to the no-collection form, so it would sort as a standalone while still
+claiming membership. The form therefore keeps order required in that case, using §6's **second** form
+(the reason in the control's position), because nothing on screen would otherwise explain why.
+
+Order remains 1–1000 whenever it is supplied.
 
 ### ItemDetail — `/libraries/:libraryId/items/:itemId`
 The one screen on the black cover, and **the one screen where artwork earns real space**: the
