@@ -78,7 +78,26 @@ const DetailMarks = ({ item, library, loans }) => {
                 // search button (326–374px). Re-measured after round 5's regrouping: this
                 // group's own internal gap-2 did not change (only the SPACE AFTER the group,
                 // before the stamp, grew), so these figures still hold.
-                className="relative text-cover-body underline underline-offset-[3px] before:absolute before:inset-x-0 before:-top-[30px] before:-bottom-[8px] before:content-['']"
+                //
+                // The vertical fix above never mentioned the OTHER axis, and `before:inset-x-0`
+                // gives it none: `left:0;right:0` just matches the pseudo's box to the Link's own
+                // width, which is the library name's rendered text width — "Films" measured
+                // 34.06px, "Bandes dessinées" (this file's other fixture library) measured well
+                // past the floor, so the shortest name is the one that fails, and it is real
+                // content, not a fixture artefact (p2 batch 2, finding 3). `left-1/2` plus
+                // `-translate-x-1/2` centers the pseudo ON the Link regardless of its width, and
+                // `w-[max(50px,100%)]` — 50, not exactly 48, for the same margin the vertical fix
+                // already keeps against rounding — means the box is never narrower than 50px even
+                // when the text is, and never narrower than the text either, for a long name. Pure
+                // `position: absolute`, so — like the vertical inset beside it — it cannot push
+                // any sibling: the sharing mark's edge rule two lines below shares this Link's
+                // computed left/top only because `pl-2` on the outer column puts them there, not
+                // because this pseudo-element does. Widening left of the Link's own edge reaches
+                // into "In "'s own dead space exactly as the vertical version reaches into the
+                // header's; "In" is a plain span with no click handler of its own, so — per the
+                // same reasoning as the sharing mark below it — there is nothing there to steal a
+                // tap from.
+                className="relative text-cover-body underline underline-offset-[3px] before:absolute before:left-1/2 before:w-[max(50px,100%)] before:-translate-x-1/2 before:-top-[30px] before:-bottom-[8px] before:content-['']"
               >
                 {libraryName}
               </Link>

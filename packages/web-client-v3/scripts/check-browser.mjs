@@ -698,6 +698,51 @@ try {
     `IN left: ${marks.in}, SHARED left: ${marks.shared}`,
   );
 
+  // ---- The IN <library> link clears the 48px floor in BOTH dimensions ----
+  // DetailMarks' own `::before` hit-box comment reasoned at length about the VERTICAL axis
+  // (-top-[30px]/-bottom-[8px]) and never mentioned the horizontal one, because `before:inset-x-0`
+  // just matches the pseudo to the Link's own box — the library name's rendered text width. A
+  // stylesheet test cannot see this: jsdom reports zero for every dimension (p2 batch 2's own
+  // global constraint), so this floor can only be pinned by asking a real browser for the
+  // COMPUTED `::before` box, which is the actual tappable region (there is no way to
+  // `getBoundingClientRect()` a pseudo-element directly).
+  //
+  // Measured against "Films" — lib-films/item-chinatown — deliberately not "Fiction" or "Bandes
+  // dessinées", which are long enough to clear 48px on text width ALONE and would prove nothing
+  // about the fix. "Films" is the shortest library name any fixture item actually belongs to, so
+  // it is the narrowest REALISTIC case, not a synthetic one.
+  console.log('the IN <library> link clears the 48px floor in both dimensions, on the narrowest realistic name');
+  await page.goto(`${BASE}/libraries/lib-films/items/item-chinatown`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('[data-mark="in"] a', { timeout: 10_000 });
+  const inHitBox = await page.evaluate(() => {
+    const el = document.querySelector('[data-mark="in"] a');
+    const before = getComputedStyle(el, '::before');
+    return {
+      text: el.textContent.trim(),
+      linkWidth: el.getBoundingClientRect().width,
+      hitWidth: parseFloat(before.width),
+      hitHeight: parseFloat(before.height),
+    };
+  });
+  record(
+    inHitBox.text === 'Films' && inHitBox.linkWidth < 48,
+    'sanity: "Films" itself is narrower than 48px, so this is a real test of the expansion',
+    `link text width: ${inHitBox.linkWidth}px`,
+  );
+  record(
+    inHitBox.hitWidth >= 48,
+    'IN <library> hit-box is at least 48px WIDE, even when the name is not',
+    `hit-box width: ${inHitBox.hitWidth}px (text alone: ${inHitBox.linkWidth}px)`,
+  );
+  record(
+    inHitBox.hitHeight >= 48,
+    'IN <library> hit-box is at least 48px TALL',
+    `hit-box height: ${inHitBox.hitHeight}px`,
+  );
+  // Hands the page back to item-lent (lib-fiction), which every check below this point assumes.
+  await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('[aria-label^="On loan to Marie"]', { timeout: 10_000 });
+
   // ---- `caps` elements on the cover keep an explicit weight through the cascade ----
   // `.caps` sets ONLY text-transform and letter-spacing, by deliberate design (DESIGN.md §3):
   // weight is always stated separately, at the point of use, because a `caps` utility that also
