@@ -5,6 +5,15 @@ import { BOOK, FILM, validateItem } from '@/lib/validate.js';
 
 const TITLE_MAX = 100;
 const SUMMARY_MAX = 4000;
+// Title's 20-remaining-or-fewer counter is not this finding's target — 100 is short enough to
+// hit that showing it at rest is the whole point. 4000 is a different animal: the fixture
+// summaries this catalogue actually ships (src/test/fixtures/items.js) run one short sentence,
+// nowhere near even 10% of the budget, so a counter shown from the first keystroke narrates a
+// wall nobody is near. 300 remaining — 92.5% typed, ~3700 characters in — is close enough to the
+// real ceiling that a reader who IS writing a long summary sees it with room to wrap up a
+// paragraph before truncation, and far enough out from the rare current-fixture length that
+// ordinary use never triggers it at all.
+const SUMMARY_COUNTER_THRESHOLD = 300;
 
 // Authors/directors/cast are one comma-separated field each, split into the array the API
 // wants only at submit time — trimming each name and dropping the empty entries a trailing or
@@ -168,7 +177,13 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
         as="textarea"
         rows={4}
         maxLength={SUMMARY_MAX}
-        counter={SUMMARY_MAX - values.summary.length}
+        // Hidden until the reader is actually near the wall — see SUMMARY_COUNTER_THRESHOLD.
+        // `null` (not the number) is what makes Field skip the row entirely (`counter != null`).
+        counter={
+          SUMMARY_MAX - values.summary.length <= SUMMARY_COUNTER_THRESHOLD
+            ? SUMMARY_MAX - values.summary.length
+            : null
+        }
         value={values.summary}
         error={errors.summary}
         onChange={set('summary')}

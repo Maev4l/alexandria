@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import ItemForm from './ItemForm.jsx';
@@ -43,6 +43,25 @@ describe('ItemForm', () => {
     expect(screen.getByLabelText(/release year/i)).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByLabelText(/duration/i)).toHaveAttribute('aria-invalid', 'true');
     expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  // The critique's finding: 4000 is not 100. A counter shown from the first keystroke narrates a
+  // budget nobody at ordinary summary length is anywhere near. It should appear only once a
+  // reader is actually close to it (SUMMARY_COUNTER_THRESHOLD in ItemForm.jsx).
+  it('hides the SUMMARY counter for an ordinary summary and shows it once the wall is near', () => {
+    render(<ItemForm type={BOOK} initial={{}} collections={[]} onSubmit={vi.fn()} submitLabel="Save" />);
+    const summary = screen.getByLabelText(/summary/i);
+
+    // Title's own counter (100 max) is always on screen and unaffected by this finding — so the
+    // baseline is ONE "left" (title's), not zero, and the assertion is that Summary adds a
+    // second only once it is actually close to its wall.
+    fireEvent.change(summary, { target: { value: 'Un tueur à gages méthodique.' } });
+    expect(screen.getAllByText(/left/i)).toHaveLength(1);
+
+    // 4000 - 3800 = 200 remaining, inside the 300-character threshold.
+    fireEvent.change(summary, { target: { value: 'x'.repeat(3800) } });
+    expect(screen.getByText('200')).toBeInTheDocument();
+    expect(screen.getAllByText(/left/i)).toHaveLength(2);
   });
 
   // MINOR 7: `setError(null)` used to run only after the field-validation early return, so a

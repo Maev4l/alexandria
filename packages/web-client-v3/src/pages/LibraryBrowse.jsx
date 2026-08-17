@@ -142,8 +142,17 @@ const LibraryBrowse = () => {
           {!isLoading && !error && runs.length === 0 && (
             <div className="m-4 border-2 border-ink p-8 text-center">
               <p className="caps text-xs font-bold text-ink-soft">Nothing filed here yet</p>
+              {/* §6: recovery — and here, the very first action on the screen — is a CONTROL,
+                  never an instruction to perform a gesture on an unlabelled target. "The plus
+                  above" is spatial recall pointing at an icon with no visible label, meaningless
+                  read out in a linear reading order. This IS the whole body of the screen, so
+                  the control belongs in it rather than being pointed at from it. It duplicates
+                  the header's add action rather than replacing it — same `setIsAdding(true)`,
+                  reached a different way. */}
               {!isReadOnly && (
-                <p className="mt-2 text-sm">Add the first volume with the plus above.</p>
+                <PlateButton className="mt-4" onClick={() => setIsAdding(true)}>
+                  Add the first volume
+                </PlateButton>
               )}
             </div>
           )}
