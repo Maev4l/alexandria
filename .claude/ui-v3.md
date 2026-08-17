@@ -395,6 +395,13 @@ bought a worse problem: below the loan ledger and below "Full record", a lone `D
 though it deletes the *record*, which is a real action this app offers elsewhere. Grouped with
 Lend and Edit it can only mean the item. Distance separated the button from its own subject.
 
+**A green suite tells you the code runs. It tells you nothing about what is in the diff.** The
+landmark rescue was eighteen files and 377 insertions, and almost all of that volume was
+re-indentation — content moving inward one level to sit inside `<main>`. A reviewer who trusts a
+passing suite skims it, and a reviewer who skims a re-indentation diff cannot see the substantive
+change buried in it. Mechanical reformatting inflates a diff and camouflages everything else in the
+same commit. Read it anyway, and prefer to land a reformat and its substance separately.
+
 **A guard's exclusion must be justified by a measurement, not by a prediction.** A scanner shipped
 with one file excluded, commented as keeping the suite green on a defect it could not fix. The
 reviewer did not argue with the justification — it copied the scanner's logic into a throwaway
