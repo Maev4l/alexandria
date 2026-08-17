@@ -17,16 +17,78 @@ describe('ItemForm', () => {
     expect(screen.getByLabelText(/order in the collection/i)).toBeInTheDocument();
   });
 
-  it('blocks submit and reports the pair error when a collection has no order', async () => {
-    const onSubmit = vi.fn();
+  // task-17a: the pair requirement was invented by this project (.claude/ui-v3.md, corrected
+  // at e302fd1) — the server ranks an order-less new item last (`maxOrder + 1`), so a brand-new
+  // item choosing a collection must be free to leave the order box empty.
+  it('omits the order rather than sending 0 when the box is empty', async () => {
+    const onSubmit = vi.fn().mockResolvedValue();
     render(<ItemForm type={BOOK} initial={{}} collections={collections} onSubmit={onSubmit} submitLabel="Save" />);
 
     await userEvent.type(screen.getByLabelText(/title/i), 'A title');
     await userEvent.selectOptions(screen.getByLabelText(/collection/i), 'coll-1');
     await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
-    expect(await screen.findByText(/order in the collection, 1 to 1000/i)).toBeInTheDocument();
-    expect(onSubmit).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ collectionId: 'coll-1', order: null }));
+  });
+
+  // The server only auto-ranks on CREATE, or on an update where the collection actually changed
+  // (api/services/items.go:188-196) — an edit that picks a DIFFERENT collection gets the same
+  // free pass a new item does.
+  it('omits the order on an edit that moves the item to a different collection', async () => {
+    const onSubmit = vi.fn().mockResolvedValue();
+    const otherCollection = { id: 'coll-2', name: 'Poe', itemCount: 1 };
+    render(
+      <ItemForm
+        type={BOOK}
+        initial={{ id: 'item-1', title: 'Ligeia', collectionId: 'coll-1', order: 3 }}
+        collections={[...collections, otherCollection]}
+        onSubmit={onSubmit}
+        submitLabel="Save changes"
+      />,
+    );
+
+    // Exact label match: with the order field already showing, `/collection/i` also matches
+    // "Order in the collection" — this select's label text is the exact string "Collection".
+    await userEvent.selectOptions(screen.getByLabelText('Collection'), 'coll-2');
+    await userEvent.clear(screen.getByLabelText(/order in the collection/i));
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ collectionId: 'coll-2', order: null }));
+  });
+
+  // An UNCHANGED collection is the one case the server never re-ranks (task-17a-brief.md) — a
+  // null order there corrupts the record, so the reason is the disabled button itself
+  // (DESIGN.md §6, first form): it stands alone in its row, so the empty box sitting right
+  // above it IS the visible reason, with no separate caps explanation needed.
+  it('disables submit — wordlessly — when an edit leaves its unchanged collection without an order', async () => {
+    const onSubmit = vi.fn();
+    render(
+      <ItemForm
+        type={BOOK}
+        initial={{ id: 'item-1', title: 'Ligeia', collectionId: 'coll-1', order: 3 }}
+        collections={collections}
+        onSubmit={onSubmit}
+        submitLabel="Save changes"
+      />,
+    );
+
+    const saveButton = screen.getByRole('button', { name: /save changes/i });
+    expect(saveButton).not.toBeDisabled();
+
+    await userEvent.clear(screen.getByLabelText(/order in the collection/i));
+    expect(saveButton).toBeDisabled();
+    // Wordless per the design decision: no reason text is rendered anywhere on the form for
+    // this state, only the button's own disabled outline.
+    expect(screen.queryByText(/order in the collection, 1 to 1000/i)).toBeNull();
+
+    await userEvent.type(screen.getByLabelText(/order in the collection/i), '5');
+    expect(saveButton).not.toBeDisabled();
+
+    await userEvent.click(saveButton);
+    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ collectionId: 'coll-1', order: 5 }));
   });
 
   it('enforces the release year and duration ranges on their own fields, for a film', async () => {

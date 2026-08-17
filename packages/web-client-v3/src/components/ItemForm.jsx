@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Field from '@/components/imprint/Field.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
-import { BOOK, FILM, validateItem } from '@/lib/validate.js';
+import { BOOK, FILM, collectionUnchanged, validateItem } from '@/lib/validate.js';
 
 const TITLE_MAX = 100;
 const SUMMARY_MAX = 4000;
@@ -60,6 +60,16 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
   const [error, setError] = useState(null);
   const [isBusy, setIsBusy] = useState(false);
 
+  // The submit button IS the reason (DESIGN.md §6, first form): it stands alone in its row —
+  // no secondary or destructive control beside it to confuse with — so a required-but-empty
+  // order field is stated by the disabled outline itself, filling to a plate the moment it's
+  // filled. No separate caps explanation is needed, because the empty box sitting right above
+  // the button already is the visible reason.
+  const orderRequired =
+    Boolean(values.collectionId) &&
+    values.order === '' &&
+    collectionUnchanged({ collectionId: values.collectionId, initialCollectionId: initial?.collectionId });
+
   const set = (field) => (event) => {
     const value = event.target.value;
     setValues((current) => ({ ...current, [field]: value }));
@@ -95,7 +105,9 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
       summary: values.summary,
       pictureUrl: nextPictureUrl || null,
       collectionId: values.collectionId || null,
-      order: values.collectionId ? Number(values.order) : null,
+      // `Number('')` is `0`, not "absent" — and 0 is outside the API's 1-1000 range
+      // (handlers/items.go:38), so an empty box must become `null`, never a coerced zero.
+      order: values.collectionId && values.order !== '' ? Number(values.order) : null,
     };
 
     // `updatePicture` only means something on an edit, and only when the address on screen is
@@ -137,6 +149,7 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
       pictureUrl: values.pictureUrl,
       collectionId: values.collectionId,
       order: values.order,
+      initialCollectionId: initial?.collectionId,
       directors: type === FILM ? splitList(values.directors) : undefined,
       releaseYear: values.releaseYear,
       duration: values.duration,
@@ -276,7 +289,7 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
         </p>
       )}
 
-      <PlateButton type="submit" disabled={isBusy || !values.title.trim()}>
+      <PlateButton type="submit" disabled={isBusy || !values.title.trim() || orderRequired}>
         {isBusy ? 'Saving' : submitLabel}
       </PlateButton>
     </form>

@@ -10,10 +10,6 @@ describe('validateCollectionOrder', () => {
     expect(validateCollectionOrder({ collectionId: 'c', order: 12 })).toBeNull();
   });
 
-  it('rejects a collection with no order, because the backend requires the pair', () => {
-    expect(validateCollectionOrder({ collectionId: 'c' })).toMatch(/order/i);
-  });
-
   it('rejects an order with no collection', () => {
     expect(validateCollectionOrder({ order: 3 })).toMatch(/collection/i);
   });
@@ -22,6 +18,35 @@ describe('validateCollectionOrder', () => {
     expect(validateCollectionOrder({ collectionId: 'c', order: 0 })).toMatch(/1 to 1000/);
     expect(validateCollectionOrder({ collectionId: 'c', order: 1001 })).toMatch(/1 to 1000/);
     expect(validateCollectionOrder({ collectionId: 'c', order: 1.5 })).toMatch(/whole number/);
+  });
+
+  // The pair requirement this project invented (.claude/ui-v3.md, corrected at e302fd1) is gone:
+  // the API only demands order alongside a collection when the collection is UNCHANGED — see
+  // task-17a-brief.md. These five replace the old unconditional "collection needs an order" test.
+  it('lets a new item omit its order — the server ranks it last', () => {
+    expect(validateCollectionOrder({ collectionId: 'c1', order: '' })).toBeNull();
+  });
+
+  it('lets an edit omit its order when the collection CHANGED', () => {
+    expect(
+      validateCollectionOrder({ collectionId: 'c2', order: '', initialCollectionId: 'c1' }),
+    ).toBeNull();
+  });
+
+  it('lets an edit omit its order when the collection is newly set', () => {
+    expect(
+      validateCollectionOrder({ collectionId: 'c1', order: '', initialCollectionId: '' }),
+    ).toBeNull();
+  });
+
+  it('REQUIRES the order when the collection is unchanged, because the server will not re-rank', () => {
+    expect(
+      validateCollectionOrder({ collectionId: 'c1', order: '', initialCollectionId: 'c1' }),
+    ).toMatch(/order/i);
+  });
+
+  it('still refuses an order with no collection', () => {
+    expect(validateCollectionOrder({ collectionId: '', order: '7' })).toMatch(/choose a collection/i);
   });
 });
 
