@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
 import { ChevronLeft } from '@/components/icons';
 import SearchField from '@/components/imprint/SearchField.jsx';
@@ -38,7 +39,29 @@ const AppHeader = ({
             <ChevronLeft />
           </button>
         )}
-        {wordmark && <span className="caps truncate text-xs font-extrabold tracking-[0.2em]">Alexandria</span>}
+        {wordmark && (onBack ? (
+          // A screen that already has a back control is not depending on the wordmark as its
+          // only exit, so it stays inert text here — matching the pre-existing look on the one
+          // screen type where the two are expected to coexist (the still-unbuilt stubs this fix
+          // also touches).
+          <span className="caps truncate text-xs font-extrabold tracking-[0.2em]">Alexandria</span>
+        ) : (
+          // With no `onBack`, the wordmark is the ONLY thing in this corner of the header — on
+          // the libraries root today, and on any future screen reached in this configuration.
+          // A `<span>` here is a standing trap: it looks identical to a real mark but does
+          // nothing on tap, in an app installed as a standalone PWA with no browser chrome and
+          // no back gesture to fall back on (see the critique this fixes). Linking it home is
+          // the fix at the level of the shared component, not the seven call sites: every future
+          // `wordmark`-only header gets an exit for free. The 48px-floor reasoning is the same as
+          // the title button below — it is a real tap now, so it claims its own min-h-12 rather
+          // than borrowing the row's.
+          <Link
+            to="/libraries"
+            className="caps flex min-h-12 min-w-0 items-center truncate text-xs font-extrabold tracking-[0.2em]"
+          >
+            Alexandria
+          </Link>
+        ))}
         {title && (onTitleTap ? (
           // 48px floor (P1 #4): the text alone only stood 25px tall, sitting inside 48px of
           // space that the header row already reserves (every title screen also carries a

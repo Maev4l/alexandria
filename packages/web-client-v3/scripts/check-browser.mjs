@@ -60,6 +60,12 @@ try {
     ['/login', 'button[type=submit]', 'login submit (imprint plate)'],
     ['/libraries/new', 'input', 'new-library name input'],
     ['/libraries/new', 'textarea', 'new-library description textarea'],
+    // The wordmark became a real <Link> (P2 exit-mechanism fix) so it needs a ring like any
+    // other control now. It sets no colour of its own — it inherits the header's own
+    // ground+foreground pairing (`bg-paper text-ink` here) — so the base :focus-visible rule is
+    // the only thing that has to survive the cascade, exactly as for the other plain controls
+    // in this list.
+    ['/libraries', 'header a[href="/libraries"]', 'wordmark home link (libraries root, paper header)'],
   ]) {
     await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
     await page.waitForSelector(selector, { timeout: 10_000 });

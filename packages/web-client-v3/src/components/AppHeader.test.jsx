@@ -88,4 +88,27 @@ describe('AppHeader', () => {
     const { container } = renderHeader({ wordmark: true });
     expect(container.querySelector('header').className).toContain('pad-top-safe');
   });
+
+  // The defect the critique named: seven routes rendered `wordmark` with no `onBack`, and the
+  // wordmark was a <span> — zero focusable elements on the page, no way out of an app installed
+  // as a standalone PWA with no browser chrome. The fix is at this level (the shared component),
+  // not the seven call sites, so it is asserted here rather than only at the route-walking guard.
+  it('links the wordmark home when there is no back control, so a wordmark-only header is never a dead end', () => {
+    renderHeader({ wordmark: true });
+    const home = screen.getByRole('link', { name: 'Alexandria' });
+    expect(home).toHaveAttribute('href', '/libraries');
+  });
+
+  it('gives the linked wordmark the 48px floor, since it is a real tap target now', () => {
+    renderHeader({ wordmark: true });
+    const home = screen.getByRole('link', { name: 'Alexandria' });
+    expect(home.className).toContain('min-h-12');
+  });
+
+  it('keeps the wordmark as inert text when a back control already covers the exit', () => {
+    renderHeader({ wordmark: true, onBack: () => {} });
+    expect(screen.queryByRole('link', { name: 'Alexandria' })).toBeNull();
+    const wordmark = screen.getByText('Alexandria');
+    expect(wordmark.tagName).toBe('SPAN');
+  });
 });
