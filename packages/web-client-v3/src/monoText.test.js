@@ -22,11 +22,13 @@ const traverse = _traverse.default ?? _traverse;
 // What this CANNOT catch, and why — two distinct gaps, not one:
 //
 // 1. A word that arrives as a runtime value through a prop or a function call.
-//    UnshareLibrary.jsx's `<span className="num">{email}</span>` renders an address that is
-//    only ever an Identifier at this call site, never a string literal — `collectLiterals`
-//    falls to its `default` case and contributes nothing, so this scan is structurally blind to
-//    it regardless of whether the file is scanned (flagged by hand instead, in
-//    .superpowers/sdd/2026-08-13-web-client-v3/f4-report.md).
+//    UnshareLibrary.jsx used to read `<span className="num">{email}</span>` — an address that
+//    was only ever an Identifier at that call site, never a string literal, so `collectLiterals`
+//    fell to its `default` case and contributed nothing: this scan is structurally blind to it
+//    regardless of whether the file is scanned. Fixed by hand (f6), because this gap cannot be
+//    closed by extending the AST walk — see the runtime check in scripts/check-browser.mjs,
+//    "mono text is digit-dominant everywhere it renders", which reads the actual rendered text
+//    instead of the source and so is not blind to an Identifier the way this file necessarily is.
 //
 // 2. A literal word passed as a CHILD into a wrapper component that applies `.num` itself.
 //    `VolumePlate.jsx` and `Field.jsx`'s counter span both do `<span className="num">{children}`
@@ -43,20 +45,21 @@ const traverse = _traverse.default ?? _traverse;
 // screens by hand.
 const NUM_CLASS = /\bnum\b/;
 // An element that explicitly re-declares its own font opts back into the sans, the same idiom
-// ItemForm.jsx's `remaining()` uses for "left" beside a `.num`-wrapped figure — content nested
+// Field.jsx's counter now uses directly for "left" beside a `.num`-wrapped figure (ItemForm.jsx
+// used to duplicate this split itself via a local `remaining()` helper; f6 removed it once
+// Field.jsx started doing the same job for every counter, not just ItemForm's) — content nested
 // inside it is that element's own responsibility, not this ancestor's.
 const FONT_OVERRIDE = /\bfont-sans\b/;
 
 const SRC_DIR = path.resolve(process.cwd(), 'src');
 
-// UnshareLibrary.jsx (held by another session) is deliberately NOT excluded from the scanned
-// set: its known violation — `<span className="num">{email}</span>` — is gap 1 above (a bare
-// Identifier), so this guard cannot see it whether or not the file is scanned, and an exclusion
-// would only cost the guard's coverage of any FUTURE literal-word violation elsewhere in the
-// file — precisely the class this scan can catch. Verified by copying this file's own
-// `collectLiterals`/`findViolations` and running them against UnshareLibrary.jsx directly:
-// zero violations, confirming the exclusion would have been a no-op wearing a comment, not a
-// real accommodation.
+// UnshareLibrary.jsx was deliberately never excluded from the scanned set while its gap-1
+// violation (above) was still live: this guard could not see that violation whether or not the
+// file was scanned, so excluding it would only have cost the guard's coverage of any FUTURE
+// literal-word violation elsewhere in the file — precisely the class this scan can catch.
+// Verified by copying this file's own `collectLiterals`/`findViolations` and running them
+// against UnshareLibrary.jsx directly: zero violations, confirming an exclusion would have been
+// a no-op wearing a comment, not a real accommodation. Still true now that the file is fixed.
 
 const listSourceFiles = (dir) => {
   const out = [];

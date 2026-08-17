@@ -1082,6 +1082,117 @@ try {
       `measured contrast: ${ratio.toFixed(3)}:1`,
     );
   }
+  // ---- Mono is for numerals only: everything that resolves to Chivo Mono is digit-dominant ----
+  // DESIGN.md §3: "the mono is for numerals only... a person's name set in the mono is a
+  // category error." src/monoText.test.js guards this STATICALLY, by scanning source for a
+  // literal word written directly under a `.num`-classed element — but it discloses two blind
+  // spots it cannot close by construction: a word arriving as a runtime value through a prop
+  // (UnshareLibrary.jsx's email, f6) rather than a JSX literal, and a literal passed as a CHILD
+  // into a wrapper that applies `.num` to its own element (Field.jsx's counter, VolumePlate.jsx).
+  // Both gaps have the same shape: the source doesn't show the word beside the class, only the
+  // RENDERED page does. So this check reads the rendered page instead of the source.
+  //
+  // The rule that makes this checkable without drowning in false positives is not "no letters" —
+  // `07 Aug 2026` is a legitimate mono string that contains a word (it is a tabular date, one of
+  // the four things §3 licenses: catalogue numerals, ISBN, runtime, dates). The rule is DIGIT
+  // PROPORTION: every legitimate mono string this app renders is digit-dominant, and every
+  // violation found so far (an email, a director's name) has no digits in it at all. So: walk
+  // every element whose OWN direct text (its immediate Text-node children only, not a
+  // descendant's — the same reason `collectLiterals` stops at a `font-sans` override or a
+  // component boundary, but computed from the live DOM instead of the AST) is non-empty and
+  // whose resolved `font-family` includes Chivo Mono; require that text, once its whitespace is
+  // stripped, to be at least 50% digits — or, if it is punctuation only. The latter carve-out
+  // exists for a future ledger placeholder mark and is not exercised by anything on screen today
+  // (recorded here so nobody "optimises" it away as dead code without reading this).
+  //
+  // "Own direct text" — not `.textContent`, which is recursive — is what makes the wrapper gap
+  // closeable at runtime where the static scan cannot close it: `Field`'s counter renders
+  // `<span class="num">{n} <span class="font-sans">left</span></span>`, and only the OUTER
+  // span's own text node (the figure) is checked against ITS OWN resolved font (mono, correct);
+  // the inner "left" span is checked separately against ITS OWN resolved font (sans, because
+  // `font-sans` overrides — so it is invisible to `family.includes('Chivo Mono')` and never
+  // becomes a candidate in the first place, no special-casing required).
+  //
+  // Routes were chosen to cover every `.num` call site found by `grep -rl '\bnum\b' src`:
+  // Libraries (library counts), LibraryBrowse (VolumePlate order/counts, PlateLine year,
+  // IndexLetter counts), two ItemDetail routes — a book (ISBN) and a collection-member film
+  // (releaseYear + duration identifiers) — ItemHistory (ledger dates/durations, boxed),
+  // UnshareLibrary (the fixed email), and one of each form (NewBook's counters, EditLibrary's).
+  //
+  // MEASURED MARGIN (the point of stating one, per the index-letter guard's own convention of
+  // recording a counter's margin rather than letting a reader trust the number blind): across
+  // every one of these real screens, the worst LEGITIMATE ratio found was 0.667 (`07 Aug 2026`,
+  // stripped to `07Aug2026`, 6/9 digits) and the runtime-typical figure/date/runtime strings
+  // otherwise sit at 0.75–1.0. The worst VIOLATION on record (the email, reintroduced below to
+  // prove this) is 0.0 — zero digits. That is not a threshold balanced on a knife edge; 0.5 sits
+  // in a gap between two clearly separated distributions, nowhere near either one.
+  console.log('mono text is digit-dominant everywhere it renders (DESIGN.md §3)');
+  {
+    const MONO_ROUTES = [
+      '/login',
+      '/libraries',
+      '/libraries/lib-fiction',
+      '/libraries/lib-fiction/items/item-1984',
+      '/libraries/lib-fiction/items/item-lent',
+      '/libraries/lib-fiction/items/item-samourai',
+      '/libraries/lib-fiction/items/item-lent/history',
+      '/libraries/lib-fiction/unshare',
+      '/libraries/lib-fiction/items/new/book',
+      '/libraries/lib-fiction/edit',
+    ];
+
+    const collectMonoTexts = async (route) => {
+      await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
+      await page.waitForSelector('main', { timeout: 10_000 });
+      return page.evaluate(() => {
+        const out = [];
+        for (const el of document.querySelectorAll('body *')) {
+          // OWN text only: concatenate this element's direct Text-node children, never a
+          // descendant's — the same boundary `collectLiterals` draws at a component or a
+          // font-override child, computed from the live DOM instead of the AST.
+          let direct = '';
+          for (const child of el.childNodes) {
+            if (child.nodeType === Node.TEXT_NODE) direct += child.textContent;
+          }
+          direct = direct.trim();
+          if (!direct) continue;
+          if (!getComputedStyle(el).fontFamily.includes('Chivo Mono')) continue;
+          out.push(direct);
+        }
+        return out;
+      });
+    };
+
+    const PUNCTUATION_ONLY = /^[^0-9a-zA-Z]+$/u;
+    const violations = [];
+    let worstPassingRatio = 1;
+    let worstPassingText = null;
+
+    for (const route of MONO_ROUTES) {
+      const texts = await collectMonoTexts(route);
+      for (const text of texts) {
+        const stripped = text.replace(/\s+/gu, '');
+        if (PUNCTUATION_ONLY.test(stripped)) continue; // e.g. a bare ledger separator mark
+        const digits = (stripped.match(/[0-9]/gu) ?? []).length;
+        const ratio = digits / stripped.length;
+        if (ratio < 0.5) {
+          violations.push(`${route}: "${text}" (${(ratio * 100).toFixed(1)}% digits)`);
+        } else if (ratio < worstPassingRatio) {
+          worstPassingRatio = ratio;
+          worstPassingText = `${route}: "${text}"`;
+        }
+      }
+    }
+
+    console.log(
+      `    worst passing ratio observed: ${(worstPassingRatio * 100).toFixed(1)}% (${worstPassingText})`,
+    );
+    record(
+      violations.length === 0,
+      'every element resolving to Chivo Mono is at least 50% digits once stripped',
+      violations.join('; '),
+    );
+  }
 } finally {
   await browser.close();
   // Only the child this script spawned — signalled as a group and AWAITED, so the port is
