@@ -6556,25 +6556,74 @@ static comp, because ink rules over a still image say nothing about whether they
 picture of a bright bookshelf in poor light — the same unverified substrate that produced the font
 crops, the type-scale table and the frame fills.
 
-## Open, raised by the build session and not yet answered
+## Answered by the design session (`079e1fb`) — these three were open and are now settled
 
-**G. The fixture API has no `/detections` route.** `tools/mock-api.js` does not mention it, and both
-tasks post to it — so as written, neither screen is buildable or screenshot-able without AWS, which
-was Task 3's entire premise. This needs a fixture route **before** Task 18, carrying the awkward
-cases: every resolver failing, one failing, no match at all, and an OCR title needing correction.
-A prerequisite task, not a judgement call.
+**G. The fixture `/detections` route must contain the failures, not a happy path.** The fixtures
+decide which states get designed, so the route serves, at minimum:
 
-**H. `location.state` is a refresh hole on both results screens.** Candidates travel in router
-state, so a refresh or a PWA restart lands on a screen with nothing. `ItemDetail` was deliberately
-made refresh-safe; these structurally cannot be, since candidates are not re-fetchable without
-re-posting the detection. **The designed state for a cold load needs specifying rather than
-discovering** — most likely a stamped notice returning to capture, but that is the design session's
-call, not this one's.
+- several candidates where **most carry artwork and one does not** — per `PRODUCT.md` artwork is the
+  normal case, and the fixtures previously lied about that in the *other* direction;
+- **one resolver returning an `error` while the others succeed** — the exact shape
+  preview-before-commit exists for;
+- a **no-result** response, which is the route to manual entry;
+- for video, an `extractedTitle` that is **plausibly wrong**, since the only reason that field is
+  editable is that OCR fails in ways a reader must correct.
 
-**I. Neither suite can test the decoder.** Task 18 mocks `BarcodeScanner` in unit tests and the
-browser suite has no camera, so both suites test the *wiring*, not the decode. Stated here so a
-green suite is never read as coverage of the scanner — this project has hit that failure three
-times (the font cmap, the no-op exclusion, the wrap assertion that could not fail).
+Three clean candidates would leave every interesting state of this flow unbuilt, unreviewed, and
+**unreviewable — nobody can critique a state they cannot reach.** This is a prerequisite task,
+before Task 18.
+
+**H. `location.state` is the wrong mechanism for the results screens, and the spec was wrong to
+bless it.** A results screen holding candidates only in router state is this IA's own refused
+anti-pattern — *"detail as a modal that cannot be linked or refreshed"* — wearing a route. And the
+cold load loses more than the candidates: it loses `collectionId`, so a reader who had explicitly
+chosen a board would silently resume filing **standalone**. Silent-wrong-result again.
+
+**The identifying input moves to the query.** `?isbn=` plus `?collectionId=` when filing into a
+collection. A cold load re-runs `POST /detections` and re-renders the same candidates — detection is
+a **side-effect-free read**, so re-running it is safe — and the reader resumes still filing into the
+same board.
+
+**Video is asymmetric, and honestly so.** A typed title recovers identically via `?title=`. An
+**OCR capture cannot**: the image is not URL-shaped and nobody kept the photograph. That path alone
+keeps `location.state`, and its cold load redirects to `/add/video` with a **printed line** saying
+the capture was not kept — printed rather than a toast, because it explains why the reader is on a
+different screen than the one they left. Neither screen ever renders an empty candidate list as a
+spinner that never resolves.
+
+**I. "The decoder cannot be tested" is true of one thing and was about to excuse three.** Split it,
+and name which of the three each check covers:
+
+| Layer | How | Covered by |
+|---|---|---|
+| The **state machine** — permission requested, denied, scanning, decoding, no result, submitting, returning for the next item | put the decoder behind a small interface; a fake drives every transition | unit tests. This is most of the screen and fully testable |
+| The **library binding** | feed a committed still image of a known EAN-13 through the real decode call | a test with no camera — the only thing that catches a broken `@zxing` upgrade |
+| The **live camera** | by hand, on a device, once | recorded as manually verified, not asserted |
+
+Naming which layer is covered is the whole point. And per the standing rule: whichever guard is
+written for the first two, **break the thing and watch it go red** before trusting it.
+
+## Open — raised because ruling H lands on something already shipped
+
+**J. Does ruling H reach `NewBook` / `NewVideo`, which now seed their collection from
+`location.state`?** Task 17b built `seedFromAddFlowState(location.state)` so that `Enter by hand`
+from a collection board arrives with the board pre-selected. Ruling H's argument against
+`location.state` — a cold load silently resumes filing **standalone** — is the same argument, on the
+same mechanism, in the same flow.
+
+The case for leaving it: on a manual form the loss is **visible**, not silent. The collection picker
+is on screen reading `None`, so a cold-loaded form shows the reader exactly what it does not know.
+A results screen has no equivalent cue — nothing on it displays the collection at all, which is
+precisely why H's `?collectionId=` is needed there.
+
+That distinction may be sound or may be a rationalisation for not changing working code. **Raised
+rather than assumed, because this session built it** — the author of a mechanism is the worst judge
+of whether a new ruling reaches it. If the answer is that the query wins everywhere, `?collectionId=`
+on the manual-entry routes is a small change and the seeding helper already isolates it.
+
+Note also that ruling E's `FILING INTO` mark would give the results screens the missing cue — so if
+E ships, the "invisible loss" half of H's argument weakens on those screens too, and the
+recover-by-query half is doing the real work.
 
 ## Already binding
 
@@ -6587,6 +6636,55 @@ times (the font cmap, the no-op exclusion, the wrap assertion that could not fai
   `monoRouteCoverage`, `routeExits`) already enforce landmarks, ground/foreground, the mono/sans
   split and route exits on these screens. Tasks 18–19 predate them and do not restate them; they
   will fail loudly, which is the point.
+
+---
+
+> **Brief-extraction hazard.** `task-brief` extracts from one `### Task` heading to the next, so
+> every design-input section above lands in **Task 17b's** brief, not in a slice D brief. 17b is
+> complete so nothing is at risk now, but this already nearly caused real damage once: the whole
+> slice D block was briefed to a task whose only constraint was that the capture screens stay stubs.
+> **Read a generated brief's headings before dispatching it.** The extraction is mechanical and
+> silent, and the brief's length looks correct either way.
+
+---
+
+### Task 18a: The fixture `/detections` route — prerequisite to Task 18
+
+**Files:**
+- Create: `packages/web-client-v3/tools/mock-detections.js`
+- Modify: `packages/web-client-v3/tools/mock-api.js`
+- Test: `packages/web-client-v3/tools/mock-detections.test.js`
+
+`tools/mock-api.js` has no `/detections` route, so as the capture tasks stand neither screen is
+buildable or screenshot-able without AWS — which was Task 3's entire premise. This route comes
+first.
+
+**It must serve the failures, not a happy path** (ruling G). The fixtures decide which states get
+designed, so at minimum:
+
+| Case | Why it must be reachable |
+|---|---|
+| Several candidates, **most with artwork, one without** | `PRODUCT.md`: artwork is the normal case. The fixtures previously lied in the *other* direction, and the empty frame is the exception |
+| **One resolver returns `error`, the others succeed** | The exact shape preview-before-commit exists for — shown as a failed source, never dropped |
+| **No result at all** | The route to manual entry |
+| Video: an `extractedTitle` that is **plausibly wrong** | The only reason that field is editable is that OCR fails in ways a reader must correct |
+
+A route returning three clean candidates would leave every interesting state of this flow unbuilt,
+unreviewed, and **unreviewable — nobody can critique a state they cannot reach.**
+
+Follow `tools/mock-covers.js` for the middleware shape and its registration, including the reason
+it lives under `tools/` rather than `public/`: `public/` is copied into `dist/` regardless of mock
+mode. Key the response off the requested `code` / `title` so each case is reachable by a fixed,
+documented input rather than at random — a random failure cannot be screenshot twice.
+
+- [ ] **Step 1: Write the failing tests, then the route, then commit**
+
+```bash
+yarn --cwd packages/web-client-v3 test
+yarn --cwd packages/web-client-v3 lint
+git add packages/web-client-v3
+git commit -m "feat(web-client-v3): fixture detections route carrying the failures, not a happy path"
+```
 
 ---
 
@@ -6676,7 +6774,10 @@ scanner above, and a labelled ISBN field below it that works whether or not the 
 Permission states are `requesting`, `denied` and `scanning`; a denial replaces the viewfinder
 with an inline explanation naming the next action ("Camera access is off for this site. Type the
 ISBN below instead."). On a successful decode or a manual submit, call `detectionApi.book(code)`
-and navigate to `../add/book/results` with the candidates in `location.state`.
+and navigate to `../add/book/results?isbn=<code>`, adding `&collectionId=<id>` when the session is
+filing into a collection. **Not `location.state`** — see ruling H. The results screen re-runs
+`POST /detections` from the query on a cold load, which is safe because detection is a
+side-effect-free read, and the reader resumes still filing into the same board.
 
 `BarcodeScanner.jsx` wraps `BrowserMultiFormatReader` restricted to `EAN_13` and `EAN_8`,
 stopping the stream on unmount — an abandoned camera is a battery and privacy problem, not just
@@ -6697,7 +6798,9 @@ with an `error` is shown as a failed source rather than dropped:
 ```
 
 If every resolver failed or none matched, offer manual entry at `../items/new/book`, carrying
-the ISBN through in `location.state` so it is not typed twice. Confirming a candidate calls
+the ISBN through so it is not typed twice — **by which mechanism is open question J**, since ruling
+H moved the results screens off `location.state` and Task 17b shipped `location.state` seeding on
+exactly these manual-entry routes. Do not settle it inside this task. Confirming a candidate calls
 `itemsApi.createBook` and returns to `AddBook` for the next item — cataloguing is a batch
 activity, so the flow loops rather than exiting.
 
@@ -6758,6 +6861,15 @@ submits; that submits `detectionApi.video({ title })`. A typed title works with 
 
 `VideoDetectionResults.jsx` lists TMDB candidates — poster, title, year, runtime, director, top
 cast — and confirming one calls `itemsApi.createVideo`, then returns to `AddVideo` for the next.
+
+**The two video paths recover differently, and the asymmetry is honest rather than a gap** (ruling
+H). A typed title travels in the query as `?title=`, plus `&collectionId=` when filing into a
+collection, and a cold load re-runs the search and re-renders the same candidates. **An OCR capture
+cannot travel that way** — the image is not URL-shaped and nobody kept the photograph. That path
+alone keeps `location.state`, and its cold load **redirects to `/add/video` with a printed line
+saying the capture was not kept**: printed, not a toast, because it explains why the reader is on a
+different screen than the one they left. Neither results screen ever renders an empty candidate
+list as a spinner that never resolves.
 
 - [ ] **Step 4: Run the tests, lint, commit**
 
