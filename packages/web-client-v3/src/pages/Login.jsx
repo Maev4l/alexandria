@@ -87,7 +87,24 @@ const Login = () => {
 
         <p className="mt-8 text-sm">
           No account yet?{' '}
-          <Link to="/signup" className="font-bold underline">
+          {/* 48px floor (last site under it, DESIGN.md §4/§8): measured 72.6x15 in real Chrome.
+              This reads as a sentence but is not the WCAG 2.5.5 "inline text" case that
+              exemption targets — that exception is for a link occurring incidentally inside a
+              block of prose written to be read for its own content (an article paragraph). Here
+              "No account yet?" carries no information on its own; it exists only to motivate
+              the tap, and "Create one" is the entire actionable payload of the line, the same
+              way ItemDetail's "Full record" was judged a standalone control rather than prose
+              despite also reading as a short sentence. Same `::before` hit-box technique as the
+              five earlier sites (DetailMarks, LibraryRow, ItemDetail): a static negative margin
+              cannot apply to an inline element at all, so the alternative was never on the
+              table here. Symmetric `-inset-y-5` (-20px), the same value ItemDetail's "Full
+              record" needed once `-inset-y-4` measured 0.6px short of the floor: measured
+              clearance above (to "Continue with Google", `mt-4`/`mb-8` apart) is 34px, so 20px
+              leaves 14px still clear of it; below is open page padding, with room to spare. */}
+          <Link
+            to="/signup"
+            className="relative font-bold underline before:absolute before:inset-x-0 before:-inset-y-5 before:content-['']"
+          >
             Create one
           </Link>
         </p>
