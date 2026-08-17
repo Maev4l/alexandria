@@ -743,6 +743,113 @@ try {
   await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
   await page.waitForSelector('[aria-label^="On loan to Marie"]', { timeout: 10_000 });
 
+  // ---- The IN <library> link survives wrapping, at the 320px floor DESIGN.md §4 commits to ----
+  // Round 6 review: the centring fix above (`left-1/2` + `w-[max(50px,100%)]`) resolves `100%`
+  // against the containing block the Link's own box establishes — well-defined for a SINGLE
+  // fragment, and NOT well-defined for a plain inline element that wraps across two lines (each
+  // line is its own fragment, and which fragment the percentage resolves against is not
+  // something this code should be leaning on). `inline-block` on the Link fixes this: it is
+  // always exactly one generated box, so the containing-block computation stays the single
+  // well-defined case even when its own content wraps inside that one box.
+  //
+  // No fixture library has a name long enough to force an ACTUAL wrap, though the review's own
+  // arithmetic said the risk was real: at 320px, px-4 leaves 288px, the hero spends 132px + a
+  // 16px gap, `flex-1` gets 140px, `pl-2` leaves 132px for this whole line. "Bandes dessinées"
+  // (16 chars, the longest real fixture name) was measured here first and lands at 130.03px —
+  // it fits, by less than 2px, with zero pixels to spare — so it is genuinely the worst REAL
+  // case and still does not wrap. A check built on it could never fail, with or without the fix,
+  // which is not a check at all. So this uses a second, synthetic name for the one thing a real
+  // fixture cannot exercise: "Bandes dessinées BD" (19 chars, under the API's 20-char cap, an
+  // unrealistic but not-impossible library name) DOES wrap onto two lines at 320px. Reverting
+  // this check's own fix and running it against that name was how the fix was verified in the
+  // first place — see the two `record()`s below and the fixture-name one above them, which is
+  // the real-content half of this coverage and is not itself expected to ever go red.
+  console.log('the IN <library> link survives wrapping at the 320px floor, with the longest real name AND a synthetic worst case');
+  {
+    const wrapPage = await browser.newPage();
+    try {
+      await wrapPage.setViewport({ width: 320, height: 844 });
+      let injectedName = 'Bandes dessinées';
+      await wrapPage.setRequestInterception(true);
+      wrapPage.on('request', async (request) => {
+        if (!request.url().endsWith('/api/v1/libraries')) {
+          request.continue();
+          return;
+        }
+        // Fetches the REAL fixture response and renames just one library, rather than
+        // hand-writing a whole libraries array here — everything else about the fixture
+        // (item counts, sharing, the other three libraries) stays exactly what the mock
+        // server would have returned, so only the one fact under test changes.
+        const real = await fetch(`${BASE}/api/v1/libraries`).then((response) => response.json());
+        const libraries = real.libraries.map((lib) =>
+          lib.id === 'lib-fiction' ? { ...lib, name: injectedName } : lib,
+        );
+        request.respond({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ libraries }),
+        });
+      });
+
+      const measure = async () => {
+        await wrapPage.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, {
+          waitUntil: 'networkidle0',
+        });
+        await wrapPage.waitForSelector('[data-mark="in"] a', { timeout: 10_000 });
+        return wrapPage.evaluate(() => {
+          const el = document.querySelector('[data-mark="in"] a');
+          const before = getComputedStyle(el, '::before');
+          return {
+            text: el.textContent.trim(),
+            // The Link's OWN rendered height. This is the wrap signal that works regardless of
+            // `display` — a genuine two-line wrap roughly doubles it, whether the two lines are
+            // one `inline-block` box (the fix) or two separate fragments (broken). It cannot be
+            // used to tell fixed from broken; `fragmentCount` below does that.
+            linkHeight: el.getBoundingClientRect().height,
+            // The number of CSS boxes the Link generates: with `inline-block`, always 1, whether
+            // or not its own content wraps (that is exactly what the fix buys — see the
+            // sanity-with-a-caveat note below). A PLAIN inline element that wraps generates one
+            // fragment per line, so on broken code this goes to 2 for the same wrapped input.
+            // This is the direct signal for the property under test, not a pixel measurement
+            // that could pass by coincidence.
+            fragmentCount: el.getClientRects().length,
+            hitWidth: parseFloat(before.width),
+            hitHeight: parseFloat(before.height),
+          };
+        });
+      };
+
+      const realName = await measure();
+      record(
+        realName.text === 'Bandes dessinées' &&
+          realName.fragmentCount === 1 &&
+          realName.hitWidth >= 48 &&
+          realName.hitHeight >= 48,
+        'the longest REAL fixture library name clears the 48px floor at 320px (single fragment)',
+        `fragments: ${realName.fragmentCount}, hit-box: ${realName.hitWidth}x${realName.hitHeight}px`,
+      );
+
+      injectedName = 'Bandes dessinées BD';
+      const wrapped = await measure();
+      // `linkHeight`, not `fragmentCount`, proves the wrap: `inline-block` (already applied
+      // above) makes fragmentCount 1 EVEN WHEN the content genuinely wraps, which is the fix
+      // working, not the input failing to wrap. A near-doubled height is the only signal here
+      // that is true regardless of which of the two constructions rendered it.
+      record(
+        wrapped.text === 'Bandes dessinées BD' && wrapped.linkHeight > realName.linkHeight * 1.5,
+        'sanity: the synthetic worst-case name genuinely wraps to two lines at 320px',
+        `height: ${wrapped.linkHeight}px vs single-line ${realName.linkHeight}px`,
+      );
+      record(
+        wrapped.fragmentCount === 1 && wrapped.hitWidth >= 48 && wrapped.hitHeight >= 48,
+        'IN <library> stays ONE fragment even wrapped, and its hit-box still clears 48px both ways',
+        `fragments: ${wrapped.fragmentCount}, hit-box: ${wrapped.hitWidth}x${wrapped.hitHeight}px`,
+      );
+    } finally {
+      await wrapPage.close();
+    }
+  }
+
   // ---- `caps` elements on the cover keep an explicit weight through the cascade ----
   // `.caps` sets ONLY text-transform and letter-spacing, by deliberate design (DESIGN.md §3):
   // weight is always stated separately, at the point of use, because a `caps` utility that also

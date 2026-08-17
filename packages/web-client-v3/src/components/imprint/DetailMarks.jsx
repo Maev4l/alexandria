@@ -97,7 +97,26 @@ const DetailMarks = ({ item, library, loans }) => {
                 // header's; "In" is a plain span with no click handler of its own, so — per the
                 // same reasoning as the sharing mark below it — there is nothing there to steal a
                 // tap from.
-                className="relative text-cover-body underline underline-offset-[3px] before:absolute before:left-1/2 before:w-[max(50px,100%)] before:-translate-x-1/2 before:-top-[30px] before:-bottom-[8px] before:content-['']"
+                //
+                // `inline-block`, not left as a plain inline box (review, round 6): `100%` in
+                // `w-[max(50px,100%)]` resolves against the containing block the nearest
+                // positioned ancestor establishes, which for a single-line inline `<a>` is that
+                // one fragment's own padding box — fine at "Films" width, but a plain inline
+                // element that WRAPS generates one fragment box per line, and which of those
+                // fragments an absolutely-positioned child's containing block resolves against is
+                // not something this code should be leaning on. At the 320px floor DESIGN.md §4
+                // commits to, the arithmetic is close enough to matter: `px-4` leaves 288px, the
+                // hero spends 132px + a 16px gap, `flex-1` gets 140px, `pl-2` leaves 132px for
+                // this line — and "Bandes dessinées" (16 characters) is real fixture content, not
+                // a synthetic stress case. `inline-block` still flows on the same line as "In ",
+                // still shrinks to the text's width when that fits, but is always exactly ONE
+                // generated box — so the containing-block computation stays the single
+                // well-defined case even if its own content wraps inside that one box. The
+                // alternative, `whitespace-nowrap`, was rejected: it does not fix the containing
+                // block at all, it only prevents the situation that exposes it, by letting the
+                // text overflow the 132px column instead — trading an undefined layout for a
+                // visibly broken one rather than a correct one.
+                className="relative inline-block text-cover-body underline underline-offset-[3px] before:absolute before:left-1/2 before:w-[max(50px,100%)] before:-translate-x-1/2 before:-top-[30px] before:-bottom-[8px] before:content-['']"
               >
                 {libraryName}
               </Link>
