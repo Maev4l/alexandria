@@ -1237,8 +1237,13 @@ try {
   // ---- Round 5, item 1: the empty hero frame is unfilled — the rule alone describes it ----
   // DESIGN.md §6: an empty Volume Frame is a designed state, never a placeholder. The hero size
   // used to fill with `--cover-rule` at full strength — 1.73:1 against `--ink` — a mid-grey slab
-  // that read as a failed image on the app's peak screen, since `picture` is absent for most
-  // items. An intermediate fix tried tuning the SAME token down with opacity (~1.09:1, matching
+  // that read as a failed image. At the time this was written `picture` was absent for most
+  // fixture items, which made that slab look like the DEFAULT appearance of the peak screen —
+  // PRODUCT.md has since corrected the record: artwork present is the normal case, and this is
+  // the rare exception, not the common one. The unfilled rule stays correct for both readings:
+  // a real cover still renders inside it (§4 below), and the rare coverless item still needs a
+  // designed empty state rather than a placeholder. An intermediate fix tried tuning the SAME
+  // token down with opacity (~1.09:1, matching
   // the row frame's own quiet `bg-paper-deep`), but the ruling was "unfill both", not "tint
   // both": a fill — at any opacity — is still a fill where the direction calls for a rule and
   // nothing else. So this now asserts the frame's interior matches the page ground EXACTLY
@@ -1256,7 +1261,11 @@ try {
   console.log('the empty hero frame is unfilled — its interior matches the page ground exactly');
   {
     // item-1984 (src/test/fixtures/items.js) has no `picture` at all and no lending events — the
-    // hero frame renders genuinely empty, which is the app's most common cover state.
+    // hero frame renders genuinely empty. This is now the RARE case (PRODUCT.md), pinned here
+    // deliberately because this specific check needs a genuinely coverless item to sample, not
+    // a 404ing one (item-broken) — a failed load and no `picture` at all render identically
+    // empty, but they are different facts, and this check is about the empty-frame FILL, which
+    // either state exercises equally. item-1984 stays the one fixture item with no cover field.
     await page.goto(`${BASE}/libraries/lib-fiction/items/item-1984`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('main h1');
 

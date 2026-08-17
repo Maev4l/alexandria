@@ -1,4 +1,5 @@
 import { handleMockRequest } from './mock-api.js';
+import { mockCoversMiddleware } from './mock-covers.js';
 
 // Serves the API from fixtures so every screen is buildable, reviewable and screenshot-able
 // without AWS credentials or a seeded account. Enabled only when VITE_MOCK=1.
@@ -54,8 +55,12 @@ export const mockApi = () => ({
   name: 'alexandria-mock-api',
   configureServer(server) {
     server.middlewares.use('/api/v1', middleware);
+    // Not mounted under a path prefix: unlike '/api/v1' above, this one matches on the full
+    // pathname itself (see mock-covers.js), so it can sit anywhere in the chain.
+    server.middlewares.use(mockCoversMiddleware);
   },
   configurePreviewServer(server) {
     server.middlewares.use('/api/v1', middleware);
+    server.middlewares.use(mockCoversMiddleware);
   },
 });

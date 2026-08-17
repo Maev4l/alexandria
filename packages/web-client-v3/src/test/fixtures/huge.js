@@ -8,6 +8,14 @@
 //      into one already on screen — the case that can drift the scroll position.
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz'.toUpperCase().split('');
 
+// PRODUCT.md: artwork present is the normal case, not the exception, so this profile has to
+// decode real covers at scale or it measures a stream that does not exist (see the P95_BUDGET_MS
+// comment below, which was written for exactly this re-baseline). Cycles the same six tiny
+// placeholders items.js uses — one every 10th item is left coverless, matching the "rare, not
+// zero" empty-frame case PRODUCT.md describes, rather than either all-covered or all-empty.
+const COVER_COUNT = 6;
+const picture = (n) => (n % 10 === 0 ? null : `/mock-thumbnails/cover-${(n % COVER_COUNT) + 1}.webp`);
+
 const book = (n) => {
   const letter = LETTERS[n % LETTERS.length];
   return {
@@ -20,6 +28,7 @@ const book = (n) => {
     authors: [`Auteur ${n % 97}`],
     summary: 'Résumé.',
     isbn: `978${String(n).padStart(10, '0')}`,
+    picture: picture(n),
     updatedAt: '2026-08-01T09:12:00Z',
   };
 };
