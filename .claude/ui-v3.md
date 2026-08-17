@@ -241,6 +241,19 @@ manual-entry escape is always present, for denied camera permission, poor light 
 barcode. Continuous scanning: after each save, return here for the next item.
 **States:** requesting permission; permission denied → manual only; scanning; decoding;
 submitting; no-result → offer manual entry at `/items/new/book`.
+
+**"No result" is NOT `candidates.length === 0`, and getting that wrong disables the manual route on
+the exact case it exists for.** Verified in the resolvers: `services/resolvers/google.go:81-88` emits
+**one candidate carrying `error`** when `totalItems == 0`, and `tmdb.go:150-158` does the same — and
+video has a single resolver, so a film miss is *always* exactly one errored candidate. Only Babelio and
+GoodReads return an empty array. So on a real miss the array is non-empty, a `length === 0` test never
+fires, and the reader is shown a screen of failures with no way forward — a silent wrong result, which
+by §7's weighting is the worst class.
+
+The predicate is **"no candidate without an error"**. A zero-length response is a different condition —
+every resolver failing at the request level, so nothing arrived at all, not even an error candidate —
+and it is a transport failure rather than a miss. Both routes lead to manual entry; only one of them
+should say "we found nothing matching that".
 **API:** `POST /detections` with `type: 0` and `code`.
 
 ### BookDetectionResults — `/libraries/:libraryId/add/book/results`
@@ -489,7 +502,8 @@ These are facts about the backend, not preferences. Nothing in the UI may contra
 | Collection endpoint returns a header but not its members | A cold link to a collection cannot load its contents; collections stay inline in the listing rather than becoming destinations. |
 | Mutations return empty bodies | Re-read the single item after a write instead of assuming. |
 | `picture` is a CloudFront URL produced asynchronously; often absent. It is also **synthesised from a template whenever `pictureUrl` exists, without checking S3**, so a present URL may still 404 | The empty Volume Frame is a designed state, not a placeholder. Degrade to it on image load failure — never a broken-image glyph — and re-poll once. Cache-bust with `?v={updatedAt}`. |
-| **Optional fields are `omitempty`** (`handlers/models.go`), so `lentTo`, `picture`, `order`, `collectionId` and `updatedAt` arrive **absent, not null** | Any `=== null` test is wrong. Check presence, or use `== null` so `undefined` is covered. |
+| **Optional fields are `omitempty`** (`handlers/models.go`), so `lentTo`, `picture`, `order`, `collectionId` and `updatedAt` arrive **absent, not null** | Any `=== null` test is wrong. Check presence, or use `== null` so `undefined` is covered. **Except `pictureUrl` on a detection candidate, where presence is the wrong test** — see below. |
+| **A detected candidate's `pictureUrl` can be PRESENT AND EMPTY** | `services/resolvers/google.go:99` takes the address of the thumbnail field unconditionally, so an item with no thumbnail yields a non-nil pointer to `""`. `goodreads.go:91-94` and `tmdb.go:267-270` set the pointer only inside guards, so they yield absence. Three resolvers, two shapes, one field. This is the single field rendered straight into an `<img src>`, and `src=""` produces the broken-image glyph `DESIGN.md` §6 forbids outright — so here the row above's advice is actively wrong: **test truthiness, not presence.** |
 | Renames and index updates propagate via streams (~100ms, not guaranteed) | Tolerate a just-written value not yet reflected everywhere. |
 | Access/ID tokens 60 min, refresh 365 days | Silent refresh; a hard expiry returns to `/login` without losing the current route. |
 
