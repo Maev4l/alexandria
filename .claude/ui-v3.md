@@ -314,6 +314,11 @@ So `pictureUrl` becomes a **real field**, on `NewBook`, `NewVideo` and `EditItem
   `null`, which the API permits.
 - Obvious rejects (not `http`/`https`) fail inline on the field, since the fetch is server-side and
   a silent failure would otherwise be the reader's only feedback.
+- It sits **immediately after `SUMMARY`, before the type-specific block** — `TITLE`, `SUMMARY`,
+  `COVER IMAGE`, then authors and ISBN, or directors, cast, year, duration. Those three are the
+  fields both item types share, so the form reads as *facts about this object* and then *facts
+  about what kind of object it is*. Filed at the bottom beside `ISBN` it would have read as
+  plumbing, which is what the first instinct was and what the render disproved.
 
 **The repair case stays separate, because it is a different failure.** A cover that is *correct but
 did not arrive* — the asynchronous pipeline failing, the case `data fix-thumbnails` exists for — is
@@ -598,7 +603,8 @@ fail loudly when the substrate moves.
 - [ ] Add flows: ISBN scan, cover OCR, preview-before-commit — `AddBook`, `AddVideo` and both
       detection-results screens are still placeholder stubs
 - [x] Manual entry and edit forms (`ItemForm`, `NewBook`, `NewVideo`, `EditItem`) with the
-      collection/order invariant enforced in the form
+      collection/order invariant enforced in the form, and `COVER IMAGE` as a real field on all
+      three — plus `Fetch cover` on the item-detail frame for the separate repair case
 - [x] Lend / return / history — `ItemHistory` paginated, events paired client-side into loans,
       each row naming its borrower from the `LENT` event
 - [ ] Search surface with recents and honest match-scope
