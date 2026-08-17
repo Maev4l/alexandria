@@ -597,6 +597,18 @@ by reading the brief's own headings rather than by any check. Plan-wide context 
 first task heading** or in its own clearly non-task section; and the cheap verification is to read a
 generated brief before dispatching it, because the extraction is mechanical and silent.
 
+**A task's acceptance criteria must restate every spec rule that task can breach, because a rule in a
+document does not travel into a brief.** §2 says a screen that becomes real drops the wordmark and
+takes its own name — and the tasks that build those four screens said only "write the file". The rule
+was therefore in the spec and absent from the one place it would be read at the moment of breach,
+which is the precise mechanism behind §8's five violations in two commits: not that nobody wrote the
+rule down, but that the person about to break it was reading something else.
+
+This is the divergence rule pointed at plan authoring. **A criterion fails loudly; an author's memory
+of the spec does not.** So the test when writing a task is not "is this rule recorded somewhere" but
+"will the implementer of *this* task encounter it" — and where the answer is no, the rule goes into the
+criteria even at the cost of repeating it.
+
 **Rank destructive actions by treatment, not by distance.** A first draft dropped `Delete` to its
 own row below the ledger, on the convention that destructive actions sit apart. That convention
 guards against a misreach, which here costs a dismissal because the action confirms — and it
