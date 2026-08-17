@@ -511,6 +511,26 @@ Two suites, with a division that matters: `yarn test` asserts rules are DECLARED
 `yarn check:browser` asserts they SURVIVE the cascade and that gestures actually fire.
 `yarn profile:stream` measures the stream at 1000 items against a pinned baseline.
 
+### The remediation pass, and the four guards it produced
+
+Slice C's critique scored 27/40. Both P0s, all three P1s, the P2 and every minor observation are
+closed (`1d6eaae..6b38149`, 1005 tests across 51 files, clean tree). But the durable output is four
+checks that did not exist before, and **each one exists because a rule had been recorded and then
+not applied**:
+
+| Guard | The rule it enforces, and why writing it down was not enough |
+|---|---|
+| `fonts.test.js` | Nothing asserted the shipped faces contained the alphabet. The committed Archivo held a space and the letter `A`; everything else fell back to `system-ui`. That survived three slices, a full critique and a dedicated typography task — because the comp fell back too, so reproduction passes agreed. |
+| `groundForeground.test.js` | "Anything that sets a ground sets its foreground" was written into `DESIGN.md` §2 and then **violated five times in the two commits after it**. |
+| `routeLandmarks.test.jsx` | `<main>` and `<h1>` were declared binding in §7, then added only to the files each slice happened to touch. |
+| `monoText.test.js` + `monoRouteCoverage.test.js` | §3's mono/sans split was **unenforceable** for three slices: while both faces resolved to the same fallback, a name in mono and a name in sans rendered identically. A whole section sat dormant with nothing able to report it. |
+
+**The throughline is not bad reasoning — it is correct reasoning on an unverified substrate.** The
+index-letter withdrawal, `A–Z: true` from a single sample, the `#` fragmentation reading, a wrap
+check that could not fail, an exclusion that was a no-op: each was a sound argument on evidence
+nobody had checked. What changed is not that the reasoning improved. It is that four things now
+fail loudly when the substrate moves.
+
 - [x] Scaffold: Vite + React + Tailwind + PWA, fixed port 5173, `output.json` wiring
 - [x] Token layer and font hosting from `DESIGN.md` — contrast asserted from the real
       stylesheet by `src/tokens.test.js`, including the inverted cover set
