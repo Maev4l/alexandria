@@ -12,12 +12,19 @@ import { renderApp, stubFetch } from '@/test/appHarness.jsx';
 // SCOPE: this pins the two entry points the critique named as "the loudest control in the
 // entire design" — the pinned Search Field on the libraries root, and the search plate on item
 // detail — both of which routed to a dead end for three slices. It does not walk every route in
-// the app: several other stub screens (Settings, AddBook, AddVideo, …) are equally unfinished
-// and equally lack a back control, but they are pre-existing, tracked, not-yet-built work per
-// `.claude/ui-v3.md`'s own progress checklist, not a regression introduced or hidden by this
-// task. Asserting on them here would fail the suite over already-known incompleteness rather
-// than a new defect, which is exactly the scope this task was told NOT to expand into. A future
-// screen that IS built is expected to extend this list.
+// the app: several other screens (Settings, AddBook, AddVideo, …) are still stubs, and they are
+// pre-existing, tracked, not-yet-built work per `.claude/ui-v3.md`'s own progress checklist, not
+// a regression introduced or hidden by this task. Asserting their CONTENT here would fail the
+// suite over already-known incompleteness rather than a new defect, which is exactly the scope
+// this task was told NOT to expand into. A future screen that IS built is expected to extend
+// this list.
+//
+// This paragraph used to add that those stubs "equally lack a back control". That stopped being
+// true — every stub named above now carries `onBack`, and `AddBook`/`AddVideo` carry a working
+// manual escape besides. The sentence survived because the FILE was still correct: its behaviour
+// needed no change when the exits landed, so nothing in that diff opened it. That is the whole
+// failure mode — the search after moving a control is not "what breaks" but "what now says
+// something false", and only the second one finds a comment.
 vi.mock('@/auth/AuthContext.jsx', () => ({
   useAuth: () => ({ user: { id: 'OWNER1', initials: 'JR', email: 'jr@example.com', approved: true } }),
 }));

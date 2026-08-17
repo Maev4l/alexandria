@@ -77,6 +77,10 @@ Every task's requirements implicitly include this section.
 **Blocked work**
 - Tasks 6, 11 and 15 are the reproduction-first passes against the approved mockup. They require `packages/web-client-v3/design/comp-2026-08-13.html`, which the **design session must supply**. If that file is absent, skip those three tasks, complete everything else, and report the skip. Do not substitute your own composition and call it reproduced.
 
+**Source control — this supersedes every task's final step**
+- Every task below ends with `git add` / `git commit`. **Those lines are superseded: read each one as "verify and report".** The executing session runs the verification a task calls for — `yarn --cwd packages/web-client-v3 test`, `lint`, and `check:browser` where the task asks for it — and then **stops, leaving the changes uncommitted for the user.** Do not commit, do not create a branch. The user manages branching and commits by hand and has said so explicitly; the tree's cleanliness is a signal they rely on, so a session that leaves edits must say so in its report rather than let them be discovered.
+- Stated once here rather than edited into twenty tasks: one reviewable place instead of twenty, and `task-brief` extracts from one `### Task` heading to the next — so plan-wide context filed anywhere below would be delivered as a single task's brief and be invisible to every other task.
+
 ---
 
 # Slice A — toolchain, tokens, shell, libraries root, auth, library CRUD
@@ -6863,7 +6867,38 @@ divergence is acceptable only with **a named closing task and an assertion that 
 forgotten**, and this divergence was closed early by a *dependency* nobody scheduled — proof that
 "the destination cannot read it yet" is a fact with an expiry date, not a standing justification.
 
-- [ ] **Step 6: Run the tests, lint, commit**
+- [ ] **Step 6: Both screens drop the wordmark and take their own name**
+
+`AddBook` and `BookDetectionResults` currently render `<AppHeader wordmark onBack …>`. That is the
+**stub row** from `.claude/ui-v3.md` §2 — back *and* wordmark — which is correct only while a screen
+has no title worth printing. There is no defect today; the criterion is entirely forward-facing,
+which is exactly what makes it easy to lose.
+
+The moment either screen becomes real it takes the ordinary construction: **back plus its own name,
+`wordmark` dropped**. §2 is explicit that a finished screen still showing the wordmark beside a back
+control "is announcing it has nothing to call itself, which for a built screen is a defect rather
+than a fallback".
+
+- Pass `title` to `AppHeader` and remove the `wordmark` prop on **both** files.
+- The names already exist as each stub's `sr-only` `<h1>` — *Add a book*, *Book results*. Reuse them
+  unless the design session says otherwise; the heading itself **stays** and stays `sr-only`, because
+  §7 requires an `<h1>` on every authenticated screen and `routeLandmarks.test.jsx` enforces it.
+- Assert it, per screen, so it fails loudly rather than depending on anyone remembering:
+
+```jsx
+it('takes its own name rather than the stub row\'s wordmark', () => {
+  renderPage();
+  expect(screen.getByText('Add a book')).toBeInTheDocument();
+  expect(screen.queryByText(/alexandria/i)).not.toBeInTheDocument();
+});
+```
+
+**Why this criterion exists at all, recorded because the omission is the reusable part:** the rule
+was in §2 and *not* in this task, and a rule in a document does not travel into a brief. A task's
+acceptance criteria must restate every spec rule that task can breach — a criterion fails loudly,
+and memory does not. Same shape as the divergence rule, pointed at plan authoring instead of code.
+
+- [ ] **Step 7: Run the tests, lint, commit**
 
 ```bash
 yarn --cwd packages/web-client-v3 test
@@ -6945,7 +6980,24 @@ the asymmetry is in the **data** rather than in the convenience. That distinctio
 `Book`/`Film` lost their exception the moment a dependency made it unsafe, and this one cannot,
 because no URL can carry a photograph nobody kept.
 
-- [ ] **Step 5: Run the tests, lint, commit**
+- [ ] **Step 5: Both screens drop the wordmark and take their own name**
+
+Identical to Task 18's Step 6, and it applies to `AddVideo` and `VideoDetectionResults` for the same
+reason: both render `<AppHeader wordmark onBack …>` today, which is `.claude/ui-v3.md` §2's **stub
+row** — correct only while a screen has no title worth printing. Nothing is broken now; the criterion
+is forward-facing, which is why it has to be written down rather than remembered.
+
+On becoming real each takes **back plus its own name, `wordmark` dropped**. §2: a finished screen
+still showing the wordmark beside a back control "is announcing it has nothing to call itself, which
+for a built screen is a defect rather than a fallback".
+
+- Pass `title` to `AppHeader` and remove `wordmark` on **both** files.
+- The names already exist as each stub's `sr-only` `<h1>` — *Add a film*, *Film results*. The heading
+  **stays** and stays `sr-only`: §7 requires an `<h1>` on every authenticated screen, and
+  `routeLandmarks.test.jsx` enforces it.
+- Assert it per screen, so a forgotten `wordmark` fails the suite instead of shipping.
+
+- [ ] **Step 6: Run the tests, lint, commit**
 
 ```bash
 yarn --cwd packages/web-client-v3 test

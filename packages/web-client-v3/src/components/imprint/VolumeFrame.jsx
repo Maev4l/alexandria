@@ -68,10 +68,19 @@ const VolumeFrame = ({ item, hero = false, className, onFailedChange }) => {
       {item.collectionId && item.order != null && (
         // Bottom-right: unchanged from when a film's spine rule owned the left edge, and kept
         // there now that the spine is gone — moving it would be a second, unasked-for visual
-        // change. A 1px rule here, not 2: 2px around a 9px figure is mud. A size-dependent
+        // change. A 1px rule here, not 2: 2px around a figure this small is mud. A size-dependent
         // exception to the ruled plate, not a different component. --paper ground so it reads
         // over artwork.
-        <VolumePlate className="absolute bottom-0 right-0 border bg-paper px-[3px] py-0 text-[9px]">
+        //
+        // 10px, not the 9 this shipped with. 9 was the only sub-10px size in the system and the
+        // only small role at weight 400 rather than 800, and no space argument ever required it:
+        // two digits of Chivo Mono at 10px is 12px of advance plus 6px of padding — 18px inside a
+        // 48px frame, and 24px at three digits. A critique called it the clearest finding of its
+        // run; the comp was checked, 9px was found declared there, and it was recorded as
+        // documentation drift with the code deemed right. That answered whose fault it was and
+        // silently dropped whether 9 was correct. Both were wrong together, which is precisely
+        // the case a provenance check cannot see. DESIGN.md §3 now sets the scale floor at 10.
+        <VolumePlate className="absolute bottom-0 right-0 border bg-paper px-[3px] py-0 text-[10px]">
           {String(item.order).padStart(2, '0')}
         </VolumePlate>
       )}
