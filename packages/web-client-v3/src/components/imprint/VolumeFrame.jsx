@@ -16,7 +16,14 @@ const RETRY_MS = 4000;
 //
 // `hero` is the item-detail size on the inverted cover: same ratio, ruled in paper instead of
 // ink because the ground is black there.
-const VolumeFrame = ({ item, hero = false, className }) => {
+//
+// `onFailedChange` surfaces the `failed` state below to whoever asked for it, without this
+// component taking on any opinion about what a caller does with it. Today that is only the
+// item-detail hero, which uses the signal to offer a manual "Fetch cover" repair — the control
+// lives on the PAGE (ItemDetail.jsx), not here, so ItemRow (every row in the browse stream) can
+// keep calling `<VolumeFrame item={item} />` with no `hero` and no `onFailedChange` and see
+// nothing different at all: an optional prop nobody passes is a no-op, not a per-row action.
+const VolumeFrame = ({ item, hero = false, className, onFailedChange }) => {
   const src = pictureSrc(item);
   const [failed, setFailed] = useState(false);
 
@@ -25,6 +32,10 @@ const VolumeFrame = ({ item, hero = false, className }) => {
     const timer = setTimeout(() => setFailed(false), RETRY_MS);
     return () => clearTimeout(timer);
   }, [failed]);
+
+  useEffect(() => {
+    onFailedChange?.(failed);
+  }, [failed, onFailedChange]);
 
   return (
     <div

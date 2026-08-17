@@ -29,6 +29,13 @@ export const validateItem = (type, values) => {
     errors.summary = 'The summary can be at most 4000 characters.';
   }
 
+  // The fetch this address feeds is server-side, so a typo's only feedback would otherwise be a
+  // cover that silently never appears. Rejecting anything without a scheme up front turns that
+  // into an error the reader can actually see and fix.
+  if (isSet(values.pictureUrl) && !/^https?:\/\//i.test(values.pictureUrl.trim())) {
+    errors.pictureUrl = 'The cover image address must start with http:// or https://.';
+  }
+
   if (type === FILM) {
     if (isSet(values.releaseYear)) {
       const year = Number(values.releaseYear);

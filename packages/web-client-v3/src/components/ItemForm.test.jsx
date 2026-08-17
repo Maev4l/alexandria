@@ -76,30 +76,15 @@ describe('ItemForm', () => {
     expect(onSubmit.mock.calls[0][0].authors).toEqual(['Raymond Chandler', 'Boris Vian']);
   });
 
-  it('offers no "fetch cover again" control on a new item, which has no source to fetch from', () => {
+  // The corrected ruling (ui-v3.md, "the cover becomes a field"): a new item has no detection
+  // result yet, so the field exists but starts empty rather than being withheld — withholding
+  // it would repeat the exact gate-on-presence mistake the checkbox shipped with.
+  it('offers an empty cover image field on a new item, with no source yet to pre-fill it', () => {
     render(<ItemForm type={BOOK} initial={{}} collections={[]} onSubmit={vi.fn()} submitLabel="Save" />);
-    expect(screen.queryByRole('checkbox', { name: /fetch the cover again/i })).toBeNull();
+    expect(screen.getByLabelText(/cover image/i)).toHaveValue('');
   });
 
-  // DESIGN.md §6: when the reason a control is unavailable is not visible elsewhere on the
-  // form, the slot carries the REASON instead of an inert control — never both. A `disabled`
-  // checkbox drops out of the tab order, so this used to be unreachable by keyboard/AT and its
-  // explanation was an orphan sentence with no `aria-describedby` pointing anywhere.
-  it('replaces the control with its own reason on edit, when the item has no source image', () => {
-    render(
-      <ItemForm
-        type={BOOK}
-        initial={{ id: 'item-1', title: 'Nadja' }}
-        collections={[]}
-        onSubmit={vi.fn()}
-        submitLabel="Save changes"
-      />,
-    );
-    expect(screen.queryByRole('checkbox', { name: /fetch the cover again/i })).toBeNull();
-    expect(screen.getByText(/no source image to fetch from/i)).toBeInTheDocument();
-  });
-
-  it('enables the control on edit when a pictureUrl is present', () => {
+  it('pre-fills the cover image field from the item on edit', () => {
     render(
       <ItemForm
         type={BOOK}
@@ -109,6 +94,75 @@ describe('ItemForm', () => {
         submitLabel="Save changes"
       />,
     );
-    expect(screen.getByRole('checkbox', { name: /fetch the cover again/i })).toBeEnabled();
+    expect(screen.getByLabelText(/cover image/i)).toHaveValue('https://example.test/cover.jpg');
+  });
+
+  // Server-side fetch: a typo's only other feedback would be a cover that silently never shows.
+  it('rejects a cover image address with no http(s) scheme, inline on the field', async () => {
+    const onSubmit = vi.fn();
+    render(<ItemForm type={BOOK} initial={{}} collections={[]} onSubmit={onSubmit} submitLabel="Save" />);
+
+    await userEvent.type(screen.getByLabelText(/title/i), 'Nadja');
+    await userEvent.type(screen.getByLabelText(/cover image/i), 'not-a-url');
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    expect(await screen.findByText(/http:\/\/ or https:\/\//i)).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('sends a new cover address on edit with updatePicture, since the source actually changed', async () => {
+    const onSubmit = vi.fn().mockResolvedValue();
+    render(
+      <ItemForm
+        type={BOOK}
+        initial={{ id: 'item-1', title: 'Nadja', pictureUrl: 'https://example.test/old.jpg' }}
+        collections={[]}
+        onSubmit={onSubmit}
+        submitLabel="Save changes"
+      />,
+    );
+
+    const field = screen.getByLabelText(/cover image/i);
+    await userEvent.clear(field);
+    await userEvent.type(field, 'https://example.test/new.jpg');
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      pictureUrl: 'https://example.test/new.jpg',
+      updatePicture: true,
+    });
+  });
+
+  it('clears the cover address as pictureUrl: null, with no updatePicture — nothing left to fetch from', async () => {
+    const onSubmit = vi.fn().mockResolvedValue();
+    render(
+      <ItemForm
+        type={BOOK}
+        initial={{ id: 'item-1', title: 'Nadja', pictureUrl: 'https://example.test/old.jpg' }}
+        collections={[]}
+        onSubmit={onSubmit}
+        submitLabel="Save changes"
+      />,
+    );
+
+    await userEvent.clear(screen.getByLabelText(/cover image/i));
+    await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].pictureUrl).toBeNull();
+    expect(onSubmit.mock.calls[0][0].updatePicture).toBeUndefined();
+  });
+
+  it('never sends updatePicture on a brand-new item, even with a cover address filled in', async () => {
+    const onSubmit = vi.fn().mockResolvedValue();
+    render(<ItemForm type={BOOK} initial={{}} collections={[]} onSubmit={onSubmit} submitLabel="Add book" />);
+
+    await userEvent.type(screen.getByLabelText(/title/i), 'Nadja');
+    await userEvent.type(screen.getByLabelText(/cover image/i), 'https://example.test/cover.jpg');
+    await userEvent.click(screen.getByRole('button', { name: /add book/i }));
+
+    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].updatePicture).toBeUndefined();
   });
 });

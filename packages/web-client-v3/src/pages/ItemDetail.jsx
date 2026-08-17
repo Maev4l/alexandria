@@ -30,6 +30,37 @@ const buildDetailLineSegments = (item) => {
   ].filter(Boolean);
 };
 
+// PUT replaces the whole record (ItemForm's own buildPayload does the same, from form state), so
+// this must resend every field already on the loaded item — not just `updatePicture` — or a
+// partial body would silently drop its authors/summary/etc. Sourced from the fetched item rather
+// than a form, since this screen has none: "Fetch cover" repairs a cover that is CORRECT but did
+// not arrive (the async pipeline failing, exactly the case `data fix-thumbnails` exists for), not
+// a wrong address, so `pictureUrl` itself is resent unchanged and only `updatePicture` is new.
+const buildFetchCoverPayload = (item) => {
+  const shared = {
+    title: item.title,
+    summary: item.summary ?? '',
+    pictureUrl: item.pictureUrl ?? null,
+    collectionId: item.collectionId ?? null,
+    order: item.collectionId ? item.order ?? null : null,
+    updatePicture: true,
+  };
+  return item.type === FILM
+    ? {
+        ...shared,
+        directors: item.directors ?? [],
+        cast: item.cast ?? [],
+        releaseYear: item.releaseYear ?? null,
+        duration: item.duration ?? null,
+        tmdbId: item.tmdbId ?? null,
+      }
+    : {
+        ...shared,
+        authors: item.authors ?? [],
+        isbn: item.isbn ?? '',
+      };
+};
+
 const DetailLine = ({ item }) => {
   const segments = buildDetailLineSegments(item);
   if (segments.length === 0) return null;
@@ -73,6 +104,11 @@ const ItemDetail = () => {
   // "Mark returned" needs no input, so it acts directly with no sheet at all — the defect was
   // never "a sheet", it was a label promising one action and delivering a menu of three.
   const [isReturning, setIsReturning] = useState(false);
+  // Surfaced from VolumeFrame's own `failed` state (see the comment there) — not derived from
+  // `item.pictureUrl` alone, which was the original defect's shape wearing a new location: a
+  // present URL says nothing about whether the thumbnail it produced actually loaded.
+  const [coverFailed, setCoverFailed] = useState(false);
+  const [isFetchingCover, setIsFetchingCover] = useState(false);
   // Delete is destructive and confirms in place — the same in-page reveal UnshareLibrary already
   // uses, rather than a sheet. It no longer sits apart at the foot: see the comment beside the
   // action row below for why that placement was reversed.
@@ -142,6 +178,26 @@ const ItemDetail = () => {
       setActionError(err.message);
     } finally {
       setIsReturning(false);
+    }
+  };
+
+  // Repairs a cover that is correct but never arrived — the async thumbnail pipeline failing,
+  // which is what `data fix-thumbnails` exists for on the admin side. Not a form field: the
+  // address itself is not wrong, so there is nothing here for the reader to retype.
+  const fetchCover = async () => {
+    if (!item) return;
+    setActionError(null);
+    setIsFetchingCover(true);
+    try {
+      const update = item.type === FILM ? itemsApi.updateVideo : itemsApi.updateBook;
+      await update(libraryId, itemId, buildFetchCoverPayload(item));
+      // The write returns an empty body, so the item is re-read rather than assumed — the same
+      // pattern markReturned and deleteItem already follow.
+      await load();
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setIsFetchingCover(false);
     }
   };
 
@@ -266,7 +322,31 @@ const ItemDetail = () => {
               the same fact twice. Beside it, Detail Marks fills what was dead space with
               everything true of the COPY rather than the work: filed, visible, circulating. */}
           <div className="mb-6 flex items-start gap-4">
-            <VolumeFrame item={item} hero />
+            {/* `relative shrink-0` here, not on VolumeFrame itself: the wrapper is what lets
+                "Fetch cover" sit ON the frame without VolumeFrame knowing anything about the
+                action — it stays a pure presentational component, only reporting `failed` up.
+                `shrink-0` moved from VolumeFrame's own root to this wrapper, since the wrapper
+                is the flex child now (beside DetailMarks' `flex-1`) and the one that must not
+                shrink. */}
+            <div className="relative shrink-0">
+              <VolumeFrame item={item} hero onFailedChange={setCoverFailed} />
+              {/* Gated on the REAL failure, not on `pictureUrl` merely existing — the fix for
+                  the defect this replaces. Detection often returns no cover at all, which
+                  `pictureUrl` being present would have excluded from getting help; here the
+                  reverse case is the one this control repairs, so it stays absent whenever
+                  there is genuinely nothing to fetch, and absent for read-only viewers just
+                  like Lend/Edit/Delete below. The frame's own rule stays the only "fill": no
+                  background here, and `inset-x-2 inset-y-4` (division-scale insets, not the
+                  arbitrary `inset-0`) keeps the button's own border a visible few px clear of
+                  the frame's — two ruled rectangles, not one control fused to the other. */}
+              {!isReadOnly && coverFailed && item.pictureUrl && (
+                <div className="absolute inset-x-2 inset-y-4 flex items-center justify-center">
+                  <PlateButton variant="secondary" disabled={isFetchingCover} onClick={fetchCover}>
+                    {isFetchingCover ? 'Fetching' : 'Fetch cover'}
+                  </PlateButton>
+                </div>
+              )}
+            </div>
             <DetailMarks item={item} library={library} loans={loans} />
           </div>
 

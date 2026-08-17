@@ -1,4 +1,5 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, MemoryRouter, RouterProvider, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -568,5 +569,187 @@ describe('a shared (read-only) library offers no action controls', () => {
     );
     await screen.findByText('Le Grand Meaulnes');
     expect(within(screen.getByRole('main')).queryAllByRole('button')).toHaveLength(0);
+  });
+});
+
+// ui-v3.md's corrected ruling: the checkbox that used to live on the edit form repaired a
+// cover that is CORRECT but never arrived (the async thumbnail pipeline failing — what
+// `data fix-thumbnails` exists for on the admin side), and moved to item detail, where that
+// failure is actually visible. It must NOT be gated on `pictureUrl` alone — that repeats the
+// original defect in a new place, since detection often returns no cover at all.
+describe('Fetch cover — repairs a thumbnail that failed to arrive, not a wrong address', () => {
+  // `item-broken` (Pêcheur d'Islande) carries both a `picture` that 404s and, since the
+  // correction, a `pictureUrl` to repair FROM (src/test/fixtures/items.js).
+  it('stays absent until the thumbnail actually fails to load', async () => {
+    renderPage('item-broken');
+    await screen.findByText('Pêcheur d’Islande');
+    // A present `picture` alone is not a failure — VolumeFrame has not yet had the chance to
+    // fire `onerror`, so nothing here has actually gone wrong yet.
+    expect(screen.queryByRole('button', { name: /fetch cover/i })).toBeNull();
+
+    fireEvent.error(screen.getByRole('presentation'));
+    expect(await screen.findByRole('button', { name: /fetch cover/i })).toBeInTheDocument();
+  });
+
+  // The gate this whole fix is about: a `pictureUrl`-presence check would have excluded this
+  // exact reader, who has nothing to repair FROM. Custom fetch stub because no fixture item
+  // combines "has a failing picture" with "has no pictureUrl" any more — item-broken now has
+  // both, on purpose, for the test above.
+  it('never appears for an item with no pictureUrl, even once its thumbnail fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        if (path.includes('/items/item-no-source')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({
+              id: 'item-no-source',
+              type: 0,
+              title: 'No Source',
+              ownerId: 'OWNER1',
+              libraryId: 'lib-fiction',
+              libraryName: 'Fiction',
+              picture: 'https://cdn.example.test/never-produced.jpg',
+              // Deliberately no pictureUrl: detection returned nothing to fetch FROM.
+            }),
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ events: [] }),
+        };
+      }),
+    );
+
+    renderPage('item-no-source');
+    await screen.findByText('No Source');
+    fireEvent.error(screen.getByRole('presentation'));
+    expect(screen.queryByRole('button', { name: /fetch cover/i })).toBeNull();
+  });
+
+  // Read-only means absent, not disabled (DESIGN.md) — the same rule Lend/Edit/Delete already
+  // follow. A shared-in library with both a failing picture AND a pictureUrl must still show
+  // nothing, since actions belong to the owner alone.
+  it('stays absent on a shared (read-only) library, even with a failed thumbnail and a pictureUrl', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        if (path.includes('/items/item-shared-broken')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({
+              id: 'item-shared-broken',
+              type: 0,
+              title: 'Borrowed Copy',
+              ownerId: 'OWNER2',
+              libraryId: 'lib-shared-in',
+              libraryName: 'Polars',
+              picture: 'https://cdn.example.test/never-produced.jpg',
+              pictureUrl: 'https://covers.example.test/borrowed-copy.jpg',
+            }),
+          };
+        }
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({ events: [] }),
+        };
+      }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/libraries/lib-shared-in/items/item-shared-broken']}>
+        <LibrariesProvider>
+          <ToastProvider>
+            <Routes>
+              <Route path="/libraries/:libraryId/items/:itemId" element={<ItemDetail />} />
+            </Routes>
+          </ToastProvider>
+        </LibrariesProvider>
+      </MemoryRouter>,
+    );
+    await screen.findByText('Borrowed Copy');
+    fireEvent.error(screen.getByRole('presentation'));
+    expect(screen.queryByRole('button', { name: /fetch cover/i })).toBeNull();
+  });
+
+  // The action itself: `updatePicture: true` on the same address the item already has — this
+  // is a repair, not an edit, so nothing about the item's own fields changes — then the item
+  // is re-read, the same pattern markReturned and deleteItem already follow (PUT returns an
+  // empty body).
+  it('asks the backend to refetch the same address, with updatePicture, then re-reads the item', async () => {
+    let capturedPut = null;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        const method = options.method ?? 'GET';
+        if (method === 'PUT' && path.includes('/books/item-broken')) {
+          capturedPut = JSON.parse(options.body);
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => null,
+          };
+        }
+        const body = options.body ? JSON.parse(options.body) : undefined;
+        const result = handleMockRequest(method, path, body);
+        return {
+          ok: result.status < 400,
+          status: result.status,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => result.body,
+        };
+      }),
+    );
+
+    renderPage('item-broken');
+    await screen.findByText('Pêcheur d’Islande');
+    fireEvent.error(screen.getByRole('presentation'));
+    await userEvent.click(await screen.findByRole('button', { name: /fetch cover/i }));
+
+    await waitFor(() => expect(capturedPut).not.toBeNull());
+    expect(capturedPut).toMatchObject({
+      title: 'Pêcheur d’Islande',
+      pictureUrl: 'https://covers.example.test/pecheur-islande.jpg',
+      updatePicture: true,
+    });
+    // Re-read after the write, per the button still being present (not stuck disabled/absent
+    // from a crash) and no inline error having appeared.
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 });

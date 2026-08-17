@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import VolumeFrame from './VolumeFrame.jsx';
 
 const bookWithArt = {
@@ -87,5 +87,26 @@ describe('VolumeFrame', () => {
     const { container } = render(<VolumeFrame hero item={{ id: 'f', type: 1, title: 'X' }} />);
     expect(container.firstChild.className).toContain('border-paper');
     expect(container.querySelector('[data-spine]')).toBeNull();
+  });
+
+  // Surfaces the internal `failed` signal to whichever caller asked for it — item detail's
+  // "Fetch cover" repair, today — without VolumeFrame itself knowing that control exists.
+  it('reports its load-failure state through onFailedChange, both ways', () => {
+    const onFailedChange = vi.fn();
+    render(<VolumeFrame item={bookWithArt} onFailedChange={onFailedChange} />);
+    expect(onFailedChange).toHaveBeenLastCalledWith(false);
+
+    fireEvent.error(screen.getByRole('presentation'));
+    expect(onFailedChange).toHaveBeenLastCalledWith(true);
+  });
+
+  // ItemRow (the browse stream) calls this with neither `hero` nor `onFailedChange` — an
+  // optional prop nobody passes must be a true no-op, not something that needs a default to
+  // avoid crashing. This is what keeps the "Fetch cover" repair from being reachable per-row.
+  it('never requires onFailedChange — a caller that never passes it sees nothing different', () => {
+    expect(() => {
+      render(<VolumeFrame item={bookWithArt} />);
+      fireEvent.error(screen.getByRole('presentation'));
+    }).not.toThrow();
   });
 });

@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import Field from '@/components/imprint/Field.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
-import { Check } from '@/components/icons';
 import { BOOK, FILM, validateItem } from '@/lib/validate.js';
-import { cn } from '@/lib/cn';
 
 const TITLE_MAX = 100;
 const SUMMARY_MAX = 4000;
@@ -27,6 +25,9 @@ const joinList = (list) => (list ?? []).join(', ');
 const seed = (initial = {}) => ({
   title: initial.title ?? '',
   summary: initial.summary ?? '',
+  // Pre-filled with whatever detection supplied, empty when it supplied nothing — the case that
+  // most needed a control (no source at all) is exactly the case a URL-presence gate excluded.
+  pictureUrl: initial.pictureUrl ?? '',
   authors: joinList(initial.authors),
   isbn: initial.isbn ?? '',
   directors: joinList(initial.directors),
@@ -36,16 +37,15 @@ const seed = (initial = {}) => ({
   tmdbId: initial.tmdbId ?? '',
   collectionId: initial.collectionId ?? '',
   order: initial.order != null ? String(initial.order) : '',
-  updatePicture: false,
 });
 
 // One form, driven by `type` (BOOK=0, FILM=1) — the shared fields plus whichever half of the
 // API's two request bodies applies. `initial` carries an `id` only when editing a real item;
-// that single fact also decides whether the "fetch cover again" checkbox exists at all, since
-// NewBook/NewVideo have no `pictureUrl` yet to fetch from.
+// that single fact decides whether a changed cover address should ask the backend to refetch
+// (`updatePicture`) — a brand-new item has nothing to refetch AGAINST, it is simply created with
+// whatever address is on the form.
 const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
   const isEdit = Boolean(initial?.id);
-  const canRefetchCover = Boolean(initial?.pictureUrl);
   const [values, setValues] = useState(() => seed(initial));
   const [errors, setErrors] = useState({});
   const [error, setError] = useState(null);
@@ -77,18 +77,26 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
     setErrors((current) => ({ ...current, collection: undefined }));
   };
 
-  const toggleUpdatePicture = () => {
-    if (!canRefetchCover) return;
-    setValues((current) => ({ ...current, updatePicture: !current.updatePicture }));
-  };
-
   const buildPayload = () => {
+    const nextPictureUrl = values.pictureUrl.trim();
+    const originalPictureUrl = (initial?.pictureUrl ?? '').trim();
+
     const shared = {
       title: values.title.trim(),
       summary: values.summary,
+      pictureUrl: nextPictureUrl || null,
       collectionId: values.collectionId || null,
       order: values.collectionId ? Number(values.order) : null,
     };
+
+    // `updatePicture` only means something on an edit, and only when the address on screen is
+    // no longer the one that produced the item's current thumbnail — sending it whenever the
+    // field is merely present would re-request the same image every save. Clearing the field
+    // (empty result) sends `pictureUrl: null` with no `updatePicture`: there is no source left to
+    // fetch FROM, so nothing is asked to run.
+    if (isEdit && nextPictureUrl && nextPictureUrl !== originalPictureUrl) {
+      shared.updatePicture = true;
+    }
 
     const typed =
       type === FILM
@@ -104,11 +112,6 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
             isbn: values.isbn.trim(),
           };
 
-    // A read-only fact carried through so a re-fetch can happen — the source URL is never one
-    // of the fields this form lets the reader retype.
-    if (initial?.pictureUrl) typed.pictureUrl = initial.pictureUrl;
-    if (isEdit && values.updatePicture) typed.updatePicture = true;
-
     return { ...shared, ...typed };
   };
 
@@ -122,6 +125,7 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
     const nextErrors = validateItem(type, {
       title: values.title,
       summary: values.summary,
+      pictureUrl: values.pictureUrl,
       collectionId: values.collectionId,
       order: values.order,
       directors: type === FILM ? splitList(values.directors) : undefined,
@@ -168,6 +172,20 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
         value={values.summary}
         error={errors.summary}
         onChange={set('summary')}
+      />
+      {/* Shared by both types, and editable rather than a re-fetch toggle (DESIGN.md, "the cover
+          becomes editable"): detection frequently returns no cover at all, and gating a control
+          on `pictureUrl` already existing excludes exactly the reader who needed one. The source
+          is never named ("from Babelio") — the reader cannot act on which resolver produced it,
+          only on the address itself, so that is the only thing this field states. A plain text
+          input, not `.num`: an address is not a numeral (§3). */}
+      <Field
+        label="Cover image"
+        type="url"
+        value={values.pictureUrl}
+        error={errors.pictureUrl}
+        hint="A direct link to a cover picture — leave blank for none."
+        onChange={set('pictureUrl')}
       />
 
       {type === BOOK ? (
@@ -242,44 +260,6 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
           {errors.collection}
         </p>
       )}
-
-      {/* DESIGN.md §6: when the reason a control is unavailable is NOT visible elsewhere on the
-          form, the slot carries the REASON instead of the control — not an inert control plus a
-          separate explanation. A `disabled` checkbox drops out of the tab order, so a keyboard
-          or AT reader could never reach it; the sentence sat in its own `<p>` with no
-          `aria-describedby`, so assistive tech got an orphan sentence about a control it had no
-          way to find. Rendering only the sentence when there is no source image removes both
-          problems, and stops `text-ink-soft` from doing double duty as "this control is
-          disabled" — a second meaning for a token palette law gives exactly one. */}
-      {isEdit &&
-        (canRefetchCover ? (
-          <div className="mb-6">
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={values.updatePicture}
-              onClick={toggleUpdatePicture}
-              className="flex min-h-12 items-center gap-3 text-left text-sm"
-            >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  'flex size-6 shrink-0 items-center justify-center border-2 border-ink',
-                  // `text-ink` is paired explicitly here, not inherited from `body`'s default:
-                  // a ground that sets its own colour and leaves the foreground ambient is
-                  // exactly the defect shape that shipped once already — correct on paper by
-                  // coincidence, unreadable the moment the same class runs on the black cover.
-                  values.updatePicture && 'on-imprint bg-imprint text-ink',
-                )}
-              >
-                {values.updatePicture && <Check size={16} />}
-              </span>
-              Fetch the cover again from its source
-            </button>
-          </div>
-        ) : (
-          <p className="mb-6 text-sm text-ink-soft">No source image to fetch from.</p>
-        ))}
 
       <PlateButton type="submit" disabled={isBusy || !values.title.trim()}>
         {isBusy ? 'Saving' : submitLabel}

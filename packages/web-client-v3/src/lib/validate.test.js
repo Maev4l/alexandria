@@ -44,6 +44,18 @@ describe('validateItem', () => {
     expect(validateItem(1, { title: 'ok', directors: ['x'.repeat(101)] }).directors).toMatch(/100/);
   });
 
+  it('accepts an empty cover image address — the field is optional', () => {
+    expect(validateItem(0, { title: 'ok', pictureUrl: '' }).pictureUrl).toBeUndefined();
+  });
+
+  it('accepts an http(s) cover image address', () => {
+    expect(validateItem(0, { title: 'ok', pictureUrl: 'https://example.test/cover.jpg' }).pictureUrl).toBeUndefined();
+  });
+
+  it('rejects a cover image address with no http(s) scheme', () => {
+    expect(validateItem(0, { title: 'ok', pictureUrl: 'not-a-url' }).pictureUrl).toMatch(/http/i);
+  });
+
   it('passes a valid film', () => {
     expect(
       validateItem(1, { title: 'Chinatown', releaseYear: 1974, duration: 130, directors: ['RP'] }),

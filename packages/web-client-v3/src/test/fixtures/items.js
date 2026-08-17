@@ -85,8 +85,11 @@ export const fictionItems = [
   book('item-nadja', 'Nadja', { authors: ['André Breton'] }),
   book('item-broken', 'Pêcheur d’Islande', {
     authors: ['Pierre Loti'],
-    // A thumbnail that has not been produced yet: the URL exists and 404s.
+    // A thumbnail that has not been produced yet: the URL exists and 404s. `pictureUrl` is the
+    // detection source that WOULD produce it — present here so this item also exercises the
+    // "Fetch cover" repair control on item detail (gated on both facts at once, DESIGN.md).
     picture: 'https://alexandria.isnan.eu/thumbnails/user/OWNER1/library/lib-fiction/item/missing',
+    pictureUrl: 'https://covers.example.test/pecheur-islande.jpg',
   }),
   book('item-voyage', 'Voyage au bout de la nuit', { authors: ['Louis-Ferdinand Céline'] }),
   book('item-zazie', 'Zazie dans le métro', { authors: ['Raymond Queneau'] }),
