@@ -44,19 +44,27 @@ const LendSheet = ({ item, libraryId, open, onClose, onLent }) => {
       <Field
         label="Who has it"
         maxLength={NAME_MAX}
-        counter={NAME_MAX - borrower.length}
         value={borrower}
         onChange={(event) => setBorrower(event.target.value)}
       />
-      {/* The reason is visible — an empty required field right above — so the action is the
-          ruled outline and fills to a plate on validity, never an inert control (DESIGN.md §6). */}
-      <div className="flex gap-2">
-        <PlateButton
-          disabled={isBusy || !borrower.trim()}
-          onClick={submit}
-        >
-          {isBusy ? 'Recording' : 'Record the loan'}
-        </PlateButton>
+      {/* §6's FIRST form — outline-fills-to-plate with no words — only works when a disabled
+          outline reads as "not yet". Here it sits directly beside Cancel, a secondary that is
+          ALSO a ruled outline, so at rest the two controls are the same shape: the reader
+          cannot tell commit from escape without reading 10px field-label caps above, in a flow
+          PRODUCT.md times in seconds, at the door. This is the SECOND form instead: the reason
+          takes the button's own position in `--ink-soft` caps, and the filled plate swaps in
+          once there is a name. The reason's `min-h-12` matches PlateButton's own so the slot's
+          height is reserved across both states and the row never resizes on the swap. */}
+      <div className="flex items-center gap-2">
+        {borrower.trim() ? (
+          <PlateButton disabled={isBusy} onClick={submit}>
+            {isBusy ? 'Recording' : 'Record the loan'}
+          </PlateButton>
+        ) : (
+          <p className="caps flex min-h-12 items-center text-[11px] font-bold text-ink-soft">
+            A borrower's name
+          </p>
+        )}
         <PlateButton variant="secondary" onClick={onClose}>
           Cancel
         </PlateButton>

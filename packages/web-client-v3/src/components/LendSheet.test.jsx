@@ -47,10 +47,21 @@ describe('LendSheet', () => {
     expect(screen.getByLabelText(/who has it/i)).toHaveAttribute('maxLength', '50');
   });
 
-  it('keeps the primary out of reach until a name is given — the reason is visible', async () => {
+  it('drops the "50 LEFT" counter — a limit nobody at the door is near', () => {
     renderSheet();
-    expect(screen.getByRole('button', { name: /record the loan/i })).toBeDisabled();
+    expect(screen.queryByText(/left/i)).toBeNull();
+  });
+
+  // DESIGN.md §6's SECOND form: at rest there is no disabled "Record the loan" outline sitting
+  // next to the "Cancel" outline (the critique's finding — the two used to be the same shape).
+  // The reason occupies the slot instead, and only the filled plate appears once the field is
+  // valid.
+  it('names the reason instead of showing a disabled twin of Cancel, until a name is given', async () => {
+    renderSheet();
+    expect(screen.queryByRole('button', { name: /record the loan/i })).toBeNull();
+    expect(screen.getByText(/a borrower's name/i)).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/who has it/i), 'Marie');
+    expect(screen.queryByText(/a borrower's name/i)).toBeNull();
     expect(screen.getByRole('button', { name: /record the loan/i })).toBeEnabled();
   });
 
