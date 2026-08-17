@@ -259,9 +259,18 @@ The steps in use are **10, 11, 12, 13, 14, 17, 20, 22, 32, 76**. Anything else i
 textarea all take `text-base`. Mobile Safari **zooms the page** when a focused input's font-size is
 below 16px, which on a phone-first PWA would jerk the viewport on every tap into a field — so 16px is
 load-bearing platform behaviour, not a typographic choice, and it sits outside the display scale
-deliberately. Ratified on those merits; it was found by counting size classes rather than from any note,
-so nobody should assume the original author had this reason in mind. **Any guard over the scale must
-know this exception, or its first act is to fail on correct code.**
+deliberately. **Any guard over the scale must know this exception, or its first act is to fail on
+correct code.**
+
+**Ratified on those merits, and the reason was never written down — which was checked, not assumed.**
+`Field.jsx` carries no comment at any of the three sites. That absence means something in *this* file,
+because it documents nearly everything else: why the reveal state lives only in component state, why the
+reveal is `type="button"`, the number spinner's two-pseudo-element suppression, the textarea resize
+grabber, `field-control` versus `focus-control`, and why `outline-none` is absent. In a file where every
+small decision earned a paragraph, three instances of an off-scale size earned nothing. So this is not
+an exception documented in the wrong place: **the value is correct and has been surviving on nobody's
+knowledge since it was typed**, and the first guard or reviewer to read §3 without knowing iOS would
+have "corrected" it.
 
 **The scale has never been enforceable, and removing 9px has made it more exposed rather than less.**
 Nothing anywhere reads this list. There was no guard pinned to 9px either — so the value shipped,
@@ -275,6 +284,22 @@ Tailwind-named** (`text-sm` ×47, `text-xs` ×18, `text-base` ×3, `text-xl` ×2
 `text-[Npx]`. A guard matching only the arbitrary form would cover 44 sites, miss 70, report clean, and
 be indistinguishable from a guard that works — the CLI detector's blindness to Tailwind, reproduced by
 us. It must resolve named sizes to pixels.
+
+Resolved, `sm`→14, `xs`→12 and `xl`→20 are all already on the scale, so the resolving version surfaces
+**exactly one** off-scale value: the 16px inputs above. That it produces one known exception rather than
+a pile is the evidence that it is the right design and not merely a wider net.
+
+**And the mapping itself must not be hardcoded as though it were ours.** `sm→14, xs→12, base→16, xl→20`
+are **Tailwind 4's defaults**; `src/index.css`'s `@theme inline` block declares colours, the two font
+families and `--spacing`, and **no `--text-*` overrides at all** — verified. So the table is true today
+*by inheritance, not by declaration*, and the day anyone adds `--text-sm: 15px` a guard holding that
+table keeps passing while being silently wrong about 47 sites. A true answer about the wrong substrate,
+pre-installed in a guard that does not exist yet.
+
+The fix is one extra assertion rather than a resolver, and the precedent is `tokens.test.js`, which
+reads `index.css` instead of trusting this document — which is why §2's contrast numbers are facts. **The
+guard must assert that no `--text-*` override exists in the theme block**, so its table stays true by
+construction and the day that changes it fails saying "derive these now" instead of lying.
 
 **The member plate was 9px and is now 10, and how that was nearly missed is the point.** A critique
 called the 9px plate its clearest finding. Checked against the comp, the comp declared 9px — so the
