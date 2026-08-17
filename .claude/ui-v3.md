@@ -62,6 +62,14 @@ One `AppHeader` with a **contextual right slot**, rendered as an `--imprint` pla
 | Libraries root | wordmark | account initials → `/settings` | **pinned field** |
 | Library browse | back + library name | add (owned libraries only) | **none** |
 | Item detail (cover) | back | search | slot only, no field |
+| Unbuilt stub | back **and** wordmark | none | **none** |
+
+**The stub row is transitional and must not become a pattern.** A stub carries both marks because it
+has no title worth printing and still owes the reader an exit — back leaves, and the wordmark is the
+second route home added when seven routes turned out to have neither. Every screen that becomes real
+takes the ordinary construction instead: **back plus its own name**, wordmark dropped. A finished
+screen that still shows the wordmark beside a back control is announcing it has nothing to call
+itself, which for a built screen is a defect rather than a fallback.
 
 **The pinned field belongs to the root and nowhere else.** The dominant job — "do I own this?" —
 starts from a cold open, which lands on the root, where the field is the loudest mark on the
@@ -473,6 +481,19 @@ protected nothing, permanently removed a file from coverage, and carried no expi
 prompt its removal — the worst combination, because the comment made it look considered. Before
 excluding anything from a check, run the check without the exclusion and record what it actually
 reports. If the answer is "nothing", there was never a reason.
+
+**"The reported instance does not reproduce" is not "the defect cannot happen."** A wrap finding
+named `Bandes dessinées` at 320px; measured, it fits by under two pixels and never wraps. The
+arithmetic was nearly right and the conclusion wrong — which is a *weaker* claim than it looks,
+because the mechanism it described (a fragile containing block) was real and would fire on any
+slightly longer name. The right response was the one taken: keep the fix, and add a synthetic name
+that genuinely wraps, so the guard exercises the condition instead of passing vacuously.
+
+This is the third time a check has been found passing for the wrong reason — after the exclusion that
+was a no-op and the wrap assertion that could not fail. The pattern is specific enough to test for:
+**a new guard must be seen to fail.** Break the thing it guards, watch it go red, then fix it. A
+guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
+from a comment.
 
 **Touch.** Minimum 48px targets. Primary actions in thumb reach. Long-press is always duplicated
 by a visible affordance, since long-press alone is undiscoverable.

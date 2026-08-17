@@ -658,7 +658,14 @@ already see why:
 
 - **The reason is visible** — a required field sitting empty directly above. The action renders as
   the ruled outline and fills to a plate the moment the form is valid. No words are needed; the
-  outline-to-fill change says it.
+  outline-to-fill change says it. **This form holds only while the disabled primary is the only ruled
+  outline in its row.** Put a secondary beside it and the two are identical at rest — commit and
+  abandon, same shape, same colour, adjacent — which is how the lend sheet came to offer `RECORD THE
+  LOAN` and `CANCEL` as indistinguishable twins in the one flow the product says takes seconds at a
+  door. The test is **shape *and* colour together**: a `--out` destructive outline beside an ink one
+  is already distinguishable at rest, which is why the delete confirmations were never part of that
+  defect and still use this simpler form correctly. A lone submit button also keeps it. Only a
+  same-colour ruled neighbour forces the second form.
 - **The reason is not visible** — a limit exceeded, a constraint the reader cannot infer. The slot
   carries the reason in `--ink-soft` caps *instead of* the control, in the control's own position,
   which is the best possible place for the explanation.
