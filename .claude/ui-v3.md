@@ -283,10 +283,30 @@ left stale.
 **API:** `GET /libraries/{libraryId}/items/{itemId}`, `GET .../events?limit=`.
 
 ### EditItem — `/libraries/:libraryId/items/:itemId/edit`
-Pre-filled from the item; the same form bodies as New, plus `updatePicture` to re-fetch artwork
-from `pictureUrl`. Because `PUT` returns an empty body, the item is re-read after saving rather
-than optimistically assumed.
+Pre-filled from the item; the same form bodies as New. Because `PUT` returns an empty body, the
+item is re-read after saving rather than optimistically assumed.
 **API:** `PUT /libraries/{libraryId}/books|videos/{id}`, then `GET .../items/{itemId}`.
+
+**The form carries no cover control.** It shipped with a checkbox reading *"Fetch the cover again
+from its source"*, and that control could not be used correctly by anyone. `pictureUrl` is written
+by detection — Google Books, Babelio, GoodReads, TMDB — and the reader cannot change it, so
+re-fetching returns the identical image in every case **except one the reader has no way to
+detect**: a thumbnail the asynchronous pipeline failed to produce. The checkbox therefore asked for
+a decision on evidence the screen did not contain, and its own wording advertised a coupling the
+reader has no power over. Its absent state was worse still — *"No source image to fetch from"* is an
+apology for a control nobody asked for.
+
+**The capability is real and stays; only its placement was wrong.** The failure it repairs is real
+enough that the admin CLI has a command for it (`data fix-thumbnails`), and making the owner reach
+for a CLI to fix a cover is not acceptable. So the action moves to **where the problem is visible**:
+a `Fetch cover` control attached to the item-detail frame, rendered **only when `pictureUrl` exists
+and the image failed to load.** Then it needs no explanation — the frame is empty, and the button
+fills it — and its absence is meaningful rather than requiring a sentence.
+
+Two general rules fall out. **An action belongs where its problem is visible, not in the form that
+happens to own the field.** And **a control that cannot be chosen correctly should not be offered**:
+if the reader cannot tell which setting is right, the interface is asking them to guess, and the
+answer is to detect the condition rather than to word the question better.
 
 ### ItemHistory — `/libraries/:libraryId/items/:itemId/history`
 Paginated events as Ledger Rows on a checkout card, paired client-side into loans. An open loan
