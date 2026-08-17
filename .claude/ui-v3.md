@@ -558,10 +558,24 @@ not offered**. The rare genuine intent — this volume belongs in a collection t
 is fully served by cancelling and using the library's own new-collection route, and an item can only
 belong to one collection anyway.
 
-`Enter by hand` is **never** scoped away, from any entry point. `PRODUCT.md` requires a non-camera
-path always in reach, and it must carry the collection through — a reader who explicitly chose a
-board and then entered by hand receiving a standalone item is a silent wrong result, which by §7's
-weighting is the worst class of defect.
+**A manual path is always reachable — but `Enter by hand` does not belong in this sheet at all, and
+that sentence used to say it did.** `PRODUCT.md` requires a non-camera path always in reach, and it
+must carry the collection through: a reader who chose a board, entered by hand, and received a
+standalone item is a silent wrong result, the worst class by this section's own weighting.
+
+What that requires is **reachability**, not a button in the type sheet. Placed there, `Enter by hand`
+became a **peer of `Book` and `Film` while needing the very thing they supply** — a type — so it
+silently resolved to Book and a film could not be entered by hand at all. The sheet chooses **type
+only**; the manual escape lives on `AddBook` and `AddVideo`, where the type is already known. That is
+also what this spec's own `AddBook` section always said — "a visible manual-entry escape is always
+present" — so the sheet had gained a fourth option the spec never asked for, and then this rule was
+written to protect it.
+
+**The general defect: an option that requires a parameter its siblings exist to supply is not their
+peer.** It is a child of each of them, and putting it alongside them forces a silent default. The tell
+is available without running anything — if one entry in a menu cannot be described without referring to
+another entry's answer, it is at the wrong level. v2 had this right and v3 regressed from it: v2's sheet
+is Book / Video / Collection, with the manual escape inside each capture screen.
 
 The general shape: narrowing a sheet by entry point is correct when an option contradicts the flow's
 premise, and wrong when it merely seems less likely. Check which of the two you have before removing
