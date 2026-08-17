@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getRoutePaths, renderApp, stubFetch } from '@/test/appHarness.jsx';
+import { fillRouteParams, getRoutePaths, renderApp, stubFetch } from '@/test/appHarness.jsx';
 
 // The guard named in the design session's f5 task: every route in the app must render exactly
 // one <main> and exactly one <h1>. Zero is the defect the landmark work fixed; two is a defect
@@ -22,28 +22,12 @@ vi.mock('@/auth/AuthContext.jsx', () => ({
 beforeEach(stubFetch);
 afterEach(() => vi.unstubAllGlobals());
 
-// Concrete IDs that exist in the shared fixtures (src/test/fixtures), so every dynamic segment
+// PARAM_VALUES / fillRouteParams (concrete fixture IDs for every dynamic segment, so a route
 // resolves to a real record rather than a 404/"not found" state — which would still carry its
-// own single main/h1 (see EditLibrary, EditCollection, ItemDetail, EditItem "not found"
-// branches) but would not exercise the READY state the route exists to show.
-const PARAM_VALUES = {
-  libraryId: 'lib-fiction', // has items, a collection, and sharedTo — exercises the most branches
-  itemId: 'item-lent', // has authors, an ISBN, a lend event and history — richest single fixture
-  collectionId: 'coll-melville',
-};
-
-const fillParams = (path) =>
-  path.replace(/:([a-zA-Z]+)/g, (match, name) => {
-    if (!(name in PARAM_VALUES)) {
-      // A route added with a param this guard does not know about must fail the suite, not
-      // silently render "undefined" in the URL — that is the "fails loudly" promise above.
-      throw new Error(
-        `routeLandmarks guard: no fixture value registered for :${name} (route "${path}"). ` +
-          'Add one to PARAM_VALUES rather than letting this route render with a literal "undefined".',
-      );
-    }
-    return PARAM_VALUES[name];
-  });
+// own single main/h1, see EditLibrary/EditCollection/ItemDetail/EditItem's "not found" branches,
+// but would not exercise the READY state the route exists to show) now live in
+// `@/test/appHarness.jsx`, shared with routeExits.test.jsx rather than retyped here.
+const fillParams = fillRouteParams;
 
 const allRoutePaths = getRoutePaths();
 

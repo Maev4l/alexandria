@@ -59,3 +59,30 @@ export const getRoutePaths = () => {
     .map((route) => route.props.path)
     .filter((path) => path !== '*'); // the catch-all is a redirect, not a screen to walk
 };
+
+// Concrete IDs that exist in the shared fixtures (src/test/fixtures), so a dynamic segment in a
+// walked route resolves to a real record rather than a 404/"not found" state. Shared by every
+// route-walking guard (routeLandmarks.test.jsx, routeExits.test.jsx, …) rather than retyped in
+// each — a second, drifting copy of this table is exactly the kind of duplication that let the
+// exit-mechanism defect (see routeExits.test.jsx) go unnoticed for three slices while a sibling
+// guard walked the same table for a different assertion.
+export const PARAM_VALUES = {
+  libraryId: 'lib-fiction', // has items, a collection, and sharedTo — exercises the most branches
+  itemId: 'item-lent', // has authors, an ISBN, a lend event and history — richest single fixture
+  collectionId: 'coll-melville',
+};
+
+// Substitutes every `:param` in a route path with its fixture value. Throws rather than
+// rendering a literal "undefined" in the URL, so a route added with a param this table does not
+// know about fails the guard loudly instead of silently not exercising the route it claims to.
+export const fillRouteParams = (path) =>
+  path.replace(/:([a-zA-Z]+)/g, (match, name) => {
+    if (!(name in PARAM_VALUES)) {
+      throw new Error(
+        `route-walking guard: no fixture value registered for :${name} (route "${path}"). ` +
+          'Add one to PARAM_VALUES in src/test/appHarness.jsx rather than letting this route ' +
+          'render with a literal "undefined".',
+      );
+    }
+    return PARAM_VALUES[name];
+  });
