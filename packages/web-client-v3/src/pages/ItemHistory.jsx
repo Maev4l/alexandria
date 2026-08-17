@@ -182,7 +182,10 @@ const ItemHistory = () => {
               // rather than a second condition on the same copy, per the labelled-twice rule
               // read the other way: two different facts must not share one sentence either.
               <div className="border-2 border-ink p-8 text-center">
-                <p className="caps text-xs font-bold text-ink-soft">No loan on record</p>
+                {/* Not "no loan on record" — the reader is under "THE RECORD" heading, looking
+                    at events that exist, so "no record" would contradict the screen they are
+                    standing on. What's absent is a completed PAIRING, not the record itself. */}
+                <p className="caps text-xs font-bold text-ink-soft">No complete loan</p>
                 <p className="mt-2 text-sm">
                   This item&apos;s history doesn&apos;t pair into a loan. You can still clear it
                   below.
@@ -227,7 +230,7 @@ const ItemHistory = () => {
                 follow — and there is nothing to clear on an empty record either way. Gated on
                 `events.length`, not `loans.length` (round 6 review): clearing deletes raw
                 EVENTS (`DELETE .../events`), so an item with an orphaned RETURNED and zero
-                paired loans still has something to clear — the "No loan on record" state above
+                paired loans still has something to clear — the "No complete loan" state above
                 exists to say so and point here. */}
             {!isReadOnly && events.length > 0 && (
               <div className="mt-8">

@@ -120,7 +120,10 @@ describe('ItemHistory', () => {
       }),
     );
     renderPage();
-    expect(await screen.findByText(/no loan on record/i)).toBeInTheDocument();
+    // "No complete loan", not "no loan on record": the reader is under a "THE RECORD" heading,
+    // looking at events that exist, so "no record" would contradict the screen they're on. What
+    // is absent is a completed PAIRING, not the record itself.
+    expect(await screen.findByText(/no complete loan/i)).toBeInTheDocument();
     // Not the genuinely-empty copy — that would be a false statement about this item.
     expect(screen.queryByText(/never lent/i)).toBeNull();
     expect(screen.queryByText(/^lent$/i)).toBeNull();
