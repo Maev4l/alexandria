@@ -6542,6 +6542,9 @@ capture screen and the candidate list: caps label plus the collection's own name
 of scans. Its **absence** is what says "standalone", so the two modes read apart with no mode
 switch.
 
+**Not on the manual forms** — where the collection picker exists, the picker **is** the filing mark
+(ruling J). The mark belongs only to screens with nothing else stating the destination.
+
 **F. The camera feed sits inside a Volume Frame, not full-bleed.** Full-bleed makes the camera the
 app, which is every other scanner and v2's. A feed inside the imprint's own 2:3 rule says *this is
 the object being catalogued*, and it leaves the bottom of the screen for the manual escape and the
@@ -6603,27 +6606,36 @@ and name which of the three each check covers:
 Naming which layer is covered is the whole point. And per the standing rule: whichever guard is
 written for the first two, **break the thing and watch it go red** before trusting it.
 
-## Open — raised because ruling H lands on something already shipped
+**J. The query wins everywhere** (`4e0354d`). `?collectionId=` seeds the manual forms too, not only
+the results screens. Raised by this session against its own shipped Task 17b code, which used
+`location.state`; **applied to that code rather than only recorded**, because a rule written down and
+not applied is this project's most-repeated failure.
 
-**J. Does ruling H reach `NewBook` / `NewVideo`, which now seed their collection from
-`location.state`?** Task 17b built `seedFromAddFlowState(location.state)` so that `Enter by hand`
-from a collection board arrives with the board pre-selected. Ruling H's argument against
-`location.state` — a cold load silently resumes filing **standalone** — is the same argument, on the
-same mechanism, in the same flow.
+The exemption argued for the manual forms — that a picker reading `None` makes the loss visible —
+was rejected on three grounds, and all three outlive this decision:
 
-The case for leaving it: on a manual form the loss is **visible**, not silent. The collection picker
-is on screen reading `None`, so a cold-loaded form shows the reader exactly what it does not know.
-A results screen has no equivalent cue — nothing on it displays the collection at all, which is
-precisely why H's `?collectionId=` is needed there.
+- **A distinction that dissolves when an unrelated decision ships was never the reason.** If ruling
+  E's `FILING INTO` mark ships, the results screens gain the same visibility, so the distinction held
+  on *neither* surface. It was a coincidence doing an argument's work.
+- **Visibility is not recovery.** `None` asks the reader to notice an absence they cannot identify as
+  a *loss* — nothing distinguishes "the board I chose was dropped" from "I never chose one". And
+  `Collection` sits low on a form that scrolls, so the cue is frequently off-screen exactly when it
+  would matter.
+- **A rule requiring a per-surface judgement of "visible enough" gets applied inconsistently**, by us
+  and by anyone after us. One mechanism across the whole flow costs a query parameter and deletes the
+  judgement.
 
-That distinction may be sound or may be a rationalisation for not changing working code. **Raised
-rather than assumed, because this session built it** — the author of a mechanism is the worst judge
-of whether a new ruling reaches it. If the answer is that the query wins everywhere, `?collectionId=`
-on the manual-entry routes is a small change and the seeding helper already isolates it.
+**Refinement that falls out, and it prevents a defect: where the collection picker exists, the picker
+IS the filing mark.** Ruling E's `FILING INTO` is **not** printed on the manual forms. The mark
+belongs to screens with nothing else stating the destination; a form already has a control showing it,
+and adding the mark states one fact twice. Same fact, one place, chosen by which surface can already
+carry it.
 
-Note also that ruling E's `FILING INTO` mark would give the results screens the missing cue — so if
-E ships, the "invisible loss" half of H's argument weakens on those screens too, and the
-recover-by-query half is doing the real work.
+**And the protocol that produced this is recorded because it is reusable: the session that built a
+mechanism is the worst judge of whether a new ruling reaches it.** The tell is that the argument for
+exemption is not weak — it is *available because the code exists*, and would not have been thought of
+otherwise. Refer with a stated lean rather than either deciding or shrugging: it stays useful, and it
+puts the decision where the bias is not.
 
 ## Already binding
 
@@ -6798,9 +6810,8 @@ with an `error` is shown as a failed source rather than dropped:
 ```
 
 If every resolver failed or none matched, offer manual entry at `../items/new/book`, carrying
-the ISBN through so it is not typed twice — **by which mechanism is open question J**, since ruling
-H moved the results screens off `location.state` and Task 17b shipped `location.state` seeding on
-exactly these manual-entry routes. Do not settle it inside this task. Confirming a candidate calls
+the ISBN through **in the query** so it is not typed twice — `?isbn=`, alongside the `?collectionId=`
+the manual routes already read (ruling J). Not `location.state`. Confirming a candidate calls
 `itemsApi.createBook` and returns to `AddBook` for the next item — cataloguing is a batch
 activity, so the flow loops rather than exiting.
 
