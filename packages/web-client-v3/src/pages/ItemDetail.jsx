@@ -167,9 +167,14 @@ const ItemDetail = () => {
         setEventsError(null);
         setEvents(eventsResult.value?.events ?? []);
       } else {
-        // Deliberately does NOT clear `events`: on a re-load (e.g. after markReturned) that
-        // happens to fail on the history half, showing the last known-good record beneath an
-        // error is more honest than blanking it — the record did not actually disappear.
+        // Deliberately does NOT clear `events`: the render gate below (`!eventsError &&
+        // events.length > 0`) suppresses the whole ledger section whenever `eventsError` is
+        // set, so a stale `events` is never shown beneath the error — that reading of this
+        // comment was wrong. What a stale `events` DOES still feed is `loans` (`pairLoanEvents`
+        // above) and, through it, the Overprint Stamp's day count via `DetailMarks`. Clearing
+        // `events` on a re-load that fails only on the history half would zero that count while
+        // the item is still out, which is worse than leaving it at its last known value: the
+        // loan did not get shorter because this fetch failed.
         setEventsError(
           eventsResult.reason?.message ?? 'Could not load this item’s lending history.',
         );
