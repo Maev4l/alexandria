@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sheet from '@/components/imprint/Sheet.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
+import AddItemSheet from '@/components/AddItemSheet.jsx';
 import { collectionsApi } from '@/api';
 import { useToast } from '@/state/ToastContext.jsx';
 
@@ -11,6 +12,21 @@ const CollectionActionsSheet = ({ board, libraryId, open, onClose, onChanged }) 
   const [isBusy, setIsBusy] = useState(false);
   const navigate = useNavigate();
   const { confirm } = useToast();
+
+  // "Add an item" swaps the WHOLE sheet for AddItemSheet rather than reimplementing its
+  // Book/Film choice here — the header "+" already owns that chooser and its routes, and this
+  // is the one other place that needs it. `open`/`onClose` pass straight through, so closing it
+  // closes the flow entirely, exactly as closing AddItemSheet does from the header.
+  if (mode === 'add') {
+    return (
+      <AddItemSheet
+        open={open}
+        onClose={onClose}
+        libraryId={libraryId}
+        collection={{ id: board.id, name: board.title }}
+      />
+    );
+  }
 
   const remove = async () => {
     setError(null);
@@ -39,6 +55,12 @@ const CollectionActionsSheet = ({ board, libraryId, open, onClose, onChanged }) 
 
       {mode === 'menu' && (
         <div className="flex flex-col gap-2">
+          {/* First, per the brief: cataloguing into a collection is the action reached most
+              often from this sheet. No collection name here — the Sheet's own title above
+              already carries it, so this would otherwise say it twice. */}
+          <PlateButton variant="secondary" onClick={() => setMode('add')}>
+            Add an item
+          </PlateButton>
           <PlateButton
             variant="secondary"
             onClick={() =>
