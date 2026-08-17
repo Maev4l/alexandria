@@ -118,6 +118,14 @@ new or changed endpoints** — the contract is `packages/functions/api/openapi.y
 - **Covers:** `picture` is a CloudFront thumbnail URL (S3-backed, produced asynchronously by
   the image-processing Lambda); `pictureUrl` is the external source URL from a detection API.
   Cache-bust with `?v={updatedAt}`.
+- **A very large majority of items carry a cover** (confirmed by the owner). Detection resolves
+  artwork for most books and nearly all films, so **artwork present is the normal case and the empty
+  frame is the exception** — the reverse of what the fixture data suggests. Do not reason from the
+  fixtures about how dense or sparse a real stream looks. Two distinct things must not be conflated:
+  a cover the collection genuinely lacks (rare), and a `picture` URL that **404s while the thumbnail
+  is still being produced, or that was synthesised from a template without checking S3** (common, and
+  transient). The second is the dominant cover failure, which makes the load-failure fallback and its
+  single re-poll load-bearing, not the empty state.
 
 ### Absent data (must not be faked)
 
