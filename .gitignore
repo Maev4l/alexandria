@@ -23,7 +23,29 @@ dist/
 # and docs/. Ignored as a whole directory rather than per-subdirectory, because
 # review/ alone left critique/ and questions/ untracked-but-visible, which is a
 # trap for a wide `git add -A`.
-.impeccable/
+#
+# ...EXCEPT config.json, which is not generated: it records reviewed decisions
+# (which detector findings are false positives for this design system, and why).
+# A blanket `.impeccable/` was right while everything inside was output; it now
+# excludes the one file that IS source, so a "shared" suppression would be lost on
+# a fresh clone and the hook would re-fire for the next reader.
+# Note the pattern shape: `.impeccable/` excludes the directory itself, so git
+# never descends and a negation inside it cannot match. `.impeccable/*` plus the
+# negation is what actually works — verified with `git check-ignore -v`.
+# `**/` is required: a bare `.impeccable/*` contains a slash and is therefore
+# ANCHORED to the repo root, which silently un-ignored the second .impeccable
+# directory under packages/web-client-v3/ (hook cache + review screenshots).
+# Caught by reading `git status`, not by reasoning about the pattern.
+**/.impeccable/*
+!/.impeccable/config.json
+
+# Playwright MCP output: screenshots, accessibility snapshots (.yml) and console
+# logs, written to the repo root by the browser tools. Verified by observation
+# rather than assumed — one navigate produced page-*.yml and console-*.log here.
+# Ignored as a whole directory for the same reason as .impeccable/ above: a
+# partially-ignored generated dir leaves the rest untracked-but-visible, which is
+# a trap for a wide `git add -A`.
+.playwright-mcp/
 
 # Local dev env files (per-developer secrets)
 **/.env.local

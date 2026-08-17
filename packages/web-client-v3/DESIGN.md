@@ -240,7 +240,7 @@ it covers.
 | Count plate | 12 | 700 | tabular, in a 2px ruled plate |
 | Plate Line figures, detail plate line | 12 | 400 | `--cover-soft` on the cover |
 | Index letter count, ledger dates, ledger duration, library row sub | 11 | 400 | tabular |
-| **Collection member order plate** | **9** | 400 | tabular, in a **1px** rule — see §5 |
+| **Collection member order plate** | **10** | 400 | tabular, in a **1px** rule — see §5 |
 
 **Caps — interface labels. Tracking is per-role and is not one value.**
 
@@ -253,7 +253,21 @@ it covers.
 | Ledger head, detail-marks label, shared ribbon caps, ledger date labels | 10 | 800 | +0.16em |
 | Overprint Stamp | 10 | 800 | +0.14em |
 
-The steps in use are **9, 10, 11, 12, 13, 14, 17, 20, 22, 32, 76**. Anything else is off the scale.
+The steps in use are **10, 11, 12, 13, 14, 17, 20, 22, 32, 76**. Anything else is off the scale.
+
+**The member plate was 9px and is now 10, and how that was nearly missed is the point.** A critique
+called the 9px plate its clearest finding. Checked against the comp, the comp declared 9px — so the
+verdict recorded was *documentation drift, the code is right*, and 9px was written into this table as a
+legitimate step. That answered **whose fault it was** and silently dropped **whether 9px was correct**.
+
+It was not. 9px was the only sub-10px size in the system and the only small role at weight 400 rather
+than 800, and there was no space argument for it: two digits of Chivo Mono at 10px is 12px of advance
+plus 6px of padding — 18px inside a 48px frame — and three digits still reach only 24px. The smallest,
+lightest text in the product was buying nothing.
+
+**Resolving an attribution question is not resolving the substantive one.** "The comp says so" explains
+why a document and the code disagree; it says nothing about whether either is right. Here both were
+wrong together, which is exactly the case a provenance check cannot see.
 
 **This table was wrong for four slices, and the mechanism is worth more than the correction.** Its
 eight rows were transcribed from the comp's own **type-specimen block** (`.t-index`, `.t-lib`,
