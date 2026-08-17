@@ -92,11 +92,6 @@ const ItemDetail = () => {
 
   const [item, setItem] = useState(null);
   const [loans, setLoans] = useState([]);
-  // Captured alongside `loans` so "Full record" (below) can tell "the inline preview already
-  // shows everything" from "there is genuinely more" — the API's own signal that more raw
-  // events exist beyond the page this screen fetched, independent of how many of them happened
-  // to pair into loans.
-  const [eventsNextToken, setEventsNextToken] = useState(null);
   const [status, setStatus] = useState('loading');
   // Lend genuinely needs input (a borrower's name), so it is the one action that still opens a
   // sheet — and that sheet holds ONLY the lend form, never a menu.
@@ -144,7 +139,6 @@ const ItemDetail = () => {
         if (isCancelled()) return;
         setItem(fetchedItem);
         setLoans(pairLoanEvents(events?.events ?? []));
-        setEventsNextToken(events?.nextToken ?? null);
         setStatus('ready');
       } catch (err) {
         if (isCancelled()) return;
@@ -389,31 +383,37 @@ const ItemDetail = () => {
                   <LedgerRow key={`${loan.lentAt}-${loan.name}`} loan={loan} inverted />
                 ))}
               </div>
-              {/* "Full record" only when it genuinely leads somewhere new (round 5 critique #5):
-                  either more PAIRED loans than the preview above already shows, or a `nextToken`
-                  on the raw events page — the API's own signal that more history exists even
-                  when it happened to pair into `<= LEDGER_PREVIEW` loans. Without this, the link
-                  rendered whenever there was at least one loan, which for an item with exactly
-                  `LEDGER_PREVIEW` loans and no further pages led to a screen showing the SAME
-                  rows just seen, plus a destructive action nobody asked for. */}
-              {(loans.length > LEDGER_PREVIEW || eventsNextToken) && (
-                <Link
-                  to={`/libraries/${libraryId}/items/${itemId}/history`}
-                  // 48px floor (P1 #4): a standalone navigational control (not a prose link —
-                  // WCAG 2.5.5's inline-text exemption does not apply), whose text alone stood
-                  // 15.4px tall. Same `::before` hit-box as DetailMarks' "In" link, chosen here
-                  // too rather than the real-padding-plus-negative-margin idiom: this link sits
-                  // in normal block flow with nothing else measuring its natural height, so the
-                  // margin idiom would have been safe here specifically, but a single technique
-                  // for every enlarged text link is easier to verify than picking per-site.
-                  // -inset-y-4 (-16px) measured 47.4px in real Chrome — 0.6px under the floor,
-                  // since 15.4px of text plus 32px doesn't quite clear it; -5 (-20px) does, with
-                  // room to spare, and the action buttons below still sit ~9px clear of it.
-                  className="relative caps mt-4 inline-block text-[11px] font-extrabold text-imprint underline before:absolute before:inset-x-0 before:-inset-y-5 before:content-['']"
-                >
-                  Full record
-                </Link>
-              )}
+              {/* "Full record" used to be gated on "leads somewhere new" — more PAIRED loans
+                  than the preview above already shows, or a raw-events `nextToken` (round 5
+                  critique #5). That gate closed the one redundant case it was written for and, in
+                  doing so, closed the ONLY route to `/history` for every item whose history pairs
+                  into `<= LEDGER_PREVIEW` loans with no further page: clearing a lending history
+                  exists nowhere but `/history`, so removing the "redundant" link removed the only
+                  link. The fix is not a better threshold — it is that redundancy of ROWS was
+                  never the right test, because the destination is not redundant even when it
+                  shows the same rows: it holds a capability (clearing the record) this preview
+                  does not. So the link renders whenever there is any lending history at all,
+                  which this block already requires (`loans.length > 0`, above) — nothing further
+                  to check. The label stays "Full record" either way: it is accurate whether or
+                  not there happens to be more to read, a second label risks stating the same fact
+                  twice, and the destructive action past the link is not something to advertise
+                  from the preview. */}
+              <Link
+                to={`/libraries/${libraryId}/items/${itemId}/history`}
+                // 48px floor (P1 #4): a standalone navigational control (not a prose link —
+                // WCAG 2.5.5's inline-text exemption does not apply), whose text alone stood
+                // 15.4px tall. Same `::before` hit-box as DetailMarks' "In" link, chosen here
+                // too rather than the real-padding-plus-negative-margin idiom: this link sits
+                // in normal block flow with nothing else measuring its natural height, so the
+                // margin idiom would have been safe here specifically, but a single technique
+                // for every enlarged text link is easier to verify than picking per-site.
+                // -inset-y-4 (-16px) measured 47.4px in real Chrome — 0.6px under the floor,
+                // since 15.4px of text plus 32px doesn't quite clear it; -5 (-20px) does, with
+                // room to spare, and the action buttons below still sit ~9px clear of it.
+                className="relative caps mt-4 inline-block text-[11px] font-extrabold text-imprint underline before:absolute before:inset-x-0 before:-inset-y-5 before:content-['']"
+              >
+                Full record
+              </Link>
             </>
           )}
 

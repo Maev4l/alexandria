@@ -74,17 +74,68 @@ describe('ItemDetail', () => {
     );
   });
 
-  // Round 5 critique #5: `item-lent`'s fixture events (src/test/fixtures/events.js) pair to
-  // exactly 3 loans — LEDGER_PREVIEW's own cap — and the mock never returns a `nextToken`, so
-  // "Full record" used to render here and lead to a screen showing the SAME 3 rows just seen,
-  // plus a destructive action nobody asked for. It must not over-promise.
-  describe('"Full record" only appears when there is genuinely more', () => {
-    it('is absent when the inline preview already shows every loan', async () => {
+  // Round 5 critique #5 gated "Full record" on "leads somewhere new" — more PAIRED loans than
+  // the preview shows, or a raw-events `nextToken` — reasoning that a link to the SAME rows just
+  // seen was redundant. That reasoning was sound about the rows and wrong about the link: it
+  // removed the ONLY route to /history for any item whose history pairs into <= LEDGER_PREVIEW
+  // loans with no further page, and clearing a lending history exists nowhere else in the app
+  // (p2 batch 2, finding 2). The ruling: "Full record" renders whenever the item has any lending
+  // events at all, which is exactly this whole ledger block's own gate (`loans.length > 0`) — so
+  // there is nothing left to test for absence, only that the link is never missing while a record
+  // exists, at every loan count that could plausibly trip a future off-by-one.
+  describe('"Full record" is the only route to /history, so it appears whenever a record exists', () => {
+    // `item-lent`'s fixture events (src/test/fixtures/events.js) pair to exactly 3 loans —
+    // LEDGER_PREVIEW's own cap — with no `nextToken`. This is the exact shape the old gate
+    // suppressed on this very page; it must now render.
+    it('appears even when the inline preview already shows every loan (no further page)', async () => {
       renderPage('item-lent');
       await waitFor(() =>
         expect(screen.getByText('Marie').closest('div')).toHaveTextContent(/lent 07 aug 2026/i),
       );
-      expect(screen.queryByRole('link', { name: /full record/i })).toBeNull();
+      expect(await screen.findByRole('link', { name: /full record/i })).toBeInTheDocument();
+    });
+
+    // The narrowest case that was actually broken: ONE paired loan, no nextToken. Three loans
+    // already covers "at the LEDGER_PREVIEW boundary"; this covers "nowhere near it", so a fix
+    // that accidentally re-keyed off loan count rather than dropping the count check entirely
+    // would still be caught here.
+    it('appears for an item with a single paired loan and no further page', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url) => {
+          const path = String(url);
+          if (path.endsWith('/libraries')) {
+            return {
+              ok: true,
+              status: 200,
+              headers: new Headers({ 'content-type': 'application/json' }),
+              json: async () => ({ libraries }),
+            };
+          }
+          if (path.includes('/events')) {
+            return {
+              ok: true,
+              status: 200,
+              headers: new Headers({ 'content-type': 'application/json' }),
+              json: async () => ({
+                events: [
+                  { date: '2026-01-05T00:00:00Z', type: 'RETURNED', event: 'Sam' },
+                  { date: '2026-01-01T00:00:00Z', type: 'LENT', event: 'Sam' },
+                ],
+              }),
+            };
+          }
+          const result = handleMockRequest('GET', path);
+          return {
+            ok: result.status < 400,
+            status: result.status,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => result.body,
+          };
+        }),
+      );
+      renderPage('item-lent');
+      expect(await screen.findByRole('link', { name: /full record/i })).toBeInTheDocument();
     });
 
     it('appears when there are more PAIRED loans than the preview shows', async () => {

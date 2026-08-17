@@ -740,55 +740,29 @@ try {
     );
   }
 
-  // "Full record" moved out of the block above (round 5, item 5): the link now only renders
-  // when there is genuinely more history than the inline preview shows, and item-lent's own
-  // fixture (src/test/fixtures/events.js) pairs to exactly LEDGER_PREVIEW loans with no
-  // nextToken, so it no longer appears on the page the rest of this section already has open.
-  // Rather than edit that shared fixture (several tests pin its exact "3 loans" count) or the
-  // off-limits mock server, a dedicated page intercepts just the one events request that page
-  // would otherwise make, answering with enough raw events to pair into more than 3 loans —
-  // everything else on the page (the item, the library, its own IN/SHARED marks) still comes
-  // from the real fixture server untouched.
-  console.log('"Full record" keeps its weight, not just its case, when it genuinely renders');
+  // "Full record" used to be gated on "genuinely more history than the inline preview shows",
+  // and item-lent's own fixture (src/test/fixtures/events.js) pairs to exactly LEDGER_PREVIEW
+  // loans with no nextToken — so this check used to need a SEPARATE intercepted page just to
+  // make the link appear at all. p2 batch 2 finding 2 removed that gate entirely: "Full record"
+  // is the only route to /history, so it renders whenever the item has any lending history,
+  // which item-lent already does. `page` is still on item-lent's real, unintercepted fixture
+  // from the block above (line ~643), so this now checks the link right there — no second page,
+  // no request interception, and it is exercising the actual boundary case (3 loans, no
+  // nextToken) the finding was about, not a synthetic 4-loan one.
+  console.log('"Full record" keeps its weight, not just its case, on the boundary case it must not skip');
   {
-    const linkPage = await browser.newPage();
-    try {
-      await linkPage.setViewport({ width: 390, height: 844 });
-      await linkPage.setRequestInterception(true);
-      linkPage.on('request', (req) => {
-        if (req.url().includes('/items/item-lent/events')) {
-          const events = [];
-          for (let i = 0; i < 4; i += 1) {
-            events.push({ date: `2020-0${i + 1}-01T00:00:00Z`, type: 'LENT', event: `P${i}` });
-            events.push({ date: `2020-0${i + 1}-05T00:00:00Z`, type: 'RETURNED', event: `P${i}` });
-          }
-          req.respond({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({ events }),
-          });
-        } else {
-          req.continue();
-        }
-      });
-      await linkPage.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, {
-        waitUntil: 'networkidle0',
-      });
-      await linkPage.waitForSelector('a[href$="/history"]', { timeout: 10_000 });
-      const weight = await linkPage.evaluate(() => {
-        const link = [...document.querySelectorAll('a')].find(
-          (el) => el.textContent.trim() === 'Full record',
-        );
-        return link ? parseInt(getComputedStyle(link).fontWeight, 10) : null;
-      });
-      record(
-        weight !== null && weight > 400,
-        '"Full record" link resolves above ambient weight',
-        `font-weight: ${weight}`,
+    await page.waitForSelector('a[href$="/history"]', { timeout: 10_000 });
+    const weight = await page.evaluate(() => {
+      const link = [...document.querySelectorAll('a')].find(
+        (el) => el.textContent.trim() === 'Full record',
       );
-    } finally {
-      await linkPage.close();
-    }
+      return link ? parseInt(getComputedStyle(link).fontWeight, 10) : null;
+    });
+    record(
+      weight !== null && weight > 400,
+      '"Full record" link resolves above ambient weight',
+      `font-weight: ${weight}`,
+    );
   }
 
   // ---- The item-detail action row reflows on the narrowest phones, never overflows ----
