@@ -1,6 +1,7 @@
 export {
   api,
   ApiError,
+  PendingApprovalError,
   SessionUnavailableError,
   SessionExpiredError,
   registerSessionHooks,

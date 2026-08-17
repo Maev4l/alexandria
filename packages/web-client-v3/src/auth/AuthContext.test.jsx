@@ -24,11 +24,21 @@ vi.mock('aws-amplify/auth', () => ({
 vi.mock('aws-amplify/utils', () => ({ Hub: { listen: () => () => {} } }));
 
 const { AuthProvider, useAuth } = await import('./AuthContext.jsx');
+// The REAL client, not a mock: AuthProvider registers its session hooks into this module's
+// singleton (api/client.js), and the point of the test below is that a 403 fired through the
+// real request path reaches them — a mocked client could only prove the mock was wired right.
+const { api } = await import('@/api');
 
 const Probe = () => {
   const { user, isLoading } = useAuth();
   if (isLoading) return <p>loading</p>;
-  return <p>{user ? `signed in as ${user.email}` : 'signed out'}</p>;
+  return (
+    <>
+      <p>{user ? `signed in as ${user.email}` : 'signed out'}</p>
+      {/* Kept as a separate node so it never changes the exact text the tests above match on. */}
+      {user && <p>approved: {String(user.approved)}</p>}
+    </>
+  );
 };
 
 const renderProvider = () =>
@@ -164,5 +174,42 @@ describe('signing in over a stale session', () => {
     await expect(signInThroughProvider()).rejects.toMatchObject({
       name: 'NotAuthorizedException',
     });
+  });
+});
+
+// The reachable-today case from the critique: an account approved at sign-in gets un-approved by
+// an admin mid-session. The 60-minute ID token still claims custom:Approved=true, so the app can
+// only learn the truth from a live 403 — handlers/middlewares.go's ApprovalChecker, the API's
+// only source of 403, wired ahead of every route. This asserts the client's pendingApproval hook
+// (registered here, consumed by api/client.js) does the RIGHT kind of thing: it is a real, signed
+// in account that is not approved, not a dead session, so it must not be signed out.
+describe('a 403 partway through a session', () => {
+  it('flips the account to unapproved without signing the reader out', async () => {
+    amplify.fetchAuthSession.mockResolvedValue(validSession);
+    amplify.getCurrentUser.mockResolvedValue({ username: 'jr@example.com' });
+
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByText('signed in as jr@example.com')).toBeInTheDocument(),
+    );
+    expect(screen.getByText('approved: true')).toBeInTheDocument();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        status: 403,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => ({ message: 'Pending approval' }),
+      })),
+    );
+
+    await api.get('/x').catch(() => {});
+    vi.unstubAllGlobals();
+
+    // Still the same account, still signed in — only `approved` moved.
+    await waitFor(() => expect(screen.getByText('approved: false')).toBeInTheDocument());
+    expect(screen.getByText('signed in as jr@example.com')).toBeInTheDocument();
+    expect(amplify.signOut).not.toHaveBeenCalled();
   });
 });

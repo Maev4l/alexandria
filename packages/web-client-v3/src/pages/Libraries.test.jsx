@@ -63,9 +63,15 @@ describe('Libraries', () => {
     expect(screen.queryByRole('button', { name: /actions for polars/i })).toBeNull();
   });
 
-  it('reports a failure inline rather than only as a toast', async () => {
-    respondWith({ message: 'Failed to load libraries' }, false, 500);
+  it('reports a failure inline rather than only as a toast, and never the server\'s own words', async () => {
+    // Deliberately NOT app-authored copy — proving the app never renders the server's own
+    // words, per ui-v3.md §7 and api/client.js's STATUS_COPY map. This is the exact defect a
+    // design critique found by intercepting this same request: a 500 carrying
+    // {"message":"Unauthorized"} printed "Unauthorized" on screen.
+    respondWith({ message: 'internal failure xyz' }, false, 500);
     renderPage();
-    expect(await screen.findByRole('alert')).toHaveTextContent(/failed to load libraries/i);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/went wrong/i);
+    expect(alert).not.toHaveTextContent('internal failure xyz');
   });
 });

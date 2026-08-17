@@ -8,9 +8,47 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    // The server's own body, kept for diagnosis (e.g. `err.data?.message` in a console capture)
+    // — but `message` above is ALWAYS app-authored, from STATUS_COPY below. Never the reverse:
+    // that was the defect. A 500 carrying {"message":"Unauthorized"} printed "Unauthorized" on
+    // screen because `message` used to be `data?.message` directly (.claude/ui-v3.md §7).
     this.data = data;
   }
 }
+
+// 403 is not a generic permission failure in this API: `ApprovalChecker`
+// (packages/functions/api/handlers/middlewares.go) is the ONLY source of a 403 anywhere in the
+// API, wired ahead of every route in cmd/main.go, and it means exactly one thing — the account
+// behind this token is not, or is no longer, approved. An ID token issued before an admin revokes
+// approval stays valid for up to 60 minutes, so this is reachable mid-session, not only at
+// sign-in. It is therefore an authorisation EVENT, handled the same way a 401 already is: the
+// client cannot navigate, so it hands off to the session hooks AuthProvider registers, which flip
+// the reader to the existing PendingApproval state — never an inline error with a "Try again"
+// that no amount of retrying can satisfy.
+export class PendingApprovalError extends Error {
+  constructor() {
+    super('This account is awaiting approval.');
+    this.name = 'PendingApprovalError';
+  }
+}
+
+// Reader-facing copy for a non-2xx, non-403 response, per ui-v3.md §7: say what the app failed to
+// do and, where recovery is possible, what the reader can do next — never the server's own
+// phrasing, which `.claude/backend.md`'s own backlog plans to change out from under this client.
+// Keyed by status only for the two cases specific enough to name (400 is validation, generic
+// across every form in the app; 409 has exactly one source — a duplicate collection name,
+// `handlers/collections.go` — so it is named for that rather than left generic).
+const STATUS_COPY = {
+  400: 'That request was not accepted. Check what you entered and try again.',
+  404: 'That could not be found. It may have been moved or deleted.',
+  409: 'That name is already used in this library. Choose a different one.',
+};
+
+const copyForStatus = (status) => {
+  if (status in STATUS_COPY) return STATUS_COPY[status];
+  if (status >= 500) return 'Something went wrong on our side. Try again in a moment.';
+  return 'That request could not be completed. Try again.';
+};
 
 // A request that could not be authenticated, which never reached the network. Distinct from
 // ApiError on purpose: the old code sent the request WITHOUT an Authorization header, API
@@ -37,9 +75,12 @@ export class SessionExpiredError extends Error {
 // Registered by AuthProvider. The client cannot navigate and must not import React state, so
 // recovery is delegated: `refresh` forces Amplify to re-resolve the session, `invalidate` drops
 // the user, which the router turns into a return to /login with the current route preserved.
+// `pendingApproval` flips the reader to the PendingApproval state without dropping the session —
+// unlike `invalidate`, the account is real and signed in, just not (or no longer) approved.
 let sessionHooks = {
   refresh: async () => {},
   invalidate: () => {},
+  pendingApproval: () => {},
 };
 
 export const registerSessionHooks = (hooks) => {
@@ -114,14 +155,24 @@ const request = async (path, options = {}, { isRetry = false } = {}) => {
   trace('start', { path, method: options.method ?? 'GET', isRetry });
   const token = await authToken();
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  let response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+  } catch (err) {
+    // fetch() REJECTS for a network failure (offline, DNS, CORS) instead of resolving with a
+    // response, so it never reaches the status handling below. Uncaught, this threw the
+    // browser's own wording ("Failed to fetch", "NetworkError when attempting to fetch resource")
+    // straight at a reader — the same defect as printing the server's message, one layer lower.
+    trace('network-error', { path, message: err.message });
+    throw new ApiError('Could not reach the server. Check your connection and try again.', null, null);
+  }
 
   // Before the 401 branches, so that every response yields exactly one outcome line. After them,
   // a 401 returns early and logs nothing, making the status most worth tracing the only one
@@ -144,7 +195,20 @@ const request = async (path, options = {}, { isRetry = false } = {}) => {
   const data = await parse(response);
 
   if (!response.ok) {
-    throw new ApiError(data?.message ?? 'The request failed.', response.status, data);
+    // Logged here, deliberately, unlike the body-free trace above: the server's exact words are
+    // exactly what a remote diagnosis needs when a reader reports a failure nobody else can
+    // reproduce (see the comment on `trace`, above — three misread captures is why that line
+    // exists at all). They go no further than this line; STATUS_COPY is what a reader sees.
+    trace('error-detail', { path, status: response.status, serverMessage: data?.message ?? null });
+
+    // See PendingApprovalError, above: 403 in this API is never a generic failure, so it never
+    // becomes an ApiError a page might render inline next to a "Try again" that cannot succeed.
+    if (response.status === 403) {
+      sessionHooks.pendingApproval();
+      throw new PendingApprovalError();
+    }
+
+    throw new ApiError(copyForStatus(response.status), response.status, data);
   }
   return data;
 };

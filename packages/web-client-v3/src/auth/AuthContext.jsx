@@ -155,6 +155,12 @@ export const AuthProvider = ({ children }) => {
         await refresh();
       },
       invalidate: () => setUser(null),
+      // A 403 means the account is not (or no longer) approved — real and signed in, so this
+      // must NOT sign the reader out the way `invalidate` does. It only flips `approved`, which
+      // is all App.jsx's Gate reads to swap the whole app for the PendingApproval state. The ID
+      // token itself is left alone: it may still say `custom:Approved=true` for up to 60 more
+      // minutes, and the next authenticated request would trust it again otherwise.
+      pendingApproval: () => setUser((current) => (current ? { ...current, approved: false } : current)),
     });
   }, [refresh]);
 

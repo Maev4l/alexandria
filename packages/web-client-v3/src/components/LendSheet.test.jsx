@@ -78,20 +78,24 @@ describe('LendSheet', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('reports a failure inline, never as a toast', async () => {
+  it('reports a failure inline, never as a toast, and never the server\'s own words', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => ({
         ok: false,
         status: 500,
         headers: new Headers({ 'content-type': 'application/json' }),
-        json: async () => ({ message: 'Could not record the loan' }),
+        // Deliberately NOT a message that reads well — proving the app never renders it, per
+        // ui-v3.md §7 and api/client.js's STATUS_COPY map.
+        json: async () => ({ message: 'internal failure xyz' }),
       })),
     );
     renderSheet();
     await userEvent.type(screen.getByLabelText(/who has it/i), 'Marie');
     await userEvent.click(screen.getByRole('button', { name: /record the loan/i }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/could not record the loan/i);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/went wrong/i);
+    expect(alert).not.toHaveTextContent('internal failure xyz');
     expect(document.querySelector('[data-toast]')).toBeNull();
   });
 

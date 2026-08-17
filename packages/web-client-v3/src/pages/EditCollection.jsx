@@ -7,7 +7,6 @@ import { collectionsApi } from '@/api';
 
 const NAME_MAX = 100;
 const DESCRIPTION_MAX = 500;
-const DUPLICATE = /already exists/i;
 
 const EditCollection = () => {
   const { libraryId, collectionId } = useParams();
@@ -51,7 +50,10 @@ const EditCollection = () => {
       // arrival rather than patched here.
       navigate(`/libraries/${libraryId}`);
     } catch (err) {
-      if (err.status === 400 && DUPLICATE.test(err.message)) {
+      // 409 is this API's only status for a duplicate collection name (handlers/collections.go);
+      // see the identical comment in NewCollection.jsx for why the status is matched rather than
+      // the server's wording.
+      if (err.status === 409) {
         setNameError(`There is already a collection called “${name}” in this library.`);
       } else {
         setError(err.message);

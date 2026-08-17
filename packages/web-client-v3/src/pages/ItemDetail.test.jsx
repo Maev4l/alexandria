@@ -313,7 +313,9 @@ describe('the primary action acts or asks for exactly what it needs — never a 
             ok: false,
             status: 500,
             headers: new Headers({ 'content-type': 'application/json' }),
-            json: async () => ({ message: 'Could not record the return' }),
+            // Deliberately NOT app-authored copy — proving the app never renders the server's
+            // own words, per ui-v3.md §7 and api/client.js's STATUS_COPY map.
+            json: async () => ({ message: 'internal failure xyz' }),
           };
         }
         const result = handleMockRequest('GET', path);
@@ -327,7 +329,9 @@ describe('the primary action acts or asks for exactly what it needs — never a 
     );
     renderPage('item-lent');
     await userEvent.click(await screen.findByRole('button', { name: /mark returned/i }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/could not record the return/i);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/went wrong/i);
+    expect(alert).not.toHaveTextContent('internal failure xyz');
     expect(document.querySelector('[data-toast]')).toBeNull();
   });
 
@@ -404,7 +408,9 @@ describe('Delete shares the action row and confirms in place', () => {
             ok: false,
             status: 500,
             headers: new Headers({ 'content-type': 'application/json' }),
-            json: async () => ({ message: 'Could not delete this item' }),
+            // Deliberately NOT app-authored copy — proving the app never renders the server's
+            // own words, per ui-v3.md §7 and api/client.js's STATUS_COPY map.
+            json: async () => ({ message: 'internal failure xyz' }),
           };
         }
         const result = handleMockRequest('GET', path);
@@ -419,7 +425,9 @@ describe('Delete shares the action row and confirms in place', () => {
     renderPage('item-lent');
     await userEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
     await userEvent.click(screen.getByRole('button', { name: /delete for good/i }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/could not delete this item/i);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/went wrong/i);
+    expect(alert).not.toHaveTextContent('internal failure xyz');
     // Still confirming — a failed attempt must not force the reader to start over.
     expect(screen.getByRole('button', { name: /delete for good/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /keep it/i })).toBeInTheDocument();

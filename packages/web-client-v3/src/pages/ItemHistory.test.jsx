@@ -121,7 +121,9 @@ describe('ItemHistory', () => {
         const path = String(url);
         if (path.endsWith('/libraries')) return jsonResponse(200, { libraries });
         if (options.method === 'DELETE' && path.includes('/events')) {
-          return jsonResponse(500, { message: 'Could not clear the record' });
+          // Deliberately NOT app-authored copy — proving the app never renders the server's own
+          // words, per ui-v3.md §7 and api/client.js's STATUS_COPY map.
+          return jsonResponse(500, { message: 'internal failure xyz' });
         }
         const result = handleMockRequest('GET', path);
         return jsonResponse(result.status, result.body);
@@ -130,7 +132,9 @@ describe('ItemHistory', () => {
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: /clear the record/i }));
     await userEvent.click(await screen.findByRole('button', { name: /clear for good/i }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/could not clear the record/i);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/went wrong/i);
+    expect(alert).not.toHaveTextContent('internal failure xyz');
     // Still confirming — a failed attempt must not force the reader to start over.
     expect(screen.getByRole('button', { name: /clear for good/i })).toBeInTheDocument();
     expect(document.querySelector('[data-toast]')).toBeNull();
@@ -185,7 +189,9 @@ describe('ItemHistory', () => {
             });
           }
           if (eventsCalls === 2) {
-            return jsonResponse(500, { message: 'Could not load more of this record' });
+            // Deliberately NOT app-authored copy — proving the app never renders the server's
+            // own words, per ui-v3.md §7 and api/client.js's STATUS_COPY map.
+            return jsonResponse(500, { message: 'internal failure xyz' });
           }
           return jsonResponse(200, {
             events: [{ date: '2019-01-01T00:00:00Z', type: 'LENT', event: 'Old' }],
@@ -200,7 +206,9 @@ describe('ItemHistory', () => {
     await userEvent.click(loadMore);
     // A reader on poor signal must be able to see the click registered and failed — not a
     // button that silently reverts to its own starting label.
-    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load more of this record/i);
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/went wrong/i);
+    expect(alert).not.toHaveTextContent('internal failure xyz');
     // Recovery is a control: the same page can be retried, not just re-read about.
     const retry = screen.getByRole('button', { name: /try again/i });
     await userEvent.click(retry);

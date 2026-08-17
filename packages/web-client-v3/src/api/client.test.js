@@ -3,6 +3,7 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 import {
   api,
   ApiError,
+  PendingApprovalError,
   registerSessionHooks,
   SessionExpiredError,
   SessionUnavailableError,
@@ -21,11 +22,13 @@ const jsonResponse = (body, { ok = true, status = 200 } = {}) => ({
 
 let refresh;
 let invalidate;
+let pendingApproval;
 
 beforeEach(() => {
   refresh = vi.fn(async () => {});
   invalidate = vi.fn();
-  registerSessionHooks({ refresh, invalidate });
+  pendingApproval = vi.fn();
+  registerSessionHooks({ refresh, invalidate, pendingApproval });
   vi.mocked(fetchAuthSession).mockReset();
   vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ libraries: [] })));
   vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -147,5 +150,120 @@ describe('ordinary failures are unchanged', () => {
         headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
       }),
     );
+  });
+});
+
+// THE DEFECT ITSELF: intercepting GET /libraries with a 500 carrying {"message":"Unauthorized"}
+// printed "Unauthorized" on screen, because ApiError.message WAS data?.message. This section
+// asserts the negative directly against the real client — that a reader-facing slot never shows
+// a status word or the server's own text — for every status the app can actually hit, per
+// openapi.yaml and handlers/collections.go (400 validation, 404 item, 409 duplicate collection
+// name, 5xx). A test that only checked ApiError.message in isolation could not catch a call site
+// that concatenates or otherwise mishandles it; this checks the same string the DOM would show.
+describe('a status maps to app-authored copy, never the server\'s own words', () => {
+  beforeEach(() => vi.mocked(fetchAuthSession).mockResolvedValue(withToken));
+
+  const cases = [
+    [400, 'invalid request - name too long (max. 100 chars)', /not accepted/i],
+    [404, 'item not found', /could not be found/i],
+    [409, 'collection with this name already exists', /already used/i],
+    [500, 'Unauthorized', /went wrong/i],
+    [502, 'Unauthorized', /went wrong/i],
+  ];
+
+  for (const [status, serverMessage, expectedCopy] of cases) {
+    it(`status ${status}: server said "${serverMessage}"`, async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => jsonResponse({ message: serverMessage }, { ok: false, status })),
+      );
+
+      const err = await api.get('/x').catch((thrown) => thrown);
+      expect(err).toBeInstanceOf(ApiError);
+      // The negative assertion the critique's own reproduction depends on.
+      expect(err.message).not.toBe(serverMessage);
+      expect(err.message).not.toContain(serverMessage);
+      expect(err.message).toMatch(expectedCopy);
+
+      // Not lost — kept on the error object for a remote diagnosis (e.g. `err.data.message` in
+      // a captured console/error report), just never in the string a reader's slot renders.
+      expect(err.data).toEqual({ message: serverMessage });
+    });
+  }
+
+  it('logs the server\'s exact words to the console trace, for the diagnosis that replaces rendering them', async () => {
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ message: 'Unauthorized' }, { ok: false, status: 500 })),
+    );
+
+    await api.get('/x').catch(() => {});
+
+    expect(info).toHaveBeenCalledWith(
+      '[api] error-detail',
+      expect.objectContaining({ status: 500, serverMessage: 'Unauthorized' }),
+    );
+  });
+});
+
+describe('a network failure with no status', () => {
+  beforeEach(() => vi.mocked(fetchAuthSession).mockResolvedValue(withToken));
+
+  it('never surfaces the browser\'s own wording', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch');
+      }),
+    );
+
+    const err = await api.get('/libraries').catch((thrown) => thrown);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBeNull();
+    expect(err.message).not.toMatch(/failed to fetch/i);
+    expect(err.message).toMatch(/could not reach the server/i);
+  });
+});
+
+// One case is reachable today, per .claude/ui-v3.md §7 and the critique this fixes:
+// handlers/middlewares.go's ApprovalChecker is wired ahead of EVERY route (cmd/main.go) and is
+// the API's ONLY source of a 403, meaning exactly one thing — the account is not, or is no
+// longer, approved. An ID token issued before an admin revokes approval stays valid up to 60
+// minutes, so this is reachable mid-session, not only at sign-in.
+describe('a 403 on a request that DID carry a token', () => {
+  beforeEach(() => vi.mocked(fetchAuthSession).mockResolvedValue(withToken));
+
+  it('is treated as an authorisation event, exactly as 401 already is: never an ApiError', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ message: 'Pending approval' }, { ok: false, status: 403 })),
+    );
+
+    await expect(api.get('/libraries')).rejects.toBeInstanceOf(PendingApprovalError);
+    // Never a generic ApiError a page might render inline beside a "Try again" that a
+    // re-approval could never satisfy.
+    await expect(api.get('/libraries')).rejects.not.toBeInstanceOf(ApiError);
+  });
+
+  it('hands off to the pendingApproval session hook, not invalidate — the account is real', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ message: 'Pending approval' }, { ok: false, status: 403 })),
+    );
+
+    await api.get('/libraries').catch(() => {});
+    expect(pendingApproval).toHaveBeenCalledOnce();
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  it('does not retry — unlike 401, there is no refresh that could change the answer', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse({ message: 'Pending approval' }, { ok: false, status: 403 })),
+    );
+
+    await api.get('/libraries').catch(() => {});
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
