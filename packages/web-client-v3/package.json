@@ -25,7 +25,7 @@
     "react-dom": "19.1.0",
     "react-router-dom": "7.13.0",
     "tailwind-merge": "2.6.0",
-    "workbox-window": "7.4.0"
+    "workbox-window": "7.4.1"
   },
   "devDependencies": {
     "@babel/parser": "7.29.8",
@@ -44,7 +44,8 @@
     "tailwindcss": "4.1.18",
     "vite": "6.3.5",
     "vite-plugin-pwa": "1.2.0",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "workbox-build": "7.4.1"
   },
   "resolutions": {
     "vite": "6.3.5"
