@@ -287,10 +287,28 @@ cases the form can distinguish exactly by comparing the selected `collectionId` 
 The third row is the one that needs care. `services/items.go` auto-calculates only when
 `isNewToCollection` — `oldCollectionId != newCollectionId` — so on an item staying in its current
 collection, omitting `order` does **not** re-rank it: the order is simply set to nil, leaving a record
-that carries `CollectionId` and `CollectionName` with no rank. Per `backend.md`'s key patterns that
-also changes its `GSI1SK` to the no-collection form, so it would sort as a standalone while still
-claiming membership. The form therefore keeps order required in that case, using §6's **second** form
-(the reason in the control's position), because nothing on screen would otherwise explain why.
+that carries `CollectionId` and `CollectionName` with no rank.
+
+**The consequence was verified in the source, and it is worse than the guess this paragraph used to
+carry.** `internal/persistence/models.go:96-101` returns the no-collection sort key `item#<title>`
+whenever `order == nil || *order < 1`, regardless of the collection — that much was the inference. But
+grouping does not read the sort key: it is a **two-pass lookup keyed on `CollectionId`**
+(`api/repositories/dynamodb/items.go:813`), so the item is still pushed into its collection's bucket
+and nested **only if the collection's header happens to land on the same page**. Its sort key has
+moved into the standalone alphabet, far from the collection's block, so usually it will not. The same
+record therefore renders **as a nested member on one page and a loose row on another** —
+page-dependent and non-deterministic — and it breaks the `itemCount > len(items)` bookkeeping that
+drives `partial` and the continuation logic.
+
+So this is not "sorts oddly": it is one record appearing in two different shapes depending on
+pagination, in the exact machinery §4's board-merge rule depends on. The form keeps order required in
+that case, using §6's **second** form (the reason in the control's position), because nothing on
+screen would otherwise explain why.
+
+The correction is recorded rather than swapped in silently, because I wrote the guess as *"per
+`backend.md`'s key patterns"* — a hedge naming a document rather than the code. **A hedge is not a
+verification; it only records that none was done.** The right move on any such sentence is to resolve
+it, and the resolution here made the case stronger, not weaker.
 
 Order remains 1–1000 whenever it is supplied.
 
@@ -487,6 +505,34 @@ control for tidiness: on item detail the circulation action is primary, then `Ed
 all three on one line, each in its own treatment — filled plate, ink outline, `--out` outline —
 and the destructive one confirming in place.
 
+**A sheet's options are scoped by the premise of the flow that opened it — except the manual escape,
+which is never scoped away.** The Book/Film sheet opened from a collection board offered `New
+collection`, whose meaning there is *discard the collection you just chose and go make a different
+one*. The premise of that flow is **file into this collection**, so the option is not merely unlikely,
+it contradicts the reason the sheet is on screen. It is dropped when the sheet is opened from a board,
+by the same principle that makes read-only declare itself: an action that does not apply is **absent,
+not offered**. The rare genuine intent — this volume belongs in a collection that does not exist yet —
+is fully served by cancelling and using the library's own new-collection route, and an item can only
+belong to one collection anyway.
+
+`Enter by hand` is **never** scoped away, from any entry point. `PRODUCT.md` requires a non-camera
+path always in reach, and it must carry the collection through — a reader who explicitly chose a
+board and then entered by hand receiving a standalone item is a silent wrong result, which by §7's
+weighting is the worst class of defect.
+
+The general shape: narrowing a sheet by entry point is correct when an option contradicts the flow's
+premise, and wrong when it merely seems less likely. Check which of the two you have before removing
+anything.
+
+**Prose that scopes a whole plan must not sit between two task headings.** `task-brief` extracts from
+one `### Task` heading to the next, so a design-inputs section filed after a task heading is delivered
+*as part of that task's brief*. Slice D's inputs — including "build the camera feed" — landed inside
+the brief of a task whose entire constraint was that the destination stays a stub, and a subagent
+would have read 100 lines of instructions to build the thing it was told not to build. It was caught
+by reading the brief's own headings rather than by any check. Plan-wide context belongs **above the
+first task heading** or in its own clearly non-task section; and the cheap verification is to read a
+generated brief before dispatching it, because the extraction is mechanical and silent.
+
 **Rank destructive actions by treatment, not by distance.** A first draft dropped `Delete` to its
 own row below the ledger, on the convention that destructive actions sit apart. That convention
 guards against a misreach, which here costs a dismissal because the action confirms — and it
@@ -669,9 +715,11 @@ fail loudly when the substrate moves.
       as what they are rather than gathered behind a menu
 - [ ] Add flows: ISBN scan, cover OCR, preview-before-commit — `AddBook`, `AddVideo` and both
       detection-results screens are still placeholder stubs
-- [x] Manual entry and edit forms (`ItemForm`, `NewBook`, `NewVideo`, `EditItem`) with the
-      collection/order invariant enforced in the form, and `COVER IMAGE` as a real field on all
-      three — plus `Fetch cover` on the item-detail frame for the separate repair case
+- [x] Manual entry and edit forms (`ItemForm`, `NewBook`, `NewVideo`, `EditItem`) with `COVER IMAGE`
+      as a real field on all three, plus `Fetch cover` on the item-detail frame for the separate
+      repair case. The order field is **optional where the server ranks last** and required only when
+      an item stays in its current collection — the form no longer enforces the mutual pair, which was
+      a constraint this spec invented and the build faithfully implemented
 - [x] Lend / return / history — `ItemHistory` paginated, events paired client-side into loans,
       each row naming its borrower from the `LENT` event
 - [ ] Search surface with recents and honest match-scope
