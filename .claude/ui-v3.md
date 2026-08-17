@@ -264,6 +264,34 @@ dropped. Each candidate carries its artwork in the standard 2:3 Volume Frame —
 resolver supplies none — because on this one screen the picture is what decides the match.
 **API:** `POST /libraries/{libraryId}/books`.
 
+**A failed resolver is a NOTE, not a candidate — and it must never be given a title.** Found by
+rendering the fixture's failure states, which is what 18a existed for. As built, a resolver that
+returned an `error` rendered as a full candidate row: ruled 2:3 frame, the ISBN, the source, and — the
+defect — the word **`Untitled`** in the Row Title role, 17/600 in `--ink`, the loudest thing on the row.
+
+Three things wrong, in order of severity:
+
+- **`Untitled` is fabricated content.** The resolver returned a failure, not a book of that name. §9
+  refuses UI that implies data the API does not have; inventing a *title* is the strongest possible form
+  of it, and it lands in the one slot a reader scans first.
+- **On a true miss it contradicts the screen it sits on.** The miss shape is exactly one errored
+  candidate (see above), so that screen showed a volume called `Untitled` directly above a block reading
+  `NO MATCH FOUND`. One screen, two opposite claims, and the fabricated one is louder.
+- **The hierarchy is inverted.** The only fact that matters about that row — *this source did not
+  answer* — sits last, in `--ink-soft` caps, while the invented title takes the ink.
+
+So a failure renders as a **ruled note**: no frame, no title role, no `USE THIS`. One line in the
+failure register naming the source and what happened — `BABELIO — NO ANSWER` — grouped after the real
+candidates. Failures stay visible, per the preview-before-commit discipline, without wearing a volume's
+clothes. On a true miss the screen is then the scanned code, the notes, and the `NO MATCH FOUND` block
+with its `ENTER BY HAND` control, and no phantom row.
+
+**And the scanned code belongs once, at the head — not on every row.** Every candidate carries the same
+ISBN by construction, because they are all resolutions of one input, so printing it per row is the
+reader's own input echoed three times and it differentiates nothing. At the head it is genuinely
+useful: *this is what we looked up*. It sets in the **mono** there, which it did not — see the guard gap
+below.
+
 **A results screen must survive a refresh, and the query string is what makes that possible.** The
 IA's own anti-pattern table refuses "detail as a modal that cannot be linked or refreshed"; a results
 screen holding candidates only in `location.state` is that same defect wearing a route. A cold load —
