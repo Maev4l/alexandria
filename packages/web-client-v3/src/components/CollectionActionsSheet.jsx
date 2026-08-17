@@ -15,8 +15,10 @@ const CollectionActionsSheet = ({ board, libraryId, open, onClose, onChanged }) 
 
   // "Add an item" swaps the WHOLE sheet for AddItemSheet rather than reimplementing its
   // Book/Film choice here — the header "+" already owns that chooser and its routes, and this
-  // is the one other place that needs it. `open`/`onClose` pass straight through, so closing it
-  // closes the flow entirely, exactly as closing AddItemSheet does from the header.
+  // is the one other place that needs it. `open`/`onClose` pass straight through, so the × still
+  // closes the flow entirely, exactly as it does from the header — but this swap is otherwise an
+  // in-place sub-mode, the same shape as LibraryActionsSheet's `Share`, so it gets the same
+  // `onBack` pairing back to this sheet's own menu rather than only a forward exit.
   if (mode === 'add') {
     return (
       <AddItemSheet
@@ -24,6 +26,7 @@ const CollectionActionsSheet = ({ board, libraryId, open, onClose, onChanged }) 
         onClose={onClose}
         libraryId={libraryId}
         collection={{ id: board.id, name: board.title }}
+        onBack={() => setMode('menu')}
       />
     );
   }

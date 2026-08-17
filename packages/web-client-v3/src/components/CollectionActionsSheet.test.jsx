@@ -1,11 +1,30 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CollectionActionsSheet from './CollectionActionsSheet.jsx';
 import { ToastProvider } from '@/state/ToastContext.jsx';
+import { collectionsApi } from '@/api';
+import NewBook from '@/pages/NewBook.jsx';
+
+// Only `list` is stubbed — `remove` stays the real implementation, since no test here calls
+// it against an unstubbed `fetch`. This is what lets the full-path test below mount the real
+// NewBook at the destination route and see its own collection picker load.
+vi.mock('@/api', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    collectionsApi: { ...actual.collectionsApi, list: vi.fn() },
+  };
+});
 
 const board = { id: 'c1', title: 'Melville', itemCount: 4 };
+
+beforeEach(() => {
+  vi.mocked(collectionsApi.list)
+    .mockReset()
+    .mockResolvedValue({ collections: [{ id: 'c1', name: 'Blake et Mortimer', itemCount: 4 }] });
+});
 
 const renderSheet = (props = {}) =>
   render(
@@ -83,5 +102,47 @@ describe('CollectionActionsSheet', () => {
     await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
 
     expect(screen.getByText('collection:c1')).toBeInTheDocument();
+  });
+
+  // The Book/Film chooser is an in-place sub-mode of THIS sheet (the same shape as
+  // LibraryActionsSheet's Share), not a route change — so unlike Edit, which leaves via
+  // navigation, closing it with only a forward exit is a one-way door. Back repairs that,
+  // the same way it already does for Share and Lend.
+  it('does not leave the Book/Film chooser as a one-way door — Back returns to the menu', async () => {
+    renderSheet();
+    await userEvent.click(screen.getByRole('button', { name: /add an item/i }));
+    expect(screen.getByRole('button', { name: /^book$/i })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^back$/i }));
+    expect(screen.getByRole('button', { name: /^edit/i })).toBeInTheDocument();
+  });
+
+  it('carries the collection through Enter by hand to the manual form, already selected', async () => {
+    render(
+      <MemoryRouter initialEntries={['/sheet']}>
+        <ToastProvider>
+          <Routes>
+            <Route
+              path="/sheet"
+              element={
+                <CollectionActionsSheet
+                  board={{ id: 'c1', title: 'Blake et Mortimer', itemCount: 4 }}
+                  libraryId="lib-1"
+                  open
+                  onClose={() => {}}
+                />
+              }
+            />
+            <Route path="/libraries/:libraryId/items/new/book" element={<NewBook />} />
+          </Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /add an item/i }));
+    await userEvent.click(screen.getByRole('button', { name: /enter by hand/i }));
+
+    // Anchored: a loose /collection/i also matches "Order in the collection", which this form
+    // renders once a collection is selected.
+    expect(await screen.findByLabelText(/^collection$/i)).toHaveValue('c1');
   });
 });

@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import ItemForm from '@/components/ItemForm.jsx';
 import { collectionsApi, itemsApi } from '@/api';
+import { seedFromAddFlowState } from '@/lib/addFlowState.js';
 
 const FILM = 1;
 
 // Manual entry, reached either from AddItemSheet's "Enter by hand" or as the fallback when
 // cover-OCR + TMDB search finds nothing (DESIGN.md, AddVideo). No item exists yet, so `initial`
-// is empty.
+// starts from whatever the previous screen already knew — `location.state` — rather than
+// nothing, the same seeding NewBook does for the identical reason.
 const NewVideo = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [collections, setCollections] = useState([]);
 
   useEffect(() => {
@@ -39,7 +42,13 @@ const NewVideo = () => {
       <AppHeader title="New film" onBack={() => navigate(-1)} search={false} />
       <main className="p-4">
         <h1 className="sr-only">New film</h1>
-        <ItemForm type={FILM} initial={{}} collections={collections} onSubmit={onSubmit} submitLabel="Add film" />
+        <ItemForm
+          type={FILM}
+          initial={seedFromAddFlowState(location.state)}
+          collections={collections}
+          onSubmit={onSubmit}
+          submitLabel="Add film"
+        />
       </main>
     </div>
   );
