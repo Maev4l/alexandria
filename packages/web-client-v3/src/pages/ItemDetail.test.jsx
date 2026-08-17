@@ -748,8 +748,53 @@ describe('Fetch cover — repairs a thumbnail that failed to arrive, not a wrong
       pictureUrl: 'https://covers.example.test/pecheur-islande.jpg',
       updatePicture: true,
     });
-    // Re-read after the write, per the button still being present (not stuck disabled/absent
-    // from a crash) and no inline error having appeared.
+    // No inline error banner from a crash mid-write.
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  // Traced by review: `fetchCover` succeeds and re-reads the item, but VolumeFrame's own
+  // `failed` state is component-local and does not reset just because `item` changed — it only
+  // clears on VolumeFrame's OWN independent 4s retry clock. Without this fix, the button would
+  // still read "Fetch cover" (not "Fetching", fully clickable) for up to four seconds after a
+  // request that may have already worked — a control asserting a problem the screen can no
+  // longer support, the same shape as the checkbox this control replaced. The test asserts the
+  // button is gone essentially immediately (testing-library's default `waitFor` timeout is
+  // 1000ms, nowhere near VolumeFrame's 4000ms clock), and does so with NO fake-timer advance —
+  // if this fix regressed to waiting on that clock, this test would time out, not merely be slow.
+  it('clears the stale "still broken" assertion once the request resolves, without waiting on VolumeFrame\'s own retry clock', async () => {
+    // The default beforeEach stub forces every call through `handleMockRequest('GET', path)`
+    // regardless of the real method (see the comment above the "clears the stamp…" test in the
+    // suite above) — a PUT to `/books/item-broken` would not match any GET-shaped route there
+    // and would throw. This stub forwards the real method, same as that test's own.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, options = {}) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        const method = options.method ?? 'GET';
+        const body = options.body ? JSON.parse(options.body) : undefined;
+        const result = handleMockRequest(method, path, body);
+        return {
+          ok: result.status < 400,
+          status: result.status,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => result.body,
+        };
+      }),
+    );
+
+    renderPage('item-broken');
+    await screen.findByText('Pêcheur d’Islande');
+    fireEvent.error(screen.getByRole('presentation'));
+    await userEvent.click(await screen.findByRole('button', { name: /fetch cover/i }));
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /fetch cover/i })).toBeNull());
   });
 });
