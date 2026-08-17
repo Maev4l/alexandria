@@ -231,6 +231,108 @@ try {
     record(back.every(Boolean), 'Shift+Tab never leaves the sheet', `${back.filter(Boolean).length}/8 inside`);
   }
 
+  // ---- A sheet actually isolates the page behind it, in a real browser ----
+  // jsdom cannot answer any part of this: it does no layout, does not implement `inert`, and
+  // reports offsetParent as null for every element, so "can this background element actually
+  // receive focus" is not a question jsdom can be asked. This is exactly what the critique
+  // measured directly on the shipped page: document.body overflow was `visible` (the list
+  // scrolled behind the sheet), the background was neither `inert` nor `aria-hidden` (the search
+  // input and every library link reported tabbable: true), and the scrim was a 545–657px
+  // `<button aria-label="Close">` — the first stop in tab order, duplicating the header's own
+  // "Close".
+  console.log('a sheet isolates the page behind it');
+  {
+    await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('[aria-label^="Actions for Bandes"]', { timeout: 10_000 });
+
+    // Captured rather than assumed: the fix must restore whatever was really there, not reset
+    // to a hardcoded 'visible'.
+    const bodyOverflowBefore = await page.evaluate(() => getComputedStyle(document.body).overflow);
+
+    await page.click('[aria-label^="Actions for Bandes"]');
+    await page.waitForSelector('[role=dialog]', { timeout: 10_000 });
+
+    const locked = await page.evaluate(() => getComputedStyle(document.body).overflow);
+    record(locked === 'hidden', 'body scroll is locked while the sheet is open', locked);
+
+    const rootInertWhileOpen = await page.evaluate(
+      () => document.getElementById('root')?.hasAttribute('inert') ?? false,
+    );
+    record(rootInertWhileOpen, 'the app root carries `inert` while the sheet is open', String(rootInertWhileOpen));
+
+    // The direct version of "tabbable: true/false": actually attempt to move focus there. A
+    // real browser refuses focus() on anything inside an inert subtree and leaves the active
+    // element where it was — which is the platform keeping the aria-modal promise rather than
+    // the app merely asserting it.
+    const bg = await page.evaluate(() => {
+      const attempt = (el) => {
+        if (!el) return null;
+        el.focus();
+        return document.activeElement === el;
+      };
+      return {
+        search: attempt(document.querySelector('input[aria-label="Search every library"]')),
+        libraryLink: attempt(document.querySelector('a[href^="/libraries/"]')),
+      };
+    });
+    record(
+      bg.search === false,
+      'the background search input cannot be focused with the sheet open',
+      String(bg.search),
+    );
+    record(
+      bg.libraryLink === false,
+      'a background library link cannot be focused with the sheet open',
+      String(bg.libraryLink),
+    );
+
+    const closeControls = await page.evaluate(() =>
+      [...document.querySelectorAll('[aria-label]')]
+        .filter((el) => /close/i.test(el.getAttribute('aria-label')))
+        .map((el) => el.tagName),
+    );
+    record(
+      closeControls.length === 1,
+      'exactly one control on the page is announced "Close"',
+      JSON.stringify(closeControls),
+    );
+
+    const scrimFocusable = await page.evaluate(() => {
+      const scrim = document.querySelector('[data-testid=sheet-scrim]');
+      scrim.focus();
+      return document.activeElement === scrim;
+    });
+    record(!scrimFocusable, 'the scrim itself cannot receive focus', String(scrimFocusable));
+
+    // The two hard-won behaviours this fix must not cost, proven here in the same browser the
+    // critique used rather than only in jsdom: Escape closes, and focus returns to the opener.
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('[role=dialog]'));
+
+    const restoredOverflow = await page.evaluate(() => getComputedStyle(document.body).overflow);
+    record(
+      restoredOverflow === bodyOverflowBefore,
+      'body scroll is restored once the sheet is fully closed',
+      `${restoredOverflow} (was ${bodyOverflowBefore})`,
+    );
+
+    const rootInertAfterClose = await page.evaluate(
+      () => document.getElementById('root')?.hasAttribute('inert') ?? false,
+    );
+    record(
+      !rootInertAfterClose,
+      '`inert` is removed from the app root once the sheet is closed',
+      String(rootInertAfterClose),
+    );
+
+    const focusReturned = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+    record(
+      focusReturned?.startsWith('Actions for Bandes') ?? false,
+      'focus returns to the opener after Escape',
+      String(focusReturned),
+    );
+  }
+
   // ---- Item detail's delete confirmation is announced and keeps focus, in a real browser ----
   // Measured by the critique, in a real browser, not jsdom: `document.activeElement` was BODY
   // after clicking Delete. jsdom cannot be evidence here for the same structural reason the

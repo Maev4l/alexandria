@@ -1,5 +1,54 @@
 import { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Close } from '@/components/icons/index.jsx';
+
+// The id of the element that createRoot() mounts into (index.html). It is not part of this
+// React tree — nothing here renders it — so setting `inert` on it directly is safe: React never
+// touches its own attribute.
+const APP_ROOT_ID = 'root';
+
+// Module-level, not component state. Isolating the page behind a sheet means two things that a
+// single component instance cannot answer alone:
+//
+// 1. Sheets can overlap (a delete confirmation opened from inside a menu sheet, or two Sheet
+//    components mounted — one hidden — at once). If each instance saved and restored
+//    document.body's style independently, the first one to close would restore scroll and drop
+//    `inert` while a second sheet was still on screen. A shared counter makes "is anything open"
+//    the real question, answered once.
+// 2. `document.body.style.overflow` may not be the empty string when the FIRST sheet opens — an
+//    earlier draft of this comment assumed it always was. Nothing else in this app sets it today,
+//    but assuming that instead of reading it is exactly the kind of "do not assume" this fix was
+//    written to close, so the value in place before the first lock is captured and put back
+//    verbatim rather than reset to ''.
+let openSheetCount = 0;
+let bodyOverflowBeforeFirstLock = null;
+let rootWasInertBeforeFirstLock = false;
+
+const lockPage = () => {
+  const root = document.getElementById(APP_ROOT_ID);
+  if (openSheetCount === 0) {
+    bodyOverflowBeforeFirstLock = document.body.style.overflow;
+    rootWasInertBeforeFirstLock = root?.hasAttribute('inert') ?? false;
+  }
+  openSheetCount += 1;
+  document.body.style.overflow = 'hidden';
+  // `inert` — not aria-hidden alone — because aria-modal is a PROMISE to assistive tech that the
+  // rest of the page is unreachable, and the critique measured that promise being broken: the
+  // search input and every library link behind an open sheet reported tabbable: true. `inert`
+  // removes the subtree from both the accessibility tree and the tab order at the platform level,
+  // so the promise is kept by the browser rather than by convention. Supported natively in every
+  // evergreen engine this app targets (Chrome, Firefox, Safari — including iOS Safari since
+  // 15.5) with no gap wide enough to justify a polyfill's own cost and behavioural quirks.
+  if (root) root.setAttribute('inert', '');
+};
+
+const unlockPage = () => {
+  openSheetCount = Math.max(0, openSheetCount - 1);
+  if (openSheetCount > 0) return;
+  document.body.style.overflow = bodyOverflowBeforeFirstLock;
+  const root = document.getElementById(APP_ROOT_ID);
+  if (root && !rootWasInertBeforeFirstLock) root.removeAttribute('inert');
+};
 
 // Bottom sheet on the recessed field with a 3px top rule and square corners. Rises from the
 // bottom edge in 200ms, linear — the press, not a spring.
@@ -9,6 +58,7 @@ const Sheet = ({ open, title, onClose, children }) => {
 
   useEffect(() => {
     if (!open) return undefined;
+    lockPage();
     // Remember what opened this, so focus can go back there rather than to <body>. After
     // "Delete for good" the trigger is gone with its row, and document.body is where focus
     // lands by default — which strands a keyboard reader at the top of a rebuilt stream.
@@ -68,21 +118,27 @@ const Sheet = ({ open, title, onClose, children }) => {
     panel.current?.focus();
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      unlockPage();
       if (opener instanceof HTMLElement && document.contains(opener)) opener.focus();
     };
   }, [open, onClose]);
 
   if (!open) return null;
 
-  return (
+  // Portalled to document.body rather than rendered where the page puts it. Every page mounts
+  // this as a sibling of its own <main> — INSIDE the tree `#root` covers — so `inert` on `#root`
+  // (above) would make the sheet unreachable along with everything behind it, one and the same
+  // subtree, if the sheet stayed there. Moving it out is what makes "inert the app root" and
+  // "keep the sheet itself usable" both true at once.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
-      <button
-        type="button"
-        data-testid="sheet-scrim"
-        aria-label="Close"
-        onClick={onClose}
-        className="flex-1 bg-ink/40"
-      />
+      {/* A plain div, not a button: it must dismiss on click (a reader tapping outside a sheet
+          expects that), but it must NOT be a focusable control with its own accessible name.
+          It used to be a <button aria-label="Close"> — 545–657px tall, first in tab order,
+          announcing the same name as the header's × a few controls later. `inert` on the app
+          root (above) already makes the REST of the page unreachable; this stop was never the
+          background, it was a second, redundant "Close" sitting in front of it. */}
+      <div data-testid="sheet-scrim" onClick={onClose} className="flex-1 bg-ink/40" />
       <div
         ref={panel}
         role="dialog"
@@ -112,11 +168,12 @@ const Sheet = ({ open, title, onClose, children }) => {
           <h2 id={titleId} className="text-[17px] font-semibold text-ink">
             {title}
           </h2>
-          {/* INSIDE the dialog, deliberately. The scrim is a real button with an accessible
-              name, but it is a SIBLING of this panel and the panel is aria-modal, so assistive
-              tech hides everything outside it — the scrim included. That left Escape as the only
-              exposed route, and a phone has no Escape key. A visible mark duplicating a gesture
-              is the same rule that governs long-press; leaving a sheet is not exempt from it. */}
+          {/* INSIDE the dialog, deliberately, and now the ONLY control with this accessible
+              name. The scrim dismisses on click but is a plain, non-focusable div — it was
+              never a real second "Close" affordance, just a 545–657px button standing in front
+              of one. Escape closes too, but a phone has no Escape key, so this × is the one
+              visible, tappable route out. A visible mark duplicating a gesture is the same rule
+              that governs long-press; leaving a sheet is not exempt from it. */}
           <button
             type="button"
             aria-label="Close"
@@ -128,7 +185,8 @@ const Sheet = ({ open, title, onClose, children }) => {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

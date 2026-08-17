@@ -70,6 +70,33 @@ describe('Sheet', () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  // jsdom cannot prove that a scrollable list stops scrolling — that is layout, which jsdom
+  // does not do — but locking is just an inline style assignment, which jsdom tracks exactly
+  // like a real DOM does. The value asserted on close is 'scroll', not '', specifically to catch
+  // a fix that resets to '' unconditionally rather than restoring whatever was really there.
+  it('locks body scroll while open, and restores exactly what was there before rather than assuming it was unset', async () => {
+    document.body.style.overflow = 'scroll';
+    const Harness = () => {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Open
+          </button>
+          <Sheet open={open} title="Actions" onClose={() => setOpen(false)}>
+            <p>Body</p>
+          </Sheet>
+        </>
+      );
+    };
+    render(<Harness />);
+    await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+    expect(document.body.style.overflow).toBe('hidden');
+    await userEvent.keyboard('{Escape}');
+    expect(document.body.style.overflow).toBe('scroll');
+    document.body.style.overflow = ''; // leave the shared jsdom document clean for the next test
+  });
+
   it('closes when the scrim is clicked', async () => {
     const onClose = vi.fn();
     render(
@@ -79,6 +106,24 @@ describe('Sheet', () => {
     );
     await userEvent.click(screen.getByTestId('sheet-scrim'));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  // The scrim used to be a <button aria-label="Close"> — 545–657px tall and the first stop in
+  // tab order, announcing the same accessible name as the header's × a few controls later. jsdom
+  // cannot prove tabbability (scripts/check-browser.mjs does, in a real browser, against real
+  // `#root` inert behaviour) but it CAN prove the declaration: a plain, unlabelled div is not in
+  // the tab order by construction, and there is exactly one element left claiming "Close".
+  it('makes the scrim a plain div with no accessible name, leaving one control announced "Close"', () => {
+    render(
+      <Sheet open title="Actions">
+        <p>Body</p>
+      </Sheet>,
+    );
+    const scrim = screen.getByTestId('sheet-scrim');
+    expect(scrim.tagName).toBe('DIV');
+    expect(scrim).not.toHaveAttribute('aria-label');
+    expect(scrim.tabIndex).toBe(-1);
+    expect(screen.getAllByRole('button', { name: /close/i })).toHaveLength(1);
   });
 
   // DEFECT 1: the panel declared `bg-paper-deep` with no foreground of its own, so it inherited
