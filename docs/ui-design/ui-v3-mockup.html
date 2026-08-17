@@ -238,7 +238,13 @@
     content: ""; position: absolute; left: 0; top: 0; bottom: 0;
     width: 4px; background: var(--out);
   }
-  .frame { border: 2px solid var(--ink); background: var(--paper-deep); flex: 0 0 auto; position: relative; width: 48px; height: 72px; }
+  /* NO FILL. DESIGN.md §5: "ruled means the rule and nothing else." This declared
+     background: var(--paper-deep) for three slices — ~1.05:1 against its own ground, so it
+     read as a rule and the error was invisible here while the same mistake on the cover
+     shipped a mid-grey slab. The code was corrected; this comp was not, which made it the
+     stale half of its own law. Third drift of this kind found in one pass, after §3's scale
+     and the specimen block. */
+  .frame { border: 2px solid var(--ink); flex: 0 0 auto; position: relative; width: 48px; height: 72px; }
   /* One ratio for every item: portrait 2:3. Book covers and TMDB posters are
      both that shape, so nothing is cropped — and one frame for both types is
      now the whole story. THE TYPE IS NOT MARKED. An earlier draft encoded it
@@ -291,8 +297,13 @@
      looking at a single object, not scanning a thousand. Same undecorated 2:3
      frame as the stream, at hero scale, ruled in paper on the cover. */
   .detail-frame {
+    /* NO FILL — see .frame above. This held background: var(--cover-rule), which is 1.73:1
+       against --ink: a mid-grey slab in the largest frame in the app, and since `picture` is
+       absent for most items it was the DEFAULT appearance of the peak screen. It also spent
+       --cover-rule, declared structure-only, as a ground. DESIGN.md §5 records both frames as
+       unfilled; the comp was the last place still drawing them filled. */
     width: 132px; height: 198px; border: 2px solid var(--paper);
-    background: var(--cover-rule); position: relative; flex: 0 0 auto;
+    position: relative; flex: 0 0 auto;
   }
   /* The column carries its own left padding so the sharing rule has somewhere to
      hang without shoving its line out of line with the two beside it.
