@@ -255,6 +255,27 @@ it covers.
 
 The steps in use are **10, 11, 12, 13, 14, 17, 20, 22, 32, 76**. Anything else is off the scale.
 
+**One exception, and it is not a display size: form inputs set 16px.** `Field`'s input, select and
+textarea all take `text-base`. Mobile Safari **zooms the page** when a focused input's font-size is
+below 16px, which on a phone-first PWA would jerk the viewport on every tap into a field — so 16px is
+load-bearing platform behaviour, not a typographic choice, and it sits outside the display scale
+deliberately. Ratified on those merits; it was found by counting size classes rather than from any note,
+so nobody should assume the original author had this reason in mind. **Any guard over the scale must
+know this exception, or its first act is to fail on correct code.**
+
+**The scale has never been enforceable, and removing 9px has made it more exposed rather than less.**
+Nothing anywhere reads this list. There was no guard pinned to 9px either — so the value shipped,
+survived a critique that named it the clearest finding of its run, survived the provenance check that
+closed it, and the suite stayed green at 1111 tests before and after the change, because it cannot see
+it. That is the same shape as `fonts.test.js`, `groundForeground` and the mono split: a §3 rule with
+nothing able to report it in either direction.
+
+A guard is the obvious answer, and its scope is the trap. **70 of the app's 114 size classes are
+Tailwind-named** (`text-sm` ×47, `text-xs` ×18, `text-base` ×3, `text-xl` ×2) against 44 arbitrary
+`text-[Npx]`. A guard matching only the arbitrary form would cover 44 sites, miss 70, report clean, and
+be indistinguishable from a guard that works — the CLI detector's blindness to Tailwind, reproduced by
+us. It must resolve named sizes to pixels.
+
 **The member plate was 9px and is now 10, and how that was nearly missed is the point.** A critique
 called the 9px plate its clearest finding. Checked against the comp, the comp declared 9px — so the
 verdict recorded was *documentation drift, the code is right*, and 9px was written into this table as a
