@@ -615,6 +615,23 @@ was a no-op and the wrap assertion that could not fail. The pattern is specific 
 guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
 from a comment.
 
+**A deliberate temporary divergence is acceptable only with a named closing task and an assertion that
+will fail if it is forgotten — a comment is not enough.** This is what separates a marked divergence
+from the half-declaration pattern that has cost this project five violations in two commits: not that
+someone wrote it down, but that something other than memory closes it.
+
+The instance: when the query ruling was applied, `Enter by hand` moved to `?collectionId=` while
+`Book` and `Film` kept `location.state`, because their destinations are stubs and wiring their contract
+would be starting the next slice. Correct call — but two branches of one sheet now use two mechanisms,
+and the in-file notes naming the ruling and the future contract are exactly the shape of note that
+reads as finished. **The closure is the acceptance criterion on the task that builds those screens**:
+each must carry the same probe the moved branch got — a bare URL with `?collectionId=` and an assertion
+that `location.state` is null — so the divergence cannot survive its own closing task.
+
+Note also why the divergence is safe meanwhile: the branches that still pass state lead to stubs, so
+no reader can lose anything. **A temporary divergence needs its blast radius stated, not just its
+existence.**
+
 **The party that built a mechanism is the worst judge of whether a new ruling reaches it.** When a
 ruling lands on code already shipped, the argument for exemption arrives fully formed and feels
 principled — and it is available *because* it lets the work stand. The tell is not that the argument
