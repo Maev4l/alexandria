@@ -418,6 +418,21 @@ plausible error that blamed the reader, so its most likely outcome was silence: 
 lacks access and never mentions it. A silent failure has no reporter, and severity should account
 for that, not only for what the defect costs when it fires.
 
+**When you remove a value from the UI, audit every READER of it, not every place it is rendered.**
+Fixing the defect above meant "never render `data.message` to a reader". The audit went after every
+consumer of `err.message` instead of every renderer, and found `NewCollection` and `EditCollection`
+detecting a duplicate name by **regex-matching the server's prose** — `/already exists/.test(...)` —
+so the render fix would have silently disabled a working feature that was *parsing* the value rather
+than showing it. A renderer-only sweep would have shipped that.
+
+Two things fall out. **Removing a value's rendering can break a consumer that was never rendering
+it** — the mirror of the `/history` finding, where removing a redundant route removed the only route.
+And **a feature that infers meaning from a server's prose is already broken, it just has not been
+noticed**: those forms also tested the wrong status (400, where `collections.go` sends 409), so
+duplicate-name rejection had never actually reached the field this spec requires it to reach. Prose
+is not a protocol. Branch on status codes, and treat any regex over a server message as a defect
+report about the endpoint.
+
 **A control labelled with a specific action performs that action.** A label is a promise. A button
 reading `Mark returned` that opens a menu offering Edit, Lend and Delete breaks it twice over: the
 reader is made to choose again, from options they did not ask for, and the one thing they *did* ask
