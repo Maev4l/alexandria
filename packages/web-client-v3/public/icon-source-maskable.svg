@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="Alexandria">
+  <title>Alexandria</title>
+  <!--
+    MASKABLE variant. Identical mark to icon-source.svg, scaled into the safe zone: a circular mask
+    keeps only the central circle of 80% diameter (409.6 of 512), and the full-bleed mark does not
+    fit it. Measured rather than guessed: the mark's bounding box is 280 by 360, diagonal 456, which
+    exceeds 409.6 — and the circle-masked proof render duly clipped both ends of the rule.
+
+    The transform scales by 0.85 about the mark's own centre (256, 284) and moves that centre to the
+    canvas centre (256, 256), because the mark sits low: the rule extends below the letter, so the
+    optical centre is not the geometric one. Resulting diagonal 388, inside 409.6.
+
+    The ink ground stays full-bleed. Only the mark is inset, which is what maskable asks for: the
+    platform may crop to a circle, a squircle or a rounded square, and it composites over whatever
+    of the background survives.
+  -->
+  <rect width="512" height="512" fill="#0B0B0B"/>
+  <g transform="translate(256 256) scale(0.85) translate(-256 -284)">
+    <path fill="#F2C200" fill-rule="evenodd"
+          d="M256 104 L396 408 L316 408 L256 180 L196 408 L116 408 Z"/>
+    <rect x="156" y="316" width="200" height="56" fill="#F2C200"/>
+    <rect x="88" y="440" width="336" height="24" fill="#F2C200"/>
+  </g>
+</svg>

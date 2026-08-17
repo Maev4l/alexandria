@@ -45,7 +45,18 @@ dist/
 # Ignored as a whole directory for the same reason as .impeccable/ above: a
 # partially-ignored generated dir leaves the rest untracked-but-visible, which is
 # a trap for a wide `git add -A`.
+#
+# NOT SUFFICIENT ON ITS OWN. browser_take_screenshot honours an explicit `filename`
+# RELATIVE TO CWD, so a screenshot named `proof.png` lands at the repository root and
+# this rule never sees it — which happened, and left icon-proof-r1.png beside the
+# Makefile. The directory was verified by observation; screenshots were then assumed
+# to follow, which is the same substrate error one level down. The convention is to
+# prefix every screenshot filename with `.playwright-mcp/`; the net below is because a
+# convention is not a mechanism.
 .playwright-mcp/
+# Stray renders at the repo root. Real image assets live under documentation/ or docs/,
+# so a PNG here is always an accident.
+/*.png
 
 # Local dev env files (per-developer secrets)
 **/.env.local

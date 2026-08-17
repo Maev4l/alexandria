@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="Alexandria">
+  <title>Alexandria</title>
+  <!--
+    FAVICON variant, for the 16 and 32 raster sizes only. The letter alone, filling the canvas, with
+    the rule dropped.
+
+    NOT a preference: measured. In the full mark the gap between the letter's baseline (408) and the
+    rule (440) is 32 of 512, which at 16px is one pixel, so letter and rule merge into a single yellow
+    smudge and the counter closes entirely. Widening the gap cannot fix it at a 32x reduction; the only
+    thing that survives 16px is one shape. So the small sizes carry the letter, which is the half that
+    identifies, and the rule is dropped, which is the half that contextualises.
+
+    The counter is opened up relative to the full mark (inner apex 168 against 180, inner feet pulled
+    in) so the triangular hole survives the reduction rather than filling with antialiasing. The
+    crossbar sits lower and thinner for the same reason.
+
+    This is the same reasoning the system applies to the row versus the detail (DESIGN.md section 4):
+    a mark shown small earns only what helps recognition at that size.
+  -->
+  <rect width="512" height="512" fill="#0B0B0B"/>
+  <path fill="#F2C200" fill-rule="evenodd"
+        d="M256 40 L472 472 L360 472 L256 168 L152 472 L40 472 Z"/>
+  <rect x="120" y="352" width="272" height="64" fill="#F2C200"/>
+</svg>
