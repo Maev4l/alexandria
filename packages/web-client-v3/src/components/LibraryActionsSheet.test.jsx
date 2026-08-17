@@ -46,4 +46,18 @@ describe('LibraryActionsSheet', () => {
     await userEvent.click(screen.getByRole('button', { name: /^share/i }));
     expect(screen.getByText(/read-only/i)).toBeInTheDocument();
   });
+
+  // The third place this exact defect shipped (LendSheet, then ItemActionsSheet's lend mode):
+  // a disabled primary renders as a ruled ink outline, indistinguishable at rest from the "Back"
+  // outline beside it. DESIGN.md §6's second form names the reason instead, in the button's own
+  // position, until the field is valid.
+  it('names the reason instead of showing a disabled twin of Back, until an email is given', async () => {
+    renderSheet();
+    await userEvent.click(screen.getByRole('button', { name: /^share/i }));
+    expect(screen.queryByRole('button', { name: /^share$/i })).toBeNull();
+    expect(screen.getByText(/an email address/i)).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText(/email/i), 'marie@example.com');
+    expect(screen.queryByText(/an email address/i)).toBeNull();
+    expect(screen.getByRole('button', { name: /^share$/i })).toBeEnabled();
+  });
 });
