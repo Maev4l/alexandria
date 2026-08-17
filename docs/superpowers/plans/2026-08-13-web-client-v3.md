@@ -6815,7 +6815,24 @@ the manual routes already read (ruling J). Not `location.state`. Confirming a ca
 `itemsApi.createBook` and returns to `AddBook` for the next item — cataloguing is a batch
 activity, so the flow loops rather than exiting.
 
-- [ ] **Step 5: Run the tests, lint, commit**
+- [ ] **Step 5: Close the state divergence — a REQUIRED acceptance criterion, not a nicety**
+
+`AddItemSheet`'s `Book` branch still passes `location.state`, because when it was written this
+screen was a stub with nothing to read a query. **Building this screen is what closes that**, and it
+must not depend on anyone remembering:
+
+- `AddItemSheet`'s `Book` branch appends `?collectionId=` instead of passing `{ state }`.
+- **This screen carries the same probe the manual branch got**: mount at a bare URL with
+  `?collectionId=` set, assert `location.state` is null, and assert the detection still runs against
+  the right collection. A test that only checks the collection arrives would pass under *either*
+  mechanism, which is why the null-state assertion is the load-bearing half.
+- Delete the divergence notes in `AddItemSheet.jsx` and `addFlowState.js` once they are false.
+
+A deliberate divergence is acceptable only with **a named closing task and an assertion that fails if
+it is forgotten**. Thorough notes are exactly the shape that reads as finished — that is the
+half-declaration pattern, and the difference is whether something other than memory closes it.
+
+- [ ] **Step 6: Run the tests, lint, commit**
 
 ```bash
 yarn --cwd packages/web-client-v3 test
@@ -6882,7 +6899,21 @@ saying the capture was not kept**: printed, not a toast, because it explains why
 different screen than the one they left. Neither results screen ever renders an empty candidate
 list as a spinner that never resolves.
 
-- [ ] **Step 4: Run the tests, lint, commit**
+- [ ] **Step 4: Close the state divergence — a REQUIRED acceptance criterion, as in Task 18**
+
+`AddItemSheet`'s `Film` branch still passes `location.state`. Building this screen closes it:
+the branch appends `?collectionId=`, and **this screen carries the same probe** — bare URL,
+`?collectionId=` set, assert `location.state` is null, assert the right collection is still being
+filed into. The null-state assertion is the load-bearing half; a test that only checks the collection
+arrives would pass under either mechanism.
+
+**The OCR path is the one genuine exception and keeps `location.state`** (ruling H): the captured
+image is not URL-shaped and nobody kept the photograph. So assert both halves here — the typed-title
+path recovers from a bare URL, and the OCR path's cold load **redirects to `/add/video` with the
+printed line** saying the capture was not kept. Two mechanisms on one screen is correct here, and it
+is only correct because the asymmetry is in the data rather than in the convenience.
+
+- [ ] **Step 5: Run the tests, lint, commit**
 
 ```bash
 yarn --cwd packages/web-client-v3 test

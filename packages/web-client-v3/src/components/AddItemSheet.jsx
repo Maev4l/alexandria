@@ -18,6 +18,14 @@ const AddItemSheet = ({ open, onClose, libraryId, collection, onBack }) => {
   // (`?collectionId=`, per ui-v3.md's detection-results ruling) is specified but unbuilt, so
   // this stays as router state until those screens exist to read it — converting it here would
   // be building slice D from this file, not fixing this one.
+  //
+  // BLAST RADIUS, which is why leaving it is a judgement and not a shrug: both branches lead to
+  // stubs, so no reader can lose anything in the meantime — there is nothing there yet to drop a
+  // collection on the floor. The moment either screen becomes real this line is a live instance of
+  // the exact defect the other branch was repaired for. It is not left to memory: Tasks 18 and 19
+  // each carry the closing assertion as an acceptance criterion — the same probe the manual branch
+  // got, a bare URL with `?collectionId=` asserting `location.state` is null — so the divergence
+  // cannot survive its own closing task.
   const state = collection ? { collection } : undefined;
   // Enter by hand lands on NewBook, which IS built, and its collection travels as a query
   // parameter rather than state — the mechanism ruled for the whole add flow: `location.state`
