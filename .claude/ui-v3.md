@@ -128,9 +128,9 @@ Authenticated, one stack rooted at `/libraries`:
 | `/libraries/:libraryId/collections/new` | NewCollection |
 | `/libraries/:libraryId/collections/:collectionId/edit` | EditCollection |
 | `/libraries/:libraryId/add/book` | AddBook — scan or manual ISBN |
-| `/libraries/:libraryId/add/book/results` | BookDetectionResults (`location.state`) |
+| `/libraries/:libraryId/add/book/results?isbn=&collectionId=` | BookDetectionResults — **query, not `location.state`** |
 | `/libraries/:libraryId/add/video` | AddVideo — cover OCR or title search |
-| `/libraries/:libraryId/add/video/results` | VideoDetectionResults (`location.state`) |
+| `/libraries/:libraryId/add/video/results?title=&collectionId=` | VideoDetectionResults — query when the search was a typed title; `location.state` for an OCR capture, which cannot be put in a URL |
 | `/libraries/:libraryId/items/new/book` | NewBook — manual entry |
 | `/libraries/:libraryId/items/new/video` | NewVideo — manual entry |
 | `/libraries/:libraryId/items/:itemId` | ItemDetail — unified, renders by `type` |
@@ -247,8 +247,30 @@ submitting; no-result → offer manual entry at `/items/new/book`.
 Candidate volumes from Google Books / Babelio / GoodReads, each with its source and its own
 possible `error`. Per the donated **preview-before-commit** discipline, nothing is filed until
 the reader confirms a candidate; a per-resolver failure is shown as such rather than silently
-dropped.
+dropped. Each candidate carries its artwork in the standard 2:3 Volume Frame — ruled and empty when a
+resolver supplies none — because on this one screen the picture is what decides the match.
 **API:** `POST /libraries/{libraryId}/books`.
+
+**A results screen must survive a refresh, and the query string is what makes that possible.** The
+IA's own anti-pattern table refuses "detail as a modal that cannot be linked or refreshed"; a results
+screen holding candidates only in `location.state` is that same defect wearing a route. A cold load —
+a reload, a PWA restart, a share of the URL — arrives with no candidates and, worse, **no collection**,
+so a reader who had explicitly chosen a board would resume filing standalone without being told.
+
+So the identifying input travels in the **query**: `?isbn=` and, when the session is filing into a
+collection, `?collectionId=`. A cold load re-runs `POST /detections` from the ISBN and re-renders the
+same candidates. Detection is a read with no side effects, so re-running it is safe, and the reader
+lands exactly where they were, still filing into the same collection.
+
+**Video is asymmetric, and honestly so.** A typed-title search carries `?title=` and recovers
+identically. An **OCR capture cannot** — the image is not URL-shaped and re-running OCR would need a
+photograph nobody kept — so that path alone stays on `location.state`, and its cold load redirects to
+`/add/video` with a printed line saying the capture was not kept. A redirect is right there because
+the screen genuinely has nothing to show and the capture screen is where the reader needs to be; the
+line exists so the move is explained rather than mysterious, and it is printed rather than a toast
+because it is the reason they are on a different screen.
+
+Neither screen ever renders an empty candidate list as a spinner that never resolves.
 
 ### AddVideo / VideoDetectionResults
 Cover capture via manual shutter (OCR through Bedrock/Claude vision) or a typed title. Results
@@ -571,6 +593,32 @@ was a no-op and the wrap assertion that could not fail. The pattern is specific 
 **a new guard must be seen to fail.** Break the thing it guards, watch it go red, then fix it. A
 guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
 from a comment.
+
+**A fixture must contain the failure cases, because the failure cases are the ones that go
+undesigned.** The fixture API needs `/detections`, and what it returns decides which states anyone
+ever sees. A happy path returning three clean candidates would leave every interesting state of the
+capture flow unbuilt and unreviewed. It must serve, at minimum: several candidates where **most carry
+artwork and one does not** (per `PRODUCT.md`, artwork is the normal case and the fixtures previously
+lied about that in the other direction); **one resolver returning an `error` while the others
+succeed**, since that is the shape the preview-before-commit discipline exists for; **a no-result
+response**, which is the route to manual entry; and for video, an `extractedTitle` that is **plausibly
+wrong**, because the whole reason that field is editable is that OCR fails in ways the reader must
+correct.
+
+**And where a thing genuinely cannot be tested, split it rather than waving at it.** The barcode
+decoder cannot be exercised by either suite: there is no camera in a unit test and none in the browser
+check. That is not a reason to leave the screen untested, because three separable things are hiding
+behind one word:
+
+- **The state machine** — requesting permission, denied, scanning, decoding, no result, submitting,
+  returning for the next item. Put the decoder behind a small interface so a fake drives every
+  transition. This is most of the screen and it is fully testable.
+- **The library binding** — feed a committed still image of a known EAN-13 through the real decode
+  call. No camera required, and it is the only thing that catches a broken `@zxing` upgrade.
+- **The live camera** — verified by hand on a device, once, and recorded as manually verified.
+
+Naming which of the three is covered is the point. "The decoder can't be tested" is true of exactly
+one of them and was about to excuse all three.
 
 **Touch.** Minimum 48px targets. Primary actions in thumb reach. Long-press is always duplicated
 by a visible affordance, since long-press alone is undiscoverable.
