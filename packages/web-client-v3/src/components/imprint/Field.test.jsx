@@ -59,4 +59,38 @@ describe('Field', () => {
     expect(screen.getByLabelText('Password')).toHaveAttribute('type', 'password');
     expect(screen.getByRole('button', { name: 'Show password' })).toBeInTheDocument();
   });
+
+  // A bare `100` (or, at the moment it matters most, a bare `3`) is an unlabelled number. The
+  // ruling is `<n> LEFT` — same split IndexLetter's own count already makes (its test asserts
+  // this identical shape): the figure alone sits in `.num`, the word stays in the sans.
+  describe('counter', () => {
+    it('renders nothing when there is no counter to show', () => {
+      const { container } = render(<Field label="Title" onChange={() => {}} />);
+      expect(container.querySelector('.num')).toBeNull();
+    });
+
+    it('labels the figure: "<n> LEFT", not a bare number', () => {
+      const { container } = render(<Field label="Title" counter={3} onChange={() => {}} />);
+      // getByText can't match the whole phrase in one node (split across two spans, the same
+      // reason IndexLetter.test.jsx reads via toHaveTextContent rather than getByText).
+      expect(screen.getByText('left')).toBeInTheDocument();
+      expect(container.querySelector('.num')).toHaveTextContent('3 left');
+    });
+
+    // The seed instance for the whole sweep was exactly this shape (IndexLetter's "volume"/
+    // "volumes"): a word sitting inside `.num` is DESIGN.md §3's category error. Only the
+    // figure may be mono; "left" must resolve to the sans.
+    it('keeps the word out of the mono: only the figure is a numeral', () => {
+      const { container } = render(<Field label="Title" counter={97} onChange={() => {}} />);
+      const wrapper = container.querySelector('.num');
+      const figureOnly = wrapper.childNodes[0].textContent;
+      expect(figureOnly).toBe('97');
+      expect(screen.getByText('left')).toHaveClass('font-sans');
+    });
+
+    it('shows 0 left, not nothing, at the limit', () => {
+      const { container } = render(<Field label="Title" counter={0} onChange={() => {}} />);
+      expect(container.querySelector('.num')).toHaveTextContent('0 left');
+    });
+  });
 });

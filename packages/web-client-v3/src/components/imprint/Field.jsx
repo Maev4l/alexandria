@@ -105,7 +105,20 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, ...
           >
             {error || hint}
           </span>
-          {counter != null && <span className="num text-[11px] text-ink-soft">{counter}</span>}
+          {/* A bare `100` (or, at the moment it matters most, a bare `3`) is an unlabelled
+              number — DESIGN.md §3's mono-numerals rule doesn't cover the WORD beside it, and a
+              figure alone reads as noise. `<n> LEFT`: the figure inherits `.num` from this
+              wrapper (mono), the caps label resets to the sans explicitly — `caps` carries case
+              and tracking only (§3), never weight, so `font-bold` is stated here rather than
+              assumed. This single span is now the ONE place the split happens; ItemForm.jsx's
+              own `remaining()` used to duplicate it (double `.num` wrap: its outer span here
+              plus the inner one `remaining()` built for the figure) and has been removed in
+              favour of this. */}
+          {counter != null && (
+            <span className="num text-[11px] text-ink-soft">
+              {counter} <span className="caps font-sans font-bold">left</span>
+            </span>
+          )}
         </div>
       )}
     </div>

@@ -19,17 +19,6 @@ const splitList = (value) =>
 
 const joinList = (list) => (list ?? []).join(', ');
 
-// A bare `100` or `3` is an unlabelled number, which reads as noise right up until the moment it
-// reads `3` — exactly when the reader most needs to know what it counts. `Field` wraps whatever
-// `counter` renders in a `.num` (mono) span, so the numeral inherits that correctly on its own;
-// the caps label is reset back to the sans face explicitly, because a word set in mono is the
-// category error DESIGN.md §3 names (mono is for numerals only).
-const remaining = (n) => (
-  <>
-    <span className="num">{n}</span> <span className="caps font-sans font-normal">left</span>
-  </>
-);
-
 // Seeds editable state from whatever the caller has: an existing item (edit) or nothing (new).
 // Every value becomes a string, including the numeric ones, because that is what a controlled
 // text/number input holds — '' rather than undefined, so the field starts genuinely empty
@@ -165,7 +154,7 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
       <Field
         label="Title"
         maxLength={TITLE_MAX}
-        counter={remaining(TITLE_MAX - values.title.length)}
+        counter={TITLE_MAX - values.title.length}
         value={values.title}
         error={errors.title}
         onChange={set('title')}
@@ -175,7 +164,7 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
         as="textarea"
         rows={4}
         maxLength={SUMMARY_MAX}
-        counter={remaining(SUMMARY_MAX - values.summary.length)}
+        counter={SUMMARY_MAX - values.summary.length}
         value={values.summary}
         error={errors.summary}
         onChange={set('summary')}
