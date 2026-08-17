@@ -296,17 +296,37 @@ a decision on evidence the screen did not contain, and its own wording advertise
 reader has no power over. Its absent state was worse still — *"No source image to fetch from"* is an
 apology for a control nobody asked for.
 
-**The capability is real and stays; only its placement was wrong.** The failure it repairs is real
-enough that the admin CLI has a command for it (`data fix-thumbnails`), and making the owner reach
-for a CLI to fix a cover is not acceptable. So the action moves to **where the problem is visible**:
-a `Fetch cover` control attached to the item-detail frame, rendered **only when `pictureUrl` exists
-and the image failed to load.** Then it needs no explanation — the frame is empty, and the button
-fills it — and its absence is meaningful rather than requiring a sentence.
+**In its place, the cover becomes editable — and this is the larger correction.** Detection
+frequently returns no cover at all: Babelio may simply not hold one for a given book. Under the old
+design that reader was stuck, because every control was gated on a `pictureUrl` that did not exist.
+**The case with no source is the one that most needs a control, and it was the only case with
+none.** A first draft of this section repeated that mistake by gating the replacement on the same
+condition.
 
-Two general rules fall out. **An action belongs where its problem is visible, not in the form that
-happens to own the field.** And **a control that cannot be chosen correctly should not be offered**:
-if the reader cannot tell which setting is right, the interface is asking them to guess, and the
-answer is to detect the condition rather than to word the question better.
+So `pictureUrl` becomes a **real field**, on `NewBook`, `NewVideo` and `EditItem` alike:
+
+- Labelled `COVER IMAGE`, pre-filled with whatever detection supplied, empty when it supplied
+  nothing. **The source is never named** — no "from Babelio". The reader cannot act on which
+  resolver produced it, and printing it advertises a coupling while offering no control over it.
+- Set in the **sans**, not the mono: a URL is not a numeral (§3), and the mono guard would rightly
+  reject it.
+- Changing it and saving sends the new `pictureUrl` with `updatePicture: true`. Clearing it sends
+  `null`, which the API permits.
+- Obvious rejects (not `http`/`https`) fail inline on the field, since the fetch is server-side and
+  a silent failure would otherwise be the reader's only feedback.
+
+**The repair case stays separate, because it is a different failure.** A cover that is *correct but
+did not arrive* — the asynchronous pipeline failing, the case `data fix-thumbnails` exists for — is
+not a wrong URL, and sending the reader into a form to re-save an unchanged field would be asking
+them to fix something that is not broken. That keeps its own control: `Fetch cover`, attached to the
+item-detail frame, shown only when a `pictureUrl` exists **and the image failed to load**. Two
+controls, two genuinely different failures, each where its own problem is visible.
+
+Three general rules fall out. **An action belongs where its problem is visible, not in the form that
+happens to own the field.** **A control that cannot be chosen correctly should not be offered** — if
+the reader cannot tell which setting is right, detect the condition rather than word the question
+better. And **check which case a gate excludes, not only which it admits**: `pictureUrl exists` reads
+like a safety condition and is in fact the precise description of the readers who did not need help.
 
 ### ItemHistory — `/libraries/:libraryId/items/:itemId/history`
 Paginated events as Ledger Rows on a checkout card, paired client-side into loans. An open loan
