@@ -91,7 +91,20 @@ const ItemDetail = () => {
   const library = byId(libraryId);
 
   const [item, setItem] = useState(null);
-  const [loans, setLoans] = useState([]);
+  // Raw events, not paired loans: `pairLoanEvents` deliberately drops a RETURNED event with no
+  // matching LENT before it (src/lib/loans.js — "orphaned history; it is dropped, not turned
+  // into a loan"), so an item can carry real history while every event fails to pair. Gating
+  // the record's visibility on `loans.length` would silently treat that shape as "no history at
+  // all" — this stores what the API actually returned, and `loans` below is derived from it on
+  // every render, the same way ItemHistory.jsx already does.
+  const [events, setEvents] = useState([]);
+  const loans = pairLoanEvents(events);
+  // Distinct from `status`: the ITEM can load fine while its history fails to. A transient
+  // failure here used to be swallowed (`.catch(() => ({ events: [] }))`) and render as though
+  // the item had never been lent — no error, no retry, `item.lentTo` possibly still saying OUT
+  // while the ledger beneath it silently vanished. That is the exact silent-failure shape
+  // ui-v3.md §7 weighs heaviest, so it is surfaced instead (see the render below).
+  const [eventsError, setEventsError] = useState(null);
   const [status, setStatus] = useState('loading');
   // Lend genuinely needs input (a borrower's name), so it is the one action that still opens a
   // sheet — and that sheet holds ONLY the lend form, never a menu.
@@ -131,18 +144,35 @@ const ItemDetail = () => {
   // worse, letting a stray markReturned post A's borrower against B's id) at item B's URL.
   const load = useCallback(
     async (isCancelled = () => false) => {
-      try {
-        const [fetchedItem, events] = await Promise.all([
-          itemsApi.get(libraryId, itemId),
-          eventsApi.list(libraryId, itemId, { limit: 20 }).catch(() => ({ events: [] })),
-        ]);
-        if (isCancelled()) return;
-        setItem(fetchedItem);
-        setLoans(pairLoanEvents(events?.events ?? []));
-        setStatus('ready');
-      } catch (err) {
-        if (isCancelled()) return;
-        setStatus(err.status === 404 ? 'missing' : 'error');
+      // `allSettled`, not `all`+`.catch`: the item and its history are two independent facts,
+      // and the item loading successfully must not depend on its history request also
+      // succeeding — nor should an events failure be reported as though the ITEM failed to
+      // load (the `status === 'error'` branch below replaces the whole cover with a retry,
+      // which is too much to lose over a request that has nothing to do with whether this
+      // volume exists).
+      const [itemResult, eventsResult] = await Promise.allSettled([
+        itemsApi.get(libraryId, itemId),
+        eventsApi.list(libraryId, itemId, { limit: 20 }),
+      ]);
+      if (isCancelled()) return;
+
+      if (itemResult.status === 'rejected') {
+        setStatus(itemResult.reason?.status === 404 ? 'missing' : 'error');
+        return;
+      }
+      setItem(itemResult.value);
+      setStatus('ready');
+
+      if (eventsResult.status === 'fulfilled') {
+        setEventsError(null);
+        setEvents(eventsResult.value?.events ?? []);
+      } else {
+        // Deliberately does NOT clear `events`: on a re-load (e.g. after markReturned) that
+        // happens to fail on the history half, showing the last known-good record beneath an
+        // error is more honest than blanking it — the record did not actually disappear.
+        setEventsError(
+          eventsResult.reason?.message ?? 'Could not load this item’s lending history.',
+        );
       }
     },
     [libraryId, itemId],
@@ -369,7 +399,29 @@ const ItemDetail = () => {
             <p className="mt-4 text-sm text-cover-body">{item.cast.join(', ')}</p>
           )}
 
-          {loans.length > 0 && (
+          {eventsError && (
+            // Surfaces the failure the old `.catch(() => ({ events: [] }))` swallowed: an
+            // events-only failure used to render this whole section as absent, identical to
+            // "never lent", with no error and nothing to retry — while `item.lentTo` above may
+            // still read OUT. Same treatment as `actionError` below (border-2 border-out,
+            // ambient --paper text inherited from the root), so a reader who has seen one error
+            // on this screen recognises the next.
+            <div role="alert" className="mt-6 border-2 border-out p-4 text-sm">
+              <p>{eventsError}</p>
+              <PlateButton variant="secondary" className="mt-4" onClick={load}>
+                Try again
+              </PlateButton>
+            </div>
+          )}
+
+          {/* Gated on `events.length > 0` (raw history), never `loans.length` (paired history):
+              `pairLoanEvents` drops an orphaned RETURNED with nothing open, so an item can carry
+              real events while pairing none of them into a loan — and that is still a record,
+              still worth a route to `/history`, where it can also be cleared. Gating on `loans`
+              would make that shape indistinguishable from "never lent" here, the exact
+              mislabelling ItemHistory.jsx's empty state also had to stop making (p2 batch 2,
+              finding 2). */}
+          {!eventsError && events.length > 0 && (
             <>
               {/* The record carries its own past: the ledger reads on the item itself.
                   `caps` sets ONLY text-transform/letter-spacing (DESIGN.md §3) — weight is
@@ -378,11 +430,18 @@ const ItemDetail = () => {
               <h2 className="caps mt-6 text-[10px] font-extrabold tracking-[0.16em] text-imprint">
                 The record
               </h2>
-              <div className="mt-2 border-t-2 border-paper">
-                {loans.slice(0, LEDGER_PREVIEW).map((loan) => (
-                  <LedgerRow key={`${loan.lentAt}-${loan.name}`} loan={loan} inverted />
-                ))}
-              </div>
+              {loans.length > 0 ? (
+                <div className="mt-2 border-t-2 border-paper">
+                  {loans.slice(0, LEDGER_PREVIEW).map((loan) => (
+                    <LedgerRow key={`${loan.lentAt}-${loan.name}`} loan={loan} inverted />
+                  ))}
+                </div>
+              ) : (
+                // The orphaned-RETURNED shape: there is history, but none of it forms a loan.
+                // Saying nothing here would look like a heading with a bug beneath it; saying
+                // "Never lent" would be false — something WAS recorded.
+                <p className="mt-2 text-sm text-cover-soft">No loan pairs in this record yet.</p>
+              )}
               {/* "Full record" used to be gated on "leads somewhere new" — more PAIRED loans
                   than the preview above already shows, or a raw-events `nextToken` (round 5
                   critique #5). That gate closed the one redundant case it was written for and, in
@@ -393,11 +452,11 @@ const ItemDetail = () => {
                   never the right test, because the destination is not redundant even when it
                   shows the same rows: it holds a capability (clearing the record) this preview
                   does not. So the link renders whenever there is any lending history at all,
-                  which this block already requires (`loans.length > 0`, above) — nothing further
-                  to check. The label stays "Full record" either way: it is accurate whether or
-                  not there happens to be more to read, a second label risks stating the same fact
-                  twice, and the destructive action past the link is not something to advertise
-                  from the preview. */}
+                  which this block already requires (`events.length > 0`, above) — nothing
+                  further to check. The label stays "Full record" either way: it is accurate
+                  whether or not there happens to be more to read, a second label risks stating
+                  the same fact twice, and the destructive action past the link is not something
+                  to advertise from the preview. */}
               <Link
                 to={`/libraries/${libraryId}/items/${itemId}/history`}
                 // 48px floor (P1 #4): a standalone navigational control (not a prose link —

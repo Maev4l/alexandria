@@ -166,11 +166,27 @@ const ItemHistory = () => {
 
         {status === 'ready' && (
           <>
-            {loans.length === 0 ? (
-              // The empty state is a ruled frame at the same weight as a full block, not a
-              // bare sentence — the same treatment LibraryBrowse gives its empty stream.
+            {events.length === 0 ? (
+              // Genuinely nothing recorded. The empty state is a ruled frame at the same weight
+              // as a full block, not a bare sentence — the same treatment LibraryBrowse gives
+              // its empty stream.
               <div className="border-2 border-ink p-8 text-center">
                 <p className="caps text-xs font-bold text-ink-soft">Never lent</p>
+              </div>
+            ) : loans.length === 0 ? (
+              // Round 6 review's copy question: `pairLoanEvents` drops an orphaned RETURNED (one
+              // with no LENT before it — src/lib/loans.js), so this item DOES have history, it
+              // just does not form a loan. "Never lent" here would be false — something was
+              // recorded — and silently falling through to the same block as genuinely-empty
+              // would make that false statement anyway. Distinguished with its own heading
+              // rather than a second condition on the same copy, per the labelled-twice rule
+              // read the other way: two different facts must not share one sentence either.
+              <div className="border-2 border-ink p-8 text-center">
+                <p className="caps text-xs font-bold text-ink-soft">No loan on record</p>
+                <p className="mt-2 text-sm">
+                  This item&apos;s history doesn&apos;t pair into a loan. You can still clear it
+                  below.
+                </p>
               </div>
             ) : (
               // `[&>*:last-child]:border-b-0` mirrors the comp's own
@@ -208,8 +224,12 @@ const ItemHistory = () => {
             )}
 
             {/* Read-only means absent, not disabled — the same rule item detail's actions
-                follow — and there is nothing to clear on an empty record either way. */}
-            {!isReadOnly && loans.length > 0 && (
+                follow — and there is nothing to clear on an empty record either way. Gated on
+                `events.length`, not `loans.length` (round 6 review): clearing deletes raw
+                EVENTS (`DELETE .../events`), so an item with an orphaned RETURNED and zero
+                paired loans still has something to clear — the "No loan on record" state above
+                exists to say so and point here. */}
+            {!isReadOnly && events.length > 0 && (
               <div className="mt-8">
                 <PlateButton variant="danger" onClick={() => setIsConfirmingClear(true)}>
                   Clear the record

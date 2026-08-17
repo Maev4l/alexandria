@@ -99,6 +99,35 @@ describe('ItemHistory', () => {
     expect(screen.queryByText(/^lent$/i)).toBeNull();
   });
 
+  // Round 6 review: `pairLoanEvents` drops an orphaned RETURNED (one with no LENT before it —
+  // src/lib/loans.js), so an item can carry real events while pairing zero of them into a loan.
+  // "Never lent" would be false here — something WAS recorded — and the old `loans.length > 0`
+  // gate on Clear also made the button vanish for exactly this shape, leaving no way to remove
+  // the very history that made "Never lent" wrong.
+  it('distinguishes "no history" from "history that doesn\'t pair", and still offers Clear', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) return jsonResponse(200, { libraries });
+        if (path.includes('/events')) {
+          return jsonResponse(200, {
+            events: [{ date: '2026-01-01T00:00:00Z', type: 'RETURNED', event: 'Ghost' }],
+          });
+        }
+        const result = handleMockRequest('GET', path);
+        return jsonResponse(result.status, result.body);
+      }),
+    );
+    renderPage();
+    expect(await screen.findByText(/no loan on record/i)).toBeInTheDocument();
+    // Not the genuinely-empty copy — that would be a false statement about this item.
+    expect(screen.queryByText(/never lent/i)).toBeNull();
+    expect(screen.queryByText(/^lent$/i)).toBeNull();
+    // The whole point: there IS something to clear, so the control must still be offered.
+    expect(screen.getByRole('button', { name: /clear the record/i })).toBeInTheDocument();
+  });
+
   it('says the clear action removes the entire record, before it acts', async () => {
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: /clear the record/i }));

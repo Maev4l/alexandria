@@ -220,6 +220,94 @@ describe('ItemDetail', () => {
     });
   });
 
+  // Round 6 review: gate on RAW events, not paired loans, at both ends — `pairLoanEvents`
+  // deliberately drops an orphaned RETURNED (one with no LENT before it), so an item can carry
+  // real history while pairing zero of it into a loan. Gating "is there a record" on
+  // `loans.length` would make that shape indistinguishable from "never lent".
+  it('shows a route to the record even when every event fails to pair into a loan', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        if (path.includes('/events')) {
+          // A lone RETURNED, nothing LENT before it — `pairLoanEvents` drops this entirely
+          // (src/lib/loans.js), so `loans` is `[]` here even though `events` is not.
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({
+              events: [{ date: '2026-01-01T00:00:00Z', type: 'RETURNED', event: 'Ghost' }],
+            }),
+          };
+        }
+        const result = handleMockRequest('GET', path);
+        return {
+          ok: result.status < 400,
+          status: result.status,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => result.body,
+        };
+      }),
+    );
+    renderPage('item-1984');
+    expect(await screen.findByText('The record')).toBeInTheDocument();
+    expect(screen.getByText(/no loan pairs in this record yet/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /full record/i })).toBeInTheDocument();
+  });
+
+  // The old `.catch(() => ({ events: [] }))` swallowed a transient events failure and rendered
+  // the item as though it had never been lent — no error, no retry, and `item.lentTo` could
+  // still say OUT while the ledger silently vanished beneath it. This is the exact
+  // silent-failure shape ui-v3.md §7 weighs heaviest, and the item itself must still render:
+  // the failure is scoped to its history, not to whether this volume exists.
+  it('surfaces a failed history fetch inline, with a retry, rather than as "never lent"', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url) => {
+        const path = String(url);
+        if (path.endsWith('/libraries')) {
+          return {
+            ok: true,
+            status: 200,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ libraries }),
+          };
+        }
+        if (path.includes('/events')) {
+          return {
+            ok: false,
+            status: 500,
+            headers: new Headers({ 'content-type': 'application/json' }),
+            json: async () => ({ message: 'boom' }),
+          };
+        }
+        const result = handleMockRequest('GET', path);
+        return {
+          ok: result.status < 400,
+          status: result.status,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => result.body,
+        };
+      }),
+    );
+    renderPage('item-lent');
+    // The item itself still loads: an events-only failure must not blank the whole cover.
+    expect(await screen.findByText('Le Grand Sommeil')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    // Never the old silent shape: no "The record" heading claiming there is nothing to show.
+    expect(screen.queryByText('The record')).toBeNull();
+  });
+
   it('says plainly when the item is not there, instead of spinning forever', async () => {
     renderPage('does-not-exist');
     expect(await screen.findByRole('alert')).toHaveTextContent(/not in this collection/i);
