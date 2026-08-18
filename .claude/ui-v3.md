@@ -718,6 +718,25 @@ was a no-op and the wrap assertion that could not fail. The pattern is specific 
 guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
 from a comment.
 
+**Prefer removing a false trigger to suppressing a true check — and notice which of those needs
+permission.** The design hook fired three times on `BookDetectionResults.jsx`, at three line numbers as
+the file moved, always on a JSX comment that spells out `<img src="">` while explaining why the code
+coalesces to `null`. The file contains no `<img>` at all.
+
+Three options existed: persist a scoped exception, reword the comment, or keep re-verifying. **Rewording
+wins on a criterion the other two cannot meet: it creates nothing that outlives its reason.** A scoped
+exception is permanent, silent, and will still be there when the condition that justified it has gone —
+the no-op exclusion pattern this project has already paid for. Re-verifying is honest and costs a round
+every time the file moves.
+
+And the precision is not in the literal markup. The comment's content is *an empty src produces the
+broken-image glyph §6 forbids*; writing the tag out is decoration, and decoration is what the detector
+is matching. Say it in prose, keep the reason, lose the trigger.
+
+The practical tell: **suppression needs the user's authorisation and rewording needs nobody's**, because
+one changes what is checked and the other changes only what a comment happens to contain. When those
+two options are otherwise close, that asymmetry decides it.
+
 **And confirm the mutation landed, because a break that did not happen is silent.** A demonstration
 `sed` targeted a class string that does not exist in the file, matched nothing, and the check then ran
 against unmodified code — so the **absence of failure output looked exactly like a passing
