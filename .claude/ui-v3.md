@@ -810,6 +810,19 @@ The practical tell: **suppression needs the user's authorisation and rewording n
 one changes what is checked and the other changes only what a comment happens to contain. When those
 two options are otherwise close, that asymmetry decides it.
 
+**When you specify a guard, name the observable that DISCRIMINATES — not the one the defect is named
+after.** I required call-count assertions "in both directions" on the one-tap capture fix, because the
+defect was a duplicated call. On the capture path that is not what fails against the old code: the old
+code also made exactly one call *at that point*, and what catches it there is the **navigation**
+assertion, since the old handler never navigated at all. Only the editing path fails on count.
+
+My model of the defect was "two calls at capture" when it was "two calls across the flow", and the
+assertion I demanded inherited that error — it would have been credited with catching a bug it could not
+catch. Same family as an assertion inheriting the correctness of the rule it encodes, one level down:
+**it also inherits the correctness of your model of the defect.** The reviewer reasoned that through
+rather than accepting the report, and the commit message states it accurately so nobody inherits the
+overstatement.
+
 **And confirm the mutation landed, because a break that did not happen is silent.** A demonstration
 `sed` targeted a class string that does not exist in the file, matched nothing, and the check then ran
 against unmodified code — so the **absence of failure output looked exactly like a passing
