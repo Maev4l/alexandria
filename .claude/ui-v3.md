@@ -130,7 +130,7 @@ Authenticated, one stack rooted at `/libraries`:
 | `/libraries/:libraryId/add/book` | AddBook — scan or manual ISBN |
 | `/libraries/:libraryId/add/book/results?isbn=&collectionId=` | BookDetectionResults — **query, not `location.state`** |
 | `/libraries/:libraryId/add/video` | AddVideo — cover OCR or title search |
-| `/libraries/:libraryId/add/video/results?title=&collectionId=` | VideoDetectionResults — query when the search was a typed title; `location.state` for an OCR capture, which cannot be put in a URL |
+| `/libraries/:libraryId/add/video/results?title=&collectionId=` | VideoDetectionResults — **always the query**, whether the title was typed or extracted by OCR |
 | `/libraries/:libraryId/items/new/book` | NewBook — manual entry |
 | `/libraries/:libraryId/items/new/video` | NewVideo — manual entry |
 | `/libraries/:libraryId/items/:itemId` | ItemDetail — unified, renders by `type` |
@@ -303,13 +303,29 @@ collection, `?collectionId=`. A cold load re-runs `POST /detections` from the IS
 same candidates. Detection is a read with no side effects, so re-running it is safe, and the reader
 lands exactly where they were, still filing into the same collection.
 
-**Video is asymmetric, and honestly so.** A typed-title search carries `?title=` and recovers
-identically. An **OCR capture cannot** — the image is not URL-shaped and re-running OCR would need a
-photograph nobody kept — so that path alone stays on `location.state`, and its cold load redirects to
-`/add/video` with a printed line saying the capture was not kept. A redirect is right there because
-the screen genuinely has nothing to show and the capture screen is where the reader needs to be; the
-line exists so the move is explained rather than mysterious, and it is printed rather than a toast
-because it is the reason they are on a different screen.
+**Video is NOT asymmetric, and this spec claimed it was for four commits.** It read: an OCR capture
+cannot recover, because the image is not URL-shaped and re-running OCR would need a photograph nobody
+kept — so that path alone stayed on `location.state`. Every clause of that is true **before extraction**
+and false after it.
+
+Verified in `handlers/detection.go`: `handleVideoDetection` resolves a typed title and an OCR-extracted
+title into one `searchTitle` and calls the **identical** `h.s.ResolveVideo(searchTitle)`. The candidates
+are a pure function of the string. So once OCR has produced a title there is no photograph anywhere in
+the recovery path — only a string, exactly as URL-shaped as a typed one — and the title was being
+discarded to save one request. The observable cost was a reload after an unedited capture printing *"The
+photo wasn't kept — capture the cover again"*, when the photo was never the recoverable asset. **The
+title was.**
+
+So **every navigation to this route carries `?title=`**, typed or extracted, and the correct narrow
+statement is: the *capture* cannot be carried, so a cold load **before a title exists** has nothing to
+resume; once extraction has produced one, that title travels in the query like any other.
+
+**The route still needs a no-input branch, and it is not about photographs.** A bare
+`/add/video/results` with no `?title=` is reachable by typing or sharing the URL — as is a bare
+`/add/book/results` with no `?isbn=` — so both screens keep a branch for *this results route has no
+input to resolve*, redirecting to their capture screen with a printed line. One construction, both
+screens, type-agnostic, and it must not mention an image: nothing was lost, there was simply never
+anything supplied.
 
 Neither screen ever renders an empty candidate list as a spinner that never resolves.
 
@@ -769,8 +785,12 @@ required turned out to be unnecessary because the dependency closed it first, wh
 outcome and not an argument against requiring it.
 
 The test for whether an exception is real, then: **the asymmetry must be in the data, not in the
-convenience.** The OCR path keeps `location.state` permanently, because no URL can carry a photograph
-nobody kept — that is a fact about the world. "The other screen is a stub" was a fact about our
+convenience.** I illustrated that with the OCR path keeping `location.state` permanently, because no URL
+can carry a photograph nobody kept — presented as a fact about the world. **It was a fact about the
+world at the wrong moment**: true before extraction, false once OCR has yielded a title, and the whole
+recovery happens after. So my canonical example of a *permanent* exception was itself over-broad, which
+is the sharpest available warning that a premise's expiry date is easy to miss even while writing the
+rule about expiry dates. Check *when* the fact holds, not only whether it does. "The other screen is a stub" was a fact about our
 schedule, and facts about the schedule expire.
 
 **The party that built a mechanism is the worst judge of whether a new ruling reaches it.** When a
