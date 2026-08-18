@@ -78,7 +78,11 @@ Every task's requirements implicitly include this section.
 - Tasks 6, 11 and 15 are the reproduction-first passes against the approved mockup. They require `packages/web-client-v3/design/comp-2026-08-13.html`, which the **design session must supply**. If that file is absent, skip those three tasks, complete everything else, and report the skip. Do not substitute your own composition and call it reproduced.
 
 **Source control — this supersedes every task's final step**
-- Every task below ends with `git add` / `git commit`. **Those lines are superseded: read each one as "verify and report".** The executing session runs the verification a task calls for — `yarn --cwd packages/web-client-v3 test`, `lint`, and `check:browser` where the task asks for it — and then **stops, leaving the changes uncommitted for the user.** Do not commit, do not create a branch. The user manages branching and commits by hand and has said so explicitly; the tree's cleanliness is a signal they rely on, so a session that leaves edits must say so in its report rather than let them be discovered.
+- **Changed 2026-08-18, and the previous rule is stated so nobody has to guess which was the mistake.** Until that date the executing session did NOT commit: it verified and left the tree for the user, who committed by hand. The user has now confirmed directly that the executing session commits its own work, so every task's `git add` / `git commit` step **stands** — with three boundaries that did not change.
+- **No push.** There is no upstream on `ui-rework-v3`, and adding one is not covered by this.
+- **No branch creation.** Stay on the branch already checked out.
+- **Own files only.** `packages/web-client-v3/DESIGN.md`, `.claude/ui-v3.md` and `docs/ui-design/ui-v3-mockup.html` belong to the design session; a change wanting one of those is sent to it rather than committed here.
+- **Verify BEFORE committing, and grep for what the message asserts.** A green suite and a clean linter cannot tell you whether the claim in your commit message is still true: a commit landed this session whose message described a known defect "being fixed next" while the commit actually *contained* the fix, because the tests were green on both sides of it and nobody grepped for the string.
 - Stated once here rather than edited into twenty tasks: one reviewable place instead of twenty, and `task-brief` extracts from one `### Task` heading to the next — so plan-wide context filed anywhere below would be delivered as a single task's brief and be invisible to every other task.
 
 ---
