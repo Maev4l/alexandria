@@ -142,6 +142,27 @@ describe('BarcodeScanner — the state machine', () => {
     await waitFor(() => expect(stop).toHaveBeenCalledTimes(1));
   });
 
+  // The geometry task's Change 2: a smaller, zoomed viewport is an AIMING aid only. This
+  // component decodes off the fake `decodeFromConstraints`, which never reads the video
+  // element's CSS at all — so these assertions are necessarily about layout, not decoding; the
+  // "decoding is unaffected" half of the claim is structural (§ the source comment) rather than
+  // something this suite can exercise, since nothing here ever measured decode success against
+  // box size in the first place.
+  it('halves the viewport to 140px, half of the original 280px', () => {
+    decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
+    const { container } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
+    expect(container.firstChild.className).toContain('max-w-[140px]');
+    expect(container.firstChild.className).not.toContain('max-w-[280px]');
+  });
+
+  it('zooms the feed inside the smaller box, clipped so it never escapes the ruled frame', () => {
+    decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
+    const { container } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
+    expect(container.firstChild.className).toContain('overflow-hidden');
+    const video = container.querySelector('video');
+    expect(video.className).toMatch(/\bscale-\d+\b/);
+  });
+
   it('restricts decoding to EAN-13 and EAN-8 only, not the reader\'s full multi-format default', () => {
     decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
     render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);

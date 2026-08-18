@@ -131,9 +131,18 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
     // Volume Frame for exactly this reason ("a filled rectangle where an image belongs reads as
     // a failed image") and it applies here too — before the stream attaches, this box is
     // waiting for a live picture the same way an empty frame is. The rule alone describes it.
-    <div className="relative aspect-[2/3] w-full max-w-[280px] border-2 border-ink">
-      {/* Mounted from the first render so the ref exists before decodeFromConstraints needs it. */}
-      <video ref={videoRef} muted playsInline className="size-full object-cover" />
+    //
+    // 140px, not 280 — an AIMING aid only, nothing more. `@zxing` decodes from
+    // `mediaElement.videoWidth/videoHeight` (`BrowserCodeReader.js:283-284`), the stream's
+    // intrinsic size, so this box's CSS dimensions and the `scale-150` below play no part in
+    // what gets decoded: a smaller, zoomed preview cannot introduce a false negative, because a
+    // barcode visible on screen here is already within the decoded frame. `overflow-hidden` is
+    // required now that the video is scaled up past the box's own edges.
+    <div className="relative aspect-[2/3] w-full max-w-[140px] overflow-hidden border-2 border-ink">
+      {/* Mounted from the first render so the ref exists before decodeFromConstraints needs it.
+          The zoom is purely visual — see the box comment above — making a small code easier to
+          aim at, never easier to decode. */}
+      <video ref={videoRef} muted playsInline className="size-full scale-150 object-cover" />
       {state === 'requesting' && (
         <p
           aria-live="polite"
