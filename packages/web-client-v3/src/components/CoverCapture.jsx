@@ -79,8 +79,12 @@ const CoverCapture = ({ onCapture, onError }) => {
         )}
       </div>
       {state === 'ready' && (
+        // "Capture cover" used to name a step that completed nothing on its own — it filled a
+        // field a DIFFERENT button then had to act on. The shutter now runs the whole lookup by
+        // itself (AddVideo's `onCaptured`), so its label names that outcome, paired with the
+        // manual field's own "Look up this title" (one-call-capture task).
         <PlateButton variant="secondary" className="mt-4" onClick={onShutter}>
-          Capture cover
+          Look up this cover
         </PlateButton>
       )}
     </div>

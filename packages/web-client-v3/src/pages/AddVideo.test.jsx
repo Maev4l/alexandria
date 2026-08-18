@@ -35,8 +35,11 @@ vi.mock('@/api', async (importOriginal) => {
 const AddVideo = (await import('./AddVideo.jsx')).default;
 
 // Prints the route it landed on, its full query, and its router state, so a test can assert
-// exactly which mechanism carried the reader forward — every search, typed or OCR-derived,
-// travels in the query now (fix round 1), so `state` should read `none` on every path here.
+// exactly which mechanism carried the reader forward. The QUERY always carries the searched
+// title (round 1's finding survives unchanged: it is what a reload recovers from). `state`
+// is `none` for the two routes that carry no search result at all (the no-input redirect,
+// "Enter by hand") and carries the `{ candidates, forTitle }` fast path (round 2) on the two
+// that do — a capture or a typed submit — so the results screen can skip a repeat call.
 const LocationProbe = () => {
   const location = useLocation();
   return (
@@ -68,6 +71,29 @@ beforeEach(() => {
 });
 
 describe('AddVideo', () => {
+  // THE defect this task fixes (one-call-capture): a successful capture used to populate a
+  // field and then need a SECOND, differently-labelled action ("Look it up") to actually reach
+  // the results screen — completing nothing on its own, and paying for the TMDB candidates the
+  // image call already returned only to throw them away. One tap on the shutter is now the WHOLE
+  // flow: exactly one `/detections` call, its own candidates carried forward as a `state` fast
+  // path (tagged `forTitle`, per VideoDetectionResults' own guard against a stale one) alongside
+  // the `?title=` query every reload still recovers from.
+  it('a captured cover completes the whole flow by itself — one call, straight to results, candidates carried as a fast path', async () => {
+    vi.mocked(detectionApi.video).mockResolvedValue({
+      extractedTitle: 'Le Samouraï',
+      detectedVideos: [{ id: 't1', title: 'Le Samouraï', source: 'TMDB' }],
+    });
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /simulate capture/i }));
+    expect(
+      await screen.findByText(
+        'landed:/libraries/lib-1/add/video/results?title=Le+Samoura%C3%AF' +
+          ' state:{"candidates":[{"id":"t1","title":"Le Samouraï","source":"TMDB"}],"forTitle":"Le Samouraï"}',
+      ),
+    ).toBeInTheDocument();
+    expect(detectionApi.video).toHaveBeenCalledTimes(1);
+  });
+
   it('offers title search without ever opening the camera', () => {
     renderPage();
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
@@ -94,19 +120,6 @@ describe('AddVideo', () => {
     expect(collectionsApi.get).not.toHaveBeenCalled();
   });
 
-  it('shows the OCR result as an editable field, because OCR is fallible', async () => {
-    vi.mocked(detectionApi.video).mockResolvedValue({
-      extractedTitle: 'Le Samouraï',
-      detectedVideos: [{ id: 't1', title: 'Le Samouraï', source: 'TMDB' }],
-    });
-    renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /simulate capture/i }));
-    const title = await screen.findByLabelText(/title/i);
-    expect(title).toHaveValue('Le Samouraï');
-    expect(title).toBeEnabled();
-    expect(detectionApi.video).toHaveBeenCalledWith({ image: 'fake-cover-frame' });
-  });
-
   it('says what to do when the camera is refused, rather than only that it failed', async () => {
     renderPage();
     await userEvent.click(screen.getByRole('button', { name: /simulate denial/i }));
@@ -127,94 +140,43 @@ describe('AddVideo', () => {
   // reason itself the defect: the field is already labelled Title and hinted, and a bare caps
   // noun phrase reads as a heading for the control beneath it, not an explanation of an absent
   // one. The real fix moves "Enter by hand" off the outline treatment entirely (see the link
-  // test below), which dissolves the collision at its source: the disabled "Look it up" becomes
-  // the only ruled outline in its row, so DESIGN.md §6's FIRST form — a plain disabled outline,
-  // no words — applies correctly, and the button itself, not a caps stand-in, is what proves the
-  // state.
-  it('disables Look it up while the title is empty, and calls nothing on Enter', async () => {
+  // test below), which dissolves the collision at its source: the disabled "Look up this title"
+  // becomes the only ruled outline in its row, so DESIGN.md §6's FIRST form — a plain disabled
+  // outline, no words — applies correctly, and the button itself, not a caps stand-in, is what
+  // proves the state.
+  it('disables Look up this title while the title is empty, and calls nothing on Enter', async () => {
     renderPage();
-    expect(screen.getByRole('button', { name: /look it up/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /look up this title/i })).toBeDisabled();
     expect(screen.queryByText(/a film's title/i)).not.toBeInTheDocument();
     screen.getByLabelText(/title/i).focus();
     await userEvent.keyboard('{Enter}');
     expect(detectionApi.video).not.toHaveBeenCalled();
   });
 
-  it('enables Look it up once a title is typed', async () => {
+  it('enables Look up this title once a title is typed', async () => {
     renderPage();
     const field = screen.getByLabelText(/title/i);
-    expect(screen.getByRole('button', { name: /^look it up$/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^look up this title$/i })).toBeDisabled();
 
     await userEvent.type(field, 'Inception');
-    expect(screen.getByRole('button', { name: /^look it up$/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^look up this title$/i })).toBeEnabled();
   });
 
-  // Fix round 1: an unedited OCR title used to skip straight to the results screen via
-  // `location.state`, carrying the candidates the `{ image }` call already returned, to avoid a
-  // second network round trip. Review traced `handlers/detection.go`'s `handleVideoDetection`
-  // through `services/lookup_video.go` to `tmdb.go`'s `ResolveByTitle` and found a typed title and
-  // an OCR-extracted title feed the identical call — same title in, same candidates out — so the
-  // "saved" round trip bought nothing and cost every reload on the results route its ability to
-  // recover. An unedited OCR title now takes the exact same query-based path as a typed one.
-  it('an unedited OCR title is a query-based search too, with no router state', async () => {
-    vi.mocked(detectionApi.video).mockResolvedValueOnce({
-      extractedTitle: 'Le Samouraï',
-      detectedVideos: [{ id: 't1', title: 'Le Samouraï', source: 'TMDB' }],
-    });
-    renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /simulate capture/i }));
-    await screen.findByDisplayValue('Le Samouraï');
-
-    vi.mocked(detectionApi.video).mockResolvedValueOnce({
-      detectedVideos: [{ id: 't1', title: 'Le Samouraï', source: 'TMDB' }],
-    });
-    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
-
-    // A second call DOES happen now — deliberately, per the finding above.
-    expect(detectionApi.video).toHaveBeenLastCalledWith({ title: 'Le Samouraï' });
-    expect(
-      await screen.findByText(
-        'landed:/libraries/lib-1/add/video/results?title=Le+Samoura%C3%AF state:none',
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it('an OCR title the reader edits is a fresh typed search, carried in the query with no state', async () => {
-    vi.mocked(detectionApi.video).mockResolvedValueOnce({
-      extractedTitle: 'Le Trou',
-      detectedVideos: [{ id: 'x', title: 'Le Trou', source: 'TMDB' }],
-    });
-    renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /simulate capture/i }));
-    await screen.findByDisplayValue('Le Trou');
-
-    const field = screen.getByLabelText(/title/i);
-    await userEvent.clear(field);
-    await userEvent.type(field, 'Le Trou 1960');
-
-    vi.mocked(detectionApi.video).mockResolvedValueOnce({
-      detectedVideos: [{ id: 'y', title: 'Le Trou', source: 'TMDB' }],
-    });
-    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
-
-    expect(detectionApi.video).toHaveBeenLastCalledWith({ title: 'Le Trou 1960' });
-    expect(
-      await screen.findByText(
-        'landed:/libraries/lib-1/add/video/results?title=Le+Trou+1960 state:none',
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it('a hand-typed title with no camera at all is a query-based search too', async () => {
+  it('a hand-typed title with no camera at all makes exactly one call and carries its candidates forward as a fast path', async () => {
     vi.mocked(detectionApi.video).mockResolvedValue({
       detectedVideos: [{ id: 'z', title: 'Inception', source: 'TMDB' }],
     });
     renderPage();
     await userEvent.type(screen.getByLabelText(/title/i), 'Inception');
-    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^look up this title$/i }));
+    expect(detectionApi.video).toHaveBeenCalledTimes(1);
     expect(detectionApi.video).toHaveBeenCalledWith({ title: 'Inception' });
+    // `state` is no longer `none` on this path (round 2): the candidates this one call already
+    // returned travel with it, tagged `forTitle`, so VideoDetectionResults never has to ask again.
     expect(
-      await screen.findByText('landed:/libraries/lib-1/add/video/results?title=Inception state:none'),
+      await screen.findByText(
+        'landed:/libraries/lib-1/add/video/results?title=Inception state:{"candidates":[{"id":"z","title":"Inception","source":"TMDB"}],"forTitle":"Inception"}',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -222,10 +184,10 @@ describe('AddVideo', () => {
     vi.mocked(detectionApi.video).mockResolvedValue({ detectedVideos: [] });
     renderPage('/libraries/lib-1/add/video?collectionId=c1');
     await userEvent.type(screen.getByLabelText(/title/i), 'Inception');
-    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^look up this title$/i }));
     expect(
       await screen.findByText(
-        'landed:/libraries/lib-1/add/video/results?title=Inception&collectionId=c1 state:none',
+        'landed:/libraries/lib-1/add/video/results?title=Inception&collectionId=c1 state:{"candidates":[],"forTitle":"Inception"}',
       ),
     ).toBeInTheDocument();
   });
@@ -236,7 +198,7 @@ describe('AddVideo', () => {
     );
     renderPage();
     await userEvent.type(screen.getByLabelText(/title/i), 'Inception');
-    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^look up this title$/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach the server/i);
     expect(screen.queryByText(/^landed:/)).not.toBeInTheDocument();
   });

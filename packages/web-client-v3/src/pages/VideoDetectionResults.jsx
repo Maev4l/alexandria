@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
+import Field from '@/components/imprint/Field.jsx';
 import FilingInto from '@/components/imprint/FilingInto.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import PlateLine from '@/components/imprint/PlateLine.jsx';
@@ -15,21 +16,19 @@ const FILM = 1;
 // (a reload, a PWA restart, a shared link) re-runs `detectionApi.video({ title })` and lands the
 // reader back where they were.
 //
-// This screen used to also accept an OCR result via `location.state`, on the theory that the
-// exact search behind an unedited capture could not be reproduced from a URL because the photo
-// that produced it was gone. Fix round 1 traced the backend end to end (`handlers/detection.go`'s
-// `handleVideoDetection` → `services/lookup_video.go` → `tmdb.go`'s `ResolveByTitle`) and found a
-// typed title and an OCR-extracted title feed the IDENTICAL call: same title in, same candidates
-// out. The photo was never the reproducible asset — the title always was, and it is exactly as
-// URL-shaped regardless of where it came from. `location.state` bought one saved network call and
-// cost every reload/PWA-restart on this route the ability to recover at all. Removed; see
-// AddVideo's own `onSubmit` for the corresponding half.
-//
-// With that removed, `?title=` absent is the ONLY way to reach this screen with nothing to
-// resolve — no photo, no lost capture, just a typed/edited/bookmarked URL with no input at all
-// (`routes.jsx`'s `guard()` checks only that a user is signed in). Handled by redirecting to
-// AddVideo with one shared, type-agnostic message — see `load()` below and
-// `src/lib/addFlowState.js`'s `NO_INPUT_MESSAGE`, the same construction BookDetectionResults uses.
+// Fix round 1 traced the backend end to end (`handlers/detection.go`'s `handleVideoDetection` →
+// `services/lookup_video.go` → `tmdb.go`'s `ResolveByTitle`) and found a typed title and an
+// OCR-extracted title feed the IDENTICAL call: same title in, same candidates out. It used that
+// finding to conclude `location.state` should never be read here — which fixed recoverability but
+// created a NEW defect (the one-call-capture task): AddVideo's shutter had nowhere to hand the
+// candidates its own image call already returned, so it called `{ title }` a second time just to
+// get back what `{ image }` had already produced. State is reinstated here, round 2, but strictly
+// as a FAST PATH, never as a substitute for the query: it is trusted only when it is tagged
+// (`forTitle`) with the exact title this render is showing, so a stale value — browser
+// back/forward, or a re-search that changed the query — falls through to a real fetch instead of
+// answering the wrong question. `?title=` absent is still the only way this screen has nothing to
+// resolve at all; handled the same way as before, by redirecting to AddVideo with the shared
+// `NO_INPUT_MESSAGE` (`src/lib/addFlowState.js`).
 const VideoDetectionResults = () => {
   const { libraryId } = useParams();
   const navigate = useNavigate();
@@ -44,6 +43,17 @@ const VideoDetectionResults = () => {
   const collectionName = useCollectionName(libraryId, collectionId);
   const [savingKey, setSavingKey] = useState(null);
   const [saveError, setSaveError] = useState(null);
+  // The review step AddVideo used to run on the capture screen, before the reader ever saw a
+  // candidate: OCR is fallible, so the searched title stays correctable here rather than
+  // confirmed sight-unseen. Synced from the query on every navigation so a fresh capture or a
+  // "Try again" always starts the field from what is actually on screen, not a stale edit left
+  // over from a previous search.
+  const [editTitle, setEditTitle] = useState(titleParam);
+  const [isResearching, setIsResearching] = useState(false);
+
+  useEffect(() => {
+    setEditTitle(titleParam);
+  }, [titleParam]);
 
   const load = useCallback(() => {
     if (!titleParam) {
@@ -60,6 +70,15 @@ const VideoDetectionResults = () => {
       });
       return;
     }
+    // The fast path: AddVideo already ran this exact search (capture or typed) and handed its
+    // own candidates over via `state`. Only used when `forTitle` matches the title this render is
+    // showing — see the module comment above for why an unmatched tag must not be trusted.
+    if (location.state?.forTitle === titleParam) {
+      setCandidates(location.state.candidates ?? []);
+      setErrorMessage(null);
+      setStatus('ready');
+      return;
+    }
     setStatus('loading');
     setErrorMessage(null);
     detectionApi
@@ -72,11 +91,41 @@ const VideoDetectionResults = () => {
         setErrorMessage(err.message);
         setStatus('error');
       });
-  }, [titleParam, libraryId, collectionId, navigate]);
+  }, [titleParam, libraryId, collectionId, navigate, location.state]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // The reader's own correction of a misread cover, made HERE rather than by walking back to
+  // AddVideo (see AddVideo.jsx's own note on why the review step moved). One call for the
+  // corrected title, then the URL is updated to match — via `load()`'s own fast path, not a
+  // second fetch — so a reload after correcting recovers the CORRECTED search, not the original.
+  const onResearch = async (event) => {
+    event.preventDefault();
+    const trimmed = editTitle.trim();
+    if (!trimmed || isResearching) return;
+    setIsResearching(true);
+    setErrorMessage(null);
+    try {
+      const response = await detectionApi.video({ title: trimmed });
+      const p = new URLSearchParams();
+      p.set('title', trimmed);
+      if (collectionId) p.set('collectionId', collectionId);
+      // `replace: true`: a correction supersedes the search that led here rather than adding a
+      // new step to the flow — pressing back from the corrected results should return to
+      // AddVideo, not to an earlier, wrong-titled results page.
+      navigate(`/libraries/${libraryId}/add/video/results?${p.toString()}`, {
+        replace: true,
+        state: { candidates: response?.detectedVideos ?? [], forTitle: trimmed },
+      });
+    } catch (err) {
+      setErrorMessage(err.message);
+      setStatus('error');
+    } finally {
+      setIsResearching(false);
+    }
+  };
 
   // Ruling A (task-19 brief, overriding a plain `length === 0` check): video has exactly one
   // resolver (TMDB), and it emits one candidate carrying `error` on a real miss
@@ -152,17 +201,29 @@ const VideoDetectionResults = () => {
           </p>
         )}
 
-        {/* The searched title, once, at the head — never repeated per row (ruling 4). Content the
-            reader typed or corrected, so it takes the SANS, not the mono: §3 reserves Chivo Mono
-            for numerals, and a film title is not one — unlike BookDetectionResults' scanned ISBN,
+        {/* The searched title, once, at the head — never repeated per row (ruling 4). Editable
+            rather than a static label: this is the review step the capture screen no longer
+            performs (one-call-capture task), since OCR is fallible and the reader must be able to
+            correct a misread cover without walking back to AddVideo. It takes the SANS, not the
+            mono, the same as the read-only version it replaces: §3 reserves Chivo Mono for
+            numerals, and a film title is not one — unlike BookDetectionResults' scanned ISBN,
             which this pattern otherwise mirrors exactly. */}
-        {status !== 'loading' && titleParam && (
-          <p className="caps mb-4 text-[11px] font-bold tracking-[0.16em] text-ink-soft">
-            Searched{' '}
-            <span data-mark="searched-title" className="normal-case text-[13px] font-normal tracking-normal">
-              {titleParam}
-            </span>
-          </p>
+        {status !== 'loading' && (
+          <form onSubmit={onResearch} className="mb-2" noValidate>
+            <Field
+              label="Title"
+              value={editTitle}
+              hint="OCR can misread a cover — correct the title and search again if this looks wrong."
+              onChange={(event) => setEditTitle(event.target.value)}
+            />
+            <PlateButton
+              type="submit"
+              variant="secondary"
+              disabled={isResearching || editTitle.trim().length === 0}
+            >
+              {isResearching ? 'Looking up this title' : 'Look up this title'}
+            </PlateButton>
+          </form>
         )}
 
         {status === 'ready' && usable.length > 0 && (

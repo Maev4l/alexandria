@@ -26,12 +26,18 @@ const LocationProbe = () => {
   );
 };
 
+// `pathname` and `search` must travel as SEPARATE fields on the initialEntries object — passing
+// the combined `/path?query` string as `pathname` skips react-router's own query parsing, so the
+// literal "?title=..." becomes part of the path itself and nothing matches. That bug bit the
+// stale-state guard test below the moment it needed a query string AND router state on the same
+// entry, which no earlier test in this file had done at once (every prior state-carrying case
+// used an empty query, masking it).
 const renderPage = (searchOrPath, state) =>
   render(
     <MemoryRouter
       initialEntries={[
         state
-          ? { pathname: `/libraries/lib-1/add/video/results${searchOrPath ?? ''}`, state }
+          ? { pathname: '/libraries/lib-1/add/video/results', search: searchOrPath ?? '', state }
           : `/libraries/lib-1/add/video/results${searchOrPath ?? ''}`,
       ]}
     >
@@ -66,11 +72,11 @@ describe('VideoDetectionResults', () => {
       detectedVideos: [{ id: 't1', title: 'Les Tontons flingueurs', directors: ['Georges Lautner'], releaseYear: 1963, duration: 105, cast: ['Lino Ventura'], source: TMDB }],
     });
     renderPage('?title=Les%20Tontons%20flingueurs');
-    // Two matches by design: the searched title at the head (§ ruling 4) and the candidate's own
-    // title on its row — the same construction BookDetectionResults hits whenever a candidate's
-    // title happens to equal the scanned input, and why it also reaches for findAllByText/getAllByText
-    // rather than a singular query wherever that overlap is possible.
-    expect(await screen.findAllByText('Les Tontons flingueurs')).toHaveLength(2);
+    // The searched title now lives in the editable review field (an <input>'s VALUE, not a text
+    // node), so only the candidate's own row title is a text match — one, not the two a static
+    // "Searched: <title>" label used to produce when it happened to equal the candidate's title.
+    expect(await screen.findAllByText('Les Tontons flingueurs')).toHaveLength(1);
+    expect(screen.getByLabelText(/title/i)).toHaveValue('Les Tontons flingueurs');
     expect(detectionApi.video).toHaveBeenCalledWith({ title: 'Les Tontons flingueurs' });
   });
 
@@ -90,15 +96,17 @@ describe('VideoDetectionResults', () => {
     expect(screen.getByText('Lino Ventura, Bernard Blier')).toBeInTheDocument();
   });
 
-  // Fix round 1: this screen used to accept a captured search's candidates via `location.state`
-  // to avoid a second network call, on the theory an unedited OCR title's answer could not be
-  // reproduced from a URL. Traced against the backend and found false (see AddVideo.test.jsx's
-  // own comment on the same finding) — `location.state` is no longer read here at all. Proven by
-  // showing the OLD mechanism no longer works, not merely that the new one does: a state payload
-  // with candidates but no `?title=` must still redirect, exactly as if the state were absent.
-  it('ignores a location.state candidate payload entirely — a query is the only accepted input now', async () => {
+  // Fix round 1 made `location.state` unconditionally ignored, on the theory an unedited OCR
+  // title's answer could not be reproduced from a URL — traced against the backend and found
+  // false. Fix round 2 (the one-call-capture task) brings state BACK, but only as a fast path
+  // gated on the query: see the two tests below this one. This test's own scenario — no
+  // `?title=` at all — is untouched by that reintroduction, because the redirect-on-missing-
+  // title branch runs before state is ever consulted; renamed (not deleted, ui-v3.md §7's own
+  // rule on a forbidding test) to say what is actually still true: a query is what makes a
+  // search reproducible, and state can never substitute for one that is entirely absent.
+  it('a location.state payload with no `?title=` in the query still redirects — the query is what recovers, state never substitutes for it', async () => {
     const candidates = [{ id: 't1', title: 'Le Trou', directors: ['Jacques Becker'], releaseYear: 1960, duration: 132, cast: [], source: TMDB, pictureUrl: '/c4.webp' }];
-    renderPage('', { candidates, searchedTitle: 'Le Trou' });
+    renderPage('', { candidates, forTitle: 'Le Trou' });
     expect(
       await screen.findByText('landed:/libraries/lib-1/add/video state:{"noInput":true}'),
     ).toBeInTheDocument();
@@ -106,15 +114,79 @@ describe('VideoDetectionResults', () => {
     expect(detectionApi.video).not.toHaveBeenCalled();
   });
 
-  it('prints the searched title once, at the head, in the sans — never the mono, since it is content not a numeral', async () => {
+  // The reinstated fast path (fix round 2): AddVideo already ran this exact search — capture or
+  // typed — and hands the candidates it already paid for over via `state`, tagged with the title
+  // they answer (`forTitle`). When that tag matches the query title on screen, this component
+  // must render them WITHOUT a second network call — the whole point of carrying them at all.
+  // Written against the code before the fix; expected to fail (state is read nowhere yet), see
+  // the report for the verbatim before/after run.
+  it('renders location.state candidates with no network call when they match the query title', async () => {
+    const candidates = [{ id: 't1', title: 'Le Samouraï', directors: ['Melville'], releaseYear: 1967, duration: 105, cast: [], source: TMDB }];
+    // A safety net for the pre-fix run only: the code under test today reads state nowhere, so
+    // it WILL hit the network — mocked here so that run fails cleanly on the assertion below
+    // rather than crashing on an unmocked call returning `undefined`.
+    vi.mocked(detectionApi.video).mockResolvedValue({ detectedVideos: candidates });
+    renderPage('?title=Le%20Samoura%C3%AF', { candidates, forTitle: 'Le Samouraï' });
+    await screen.findAllByText('Le Samouraï');
+    expect(detectionApi.video).not.toHaveBeenCalled();
+  });
+
+  // The guard against the exact silent-regression shape ui-v3.md §7 warns about: forwarding
+  // `location.state` on top of an already-correct query is only safe while the state actually
+  // answers that query. A stale payload (a different title than the one in the URL — browser
+  // back/forward, or a corrected search that changed the query without this remounting) must be
+  // ignored and re-fetched, never rendered as though it answered the title on screen.
+  it('ignores location.state candidates tagged for a DIFFERENT title than the query — a stale fast path must not answer the wrong question', async () => {
+    vi.mocked(detectionApi.video).mockResolvedValue({
+      detectedVideos: [{ id: 't2', title: 'Nouveau titre', directors: [], releaseYear: 2020, duration: 90, cast: [], source: TMDB }],
+    });
+    const staleCandidates = [{ id: 't1', title: 'Ancien titre', directors: [], releaseYear: 1990, duration: 80, cast: [], source: TMDB }];
+    renderPage('?title=Nouveau%20titre', { candidates: staleCandidates, forTitle: 'Ancien titre' });
+    await screen.findAllByText('Nouveau titre');
+    expect(screen.queryByText('Ancien titre')).not.toBeInTheDocument();
+    expect(detectionApi.video).toHaveBeenCalledWith({ title: 'Nouveau titre' });
+  });
+
+  // The other half of the call-count discipline the task brief asks for: the reader's own
+  // correction of an OCR misread, made HERE rather than by walking back to AddVideo, costs
+  // exactly one more call — not a second load of the ORIGINAL title plus a search of the
+  // corrected one. Written against the code before the fix (no editable field exists yet);
+  // expected to fail, see the report.
+  it('editing the extracted title and searching again makes exactly one more call, for the corrected title', async () => {
+    const candidates = [{ id: 't1', title: 'Le Samouraï', directors: ['Melville'], releaseYear: 1967, duration: 105, cast: [], source: TMDB }];
+    // Same pre-fix safety net as the test above: today's code always fetches, so give it
+    // something to resolve rather than crash on.
+    vi.mocked(detectionApi.video).mockResolvedValue({ detectedVideos: candidates });
+    renderPage('?title=Le%20Samoura%C3%AF', { candidates, forTitle: 'Le Samouraï' });
+    await screen.findAllByText('Le Samouraï');
+    expect(detectionApi.video).not.toHaveBeenCalled();
+
+    vi.mocked(detectionApi.video).mockResolvedValueOnce({
+      detectedVideos: [{ id: 't2', title: 'Le Samourai', directors: ['Melville'], releaseYear: 1967, duration: 105, cast: [], source: TMDB }],
+    });
+    await userEvent.clear(screen.getByLabelText(/title/i));
+    await userEvent.type(screen.getByLabelText(/title/i), 'Le Samourai');
+    await userEvent.click(screen.getByRole('button', { name: /look up this title/i }));
+
+    await screen.findAllByText('Le Samourai');
+    expect(detectionApi.video).toHaveBeenCalledTimes(1);
+    expect(detectionApi.video).toHaveBeenCalledWith({ title: 'Le Samourai' });
+  });
+
+  // The searched title used to be a static caps label with its own `data-mark`. It is now the
+  // editable review field's value (one-call-capture task) — plain text input, no mono class
+  // anywhere near it, which is the same "content, not a numeral" guarantee §3 asked for, just
+  // enforced by the field never having a mono option rather than by a class assertion on a span
+  // that no longer exists.
+  it('prints the searched title once, at the head, as an editable field pre-filled from the query', async () => {
     vi.mocked(detectionApi.video).mockResolvedValue({
       detectedVideos: [{ id: 't1', title: 'Inception', directors: ['Christopher Nolan'], releaseYear: 2010, duration: 148, cast: [], source: TMDB }],
     });
     renderPage('?title=Inception');
     await screen.findAllByText('Inception');
-    const searched = screen.getByText('Inception', { selector: '[data-mark="searched-title"]' });
+    const searched = screen.getByLabelText(/title/i);
+    expect(searched).toHaveValue('Inception');
     expect(searched.className).not.toContain('num');
-    expect(searched.className).toContain('normal-case');
   });
 
   it('shows a failed resolver as a ruled failure note, never a candidate — the true-miss shape', async () => {

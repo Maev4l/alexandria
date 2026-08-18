@@ -30,6 +30,12 @@ const AddVideo = () => {
   // the one place a whole session of back-to-back captures could actually see it.
   const collectionName = useCollectionName(libraryId, collectionId);
 
+  // Manual title search only — no longer dual-purpose as the OCR-extracted title's holding pen.
+  // A capture used to write into this same field and need a SECOND press ("Look it up") to do
+  // anything with it, which was the actual defect: pressing the shutter completed nothing by
+  // itself. It now runs its own lookup and navigates directly (`onCaptured` below); reviewing and
+  // correcting a misread OCR title is VideoDetectionResults' job, on the results screen it
+  // already produced, not a step repeated here first.
   const [title, setTitle] = useState('');
   // Recorded here, on THIS screen, for the identical reason AddBook keeps its own cameraError:
   // CoverCapture knows only that the browser refused it, not what a reader should do next.
@@ -50,18 +56,21 @@ const AddVideo = () => {
     return `/libraries/${libraryId}/add/video/results${qs ? `?${qs}` : ''}`;
   };
 
-  // A capture returns an extracted title, which goes into the field for the reader to correct —
-  // OCR is fallible, and the fixture this screen is built against deliberately serves a
-  // plausibly-wrong title for exactly this reason — rather than treating it as already confirmed.
+  // One-call-capture fix (round 2). Fix round 1 traced `handlers/detection.go`'s
+  // `handleVideoDetection` end to end and correctly found a typed title and an OCR-extracted
+  // title feed the identical `ResolveVideo` call — so the TWO calls it then shipped (this image
+  // call, plus a second title call from a "Look it up" press on the unedited result) were
+  // spending network and Bedrock OCR cost on a call whose own candidates it discarded, then
+  // re-deriving the identical answer from the title a moment later. The structural fault wasn't
+  // the extra call so much as its cause: capturing filled a field owned by a DIFFERENT button,
+  // so pressing the shutter completed nothing on its own.
   //
-  // The response's `detectedVideos` are deliberately NOT kept. A round of review traced
-  // `handlers/detection.go`'s `handleVideoDetection` end to end: a typed title and an
-  // OCR-extracted title both feed the identical `h.s.ResolveVideo(searchTitle)` call
-  // (`services/lookup_video.go` → `tmdb.go`'s `ResolveByTitle`, a pure function of the title
-  // string). Same title in, same candidates out — there is no such thing as "the OCR call's
-  // answer" as distinct from "the query's answer" once a title exists, so caching the former to
-  // skip a second network round trip bought nothing and cost the query-based recovery every
-  // other detection screen relies on. See `onSubmit` below.
+  // Fixed here by keeping what this call already returns. `response.detectedVideos` — the TMDB
+  // candidates this exact image call already paid for — travels straight to the results screen
+  // as a fast-path `state`, tagged with the title it answers (`forTitle`) so a stale or
+  // mismatched value is never trusted (see VideoDetectionResults' own `load()`). The query still
+  // carries `?title=` on its own, unconditionally, so a reload or PWA restart recovers exactly as
+  // before — state only ever saves a repeat call, it is never the only way to recover.
   const onCaptured = async (image) => {
     if (isBusy) return;
     setLookupError(null);
@@ -69,13 +78,17 @@ const AddVideo = () => {
     try {
       const response = await detectionApi.video({ image });
       const extracted = response?.extractedTitle ?? '';
-      setTitle(extracted);
       if (!extracted) {
         // The real backend never sets `extractedTitle` on an illegible cover (it returns before
         // assigning it) — a genuinely different outcome from a network failure, so it gets its
-        // own message rather than falling into the generic error branch below.
+        // own message rather than falling into the generic error branch below. There is nothing
+        // to navigate to without a title, so this stays on the capture screen.
         setLookupError('No title could be read from the cover. Type it below instead.');
+        return;
       }
+      navigate(buildResultsPath(extracted), {
+        state: { candidates: response?.detectedVideos ?? [], forTitle: extracted },
+      });
     } catch (err) {
       setLookupError(err.message);
     } finally {
@@ -87,15 +100,11 @@ const AddVideo = () => {
     setTitle(event.target.value);
   };
 
-  // One path for every title, whichever way it arrived — hand-typed, or OCR-extracted and left
-  // untouched, or OCR-extracted and corrected. `detectionApi.video({ title })` runs here first
-  // (to catch a network failure before ever navigating, exactly as AddBook's `lookup` does for
-  // ISBN), then `?title=` carries the same string in the query so VideoDetectionResults can
-  // re-run the identical search itself on a fresh load. There used to be a second branch here
-  // that skipped this call for an unedited OCR title and forwarded candidates via
-  // `location.state` instead — removed once the backend trace above showed it saved one network
-  // round trip and cost recoverability for nothing: a reload or PWA restart on the results route
-  // could not reconstruct state that was never in the URL.
+  // The manual-search half of the same one-call discipline: a hand-typed title is looked up ONCE
+  // here (to catch a network failure before ever navigating, exactly as AddBook's `lookup` does
+  // for ISBN), and the candidates that call already returned travel forward the same way a
+  // capture's do — as a `state` fast path tagged with the title, alongside the `?title=` query
+  // every reload recovers from regardless.
   const onSubmit = async (event) => {
     event.preventDefault();
     const trimmed = title.trim();
@@ -107,8 +116,10 @@ const AddVideo = () => {
     setLookupError(null);
     setIsBusy(true);
     try {
-      await detectionApi.video({ title: trimmed });
-      navigate(buildResultsPath(trimmed));
+      const response = await detectionApi.video({ title: trimmed });
+      navigate(buildResultsPath(trimmed), {
+        state: { candidates: response?.detectedVideos ?? [], forTitle: trimmed },
+      });
     } catch (err) {
       setLookupError(err.message);
     } finally {
@@ -150,7 +161,7 @@ const AddVideo = () => {
           <Field
             label="Title"
             value={title}
-            hint="Type or correct the film’s title."
+            hint="Type the film’s title."
             onChange={onTitleChange}
           />
 
@@ -166,18 +177,21 @@ const AddVideo = () => {
               reason used to stand in for this button while disabled, but the actual collision
               was two identical outlines side by side, not a missing explanation, so moving the
               manual escape off the outline treatment (see below) is what lets the plain disabled
-              button work correctly on its own. */}
+              button work correctly on its own. Labelled "Look up this title" — paired with
+              CoverCapture's own "Look up this cover" — so each of the two independent paths to
+              the results screen names the outcome it performs, not a step ("Capture"/"Look it
+              up") that used to need the OTHER one to finish. */}
           <PlateButton type="submit" disabled={!canSubmit}>
-            {isBusy ? 'Looking it up' : 'Look it up'}
+            {isBusy ? 'Looking up this title' : 'Look up this title'}
           </PlateButton>
         </form>
 
         {/* Navigation to another route, not an action performed on this screen — so it takes the
             underlined-link treatment DetailMarks already uses for "IN <library>"
             (DESIGN.md §5), not a PlateButton. As a PlateButton it was a second ruled outline
-            sitting beside the disabled "Look it up" button, indistinguishable from it at rest;
-            as a link it carries no border or fill at all, so there is nothing left to collide
-            with. `inline-flex min-h-12 items-center` reserves the same 48px hit target a
+            sitting beside the disabled "Look up this title" button, indistinguishable from it at
+            rest; as a link it carries no border or fill at all, so there is nothing left to
+            collide with. `inline-flex min-h-12 items-center` reserves the same 48px hit target a
             PlateButton claims (DESIGN.md §4) without drawing a second box — the text itself is
             long enough that width is never the constraint the way it is for a short library name
             embedded mid-sentence in DetailMarks. */}

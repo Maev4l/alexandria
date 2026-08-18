@@ -59,7 +59,7 @@ describe('CoverCapture — the state machine', () => {
   it('shows a requesting caption before the stream attaches, and no shutter yet', () => {
     render(<CoverCapture onCapture={() => {}} onError={() => {}} />);
     expect(screen.getByText(/requesting camera access/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /capture/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /look up this cover/i })).not.toBeInTheDocument();
   });
 
   it('is a ruled box with no fill, before the stream attaches', () => {
@@ -73,7 +73,7 @@ describe('CoverCapture — the state machine', () => {
     render(<CoverCapture onCapture={() => {}} onError={() => {}} />);
     act(() => latestProps.onUserMedia());
     expect(screen.queryByText(/requesting camera access/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /capture cover/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /look up this cover/i })).toBeInTheDocument();
   });
 
   it('adds no reticle, scan line or any other overlay — only the video and the shutter', () => {
@@ -86,7 +86,7 @@ describe('CoverCapture — the state machine', () => {
     const onCapture = vi.fn();
     render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
     act(() => latestProps.onUserMedia());
-    await userEvent.click(screen.getByRole('button', { name: /capture cover/i }));
+    await userEvent.click(screen.getByRole('button', { name: /look up this cover/i }));
     expect(getScreenshotMock).toHaveBeenCalled();
     expect(onCapture).toHaveBeenCalledWith('ZmFrZS1mcmFtZQ==');
   });
@@ -96,7 +96,7 @@ describe('CoverCapture — the state machine', () => {
     const onCapture = vi.fn();
     render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
     act(() => latestProps.onUserMedia());
-    await userEvent.click(screen.getByRole('button', { name: /capture cover/i }));
+    await userEvent.click(screen.getByRole('button', { name: /look up this cover/i }));
     expect(onCapture).not.toHaveBeenCalled();
   });
 
