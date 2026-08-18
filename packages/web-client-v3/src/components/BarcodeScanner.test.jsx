@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserMultiFormatReader } from '@zxing/browser';
@@ -147,5 +148,71 @@ describe('BarcodeScanner — the state machine', () => {
     expect(BrowserMultiFormatReader).toHaveBeenCalledTimes(1);
     const hints = BrowserMultiFormatReader.mock.calls[0][0];
     expect(hints.get('POSSIBLE_FORMATS')).toEqual(['EAN_13', 'EAN_8']);
+  });
+
+  // Reproduces the reported bug faithfully rather than by hand-rolled unmount/remount calls:
+  // React double-invokes mount effects under StrictMode (mount -> cleanup -> mount), which is
+  // exactly the production shape that exposed the race. `decodeFromConstraints` is async (it
+  // awaits getUserMedia), so the cleanup between the two mounts fires while the FIRST run's
+  // promise is still pending and its controls are not yet assigned — that gap is the whole bug.
+  //
+  // Real zxing's `stop()` calls `cleanVideoSource(videoElement)`, which unconditionally sets
+  // `videoElement.srcObject = null` regardless of which run currently owns the element. Since
+  // decodeFromConstraints is mocked here (no real <video>/MediaStream plumbing exists in jsdom),
+  // `sharedVideoState.attached` stands in for that shared element's srcObject: each fake
+  // `decodeFromConstraints` resolution "attaches" its own id to it (mirroring the library
+  // assigning srcObject just before resolving), and each fake `stop()` unconditionally clears it
+  // (mirroring cleanVideoSource) — so the assertion below observes the exact DOM-level side
+  // effect the real component's serialization must prevent, not just its own internal refs.
+  it('does not let a stale StrictMode remount clear the surviving run\'s stream', async () => {
+    const sharedVideoState = { attached: null };
+    const makeControls = (id) => ({
+      stop: vi.fn(() => {
+        sharedVideoState.attached = null;
+      }),
+      id,
+    });
+
+    let resolveFirst;
+    let callCount = 0;
+    const controlsByCall = {};
+    decodeFromConstraintsMock.mockImplementation(() => {
+      callCount += 1;
+      const id = callCount === 1 ? 'A' : 'B';
+      if (callCount === 1) {
+        // Held open deliberately: this is the run StrictMode's cleanup discards while it is
+        // still in flight, and it is resolved LATE — after that cleanup has already run — which
+        // is the precise window the real bug lives in.
+        return new Promise((resolve) => {
+          resolveFirst = () => {
+            sharedVideoState.attached = id;
+            controlsByCall[id] = makeControls(id);
+            resolve(controlsByCall[id]);
+          };
+        });
+      }
+      sharedVideoState.attached = id;
+      controlsByCall[id] = makeControls(id);
+      return Promise.resolve(controlsByCall[id]);
+    });
+
+    render(
+      <StrictMode>
+        <BarcodeScanner onCode={() => {}} onError={() => {}} />
+      </StrictMode>,
+    );
+
+    // Let the discarded first run resolve late, after its own cleanup has already fired.
+    resolveFirst();
+
+    await waitFor(() => expect(decodeFromConstraintsMock).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByText(/requesting camera access/i)).not.toBeInTheDocument(),
+    );
+
+    // The invariant: whichever run survives must still own the shared element's stream — a
+    // stale run's late stop() must never clear it.
+    expect(sharedVideoState.attached).toBe('B');
+    expect(controlsByCall.B.stop).not.toHaveBeenCalled();
   });
 });
