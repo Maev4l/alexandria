@@ -16,7 +16,15 @@
 //
 // Named as a mapping FROM the query, not "the collection case": Task 18 threads an ISBN through
 // this identical door, and that should only mean reading one more parameter here, never a
-// second branch anywhere that already consumes it.
-export const seedFromAddFlowState = (search) => ({
-  collectionId: new URLSearchParams(search).get('collectionId') ?? undefined,
-});
+// second branch anywhere that already consumes it. `isbn` flows the same way `collectionId`
+// always has — AddBook reads it back out of BookDetectionResults' own query when it builds the
+// "no match, enter by hand" link, so a reader who scanned a real barcode never has to type the
+// digits a second time on the manual form (NewBook seeds `ItemForm`'s `isbn` field straight from
+// this same `initial`, with no separate wiring).
+export const seedFromAddFlowState = (search) => {
+  const params = new URLSearchParams(search);
+  return {
+    collectionId: params.get('collectionId') ?? undefined,
+    isbn: params.get('isbn') ?? undefined,
+  };
+};

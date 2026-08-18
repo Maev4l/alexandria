@@ -529,6 +529,55 @@ try {
     heading.text,
   );
 
+  // ---- The `FILING INTO` mark's collection name must not inherit the label's caps ----
+  // Fix round 1, finding 1: `<p className="caps ...">Filing into {collectionName}</p>` set
+  // `text-transform: uppercase` on the WHOLE element, so "Blake et Mortimer" rendered as
+  // "BLAKE ET MORTIMER" — a content title, which DESIGN.md §3 forbids outright. jsdom's
+  // `textContent` cannot see this at all (it ignores CSS), which is exactly why `yarn test`
+  // passed on the broken markup and this check exists: the unit suite asserts the class is
+  // DECLARED (`.className` contains `normal-case`), this asserts it SURVIVES the cascade as an
+  // actually-resolved computed style, the same division as the sheet-heading check above.
+  console.log("the FILING INTO mark's collection name is not uppercased");
+  // ISBN_MIXED_ARTWORK from tools/mock-detections.js — a real match, not a miss, so the
+  // candidate list (and the collection name mark beside it) actually renders. 'coll-melville' /
+  // 'Melville' come from src/test/fixtures/items.js, already the fixture library this file uses
+  // elsewhere in this script.
+  await page.goto(
+    `${BASE}/libraries/lib-fiction/add/book/results?isbn=9782070408504&collectionId=coll-melville`,
+    { waitUntil: 'networkidle0' },
+  );
+  await page.waitForSelector('[data-mark="filing-into-name"]');
+  const filingInto = await page.evaluate(() => {
+    const el = document.querySelector('[data-mark="filing-into-name"]');
+    const s = getComputedStyle(el);
+    return { transform: s.textTransform, text: el.textContent };
+  });
+  record(
+    filingInto.transform !== 'uppercase',
+    'the collection name is not uppercased',
+    filingInto.transform,
+  );
+  record(filingInto.text.trim() === 'Melville', 'the collection name renders intact', filingInto.text);
+
+  // ---- The looked-up code renders in the mono, once, at the head ----
+  // Fix round 2, finding 2: the scanned ISBN used to print on every candidate row (the reader's
+  // own code echoed back three times, differentiating nothing); it now lives once at the head of
+  // the list, in Chivo Mono. `.num`'s declaration is asserted by the unit suite; whether it
+  // actually RESOLVES to the mono face is a computed-style fact jsdom cannot see, same division
+  // as the two checks above. Reuses the page already loaded for the FILING INTO check.
+  console.log('the looked-up code renders in the mono at the head of the list');
+  await page.waitForSelector('[data-mark="lookup-code"]');
+  const lookupCode = await page.evaluate(() => {
+    const el = document.querySelector('[data-mark="lookup-code"]');
+    return { fontFamily: getComputedStyle(el).fontFamily, text: el.textContent.trim() };
+  });
+  record(
+    lookupCode.fontFamily.includes('Chivo Mono'),
+    'the head code resolves to Chivo Mono',
+    lookupCode.fontFamily,
+  );
+  record(lookupCode.text === '9782070408504', 'the head code is the scanned ISBN', lookupCode.text);
+
   // ---- Pinch-zoom must not be disabled: WCAG 1.4.4, and this app is used in poor light ----
   console.log('viewport permits zoom');
   await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
@@ -1382,10 +1431,22 @@ try {
       '/libraries/lib-fiction/unshare',
       '/libraries/lib-fiction/items/new/book',
       '/libraries/lib-fiction/edit',
+      // Task 18, fix round 1 finding 3: a candidate's ISBN now sets `.num`. Added here rather
+      // than left to slip past monoRouteCoverage.test.js's import-graph guard.
+      '/libraries/lib-fiction/add/book/results',
     ];
 
+    // monoRouteCoverage.test.js extracts MONO_ROUTES as bare route PATHS and matches them
+    // segment-by-segment against routes.jsx — a literal query string appended there would fail
+    // that match (`results?isbn=...` is not the literal segment `results`). The query this one
+    // route needs to render anything at all lives here instead, keyed by the same path, and is
+    // consulted only by the navigation below — it never touches the array that guard reads.
+    const ROUTE_QUERY = {
+      '/libraries/lib-fiction/add/book/results': '?isbn=9782070408504&collectionId=coll-melville',
+    };
+
     const collectMonoTexts = async (route) => {
-      await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
+      await page.goto(`${BASE}${route}${ROUTE_QUERY[route] ?? ''}`, { waitUntil: 'networkidle0' });
       await page.waitForSelector('main', { timeout: 10_000 });
       return page.evaluate(() => {
         const out = [];

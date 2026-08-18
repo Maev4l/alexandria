@@ -6888,10 +6888,30 @@ than a fallback".
 ```jsx
 it('takes its own name rather than the stub row\'s wordmark', () => {
   renderPage();
-  expect(screen.getByText('Add a book')).toBeInTheDocument();
-  expect(screen.queryByText(/alexandria/i)).not.toBeInTheDocument();
+  // Scoped to the header, and that is the whole point. The `sr-only <h1>` is a SIBLING of
+  // <AppHeader>, permanent, and carries the same string — so an unscoped query is satisfied by
+  // the heading alone and stays green even if `title` is dropped from the header entirely. That
+  // guards the wordmark returning and not the title vanishing, which is half of a two-halved
+  // criterion.
+  const header = within(document.querySelector('header'));
+  expect(header.getByText('Add a book')).toBeInTheDocument();
+  expect(header.queryByText(/alexandria/i)).not.toBeInTheDocument();
 });
 ```
+
+**The first version of this snippet was wrong in two ways, and it is corrected here rather than
+quietly replaced, because the manner of the error is the lesson.** It read
+`screen.getByText('Add a book')` — which **throws**, since the header title and the `sr-only <h1>`
+both contain that exact string, so `getByText` finds two nodes. And the obvious repair,
+`getAllByText(...).length > 0`, is worse than it looks: it passes on the heading alone and
+therefore cannot detect a missing header title at all.
+
+The author verified the *wordmark* clause of that example against `AppHeader.jsx` — confirming it
+really does render the literal string `Alexandria` — and then recorded the example as verified.
+One clause of two was checked. **Partial verification reported as verification is the same defect
+as an unverified claim, and is harder to catch precisely because some checking visibly happened.**
+Demonstrate a new assertion by breaking the thing it guards in **every** direction it claims to
+cover — here: remove `title`, then re-add `wordmark`, and watch it go red both times.
 
 **Why this criterion exists at all, recorded because the omission is the reusable part:** the rule
 was in §2 and *not* in this task, and a rule in a document does not travel into a brief. A task's

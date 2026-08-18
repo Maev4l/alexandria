@@ -80,6 +80,10 @@ export default defineConfig(({ command }) => {
           manualChunks: {
             amplify: ['aws-amplify'],
             react: ['react', 'react-dom', 'react-router-dom'],
+            // Its own chunk, never merged into the entry bundle: most sessions are lookups, not
+            // cataloguing sessions, so the barcode decoder must not cost every reader who never
+            // opens the camera a single byte of it.
+            zxing: ['@zxing/browser', '@zxing/library'],
           },
         },
       },

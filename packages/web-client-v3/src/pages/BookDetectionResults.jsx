@@ -1,22 +1,257 @@
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
+import PlateButton from '@/components/imprint/PlateButton.jsx';
+import VolumeFrame from '@/components/imprint/VolumeFrame.jsx';
+import { collectionsApi, detectionApi, itemsApi } from '@/api';
 
-// Placeholder — replaced by its own task in the implementation plan. Still gets a real landmark
-// and heading now: a stub is still a screen a reader can land on, and retrofitting this once the
-// build catches up costs more than writing it alongside the stub.
-//
-// `onBack` is not decoration: this screen is one step further into the same cataloguing flow as
-// AddBook, and installed as a standalone PWA there is no browser chrome and no back gesture —
-// without it, the reader is stuck one tap deeper in the same dead end (see the critique this
-// fixes).
+// The identifying input lives in the QUERY, never `location.state` (ui-v3.md ruling H): a cold
+// load — a reload, a PWA restart, a shared URL — must re-run detection from `?isbn=` and land
+// the reader exactly where they were, still filing into the same collection if `?collectionId=`
+// is present. Detection is a side-effect-free read, so re-running it here is safe even though
+// AddBook already ran it once before navigating; this screen never trusts a value handed to it
+// any other way.
 const BookDetectionResults = () => {
+  const { libraryId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const isbn = params.get('isbn') ?? '';
+  const collectionId = params.get('collectionId') ?? undefined;
+
+  const [status, setStatus] = useState('loading');
+  const [candidates, setCandidates] = useState([]);
+  const [errorMessage, setErrorMessage] = useState(null);
+  // Best-effort, like NewBook's own collection fetch: the mark it feeds (`FILING INTO <name>`)
+  // is a courtesy telling the reader the session still remembers their board, not a gate on
+  // anything this screen can do — a failed lookup here must never block confirming a candidate.
+  const [collectionName, setCollectionName] = useState(null);
+  const [savingKey, setSavingKey] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+
+  const load = useCallback(() => {
+    if (!isbn) {
+      // No ISBN in the query at all is not a detection failure — there was never a code to look
+      // up (e.g. this URL was typed or edited by hand). Distinct message, same recovery shape.
+      setStatus('error');
+      setErrorMessage('No ISBN was carried through. Go back and scan or type it again.');
+      return;
+    }
+    setStatus('loading');
+    setErrorMessage(null);
+    detectionApi
+      .book(isbn)
+      .then((response) => {
+        setCandidates(response?.detectedBooks ?? []);
+        setStatus('ready');
+      })
+      .catch((err) => {
+        setErrorMessage(err.message);
+        setStatus('error');
+      });
+  }, [isbn]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    if (!collectionId) {
+      setCollectionName(null);
+      return undefined;
+    }
+    let cancelled = false;
+    collectionsApi
+      .get(libraryId, collectionId)
+      .then((collection) => {
+        if (!cancelled) setCollectionName(collection?.name ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [libraryId, collectionId]);
+
+  // Finding 1/2 (ui-v3.md ruling A): a real miss is a NON-EMPTY array whose every entry carries
+  // `error` (Google always emits one on zero results), never `detectedBooks.length === 0` — the
+  // schema permits a genuinely empty array too, but that models every resolver being
+  // UNREACHABLE, not "no book matches this ISBN", and both must offer the same way forward.
+  const usable = candidates.filter((candidate) => !candidate.error);
+  // Grouped and rendered separately from `usable` (fix round 2 finding 1): a failed candidate
+  // is shown as a failure note, never as a row wearing a book's clothes.
+  const failed = candidates.filter((candidate) => candidate.error);
+  const offerManualEntry = status === 'ready' && usable.length === 0;
+
+  const manualEntryPath = () => {
+    const p = new URLSearchParams({ isbn });
+    if (collectionId) p.set('collectionId', collectionId);
+    return `/libraries/${libraryId}/items/new/book?${p}`;
+  };
+
+  const onConfirm = async (candidate, key) => {
+    setSaveError(null);
+    setSavingKey(key);
+    try {
+      await itemsApi.createBook(libraryId, {
+        title: candidate.title,
+        summary: candidate.summary,
+        authors: candidate.authors ?? [],
+        isbn: candidate.isbn || isbn,
+        // Truthiness, never presence (ui-v3.md ruling B): Google's own no-cover candidate is a
+        // PRESENT empty string, not an absent key, and `''` must degrade the same way an absent
+        // `pictureUrl` does rather than being sent to the API as a real address.
+        pictureUrl: candidate.pictureUrl || null,
+        collectionId: collectionId ?? null,
+        order: null,
+      });
+      // Cataloguing is a batch activity (PRODUCT.md): loop back to AddBook for the next scan,
+      // carrying the same collection, rather than exiting the flow after one item.
+      const p = collectionId ? `?collectionId=${encodeURIComponent(collectionId)}` : '';
+      navigate(`/libraries/${libraryId}/add/book${p}`);
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
   return (
     <div className="min-h-dvh bg-paper">
-      <AppHeader wordmark onBack={() => navigate(-1)} search={false} />
+      <AppHeader title="Book results" onBack={() => navigate(-1)} search={false} />
       <main className="p-4">
         <h1 className="sr-only">Book results</h1>
-        <p className="caps text-xs font-bold text-ink-soft">BookDetectionResults — not built</p>
+
+        {/* Printed, never a toast: this must survive a whole session of back-to-back scans, and
+            its absence is what says "standalone" (ui-v3.md task 18).
+            The caps belong to the LABEL only — the collection name is content the reader
+            authored, and DESIGN.md §3 forbids uppercasing content titles. `caps` on the outer
+            <p> would otherwise inherit onto the name via `text-transform`, which is exactly the
+            defect SharedRibbon.jsx already solved for `FROM <owner>`: the name gets its own
+            `normal-case` reset, same construction, copied rather than reinvented. `data-mark` is
+            a stable hook for check:browser's computed-style assertion, per DetailMarks.jsx's own
+            convention — content, not styling. */}
+        {collectionName && (
+          <p className="caps mb-4 text-[11px] font-bold tracking-[0.16em] text-ink-soft">
+            Filing into{' '}
+            <span
+              data-mark="filing-into-name"
+              className="normal-case text-[13px] font-normal tracking-normal"
+            >
+              {collectionName}
+            </span>
+          </p>
+        )}
+
+        {status === 'error' && (
+          <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">
+            <p className="text-sm">{errorMessage}</p>
+            <PlateButton variant="secondary" className="mt-4" onClick={load}>
+              Try again
+            </PlateButton>
+          </div>
+        )}
+
+        {status === 'loading' && (
+          <p className="caps text-xs font-bold text-ink-soft" aria-busy="true">
+            Looking it up
+          </p>
+        )}
+
+        {/* Task 18, fix round 2 finding 2: the scanned code is one fact about the WHOLE lookup,
+            not a fact repeated on every candidate — all three rows below are resolutions of
+            this one input, so printing it three times differentiated nothing and cost every row
+            a line. It lives here once, in the mono (§3 reserves the mono face for numerals;
+            `data-mark` is check:browser's hook for the resolved font-family, same convention as
+            "filing-into-name" above). */}
+        {status !== 'loading' && isbn && (
+          <p data-mark="lookup-code" className="num mb-4 text-[13px] text-ink-soft">
+            {isbn}
+          </p>
+        )}
+
+        {status === 'ready' && usable.length > 0 && (
+          <ul className="flex flex-col gap-4">
+            {usable.map((candidate, index) => {
+              const key = candidate.id || `${candidate.source}-${index}`;
+              return (
+                <li key={key} className="flex gap-4 border-b-2 border-ink pb-4">
+                  {/* Reused as-is, not rebuilt: the standard 2:3 Volume Frame, ruled and empty
+                      whenever a resolver supplies no artwork. `|| null` collapses BOTH the
+                      absent case (Goodreads/TMDB) and the present-but-empty-string case
+                      (Google, ruling B) to the same falsy input `pictureSrc()` already treats
+                      as "no picture" — never an <img src=""> resolving against the page URL. */}
+                  <VolumeFrame item={{ picture: candidate.pictureUrl || null }} />
+                  <div className="min-w-0 flex-1">
+                    {/* No `|| 'Untitled'` fallback (fix round 2 finding 1): a candidate reaching
+                        this branch already has no `error`, so its title is real. Fabricating
+                        one for the branch that DOES fail is a different bug this round removes
+                        entirely — see the failure register below, which never reaches this row
+                        at all. */}
+                    <p className="truncate text-[17px] font-semibold leading-tight text-ink">
+                      {candidate.title}
+                    </p>
+                    {candidate.authors?.length > 0 && (
+                      <p className="truncate text-sm text-ink-soft">{candidate.authors.join(', ')}</p>
+                    )}
+                    <p className="caps mt-1 text-[11px] text-ink-soft">{candidate.source}</p>
+                    {/* Nothing is written before this: no candidate reaches itemsApi until
+                        the reader presses this button themselves. */}
+                    <PlateButton
+                      variant="secondary"
+                      className="mt-2"
+                      disabled={savingKey != null}
+                      onClick={() => onConfirm(candidate, key)}
+                    >
+                      {savingKey === key ? 'Saving' : 'Use this'}
+                    </PlateButton>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {/* Fix round 2 finding 1: a failed resolver used to render as a FULL candidate — a
+            ruled frame, an invented `Untitled` title in the loudest role on the row, an ISBN
+            that was only ever the reader's own code echoed back. That was three faults at once:
+            fabricated content in the slot a reader scans first (DESIGN.md §9), a screen that
+            could show `Untitled` directly above `NO MATCH FOUND` on a true miss (one candidate,
+            two opposite claims), and a hierarchy that buried the one fact that matters — this
+            source did not answer — last, in the quiet tone, under the invented one in ink.
+            A failure is a ruled NOTE now, not a candidate: no frame, no title role, no action,
+            grouped strictly after the real candidates so preview-before-commit still shows it
+            without dressing it as a volume. */}
+        {status === 'ready' && failed.length > 0 && (
+          <ul className="mt-4 flex flex-col">
+            {failed.map((candidate, index) => (
+              <li
+                key={candidate.id || `${candidate.source}-failed-${index}`}
+                className="caps border-t border-ink py-2 text-[11px] text-ink-soft"
+              >
+                {candidate.source} — no answer
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {saveError && (
+          <p role="alert" className="mt-4 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
+            {saveError}
+          </p>
+        )}
+
+        {offerManualEntry && (
+          <div className="mt-4 border-2 border-ink p-8 text-center">
+            <p className="caps text-xs font-bold text-ink-soft">No match found</p>
+            <PlateButton
+              variant="secondary"
+              className="mt-4"
+              onClick={() => navigate(manualEntryPath())}
+            >
+              Enter by hand
+            </PlateButton>
+          </div>
+        )}
       </main>
     </div>
   );

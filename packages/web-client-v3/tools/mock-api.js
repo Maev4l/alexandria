@@ -6,6 +6,7 @@ import {
 } from '../src/test/fixtures/items.js';
 import { eventsByItem } from '../src/test/fixtures/events.js';
 import { hugeItems } from '../src/test/fixtures/huge.js';
+import { handleDetection } from './mock-detections.js';
 
 const COLLECTION = 2;
 
@@ -38,6 +39,11 @@ export const resetMockState = () => {
 export const handleMockRequest = (method, url, body) => {
   const { pathname, searchParams } = new URL(url, 'http://localhost');
   const path = pathname.replace(/^\/api\/v1/, '');
+
+  // Delegated to its own module: the fixture cases it must serve (mixed artwork, a failed
+  // resolver, no result, a wrong OCR read) are numerous enough that inlining them here would
+  // bury the route-matching this file otherwise stays flat and easy to scan.
+  if (method === 'POST' && path === '/detections') return handleDetection(body);
 
   if (method === 'GET' && path === '/libraries') return ok({ libraries });
 
