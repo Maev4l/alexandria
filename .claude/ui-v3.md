@@ -336,6 +336,44 @@ shown and is editable — OCR is fallible and the reader must be able to correct
 **API:** `POST /detections` with `type: 1` and `image` or `title`; then
 `POST /libraries/{libraryId}/videos`.
 
+**A capture viewport must narrate its own lookup — neither of them did, and both hide the app's slowest
+call behind a frame that looks idle.** Reported from use: tapping a control and seeing nothing happen.
+
+Both capture components take only a code/image callback and an error callback. Neither is told the parent
+is busy, so:
+
+- **`CoverCapture`** — the shutter fires `POST /detections` with a base64 image and a Bedrock vision
+  invocation, the slowest operation in the product, and the frame shows no change at all until the
+  navigation lands.
+- **`BarcodeScanner`** — worse, because nothing is tapped. A decode happens automatically, the lookup
+  runs, and the viewport goes on looking like it is still scanning. The reader gets **no acknowledgement
+  that the code was even read**, so on a slow connection they keep holding the phone at the barcode.
+
+The manual buttons on both screens already narrate — `Looking it up`, `Looking up this title` — and
+`ItemForm` shows `Saving`. Three of the four paths follow that convention; the two viewports follow
+nothing, which is why they are where the defect appeared.
+
+**The vocabulary already exists and needs no invention: caps state text in the frame**, exactly as
+`BarcodeScanner` already renders `REQUESTING CAMERA ACCESS`. The feed keeps running underneath — it is
+the reassurance that nothing has died — and there is no spinner, no overlay wash, no progress device.
+
+- Film: **`LOOKING UP THIS COVER`**, matching the control that was tapped.
+- Book: **`CODE READ · LOOKING IT UP`**, because the decode was automatic and the reader needs *two*
+  facts — that a code was captured, and that a lookup is running. The film shutter needs only the second,
+  since the tap itself acknowledged the first.
+
+**Disabling is deliberately NOT part of this, by the owner's decision.** The residual, stated so it is
+not rediscovered as a surprise: a tap or a decode during an in-flight lookup is still swallowed by the
+`if (isBusy) return` guard, and on the film screen the shutter can be tapped during a *title* lookup,
+where it is not the narrating control. Accepted on the grounds that some control on the screen is
+visibly narrating in every such case, so the reader has the information even when it is not on the
+surface they touched — which is the difference between this residual and the defect being fixed, where
+nothing anywhere said anything.
+
+Placement may be revised by the camera-surface pass, which is still deferred to a live feed on a device.
+What is settled here is that a viewport narrates its lookup at all, and in the caps register rather than
+in a device this world has no vocabulary for.
+
 **The capture is ONE action, because `/detections` is atomic — and the two-tap version was paying for
 that twice.** The endpoint takes an image, runs OCR, searches TMDB, and returns **candidates *and*
 `extractedTitle` in one response**; there is no OCR-only endpoint. So a flow that captures, shows the
