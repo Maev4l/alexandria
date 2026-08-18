@@ -332,9 +332,45 @@ Neither screen ever renders an empty candidate list as a spinner that never reso
 ### AddVideo / VideoDetectionResults
 Cover capture via manual shutter (OCR through Bedrock/Claude vision) or a typed title. Results
 are TMDB candidates: title, year, runtime, director, cast, poster. The extracted OCR title is
-shown and is editable — OCR is fallible and the reader must be able to correct it before search.
+shown and is editable — OCR is fallible and the reader must be able to correct it.
 **API:** `POST /detections` with `type: 1` and `image` or `title`; then
 `POST /libraries/{libraryId}/videos`.
+
+**The capture is ONE action, because `/detections` is atomic — and the two-tap version was paying for
+that twice.** The endpoint takes an image, runs OCR, searches TMDB, and returns **candidates *and*
+`extractedTitle` in one response**; there is no OCR-only endpoint. So a flow that captures, shows the
+title for review, and *then* searches can only be built by calling `/detections` with the image, keeping
+`extractedTitle`, **discarding the candidates already paid for**, and calling `/detections` a second time
+with the title. That is what shipped (`AddVideo.jsx:70,110`): two detection calls per film, the first
+including a base64 upload and a vision-model invocation, its result thrown away — and since TMDB is a
+pure function of the title, the second call provably returns what the first already had whenever the
+reader does not edit.
+
+So the shutter completes the job: one tap, one call, straight to the candidates.
+
+**The review step moves rather than disappearing.** The reason for showing the extracted title was that
+OCR is fallible, and that reason survives — it just belongs on the results screen, where the extracted
+title is an editable field the reader can correct and re-search. **That puts the cost on the failure
+path**: a correct read costs one tap and one call, and a misread costs the same total effort as the old
+flow, paid only when it was actually wrong. Seeing the candidates is also a *better* signal of OCR
+failure than reading the bare string — a misread cover returns obviously wrong films, where a title in a
+field tells the reader much less.
+
+**The labels must name their outcome, or the change reintroduces the defect it fixes.** A bare `Capture`
+would now do more than it says, which is §7's *a control labelled with a specific action performs that
+action* in reverse. The pair becomes parallel and distinct: the shutter reads **`LOOK UP THIS COVER`**,
+the text field's action reads **`LOOK UP THIS TITLE`**. Each names its input and both name the result.
+
+**And the underlying defect was structural, not merely wasteful.** `Capture` did not complete anything —
+it populated a field owned by a *different* button, so its consequence appeared elsewhere and needed a
+second, differently-labelled action to mean anything. One control, one outcome, is the fix; the halved
+API cost follows from it.
+
+Recorded also as a caveat on this whole review: the two-call flow **worked**. Both suites passed, and
+every rendered state I reviewed was correct. A duplicated network call with a discarded response is
+invisible to a screenshot and to every assertion nobody thought to write — it was found by the owner
+recalling what the endpoint does. **Ask what the backend actually is, not only whether the screen looks
+right.**
 
 ### NewBook / NewVideo — manual entry
 Full forms honouring the API's limits: title ≤100, summary ≤4000, authors; or directors ≤100
