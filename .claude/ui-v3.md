@@ -343,13 +343,32 @@ number, because a viewfinder's subject is not an item.
 
 - **Book — full column width, fixed height of 52 divisions (416px).** An EAN-13 is landscape; a portrait
   2:3 window forces the reader to hold the phone so a wide barcode occupies a small fraction of the
-  frame, which is a frame fighting its subject. Reshaping it is **free**, because `@zxing` decodes from
-  the stream's intrinsic size and the CSS box cannot affect what is read — the window is purely an
-  aiming aid. The height is a fixed division-scale value rather than an aspect ratio, so the frame does
-  not drift with the viewport; its proportions therefore vary by device *by design*, which is acceptable
-  for a targeting window and would not be for an artwork frame.
-- **Film — 2:3, unchanged.** Its subject *is* a 2:3 cover, and once capture is the framed region the
-  frame is not merely aiming, it defines the image that gets read.
+  frame, which is a frame fighting its subject. The height is a fixed division-scale value rather than an
+  aspect ratio, so the frame does not drift with the viewport; its proportions therefore vary by device
+  *by design*, which is acceptable for a targeting window and would not be for an artwork frame. **At the
+  448px desktop column it becomes 416×416 — square — where the wide-for-a-wide-subject argument does not
+  apply.** Accepted: the phone is the posture this is for.
+
+  **I first justified this as "free, because the CSS box cannot affect the read". That is right about the
+  mechanism and wrong about the effect, and the correction strengthens the case.** `@zxing` decodes the
+  sensor image, and **the frame's shape decides where the reader holds the phone**, which decides what the
+  sensor sees. A portrait window containing a landscape barcode invites the reader to *back away* until
+  the whole code fits, making the code physically smaller in the sensor frame — a genuine decode penalty
+  arriving by a route CSS never touches. A wide window invites filling it, which is the position that
+  decodes best. So frame and subject currently disagree and the reader resolves the disagreement with
+  their arms.
+
+  The rule against claiming improvement **still stands**: the indirect path is real but **unmeasured**,
+  and an unmeasured causal claim in a comment is the same defect as a false one. Comments say aiming.
+- **Film — 2:3, unchanged in ratio. Its SIZE is now load-bearing and the halving to 140px is under
+  review.** Once capture is the framed region, the frame is not merely aiming: it *defines the image that
+  gets read*. So a reader judging "is the title inside the frame and legible?" does that on the preview,
+  and at 140px wide they are judging a DVD cover in a thumbnail. Capture resolution is unaffected —
+  intrinsic pixels either way — but **mis-aiming now removes the title from the captured region, and OCR
+  extracting nothing produces the no-result dead end**, which is the precise failure mode the title-band
+  crop was refused for. Halving that frame was accepted on the grounds it had become cosmetic once
+  capture was decoupled from CSS size; the aiming argument shows it is not cosmetic. Raised by the
+  implementation session unprompted, and referred to the owner because the halving was their request.
 
 So this is one rule applied twice, not two competing conventions. **Recorded because it is exactly the
 asymmetry a later pass "harmonises" without knowing it was deliberate** — the same way the two primary
