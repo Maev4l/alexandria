@@ -336,6 +336,25 @@ shown and is editable — OCR is fallible and the reader must be able to correct
 **API:** `POST /detections` with `type: 1` and `image` or `title`; then
 `POST /libraries/{libraryId}/videos`.
 
+**The two capture frames have different shapes, deliberately, and each matches its own subject.** §4's
+frame law reads *one ratio for every item, because book covers and TMDB posters are both 2:3* — the
+reasoning is **match the subject**, and applying that same reasoning to a viewfinder gives a different
+number, because a viewfinder's subject is not an item.
+
+- **Book — full column width, fixed height of 52 divisions (416px).** An EAN-13 is landscape; a portrait
+  2:3 window forces the reader to hold the phone so a wide barcode occupies a small fraction of the
+  frame, which is a frame fighting its subject. Reshaping it is **free**, because `@zxing` decodes from
+  the stream's intrinsic size and the CSS box cannot affect what is read — the window is purely an
+  aiming aid. The height is a fixed division-scale value rather than an aspect ratio, so the frame does
+  not drift with the viewport; its proportions therefore vary by device *by design*, which is acceptable
+  for a targeting window and would not be for an artwork frame.
+- **Film — 2:3, unchanged.** Its subject *is* a 2:3 cover, and once capture is the framed region the
+  frame is not merely aiming, it defines the image that gets read.
+
+So this is one rule applied twice, not two competing conventions. **Recorded because it is exactly the
+asymmetry a later pass "harmonises" without knowing it was deliberate** — the same way the two primary
+actions' opposite thumb zones were twice proposed for unification and twice refused (§4).
+
 **The captured image must be exactly what the preview showed, at the sensor's resolution — today it is
 neither.** Verified in `react-webcam/dist/react-webcam.js:276-286` and `CoverCapture.jsx:65,76`:
 
