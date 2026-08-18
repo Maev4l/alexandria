@@ -790,13 +790,25 @@ is that **every** disabled primary in the app announces its state visually and i
 not focusable, so a description on it is reachable in browse mode and never by tabbing. It was doing less
 than its presence implied.
 
-**The ruling: a disabled primary keeps its ruled-outline treatment, sets `aria-disabled` rather than
-`disabled` so it stays focusable, and carries a description naming what is missing.** That makes the
-reason genuinely reachable instead of merely present, and it belongs **inside `PlateButton`**, which also
-swallows activation while so marked — one component, no consumer changes, and the whole class fixed
-rather than the two screens that surfaced it. A local patch to a system-wide gap is how the same defect
-comes back on the next screen, which this project has now demonstrated four times with §6's collision
-alone.
+**The ruling, settled by the owner in the implementation session's favour: a disabled primary keeps its
+ruled-outline treatment and carries an `sr-only` line naming what is missing.** It costs nothing
+visually, restores the parity the first form lacks, and reintroduces nothing on screen.
+
+I twice ruled otherwise and both are withdrawn, recorded because the reasoning is more useful than the
+outcome. First `aria-describedby` on the button — wrong even as it shipped, since a `disabled` button is
+not focusable, so the description was reachable in browse mode and never by tabbing. Then `aria-disabled`
+with the control kept focusable, which does make the reason reachable but imposes a focusable control
+that swallows activation on every form in the app to deliver information late.
+
+The observation worth keeping from the argument, whoever it favours: **the location of a visual
+affordance is not necessarily the right location for its non-visual equivalent.** A sighted reader learns
+the form is incomplete by watching the button; a screen-reader user is better served where the fix
+happens, which is the field. Marking the required input `required` / `aria-required` through `Field` is
+therefore complementary rather than competing, and is the implementation session's call to take or leave.
+
+Whichever is built, it belongs in the shared primitive rather than on the screens that surfaced it — a
+local patch to a system-wide gap is how the same defect returns on the next screen, which §6's collision
+has demonstrated four times.
 
 Not a regression and not urgent: the gap predates today and the attribute that briefly covered part of it
 was itself ineffective. It is a small piece of code work across a shared primitive, so it waits on the
