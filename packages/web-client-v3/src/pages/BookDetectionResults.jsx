@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
+import FilingInto from '@/components/imprint/FilingInto.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import VolumeFrame from '@/components/imprint/VolumeFrame.jsx';
-import { collectionsApi, detectionApi, itemsApi } from '@/api';
+import { detectionApi, itemsApi } from '@/api';
+import { useCollectionName } from '@/lib/useCollectionName.js';
 
 // The identifying input lives in the QUERY, never `location.state` (ui-v3.md ruling H): a cold
 // load — a reload, a PWA restart, a shared URL — must re-run detection from `?isbn=` and land
@@ -22,10 +24,7 @@ const BookDetectionResults = () => {
   const [status, setStatus] = useState('loading');
   const [candidates, setCandidates] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
-  // Best-effort, like NewBook's own collection fetch: the mark it feeds (`FILING INTO <name>`)
-  // is a courtesy telling the reader the session still remembers their board, not a gate on
-  // anything this screen can do — a failed lookup here must never block confirming a candidate.
-  const [collectionName, setCollectionName] = useState(null);
+  const collectionName = useCollectionName(libraryId, collectionId);
   const [savingKey, setSavingKey] = useState(null);
   const [saveError, setSaveError] = useState(null);
 
@@ -66,23 +65,6 @@ const BookDetectionResults = () => {
   useEffect(() => {
     load();
   }, [load]);
-
-  useEffect(() => {
-    if (!collectionId) {
-      setCollectionName(null);
-      return undefined;
-    }
-    let cancelled = false;
-    collectionsApi
-      .get(libraryId, collectionId)
-      .then((collection) => {
-        if (!cancelled) setCollectionName(collection?.name ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [libraryId, collectionId]);
 
   // Finding 1/2 (ui-v3.md ruling A): a real miss is a NON-EMPTY array whose every entry carries
   // `error` (Google always emits one on zero results), never `detectedBooks.length === 0` — the
@@ -133,26 +115,9 @@ const BookDetectionResults = () => {
       <main className="p-4">
         <h1 className="sr-only">Book results</h1>
 
-        {/* Printed, never a toast: this must survive a whole session of back-to-back scans, and
-            its absence is what says "standalone" (ui-v3.md task 18).
-            The caps belong to the LABEL only — the collection name is content the reader
-            authored, and DESIGN.md §3 forbids uppercasing content titles. `caps` on the outer
-            <p> would otherwise inherit onto the name via `text-transform`, which is exactly the
-            defect SharedRibbon.jsx already solved for `FROM <owner>`: the name gets its own
-            `normal-case` reset, same construction, copied rather than reinvented. `data-mark` is
-            a stable hook for check:browser's computed-style assertion, per DetailMarks.jsx's own
-            convention — content, not styling. */}
-        {collectionName && (
-          <p className="caps mb-4 text-[11px] font-bold tracking-[0.16em] text-ink-soft">
-            Filing into{' '}
-            <span
-              data-mark="filing-into-name"
-              className="normal-case text-[13px] font-normal tracking-normal"
-            >
-              {collectionName}
-            </span>
-          </p>
-        )}
+        {/* Shared with AddBook, AddVideo and VideoDetectionResults — see FilingInto.jsx for why
+            this is a component now rather than a fourth copy of the same markup. */}
+        <FilingInto name={collectionName} />
 
         {status === 'error' && (
           <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">

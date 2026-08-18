@@ -3,10 +3,12 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import BarcodeScanner from '@/components/BarcodeScanner.jsx';
 import Field from '@/components/imprint/Field.jsx';
+import FilingInto from '@/components/imprint/FilingInto.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import { detectionApi } from '@/api';
 import { NO_INPUT_MESSAGE, seedFromAddFlowState } from '@/lib/addFlowState.js';
 import { isbnError, normalizeIsbn } from '@/lib/isbn.js';
+import { useCollectionName } from '@/lib/useCollectionName.js';
 
 // Both paths visible at once, never one behind the other (ui-v3.md task 18): the live scanner
 // sits above a labelled ISBN field that works whether or not the camera does — a denied
@@ -24,6 +26,11 @@ const AddBook = () => {
   const manualEntryPath = `/libraries/${libraryId}/items/new/book${
     collectionId ? `?collectionId=${encodeURIComponent(collectionId)}` : ''
   }`;
+  // The design session's own finding: a cataloguing session SITS on this screen and only passes
+  // THROUGH the candidate list, briefly, once per scan — so the FILING INTO mark belongs here at
+  // least as much as there (ui-v3.md ruling E). Missing from this screen, it was missing from the
+  // one place a whole session of back-to-back scans could actually see it.
+  const collectionName = useCollectionName(libraryId, collectionId);
 
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState(null);
@@ -110,6 +117,8 @@ const AddBook = () => {
       <main className="p-4">
         <h1 className="sr-only">Add a book</h1>
 
+        <FilingInto name={collectionName} />
+
         {/* Nothing failed here — the reader arrived at a route with no input, usually a typed or
             shared bare URL. `--out` means on loan and nothing else (DESIGN.md palette law), and
             §6's Error construction (a 2px OUT rule) tells a reader they did something wrong when
@@ -131,8 +140,20 @@ const AddBook = () => {
         )}
 
         <form onSubmit={onManualSubmit} className="mt-6" noValidate>
+          {/* type="text", deliberately, NOT `type="tel"`/`inputMode="numeric"` despite the field
+              only ever holding thirteen digits in the common case: `src/lib/isbn.js`'s own
+              validator — `/^[0-9]{9}[0-9Xx]$|^[0-9]{13}$/` — accepts a trailing `X` checksum
+              character for an ISBN-10 (ISO 2108), a REAL, valid, still-printed value. A numeric
+              keypad cannot type `X` at all on iOS or Android, which would make that legitimate
+              input untypeable on exactly the one-handed phone this change would otherwise help
+              (PRODUCT.md's bookshop scene) — rare, device-only, and unreportable by a reader who
+              does not know an ISBN-10 can end in a letter. General rule: never make a valid input
+              impossible to enter to save keystrokes on the common case. Revisit only if a keyboard
+              mode is found that reliably offers digits AND `X` on both platforms — name the actual
+              behaviour, not a spec table, before adopting one. */}
           <Field
             label="ISBN"
+            type="text"
             value={code}
             error={codeError}
             hint={codeError ? undefined : 'Type the 10- or 13-digit ISBN printed on the book.'}

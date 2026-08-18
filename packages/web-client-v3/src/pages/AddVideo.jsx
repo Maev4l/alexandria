@@ -3,9 +3,11 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import CoverCapture from '@/components/CoverCapture.jsx';
 import Field from '@/components/imprint/Field.jsx';
+import FilingInto from '@/components/imprint/FilingInto.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import { detectionApi } from '@/api';
 import { NO_INPUT_MESSAGE, seedFromAddFlowState } from '@/lib/addFlowState.js';
+import { useCollectionName } from '@/lib/useCollectionName.js';
 
 // Both paths visible at once, the same discipline AddBook uses for ISBN scan vs. manual entry
 // (ui-v3.md task 18): a live cover capture sits above a labelled, always-editable title field —
@@ -22,6 +24,11 @@ const AddVideo = () => {
   const manualEntryPath = `/libraries/${libraryId}/items/new/video${
     collectionId ? `?collectionId=${encodeURIComponent(collectionId)}` : ''
   }`;
+  // The design session's own finding: a cataloguing session SITS on this screen and only passes
+  // THROUGH the candidate list, briefly, once per capture — so the FILING INTO mark belongs here
+  // at least as much as there (ui-v3.md ruling E). Missing from this screen, it was missing from
+  // the one place a whole session of back-to-back captures could actually see it.
+  const collectionName = useCollectionName(libraryId, collectionId);
 
   const [title, setTitle] = useState('');
   // Recorded here, on THIS screen, for the identical reason AddBook keeps its own cameraError:
@@ -126,6 +133,8 @@ const AddVideo = () => {
       <AppHeader title="Add a film" onBack={() => navigate(-1)} search={false} />
       <main className="p-4">
         <h1 className="sr-only">Add a film</h1>
+
+        <FilingInto name={collectionName} />
 
         {/* Nothing failed here — the reader arrived at a route with no input, usually a typed or
             shared bare URL. `--out` means on loan and nothing else (DESIGN.md palette law), and

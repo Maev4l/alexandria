@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
+import FilingInto from '@/components/imprint/FilingInto.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import PlateLine from '@/components/imprint/PlateLine.jsx';
 import VolumeFrame from '@/components/imprint/VolumeFrame.jsx';
-import { collectionsApi, detectionApi, itemsApi } from '@/api';
+import { detectionApi, itemsApi } from '@/api';
+import { useCollectionName } from '@/lib/useCollectionName.js';
 
 const FILM = 1;
 
@@ -39,10 +41,7 @@ const VideoDetectionResults = () => {
   const [status, setStatus] = useState('loading');
   const [candidates, setCandidates] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
-  // Best-effort, like BookDetectionResults' own collection fetch: the mark it feeds
-  // (`FILING INTO <name>`) is a courtesy telling the reader the session still remembers their
-  // board, not a gate on anything this screen can do.
-  const [collectionName, setCollectionName] = useState(null);
+  const collectionName = useCollectionName(libraryId, collectionId);
   const [savingKey, setSavingKey] = useState(null);
   const [saveError, setSaveError] = useState(null);
 
@@ -78,23 +77,6 @@ const VideoDetectionResults = () => {
   useEffect(() => {
     load();
   }, [load]);
-
-  useEffect(() => {
-    if (!collectionId) {
-      setCollectionName(null);
-      return undefined;
-    }
-    let cancelled = false;
-    collectionsApi
-      .get(libraryId, collectionId)
-      .then((collection) => {
-        if (!cancelled) setCollectionName(collection?.name ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [libraryId, collectionId]);
 
   // Ruling A (task-19 brief, overriding a plain `length === 0` check): video has exactly one
   // resolver (TMDB), and it emits one candidate carrying `error` on a real miss
@@ -150,20 +132,9 @@ const VideoDetectionResults = () => {
       <main className="p-4">
         <h1 className="sr-only">Film results</h1>
 
-        {/* Same construction as BookDetectionResults' FILING INTO mark: the label is caps, the
-            collection name is content and resets to normal-case so `caps`'s text-transform does
-            not inherit onto a name the reader authored. */}
-        {collectionName && (
-          <p className="caps mb-4 text-[11px] font-bold tracking-[0.16em] text-ink-soft">
-            Filing into{' '}
-            <span
-              data-mark="filing-into-name"
-              className="normal-case text-[13px] font-normal tracking-normal"
-            >
-              {collectionName}
-            </span>
-          </p>
-        )}
+        {/* Shared with AddBook, AddVideo and BookDetectionResults — see FilingInto.jsx for why
+            this is a component now rather than a fourth copy of the same markup. */}
+        <FilingInto name={collectionName} />
 
         {status === 'error' && (
           <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">

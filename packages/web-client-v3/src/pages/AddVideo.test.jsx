@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { detectionApi } from '@/api';
+import { collectionsApi, detectionApi } from '@/api';
 import { NO_INPUT_MESSAGE } from '@/lib/addFlowState.js';
 
 // The camera is mocked: jsdom has no getUserMedia, and the behaviour under test here is
@@ -28,6 +28,7 @@ vi.mock('@/api', async (importOriginal) => {
   return {
     ...actual,
     detectionApi: { ...actual.detectionApi, video: vi.fn() },
+    collectionsApi: { ...actual.collectionsApi, get: vi.fn() },
   };
 });
 
@@ -63,6 +64,7 @@ const renderPage = (initialPath = '/libraries/lib-1/add/video', initialState) =>
 
 beforeEach(() => {
   vi.mocked(detectionApi.video).mockReset();
+  vi.mocked(collectionsApi.get).mockReset().mockResolvedValue(null);
 });
 
 describe('AddVideo', () => {
@@ -70,6 +72,26 @@ describe('AddVideo', () => {
     renderPage();
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/title/i)).toBeEnabled();
+  });
+
+  // Fix round 3 (design-session finding 1): a cataloguing session SITS on this screen for the
+  // whole session and only passes THROUGH the candidate list once per capture, so FILING INTO
+  // belongs here at least as much as there — it must survive being ignored across many captures,
+  // which is exactly the property a mark shown only on the screen that flashes past does not
+  // have. Its absence is what says "standalone", so both directions are asserted.
+  it('prints FILING INTO with the collection name when the session carries one', async () => {
+    vi.mocked(collectionsApi.get).mockResolvedValue({ id: 'c1', name: 'Blake et Mortimer', itemCount: 4 });
+    renderPage('/libraries/lib-1/add/video?collectionId=c1');
+    expect(await screen.findByText(/^filing into$/i)).toBeInTheDocument();
+    const name = screen.getByText('Blake et Mortimer', { selector: '[data-mark="filing-into-name"]' });
+    expect(name.className).toContain('normal-case');
+    expect(collectionsApi.get).toHaveBeenCalledWith('lib-1', 'c1');
+  });
+
+  it('prints no FILING INTO mark at all when the session is standalone', () => {
+    renderPage();
+    expect(screen.queryByText(/filing into/i)).not.toBeInTheDocument();
+    expect(collectionsApi.get).not.toHaveBeenCalled();
   });
 
   it('shows the OCR result as an editable field, because OCR is fallible', async () => {
