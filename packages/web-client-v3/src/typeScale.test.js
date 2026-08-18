@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { parse } from '@babel/parser';
 import _traverse from '@babel/traverse';
 import { describe, expect, it } from 'vitest';
@@ -223,7 +224,15 @@ describe('type scale (DESIGN.md section 3)', () => {
     //
     // Asserted on the resolver itself so the coverage is a fact rather than a hope: this fails if
     // anyone later "simplifies" findViolations down to the arbitrary pattern.
-    const probe = path.join(SRC_DIR, '__type-scale-probe.jsx');
+    // Written to the OS temp dir, NOT into `src/`. A probe file inside the scanned tree is read
+    // by every OTHER guard that walks `src/` — groundForeground, monoText, routeLandmarks — and
+    // vitest runs those files in parallel workers, so one of them could list the directory while
+    // the probe existed and read it after this test's `finally` deleted it. That produced an
+    // intermittent `ENOENT: ... __type-scale-probe.jsx` in whichever guard happened to be
+    // mid-walk: a failure with no relationship to the change under test, in a file nobody had
+    // touched. `findViolations` takes an absolute path and only uses SRC_DIR for the label, so
+    // nothing about what is asserted changes.
+    const probe = path.join(os.tmpdir(), 'alexandria-type-scale-probe.jsx');
     // `text-lg` is 18px — off the scale, and completely invisible to a class-literal scan.
     fs.writeFileSync(probe, 'const X = () => <p className="text-lg" />;\nexport default X;\n');
     try {
