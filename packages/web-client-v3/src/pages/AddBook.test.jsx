@@ -9,9 +9,13 @@ import { NO_INPUT_MESSAGE } from '@/lib/addFlowState.js';
 // escape hatch and the lookup flow, not the decoder itself (that lives in
 // BarcodeScanner.test.jsx, layer 1 of the three the task brief names). A second button lets a
 // couple of tests below drive a successful decode the same way a manual submit is driven.
+// `scanner-busy:<bool>` exposes the `busy` prop AddBook passes down, so a test below can assert
+// it is raised only for a lookup a DECODE started — never for the manual field's own submit,
+// even though both share the same `lookup()` call underneath (viewport-narration task).
 vi.mock('@/components/BarcodeScanner.jsx', () => ({
-  default: ({ onCode, onError }) => (
+  default: ({ onCode, onError, busy }) => (
     <div>
+      <p>scanner-busy:{String(busy)}</p>
       <button type="button" onClick={() => onError(new Error('NotAllowedError'))}>
         simulate denial
       </button>
@@ -185,6 +189,41 @@ describe('AddBook', () => {
     expect(
       await screen.findByText('landed:/libraries/lib-1/add/book/results?isbn=9782070408504 state:none'),
     ).toBeInTheDocument();
+  });
+
+  // Viewport-narration task: the scanner narrates "CODE READ · LOOKING IT UP" only while a lookup
+  // ITSELF started by a decode is running — so the page must tell the two origins apart even
+  // though `lookup()` underneath is the same function either way.
+  it('marks the scanner busy only while a lookup started by a decode is in flight', async () => {
+    let resolveLookup;
+    vi.mocked(detectionApi.book).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveLookup = resolve;
+      }),
+    );
+    renderPage();
+    expect(screen.getByText('scanner-busy:false')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /simulate decode/i }));
+    expect(screen.getByText('scanner-busy:true')).toBeInTheDocument();
+    resolveLookup({ detectedBooks: [] });
+    await screen.findByText(/^landed:/);
+  });
+
+  it('never marks the scanner busy for a manual-field lookup, even though it shares the same request', async () => {
+    let resolveLookup;
+    vi.mocked(detectionApi.book).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveLookup = resolve;
+      }),
+    );
+    renderPage();
+    await userEvent.type(screen.getByLabelText(/isbn/i), '9782070404209');
+    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
+    // The lookup IS in flight here (the submit button itself already narrates "Looking it up"),
+    // but nothing was ever decoded, so the scanner must not claim otherwise.
+    expect(screen.getByText('scanner-busy:false')).toBeInTheDocument();
+    resolveLookup({ detectedBooks: [] });
+    await screen.findByText(/^landed:/);
   });
 
   it('still offers Enter by hand, unrelated to any ISBN lookup state, and carries the collection through its own query', async () => {

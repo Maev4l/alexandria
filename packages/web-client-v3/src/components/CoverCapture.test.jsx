@@ -115,3 +115,59 @@ describe('CoverCapture — the state machine', () => {
     expect(latestProps.audio).toBe(false);
   });
 });
+
+// A shutter tap is self-acknowledging — the reader pressed something — so this owes only the ONE
+// fact BarcodeScanner's automatic decode does not already give for free: that the lookup it
+// started is still running. Deliberately a single-fact string, unlike the barcode viewport's two
+// (see BarcodeScanner.test.jsx's mirror suite) — the asymmetry is the point of this change, not an
+// inconsistency to harmonise away.
+describe('CoverCapture — narrating a lookup in flight', () => {
+  let originalMediaDevices;
+
+  beforeEach(() => {
+    latestProps = undefined;
+    getScreenshotMock = vi.fn(() => 'data:image/jpeg;base64,ZmFrZS1mcmFtZQ==');
+    originalMediaDevices = navigator.mediaDevices;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn() },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: originalMediaDevices,
+    });
+  });
+
+  it('says nothing while no lookup is in flight, once the stream is ready', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy={false} />);
+    act(() => latestProps.onUserMedia());
+    expect(screen.queryByText(/looking up this cover/i)).not.toBeInTheDocument();
+  });
+
+  it('narrates the lookup — and only the one fact — once ready and busy', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy />);
+    act(() => latestProps.onUserMedia());
+    expect(screen.getByText(/looking up this cover/i)).toBeInTheDocument();
+  });
+
+  it('never says "code read" — that fact belongs to the automatic decoder, not a tapped shutter', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy />);
+    act(() => latestProps.onUserMedia());
+    expect(screen.queryByText(/code read/i)).not.toBeInTheDocument();
+  });
+
+  it('does not narrate a lookup before the stream is ready, even if busy is set early', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy />);
+    // Still `requesting` — onUserMedia has not fired, so there is no ready frame to narrate over.
+    expect(screen.queryByText(/looking up this cover/i)).not.toBeInTheDocument();
+  });
+
+  it('leaves the shutter tappable while busy — no disabled state (explicitly out of scope)', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy />);
+    act(() => latestProps.onUserMedia());
+    expect(screen.getByRole('button', { name: /look up this cover/i })).toBeEnabled();
+  });
+});

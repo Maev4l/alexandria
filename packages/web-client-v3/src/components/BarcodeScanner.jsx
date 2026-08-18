@@ -25,7 +25,15 @@ const hasCamera = () =>
 // a caller that already knows what to say instead (AddBook replaces the whole viewfinder with an
 // inline "type it below" message), so duplicating that copy in two places would be the same fact
 // stated twice.
-const BarcodeScanner = ({ onCode, onError }) => {
+// `busy`: true while the CALLER has a lookup in flight for a code this component already
+// reported. A decode is automatic — nothing here is tapped, unlike CoverCapture's shutter — so
+// without this the reader gets no sign the code was even read, and the feed looks exactly like it
+// is still scanning while a slow network request runs. The caller (not this component) decides
+// when it's true, because only the caller knows whether the in-flight lookup was actually started
+// BY a decode from this scanner, versus a manual-field submit sharing the same request — see
+// AddBook.jsx's `busySource`. Narrating on every busy lookup regardless of origin would print
+// "CODE READ" for a lookup no code ever triggered, which is worse than saying nothing.
+const BarcodeScanner = ({ onCode, onError, busy = false }) => {
   const videoRef = useRef(null);
   const controlsRef = useRef(null);
   // Carries the PREVIOUS run's full settle+stop promise across a fast remount. Stays `null` for
@@ -132,6 +140,20 @@ const BarcodeScanner = ({ onCode, onError }) => {
           className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
         >
           Requesting camera access
+        </p>
+      )}
+      {/* Two facts, deliberately, because an automatic decode gives the reader neither for free:
+          that a code was captured at all, and that a lookup for it is now running. CoverCapture's
+          mirror only owes the second — a shutter press already tells the reader the first. Same
+          vocabulary as the requesting caption above (caps, 11px, ink-soft, no spinner/overlay —
+          the surface stays the design session's), because this is the SAME kind of thing: state
+          text over a live, still-running feed, never a wash or a dimming. */}
+      {state === 'scanning' && busy && (
+        <p
+          aria-live="polite"
+          className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
+        >
+          Code read · looking it up
         </p>
       )}
     </div>

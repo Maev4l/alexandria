@@ -40,7 +40,15 @@ const AddVideo = () => {
   // Recorded here, on THIS screen, for the identical reason AddBook keeps its own cameraError:
   // CoverCapture knows only that the browser refused it, not what a reader should do next.
   const [cameraError, setCameraError] = useState(null);
-  const [isBusy, setIsBusy] = useState(false);
+  // Which control started the in-flight lookup, or `null` when none is running — NOT a plain
+  // boolean, because both `onCaptured` and `onSubmit` below call the same `detectionApi.video`
+  // and only this page knows which one actually fired it. CoverCapture's "Looking up this cover"
+  // narration must appear only for a lookup the shutter started; a bare `isBusy` would also
+  // raise it for a typed-title submit, claiming a capture that never happened (viewport-
+  // narration task). `isBusy` below is derived from this, so every existing consumer (canSubmit,
+  // the re-entry guard) is unaffected by the split.
+  const [busySource, setBusySource] = useState(null);
+  const isBusy = busySource !== null;
   const [lookupError, setLookupError] = useState(null);
   // Set only by VideoDetectionResults' own redirect: a reader landed back here because the
   // results route had no `?title=` at all — a typed, edited, or bookmarked-mid-flow URL, never a
@@ -74,7 +82,7 @@ const AddVideo = () => {
   const onCaptured = async (image) => {
     if (isBusy) return;
     setLookupError(null);
-    setIsBusy(true);
+    setBusySource('capture');
     try {
       const response = await detectionApi.video({ image });
       const extracted = response?.extractedTitle ?? '';
@@ -92,7 +100,7 @@ const AddVideo = () => {
     } catch (err) {
       setLookupError(err.message);
     } finally {
-      setIsBusy(false);
+      setBusySource(null);
     }
   };
 
@@ -114,7 +122,7 @@ const AddVideo = () => {
     // submission on Enter too, so there is no separate path left for this to guard.
     if (!trimmed) return;
     setLookupError(null);
-    setIsBusy(true);
+    setBusySource('title');
     try {
       const response = await detectionApi.video({ title: trimmed });
       navigate(buildResultsPath(trimmed), {
@@ -123,7 +131,7 @@ const AddVideo = () => {
     } catch (err) {
       setLookupError(err.message);
     } finally {
-      setIsBusy(false);
+      setBusySource(null);
     }
   };
 
@@ -167,7 +175,11 @@ const AddVideo = () => {
             Camera access is off for this site. Type the title below instead.
           </p>
         ) : (
-          <CoverCapture onCapture={onCaptured} onError={setCameraError} />
+          <CoverCapture
+            onCapture={onCaptured}
+            onError={setCameraError}
+            busy={busySource === 'capture'}
+          />
         )}
 
         <form onSubmit={onSubmit} className="mt-6" noValidate>

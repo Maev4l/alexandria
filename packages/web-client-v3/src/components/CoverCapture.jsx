@@ -26,7 +26,13 @@ const stripDataUrlPrefix = (dataUrl) => dataUrl.replace(/^data:image\/[a-z]+;bas
 // renders an explanation here: this component is reached from inside a caller (AddVideo) that
 // already knows what to say instead (replacing the whole viewfinder with an inline "type it
 // below" message), so duplicating that copy here would be the same fact stated twice.
-const CoverCapture = ({ onCapture, onError }) => {
+// `busy`: true while the CALLER has a lookup in flight for a frame this shutter already captured.
+// Unlike BarcodeScanner's decode, a shutter press is self-acknowledging — the reader tapped it —
+// so this owes only the ONE remaining fact: that the lookup it started is still running. The
+// caller decides when it's true (AddVideo.jsx's `busySource`), because the same lookup call is
+// also reachable from the manual title field, and narrating here for a title-only lookup would
+// claim a cover lookup that never happened.
+const CoverCapture = ({ onCapture, onError, busy = false }) => {
   const webcamRef = useRef(null);
   const [state, setState] = useState(() => (hasCamera() ? 'requesting' : 'unsupported'));
 
@@ -75,6 +81,19 @@ const CoverCapture = ({ onCapture, onError }) => {
             className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
           >
             Requesting camera access
+          </p>
+        )}
+        {/* One fact, matching the control that was tapped — see the prop comment above for why
+            this is a single-fact string where BarcodeScanner's is two. Same vocabulary as the
+            requesting caption: caps text over the still-live feed, no spinner or wash, because
+            the shutter below stays tappable throughout (deliberately not disabled — see AddVideo
+            and CoverCapture.test.jsx's own "explicitly out of scope" case). */}
+        {state === 'ready' && busy && (
+          <p
+            aria-live="polite"
+            className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
+          >
+            Looking up this cover
           </p>
         )}
       </div>

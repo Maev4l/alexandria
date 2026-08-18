@@ -216,3 +216,55 @@ describe('BarcodeScanner — the state machine', () => {
     expect(controlsByCall.B.stop).not.toHaveBeenCalled();
   });
 });
+
+// A decode is automatic — no tap acknowledges it the way a shutter press does — so a slow lookup
+// left the reader with no sign the code was ever read at all, and the frame kept looking exactly
+// like it was still scanning. This narrates BOTH facts the reader is missing: a code WAS read, and
+// a lookup is now running for it. That is two facts, not one, which is what distinguishes this
+// text from CoverCapture's single-fact "Looking up this cover" — a shutter tap is already
+// self-acknowledging, an automatic decode is not (see CoverCapture.test.jsx's mirror suite).
+describe('BarcodeScanner — narrating a lookup in flight', () => {
+  let originalMediaDevices;
+
+  beforeEach(() => {
+    decodeFromConstraintsMock.mockReset().mockResolvedValue({ stop: vi.fn() });
+    vi.mocked(BrowserMultiFormatReader).mockClear();
+    originalMediaDevices = navigator.mediaDevices;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn() },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: originalMediaDevices,
+    });
+  });
+
+  it('says nothing while no lookup is in flight, once scanning', async () => {
+    render(<BarcodeScanner onCode={() => {}} onError={() => {}} busy={false} />);
+    await waitFor(() =>
+      expect(screen.queryByText(/requesting camera access/i)).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/looking it up/i)).not.toBeInTheDocument();
+  });
+
+  it('narrates both that a code was read AND that a lookup is running, once scanning and busy', async () => {
+    render(<BarcodeScanner onCode={() => {}} onError={() => {}} busy />);
+    await waitFor(() => expect(screen.getByText(/code read/i)).toBeInTheDocument());
+    // Both facts in the SAME node — a test asserting only "some caps text appears" would pass on
+    // a film-style single-fact string too, and would miss the entire reason the two differ.
+    const node = screen.getByText(/code read/i);
+    expect(node).toHaveTextContent(/code read/i);
+    expect(node).toHaveTextContent(/looking it up/i);
+  });
+
+  it('does not narrate a lookup before the stream has attached, even if busy is set early', () => {
+    decodeFromConstraintsMock.mockReturnValue(new Promise(() => {})); // never settles
+    render(<BarcodeScanner onCode={() => {}} onError={() => {}} busy />);
+    // Still in `requesting` — there is no scanning frame yet to narrate a lookup against.
+    expect(screen.queryByText(/code read/i)).not.toBeInTheDocument();
+  });
+});

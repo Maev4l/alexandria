@@ -10,9 +10,13 @@ import { NO_INPUT_MESSAGE } from '@/lib/addFlowState.js';
 // not the capture mechanism itself (that lives in CoverCapture.test.jsx, layer 1 of the three the
 // task brief names). "simulate capture" drives the same onCapture callback a real shutter press
 // would.
+// `capture-busy:<bool>` exposes the `busy` prop AddVideo passes down, so a test below can assert
+// it is raised only for a lookup the SHUTTER started — never for the manual title field's own
+// submit, even though both share the same detection call underneath (viewport-narration task).
 vi.mock('@/components/CoverCapture.jsx', () => ({
-  default: ({ onCapture, onError }) => (
+  default: ({ onCapture, onError, busy }) => (
     <div>
+      <p>capture-busy:{String(busy)}</p>
       <button type="button" onClick={() => onError(new Error('NotAllowedError'))}>
         simulate denial
       </button>
@@ -92,6 +96,41 @@ describe('AddVideo', () => {
       ),
     ).toBeInTheDocument();
     expect(detectionApi.video).toHaveBeenCalledTimes(1);
+  });
+
+  // Viewport-narration task: CoverCapture narrates "Looking up this cover" only while a lookup
+  // the SHUTTER itself started is running — so the page must tell the two origins (capture vs.
+  // typed title) apart even though both call `detectionApi.video` underneath.
+  it('marks the capture viewport busy only while a shutter-started lookup is in flight', async () => {
+    let resolveLookup;
+    vi.mocked(detectionApi.video).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveLookup = resolve;
+      }),
+    );
+    renderPage();
+    expect(screen.getByText('capture-busy:false')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /simulate capture/i }));
+    expect(screen.getByText('capture-busy:true')).toBeInTheDocument();
+    resolveLookup({ extractedTitle: 'Le Samouraï', detectedVideos: [] });
+    await screen.findByText(/^landed:/);
+  });
+
+  it('never marks the capture viewport busy for a typed-title lookup, even though it shares the same request', async () => {
+    let resolveLookup;
+    vi.mocked(detectionApi.video).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveLookup = resolve;
+      }),
+    );
+    renderPage();
+    await userEvent.type(screen.getByLabelText(/title/i), 'Inception');
+    await userEvent.click(screen.getByRole('button', { name: /^look up this title$/i }));
+    // The lookup IS in flight (the submit button already narrates "Looking up this title"), but
+    // no cover was ever captured, so CoverCapture must not claim one was.
+    expect(screen.getByText('capture-busy:false')).toBeInTheDocument();
+    resolveLookup({ detectedVideos: [] });
+    await screen.findByText(/^landed:/);
   });
 
   it('offers title search without ever opening the camera', () => {

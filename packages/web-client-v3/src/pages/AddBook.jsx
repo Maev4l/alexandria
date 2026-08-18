@@ -40,7 +40,15 @@ const AddBook = () => {
   // camera box) is what "the manual path is always in reach" means in practice — there is
   // nothing left on screen pretending a camera might still arrive.
   const [cameraError, setCameraError] = useState(null);
-  const [isBusy, setIsBusy] = useState(false);
+  // Which control started the in-flight lookup, or `null` when none is running — NOT a plain
+  // boolean, because `lookup()` below is shared between a decode and a manual submit and only
+  // this page knows which one actually fired it. BarcodeScanner's "CODE READ · LOOKING IT UP"
+  // narration must appear only for a lookup a code decode started; a bare `isBusy` would also
+  // raise it for a manual-field submit, claiming a decode that never happened (viewport-
+  // narration task). `isBusy` below is derived from this, so every existing consumer (canSubmit,
+  // the submit button's own re-entry guard) is unaffected by the split.
+  const [busySource, setBusySource] = useState(null);
+  const isBusy = busySource !== null;
   const [lookupError, setLookupError] = useState(null);
   // Set only by BookDetectionResults' own redirect: a reader landed back here because the
   // results route had no `?isbn=` at all — a typed, edited, or bookmarked-mid-flow URL, never a
@@ -58,10 +66,12 @@ const AddBook = () => {
 
   // Shared by a successful decode and a manual submit: both end the same way, a navigation to
   // the results screen carrying the code in the QUERY (never `location.state` — ruling H), which
-  // is what lets that screen survive a cold load by re-running this exact same read.
-  const lookup = async (rawCode) => {
+  // is what lets that screen survive a cold load by re-running this exact same read. `source`
+  // ('scan' or 'manual') records only WHO started this particular call, so BarcodeScanner can be
+  // told whether to narrate — the request itself is identical either way.
+  const lookup = async (rawCode, source) => {
     setLookupError(null);
-    setIsBusy(true);
+    setBusySource(source);
     try {
       await detectionApi.book(rawCode);
       navigate(resultsPath(rawCode));
@@ -71,7 +81,7 @@ const AddBook = () => {
       // manual) is still possible, rather than landing on a results screen with nothing to show.
       setLookupError(err.message);
     } finally {
-      setIsBusy(false);
+      setBusySource(null);
     }
   };
 
@@ -81,7 +91,7 @@ const AddBook = () => {
   // while the first lookup is still in flight.
   const onDecoded = (rawCode) => {
     if (isBusy) return;
-    lookup(rawCode);
+    lookup(rawCode, 'scan');
   };
 
   const onCodeChange = (event) => {
@@ -95,7 +105,7 @@ const AddBook = () => {
     const error = isbnError(code);
     setCodeError(error);
     if (error) return;
-    lookup(normalizeIsbn(code));
+    lookup(normalizeIsbn(code), 'manual');
   };
 
   const canSubmit = !isBusy && !isbnError(code);
@@ -138,7 +148,11 @@ const AddBook = () => {
             Camera access is off for this site. Type the ISBN below instead.
           </p>
         ) : (
-          <BarcodeScanner onCode={onDecoded} onError={setCameraError} />
+          <BarcodeScanner
+            onCode={onDecoded}
+            onError={setCameraError}
+            busy={busySource === 'scan'}
+          />
         )}
 
         <form onSubmit={onManualSubmit} className="mt-6" noValidate>
