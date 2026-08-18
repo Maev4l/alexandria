@@ -677,6 +677,18 @@ prompt its removal — the worst combination, because the comment made it look c
 excluding anything from a check, run the check without the exclusion and record what it actually
 reports. If the answer is "nothing", there was never a reason.
 
+**When you defer a fix, verify the fix would work — a deferral note naming an unvalidated remedy costs
+the next person an afternoon proving it impossible.** A review recommended separating two colliding
+fixture values so a guard could tell two elements apart. That fix cannot work: §5 defines an index run's
+count as standalone entries plus each board's `itemCount`, so a run holding exactly one board *always*
+equals that board's count, and changing the number moves both together forever. The equality is
+structural, not coincidental.
+
+Checked before deferring rather than after, so what got recorded was the real remedy — re-point the
+manifest at a run whose composition differs — instead of a plausible instruction that would have wasted
+the next reader's time and then still left the blind spot. **A deferral inherits the correctness of the
+fix it names**, exactly as an assertion inherits the correctness of the rule it encodes.
+
 **"The reported instance does not reproduce" is not "the defect cannot happen."** A wrap finding
 named `Bandes dessinées` at 320px; measured, it fits by under two pixels and never wraps. The
 arithmetic was nearly right and the conclusion wrong — which is a *weaker* claim than it looks,
