@@ -753,6 +753,29 @@ already see why:
   is already distinguishable at rest, which is why the delete confirmations were never part of that
   defect and still use this simpler form correctly. A lone submit button also keeps it. Only a
   same-colour ruled neighbour forces the second form.
+
+  **And when a neighbour does collide, ask first whether it should be a button at all — the second form
+  is the last resort, not the first.** Applied to `AddBook`, the second form printed `AN ISBN` in caps
+  where the submit button would sit, and it read as nonsense: the field is already labelled `ISBN` and
+  already hinted *"type the 10- or 13-digit ISBN"*, so the caps line stated the same fact a third time,
+  and because caps means *interface label* in this system it parsed as a heading for the control beneath
+  it rather than as an explanation of the one that was missing. Found by the owner looking at the screen,
+  after I had measured the collision, ruled on it, and read the caps fragment in my own render capture as
+  evidence the fix had worked.
+
+  The mistake was reaching for the second form to escape a collision. **Its premise is that the reason is
+  not visible**, and on that screen the reason was an empty labelled field directly above — as visible as
+  a reason gets. The collision was real; the second form was not its remedy.
+
+  The remedy is that `Enter by hand` is **navigation to another route, not an action on this screen**, and
+  only `Look it up` acts. So it takes the underlined-link treatment this system already uses for
+  `IN <library>` (§5, Detail Marks) rather than a Plate Button. The disabled primary is then the only
+  ruled outline in its row, the first form applies exactly as written, and no caps line is needed. That
+  is also the truer hierarchy: capture is the job and manual entry is the fallback, so they should not
+  carry equal weight.
+
+  **General rule: a collision between two controls is usually a sign that one of them is the wrong
+  component**, not that the other needs a caption.
 - **The reason is not visible** — a limit exceeded, a constraint the reader cannot infer. The slot
   carries the reason in `--ink-soft` caps *instead of* the control, in the control's own position,
   which is the best possible place for the explanation.
