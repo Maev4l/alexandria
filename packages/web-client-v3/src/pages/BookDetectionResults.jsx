@@ -60,6 +60,12 @@ const BookDetectionResults = () => {
         setErrorMessage(err.message);
         setStatus('error');
       });
+  // `navigate` sits in this dependency chain and the chain drives a FETCH, so this quietly
+  // depends on `useNavigate()` returning a stable reference across renders. It does under
+  // react-router-dom 7, and this reliance predates the history fix rather than arriving with it —
+  // but an upgrade that destabilised it would reintroduce a refetch loop in PRODUCTION, not only
+  // in a test, and the symptom (repeated /detections calls) is one a reader would never report as
+  // a bug. Written here rather than only in the test that first tripped over it.
   }, [isbn, libraryId, collectionId, navigate]);
 
   useEffect(() => {
@@ -100,8 +106,16 @@ const BookDetectionResults = () => {
       });
       // Cataloguing is a batch activity (PRODUCT.md): loop back to AddBook for the next scan,
       // carrying the same collection, rather than exiting the flow after one item.
+      //
+      // `replace: true` is load-bearing, not cosmetic: this results page is SPENT the instant the
+      // candidate above is saved — its candidates answer an item that already exists — so pushing
+      // a new history entry on top of it leaves it reachable by pressing back from the capture
+      // screen this loop lands on. Ten items in, that is ten back-steps to reach anything real.
+      // Replacing it means the capture screen's own explicit "back goes to the library" (below)
+      // is the only route away from here, in one step, regardless of how many items the session
+      // has already catalogued.
       const p = collectionId ? `?collectionId=${encodeURIComponent(collectionId)}` : '';
-      navigate(`/libraries/${libraryId}/add/book${p}`);
+      navigate(`/libraries/${libraryId}/add/book${p}`, { replace: true });
     } catch (err) {
       setSaveError(err.message);
     } finally {
@@ -111,6 +125,13 @@ const BookDetectionResults = () => {
 
   return (
     <div className="min-h-dvh bg-paper">
+      {/* A relative step, not an explicit destination: reached only from AddBook, whether that
+          screen was pushed fresh from the library or is itself the loop's replaced entry (see
+          onConfirm's own comment) — both cases leave AddBook directly behind this screen in
+          history, so `-1` is correct for every in-app path here. (A cold, deep-linked load has
+          no predecessor at all rather than a variable one; that is a separate, pre-existing
+          property of `navigate(-1)` shared by most of this app's back buttons, not something this
+          fix's post-save loop introduced or is scoped to touch.) */}
       <AppHeader title="Book results" onBack={() => navigate(-1)} search={false} />
       <main className="p-4">
         <h1 className="sr-only">Book results</h1>

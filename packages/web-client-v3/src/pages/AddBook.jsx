@@ -102,7 +102,20 @@ const AddBook = () => {
 
   return (
     <div className="min-h-dvh bg-paper">
-      <AppHeader title="Add a book" onBack={() => navigate(-1)} search={false} />
+      {/* Explicit destination, not `navigate(-1)`: this screen has two genuinely different
+          predecessors — a fresh add from the library (push), and the post-save loop landing
+          here after BookDetectionResults REPLACES its own spent results entry (see that
+          screen's onConfirm). A relative step is correct for the first and wrong for the
+          second — after a replace, `-1` still walks past this screen's own earlier self to
+          whatever came before it, never to the library in one step. `ui-v3.md`'s own flow spec
+          ("Cancel at any point returns to the library") already named this destination; the
+          collection is deliberately NOT carried into it — going back to the library is going
+          back to the library, and the board that was being filed is visible there already. */}
+      <AppHeader
+        title="Add a book"
+        onBack={() => navigate(`/libraries/${libraryId}`)}
+        search={false}
+      />
       <main className="p-4">
         <h1 className="sr-only">Add a book</h1>
 

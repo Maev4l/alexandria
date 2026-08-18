@@ -238,4 +238,56 @@ describe('AddVideo', () => {
     expect(header.getByText('Add a film')).toBeInTheDocument();
     expect(header.queryByText(/alexandria/i)).not.toBeInTheDocument();
   });
+
+  // The symptom this fixes: `navigate(-1)` is a step relative to whatever the reader's LAST
+  // screen happened to be, and this screen has two genuinely different ones — the library
+  // (a fresh add) and the just-saved results page (the post-save loop, one flow up). A relative
+  // step is right for exactly one of those and wrong for the other, so back must name its
+  // destination outright rather than ask history to guess it. Both predecessors are exercised
+  // here, deliberately not via the shared `renderPage` (its single-entry history stack cannot
+  // represent a "reached via the loop" scenario at all).
+  it('back always lands on the library, from both predecessors — a direct add, and the post-save loop', async () => {
+    const LocationProbe = () => {
+      const location = useLocation();
+      return <p>landed:{location.pathname}</p>;
+    };
+
+    // Predecessor 1: entered straight from the library. The history stack holds exactly this one
+    // entry, so `navigate(-1)` would have nowhere valid to go at all — a bare explicit
+    // destination is the only construction that can pass this case.
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/libraries/lib-1/add/video']}>
+        <Routes>
+          <Route path="/libraries/:libraryId" element={<LocationProbe />} />
+          <Route path="/libraries/:libraryId/add/video" element={<AddVideo />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /back/i }));
+    expect(await screen.findByText('landed:/libraries/lib-1')).toBeInTheDocument();
+    unmount();
+
+    // Predecessor 2: reached via the post-save loop, with the spent results page still sitting
+    // in history right behind this screen. `navigate(-1)` lands there — the exact symptom
+    // reported — regardless of how many entries deep the cataloguing session has gone.
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/libraries/lib-1',
+          '/libraries/lib-1/add/video',
+          '/libraries/lib-1/add/video/results?title=Inception',
+          '/libraries/lib-1/add/video',
+        ]}
+        initialIndex={3}
+      >
+        <Routes>
+          <Route path="/libraries/:libraryId" element={<LocationProbe />} />
+          <Route path="/libraries/:libraryId/add/video" element={<AddVideo />} />
+          <Route path="/libraries/:libraryId/add/video/results" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /back/i }));
+    expect(await screen.findByText('landed:/libraries/lib-1')).toBeInTheDocument();
+  });
 });

@@ -14,6 +14,38 @@ vi.mock('@/api', async (importOriginal) => {
   };
 });
 
+// A `LocationProbe` can see WHERE a navigation landed, but `location` carries no trace of HOW —
+// push and replace produce an identical `location` object. Recording the real `navigate` calls
+// (still forwarded to the genuine hook, so the app behaves exactly as it does today) is the only
+// way to assert `replace: true` rather than merely the destination, which is the whole point of
+// the post-save-loop test below: a push there is the defect this file exists to catch.
+//
+// The wrapper MUST be memoized on the real navigate reference: the real hook returns a stable
+// function across renders, and this component's own `load` is a `useCallback` that lists
+// `navigate` in its dependencies. An unmemoized wrapper hands out a fresh function identity every
+// render, which retriggers the `useEffect(() => { load(); }, [load])` that follows it — an
+// infinite refetch loop that silently exhausts a test's `mockOnce` queue and crashes a LATER,
+// unrelated test with "Cannot read properties of undefined (reading 'then')". Caught by running
+// this suite, not reasoned out in advance.
+const navigateCalls = [];
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal();
+  const { useMemo } = await import('react');
+  return {
+    ...actual,
+    useNavigate: () => {
+      const realNavigate = actual.useNavigate();
+      return useMemo(
+        () => (...args) => {
+          navigateCalls.push(args);
+          return realNavigate(...args);
+        },
+        [realNavigate],
+      );
+    },
+  };
+});
+
 const VideoDetectionResults = (await import('./VideoDetectionResults.jsx')).default;
 
 const LocationProbe = () => {
@@ -55,6 +87,7 @@ beforeEach(() => {
   vi.mocked(detectionApi.video).mockReset();
   vi.mocked(itemsApi.createVideo).mockReset().mockResolvedValue({ id: 'new-item' });
   vi.mocked(collectionsApi.get).mockReset().mockResolvedValue(null);
+  navigateCalls.length = 0;
 });
 
 describe('VideoDetectionResults', () => {
@@ -269,7 +302,7 @@ describe('VideoDetectionResults', () => {
     expect(name.className).toContain('normal-case');
   });
 
-  it('writes nothing until the reader confirms a candidate, then loops back to AddVideo', async () => {
+  it('writes nothing until the reader confirms a candidate, then loops back to AddVideo via replace', async () => {
     vi.mocked(detectionApi.video).mockResolvedValue({
       detectedVideos: [{ id: 't1', title: 'Inception', summary: 'A thief.', directors: ['Nolan'], cast: ['DiCaprio'], releaseYear: 2010, duration: 148, tmdbId: '27205', source: TMDB, pictureUrl: '/c1.webp' }],
     });
@@ -292,6 +325,14 @@ describe('VideoDetectionResults', () => {
     expect(
       await screen.findByText('landed:/libraries/lib-1/add/video?collectionId=c1 state:none'),
     ).toBeInTheDocument();
+    // The defect this test guards: a `push` here leaves the just-spent results page reachable
+    // by pressing back from the capture screen it loops to. Only `replace` retires it — the
+    // DESTINATION alone (asserted above) cannot tell the two apart, since `location` looks
+    // identical either way.
+    const loopNavigation = navigateCalls.find(([path]) =>
+      path.startsWith('/libraries/lib-1/add/video?'),
+    );
+    expect(loopNavigation?.[1]).toEqual(expect.objectContaining({ replace: true }));
   });
 
   it('reports a failed save in place rather than navigating away on it', async () => {

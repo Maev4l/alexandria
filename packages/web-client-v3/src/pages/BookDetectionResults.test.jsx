@@ -14,6 +14,38 @@ vi.mock('@/api', async (importOriginal) => {
   };
 });
 
+// A `LocationProbe` can see WHERE a navigation landed, but `location` carries no trace of HOW —
+// push and replace produce an identical `location` object. Recording the real `navigate` calls
+// (still forwarded to the genuine hook, so the app behaves exactly as it does today) is the only
+// way to assert `replace: true` rather than merely the destination, which is the whole point of
+// the post-save-loop test below: a push there is the defect this file exists to catch.
+//
+// The wrapper MUST be memoized on the real navigate reference: the real hook returns a stable
+// function across renders, and this component's own `load` is a `useCallback` that lists
+// `navigate` in its dependencies. An unmemoized wrapper hands out a fresh function identity every
+// render, which retriggers the `useEffect(() => { load(); }, [load])` that follows it — an
+// infinite refetch loop that silently exhausts a test's `mockOnce` queue and crashes a LATER,
+// unrelated test with "Cannot read properties of undefined (reading 'then')". Caught by running
+// this suite, not reasoned out in advance.
+const navigateCalls = [];
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal();
+  const { useMemo } = await import('react');
+  return {
+    ...actual,
+    useNavigate: () => {
+      const realNavigate = actual.useNavigate();
+      return useMemo(
+        () => (...args) => {
+          navigateCalls.push(args);
+          return realNavigate(...args);
+        },
+        [realNavigate],
+      );
+    },
+  };
+});
+
 const BookDetectionResults = (await import('./BookDetectionResults.jsx')).default;
 
 const LocationProbe = () => {
@@ -48,6 +80,7 @@ beforeEach(() => {
   vi.mocked(detectionApi.book).mockReset();
   vi.mocked(itemsApi.createBook).mockReset().mockResolvedValue({ id: 'new-item' });
   vi.mocked(collectionsApi.get).mockReset().mockResolvedValue(null);
+  navigateCalls.length = 0;
 });
 
 describe('BookDetectionResults', () => {
@@ -237,7 +270,7 @@ describe('BookDetectionResults', () => {
     expect(collectionsApi.get).not.toHaveBeenCalled();
   });
 
-  it('writes nothing until the reader confirms a candidate, then loops back to AddBook', async () => {
+  it('writes nothing until the reader confirms a candidate, then loops back to AddBook via replace', async () => {
     vi.mocked(detectionApi.book).mockResolvedValue({
       detectedBooks: [{ id: 'g1', title: 'Ouvrage', authors: ['A'], isbn: '1', pictureUrl: '/c.webp', source: GOOGLE }],
     });
@@ -258,6 +291,14 @@ describe('BookDetectionResults', () => {
     expect(
       await screen.findByText('landed:/libraries/lib-1/add/book?collectionId=c1 state:none'),
     ).toBeInTheDocument();
+    // The defect this test guards: a `push` here leaves the just-spent results page reachable
+    // by pressing back from the capture screen it loops to. Only `replace` retires it — the
+    // DESTINATION alone (asserted above) cannot tell the two apart, since `location` looks
+    // identical either way.
+    const loopNavigation = navigateCalls.find(([path]) =>
+      path.startsWith('/libraries/lib-1/add/book?'),
+    );
+    expect(loopNavigation?.[1]).toEqual(expect.objectContaining({ replace: true }));
   });
 
   it('reports a failed save in place rather than navigating away on it', async () => {
