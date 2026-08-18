@@ -16,16 +16,35 @@ import { spawn } from 'child_process';
 
 const SIGKILL_AFTER_MS = 5000;
 
-export const isPortFree = (port) =>
+const isHostPortFree = (port, host) =>
   new Promise((resolve) => {
     const socket = net
-      .connect({ port, host: '127.0.0.1' })
+      .connect({ port, host })
       .on('connect', () => {
         socket.destroy();
         resolve(false);
       })
       .on('error', () => resolve(true));
   });
+
+// BOTH stacks, and the reason is a defect this actually caused rather than a precaution.
+//
+// This probed `127.0.0.1` while every consumer browses to `http://localhost:<port>`. On macOS
+// `localhost` resolves to `::1` first, so a server listening on IPv6 ONLY — which is what Vite
+// does in some projects — was invisible here: the probe connected to nothing on IPv4, reported
+// the port free, and the guard below let the run proceed. Vite then failed to take the port, and
+// the checks browsed to `localhost`, reached `::1`, and ran every assertion against A DIFFERENT
+// APPLICATION that happened to be listening there.
+//
+// The failure that produced was inscrutable — an unsettled-top-level-await warning and exit 13,
+// with the clear "port in use" message never printed, because the guard had already decided the
+// port was free. Two separate investigations lost time to it before the cause was found.
+//
+// So: a port is free only when it is free on BOTH loopback addresses. Probing one stack while
+// addressing the other is this project's recurring defect in miniature — a true answer about the
+// wrong substrate.
+export const isPortFree = async (port) =>
+  (await isHostPortFree(port, '127.0.0.1')) && (await isHostPortFree(port, '::1'));
 
 const waitForReady = async (url, timeoutMs = 40_000) => {
   const deadline = Date.now() + timeoutMs;
