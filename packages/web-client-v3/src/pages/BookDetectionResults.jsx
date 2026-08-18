@@ -156,7 +156,8 @@ const BookDetectionResults = () => {
                       whenever a resolver supplies no artwork. `|| null` collapses BOTH the
                       absent case (Goodreads/TMDB) and the present-but-empty-string case
                       (Google, ruling B) to the same falsy input `pictureSrc()` already treats
-                      as "no picture" — never an <img src=""> resolving against the page URL. */}
+                      as "no picture" — never an empty image source, which resolves against the
+                      page URL and produces the broken-image glyph DESIGN.md section 6 forbids. */}
                   <VolumeFrame item={{ picture: candidate.pictureUrl || null }} />
                   <div className="min-w-0 flex-1">
                     {/* No `|| 'Untitled'` fallback (fix round 2 finding 1): a candidate reaching

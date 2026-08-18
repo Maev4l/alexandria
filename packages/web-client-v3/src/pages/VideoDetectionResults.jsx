@@ -110,7 +110,8 @@ const VideoDetectionResults = () => {
         tmdbId: candidate.tmdbId || null,
         // Truthiness, never presence (ruling B): TMDB guards its own poster pointer, but the
         // shared handling must also survive a present empty string the way Google's book
-        // candidates can carry one — `<img src="">` resolves against the page URL and fails.
+        // candidates can carry one — an empty image source resolves against the page URL and
+        // fails, producing the broken-image glyph DESIGN.md section 6 forbids outright.
         pictureUrl: candidate.pictureUrl || null,
         collectionId: collectionId ?? null,
         order: null,
