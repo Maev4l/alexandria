@@ -336,6 +336,42 @@ shown and is editable — OCR is fallible and the reader must be able to correct
 **API:** `POST /detections` with `type: 1` and `image` or `title`; then
 `POST /libraries/{libraryId}/videos`.
 
+**The captured image must be exactly what the preview showed, at the sensor's resolution — today it is
+neither.** Verified in `react-webcam/dist/react-webcam.js:276-286` and `CoverCapture.jsx:65,76`:
+
+- `getCanvas` sizes the capture from **`this.video.clientWidth`** unless `minScreenshotWidth` or
+  `forceScreenshotSourceSize` is set. We set neither, so a cover is uploaded at roughly **280px wide** —
+  the frame's `max-width`, not the camera. A DVD title inside that is 20–30px of text, which is marginal
+  and is a plausible cause of imperfect extractions.
+- The video is `object-cover` inside a 2:3 box, so the **preview shows a centre crop of the sensor**,
+  while `getCanvas` draws the **whole** sensor frame. The reader frames a title in the box and the upload
+  contains a wider scene they never saw, with the framed region occupying a fraction of an
+  already-small image.
+
+(It is *not* distorted — the canvas keeps the sensor's aspect ratio, `canvasHeight = canvasWidth /
+aspectRatio`. I nearly recorded that it was.)
+
+**So the fix is one mechanism that answers both: draw our own canvas, source rectangle equal to the
+region `object-cover` displays, at intrinsic resolution.** The capture becomes what the reader framed,
+at full sensor detail, and the payload is *smaller* than a whole-sensor grab while carrying far more
+detail on the letters. It needs no overlay, no new mark, and no change to the frame's ratio.
+
+**That also settles the honesty question by construction.** A preview that displays one thing while the
+app sends another is the defect class this project has fixed repeatedly — `Untitled`, the photo that was
+never kept, a notice wearing the Error treatment. Defining the capture *as* the previewed region means
+the surface cannot assert something untrue about what is read.
+
+**A title-band crop is refused, and not on ratio grounds.** The proposal was to send only the band
+carrying the title. Its premise is that we know where the title is, and we do not: DVD titles sit at the
+bottom, at the top, and occasionally vertically on a spine. **The failure mode is worse than the problem**
+— `handleVideoDetection` returns early when OCR extracts nothing, so a band that misses produces the
+*no-result* dead end rather than a wrong `extractedTitle` the reader could correct on the results screen.
+Trading a correctable failure for an uncorrectable one to save upload bytes is the wrong direction, and
+the resolution fix above addresses the actual complaint.
+
+Because there is no band, there is no landscape region, so the capture frame stays **2:3** and the
+structural ruling that the feed sits inside a Volume Frame stands unchanged.
+
 **A capture viewport must narrate its own lookup — neither of them did, and both hide the app's slowest
 call behind a frame that looks idle.** Reported from use: tapping a control and seeing nothing happen.
 
