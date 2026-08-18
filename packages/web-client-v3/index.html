@@ -9,6 +9,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0B0B0B" />
     <meta name="description" content="Alexandria — a circulation record for a physical collection" />
+    <!-- Both, deliberately, and neither is redundant. `mobile-web-app-capable` is the standard
+         name; Chrome now warns that the apple-prefixed one is deprecated. But the prefixed tag is
+         what iOS has historically honoured for standalone launch, and this app is installed as a
+         PWA on a phone (PRODUCT.md), so dropping it to silence a Chrome warning would trade a
+         console line for a regression on the platform that matters most here. One line each. -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Alexandria" />
