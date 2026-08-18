@@ -702,6 +702,13 @@ was a no-op and the wrap assertion that could not fail. The pattern is specific 
 guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
 from a comment.
 
+**And confirm the mutation landed, because a break that did not happen is silent.** A demonstration
+`sed` targeted a class string that does not exist in the file, matched nothing, and the check then ran
+against unmodified code — so the **absence of failure output looked exactly like a passing
+demonstration**. `git diff` showing the file untouched is what caught it. So "break it and watch it go
+red" has a precondition nobody states: prove you broke it. A no-op mutation and a robust guard produce
+identical evidence.
+
 **Worse than a guard that misses a defect is a guard that enforces one.** `Enter by hand` was
 specified as unconditionally present in the type sheet, and a test was written asserting exactly that
 — so the suite was **pinning a broken control**, holding in place a menu entry that made a whole item
