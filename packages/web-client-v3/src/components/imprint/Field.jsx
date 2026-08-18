@@ -4,7 +4,7 @@ import { ChevronDown, Eye, EyeOff } from '@/components/icons/index.jsx';
 
 // No radius, a 2px bottom rule, a caps label above. No floating label: it would animate, and
 // print does not. Errors sit under the field, in place, never only in a toast.
-const Field = ({ label, error, hint, counter, className, as = 'input', type, ...props }) => {
+const Field = ({ label, error, hint, counter, className, as = 'input', type, describedBy, ...props }) => {
   const id = useId();
   const Tag = as;
   // Reveal state lives in plain component state and NOWHERE else — no localStorage, no
@@ -16,6 +16,12 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, ...
 
   const borderClass = error ? 'border-out' : 'border-ink';
   const noteId = error || hint ? `${id}-note` : undefined;
+  // `describedBy` is an EXTRA id a caller supplies (a reason the submit control beside this
+  // field can't be used yet, per DESIGN.md §6's second form for an inert action slot) — merged
+  // with the field's own note id rather than replacing it, so a screen-reader user gets both the
+  // ordinary hint/error AND that reason when both exist. `aria-describedby` accepts a
+  // space-separated list; `undefined` when neither is present, never an empty string.
+  const ariaDescribedBy = [noteId, describedBy].filter(Boolean).join(' ') || undefined;
 
   return (
     <div className={cn('mb-6', className)}>
@@ -33,7 +39,7 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, ...
             id={id}
             type={revealed ? 'text' : 'password'}
             aria-invalid={error ? 'true' : undefined}
-            aria-describedby={noteId}
+            aria-describedby={ariaDescribedBy}
             className="min-h-12 min-w-0 flex-1 bg-transparent px-0 py-2 text-base text-ink"
             {...props}
           />
@@ -58,7 +64,7 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, ...
           <Tag
             id={id}
             aria-invalid={error ? 'true' : undefined}
-            aria-describedby={noteId}
+            aria-describedby={ariaDescribedBy}
             className={cn(
               'min-h-12 w-full appearance-none border-b-2 bg-transparent px-0 py-2 pr-6 text-base text-ink',
               borderClass,
@@ -75,7 +81,7 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, ...
           id={id}
           type={type}
           aria-invalid={error ? 'true' : undefined}
-          aria-describedby={noteId}
+          aria-describedby={ariaDescribedBy}
           className={cn(
             // No `outline-none` here. Tailwind utilities sit in a later cascade layer than the
             // :focus-visible rule in index.css, so suppressing the outline on the component

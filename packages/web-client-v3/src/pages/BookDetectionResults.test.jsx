@@ -283,4 +283,26 @@ describe('BookDetectionResults', () => {
     await userEvent.click(screen.getByRole('button', { name: /try again/i }));
     expect(await screen.findByText('Ouvrage')).toBeInTheDocument();
   });
+
+  // Fix round 1 (task 19): a bare `/add/book/results` with no `?isbn=` used to show this inline
+  // ("No ISBN was carried through...") rather than redirect. Unified with VideoDetectionResults'
+  // identical case — a results route reached with no identifying input at all is the same
+  // situation on both flows, and `routes.jsx`'s `guard()` makes it a genuinely reachable dead end
+  // (typed, edited, or bookmarked-mid-flow URL), not a theoretical one.
+  it('redirects to AddBook with the shared no-input state when nothing was carried through', async () => {
+    renderPage('');
+    expect(
+      await screen.findByText('landed:/libraries/lib-1/add/book state:{"noInput":true}'),
+    ).toBeInTheDocument();
+    expect(detectionApi.book).not.toHaveBeenCalled();
+  });
+
+  it('carries the collection into the same redirect', async () => {
+    renderPage('?collectionId=c1');
+    expect(
+      await screen.findByText(
+        'landed:/libraries/lib-1/add/book?collectionId=c1 state:{"noInput":true}',
+      ),
+    ).toBeInTheDocument();
+  });
 });

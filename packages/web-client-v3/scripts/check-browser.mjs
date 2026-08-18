@@ -20,6 +20,14 @@ import puppeteer from 'puppeteer-core';
 import sharp from 'sharp';
 import { startFixtureServer, stopFixtureServer } from './fixture-server.mjs';
 import { contrastRatio } from '../src/lib/contrast.js';
+// Fixtures + the app's own loan-pairing logic, imported rather than re-typed, so the FIELD
+// MANIFEST below (see "catalogue fields render in mono wherever their fixture VALUE appears")
+// can never hand-drift from the data it is actually checking against.
+import { fictionItems, itemsByLibrary } from '../src/test/fixtures/items.js';
+import { libraries as fixtureLibraries } from '../src/test/fixtures/libraries.js';
+import { eventsByItem } from '../src/test/fixtures/events.js';
+import { pairLoanEvents } from '../src/lib/loans.js';
+import { indexLetterFor } from '../src/lib/sort.js';
 
 const PORT = Number(process.env.CHECK_PORT ?? 5199);
 const BASE = `http://localhost:${PORT}`;
@@ -1434,6 +1442,9 @@ try {
       // Task 18, fix round 1 finding 3: a candidate's ISBN now sets `.num`. Added here rather
       // than left to slip past monoRouteCoverage.test.js's import-graph guard.
       '/libraries/lib-fiction/add/book/results',
+      // Task 19: a video candidate's runtime (and, via the reused PlateLine, its year) now set
+      // `.num` on this route too. Same reason as the book results route above.
+      '/libraries/lib-fiction/add/video/results',
     ];
 
     // monoRouteCoverage.test.js extracts MONO_ROUTES as bare route PATHS and matches them
@@ -1443,6 +1454,10 @@ try {
     // consulted only by the navigation below — it never touches the array that guard reads.
     const ROUTE_QUERY = {
       '/libraries/lib-fiction/add/book/results': '?isbn=9782070408504&collectionId=coll-melville',
+      // TITLE_MIXED_ARTWORK from tools/mock-detections.js — several TMDB candidates, most
+      // carrying artwork, one without, so this route renders a real duration/year rather than
+      // the true-miss shape.
+      '/libraries/lib-fiction/add/video/results': '?title=Les%20Tontons%20flingueurs',
     };
 
     const collectMonoTexts = async (route) => {
@@ -1495,6 +1510,251 @@ try {
       violations.length === 0,
       'every element resolving to Chivo Mono is at least 50% digits once stripped',
       violations.join('; '),
+    );
+  }
+
+  // ---- Field-driven manifest: the OTHER direction of DESIGN.md §3 ----
+  //
+  // The check above proves "nothing but numerals may be mono" — every element that RESOLVES to
+  // Chivo Mono is digit-dominant. It has a blind spot with a name and a history: it can only
+  // fail on a `.num` class that exists. A candidate's ISBN once rendered in the SANS on
+  // BookDetectionResults — no `.num` anywhere near it — and both this check and
+  // monoText.test.js/monoRouteCoverage.test.js passed cleanly, because there was no mono site
+  // to be wrong about. A human reading a screenshot caught it.
+  //
+  // A SITE manifest (visit a hand-picked list of places `.num` is supposed to be, assert it is)
+  // was the first design for this and was rejected: it still needs someone to have REGISTERED
+  // the site, which is exactly the step that failed the first time. This is a FIELD manifest
+  // instead — it inverts the direction of the check entirely. Rather than asking "is this
+  // known site mono", it takes each catalogue field's real VALUE straight from the fixtures
+  // (imported above, never re-typed, so the expected string cannot drift from what the app is
+  // actually fed) and asks "wherever that exact value renders on the page, is it mono" — over
+  // the WHOLE DOM, not a pre-picked selector. A brand-new component added to an already-checked
+  // route that renders `releaseYear` in the sans is caught with zero new registration, because
+  // the search is for the VALUE, not for a site that renders it.
+  //
+  // WHAT THIS STILL CANNOT SEE (stated once, precisely, per this project's convention of not
+  // implying coverage a guard lacks):
+  //
+  // 1. A field rendered on a ROUTE this manifest does not visit. Coverage is per (field, route)
+  //    pair, not "this value anywhere in the app" — a route not listed here is not searched.
+  //    monoFieldCoverage.test.js (src/) is the drift alarm for the FILE side of this gap (every
+  //    file that declares `.num` must be named as a `sourceFile` somewhere below); it cannot
+  //    close the ROUTE side, because a field can be under-covered (checked on one route, wrong
+  //    on a second) without any file ever being un-named.
+  // 2. A wholly new catalogue field this manifest was never told about (e.g. a hypothetical
+  //    `publisher`) rendered in the sans on its very first appearance. Nothing here watches for
+  //    a field that does not yet have an entry — the same shape as the original gap, just moved
+  //    up one level from "site" to "field". Closing THAT would need a schema-driven sweep of
+  //    every response field against a rendered page, which is well past this guard's bound.
+  // 3. Coincidental collision: an unrelated element whose OWN text happens to equal the expected
+  //    value by chance would be silently asserted as mono alongside the real one (or would mask
+  //    a real regression if IT were mono while the real site were not, since a match list must
+  //    be non-empty and ALL-mono, not "at least one"). Mitigated, not eliminated, by preferring
+  //    distinctive values (a 13-digit ISBN, a formatted date) and route-scoping every field to
+  //    where it is actually expected — verified by hand for each entry below, not assumed.
+  console.log('catalogue fields render in mono wherever their fixture VALUE appears (DESIGN.md §3, field-driven)');
+  {
+    // Mirrors LedgerRow.jsx's own private `stamp` formatter exactly (not imported: it is an
+    // unexported const inside a component file), so an expected ledger date can never hand-drift
+    // from what the app actually renders. Both this script and the browser run on the same
+    // machine, so `toLocaleDateString`'s default (system) timezone/locale resolution is shared —
+    // the same assumption LedgerRow itself relies on.
+    const stamp = (iso) =>
+      new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    const item1984 = fictionItems.find((item) => item.id === 'item-1984');
+    const melville = fictionItems.find((item) => item.id === 'coll-melville');
+    const itemBob = melville.items.find((item) => item.id === 'item-bob');
+    const itemSamourai = melville.items.find((item) => item.id === 'item-samourai');
+    const itemChinatown = itemsByLibrary['lib-films'].find((item) => item.id === 'item-chinatown');
+    const libFiction = fixtureLibraries.find((library) => library.id === 'lib-fiction');
+    // The only CLOSED loan in item-lent's history: `Léa`'s pairing is `unresolved` (no return
+    // recorded — its rendered day count depends on `now` and can never be a stable expectation)
+    // and `Marie`'s is still OPEN (same problem). Paul's is the one loan in this fixture whose
+    // rendered day count is deterministic, because both its dates are fixed.
+    const paulLoan = pairLoanEvents(eventsByItem['item-lent']).find(
+      (loan) => loan.name === 'Paul' && !loan.open && !loan.unresolved,
+    );
+    const sharedWithMeCount = fixtureLibraries.filter((library) => library.sharedFrom).length;
+
+    // Each entry names the FILE that literally declares the `.num` class this field renders
+    // through — not the page/component that merely calls it — because that is what
+    // monoFieldCoverage.test.js's drift alarm matches against when it asks "does every
+    // `.num`-declaring file have a reason to be here."
+    const MONO_FIELDS = [
+      {
+        field: 'isbn',
+        sourceFile: 'src/pages/ItemDetail.jsx',
+        route: `/libraries/lib-fiction/items/${item1984.id}`,
+        expected: item1984.isbn,
+      },
+      // The exact regression this whole manifest exists for: a candidate's scanned ISBN on the
+      // detection-results screen, reached via a query string rather than a fixture item id.
+      //
+      // The ONE literal `expected` in this manifest, and deliberately so: every other entry reads
+      // a fixture field, which cannot rot. This value is not a field — it is the request INPUT the
+      // reader typed, echoed back by the mock, so there is no fixture object to read it from. It
+      // matches the literal the pre-existing site check above already uses for the same route.
+      {
+        field: 'isbn (detection results)',
+        sourceFile: 'src/pages/BookDetectionResults.jsx',
+        route: '/libraries/lib-fiction/add/book/results',
+        query: '?isbn=9782070408504&collectionId=coll-melville',
+        expected: '9782070408504',
+      },
+      // Task 19's video-side twin. Not the searched title (that mark deliberately renders in the
+      // SANS — a film title is content, not a numeral, and §3 reserves the mono for numerals; the
+      // book side's ISBN echo is mono only because an ISBN IS a numeral). Runtime is the new
+      // numeral this screen introduces, so it is what the manifest checks. Literal, like the isbn
+      // entry above, because this value comes from TITLE_MIXED_ARTWORK's first candidate in
+      // tools/mock-detections.js (duration: 105) rather than from a fixture object this script
+      // already imports.
+      {
+        field: 'duration (video candidate)',
+        sourceFile: 'src/pages/VideoDetectionResults.jsx',
+        route: '/libraries/lib-fiction/add/video/results',
+        query: '?title=Les%20Tontons%20flingueurs',
+        expected: '105′',
+      },
+      {
+        field: 'releaseYear (row)',
+        sourceFile: 'src/components/imprint/PlateLine.jsx',
+        route: '/libraries/lib-films',
+        expected: String(itemChinatown.releaseYear),
+      },
+      {
+        field: 'releaseYear (detail)',
+        sourceFile: 'src/pages/ItemDetail.jsx',
+        route: `/libraries/lib-fiction/items/${itemSamourai.id}`,
+        expected: String(itemSamourai.releaseYear),
+      },
+      {
+        field: 'duration',
+        sourceFile: 'src/pages/ItemDetail.jsx',
+        route: `/libraries/lib-fiction/items/${itemSamourai.id}`,
+        // The prime mark is the catalogue's own runtime convention (lib/format.js, DESIGN.md §3).
+        expected: `${itemSamourai.duration}′`,
+      },
+      {
+        field: 'order',
+        sourceFile: 'src/components/imprint/VolumePlate.jsx',
+        route: '/libraries/lib-fiction',
+        expected: String(itemBob.order).padStart(2, '0'),
+      },
+      {
+        field: 'totalItems',
+        sourceFile: 'src/components/imprint/VolumePlate.jsx',
+        route: '/libraries',
+        expected: String(libFiction.totalItems),
+      },
+      {
+        field: 'itemCount',
+        sourceFile: 'src/components/imprint/VolumePlate.jsx',
+        route: '/libraries/lib-fiction',
+        expected: String(melville.itemCount),
+      },
+      {
+        // Pointed at the A run, NOT at the run holding the Melville board, and the reason is not
+        // cosmetic. A review found this entry and `itemCount` above both expecting 4 and proposed
+        // "a future fixture tweak" to separate them. That fix is impossible: DESIGN.md section 5
+        // defines a run's count as standalone entries plus each board's `itemCount`, and
+        // stream.js's `entryItemCount` implements exactly that — so a run holding one board and
+        // nothing else ALWAYS equals that board's count, whatever number the fixture carries.
+        // Changing the fixture moves both together, forever. Only re-pointing at a run with a
+        // different COMPOSITION separates them, which is what this is: the A run (Amérique,
+        // Aurore) closes at 2, arithmetically distinct from any board's count, so a bug swapping
+        // these two elements' font logic can no longer hide behind a shared value.
+        //
+        // Derived through the client's own `indexLetterFor`, and summed the way section 5 says,
+        // so it stays correct if a board is ever filed under A.
+        field: 'indexLetterCount',
+        sourceFile: 'src/components/imprint/IndexLetter.jsx',
+        route: '/libraries/lib-fiction',
+        expected: String(
+          fictionItems
+            .filter((entry) => indexLetterFor(entry.title) === 'A')
+            .reduce((sum, entry) => sum + (entry.type === 2 ? entry.itemCount : 1), 0),
+        ),
+      },
+      {
+        field: 'ledgerDate',
+        sourceFile: 'src/components/imprint/LedgerRow.jsx',
+        route: '/libraries/lib-fiction/items/item-lent',
+        expected: stamp(paulLoan.lentAt),
+      },
+      {
+        field: 'loanDays',
+        sourceFile: 'src/components/imprint/LedgerRow.jsx',
+        route: '/libraries/lib-fiction/items/item-lent',
+        expected: String(paulLoan.days),
+      },
+      {
+        // NewLibrary.jsx's own `NAME_MAX` (20, matching openapi.yaml's `CreateLibraryRequest.name
+        // maxLength`) is a private, unexported const, so it is restated here rather than
+        // imported — the field itself is "20 minus zero typed characters" on first mount, which
+        // is stable regardless of the constant's own value drifting, as long as the field opens
+        // empty (it does: `useState('')`).
+        field: 'remainingCount',
+        sourceFile: 'src/components/imprint/Field.jsx',
+        route: '/libraries/new',
+        expected: '20',
+      },
+      {
+        field: 'sectionCount',
+        sourceFile: 'src/pages/Libraries.jsx',
+        route: '/libraries',
+        expected: String(sharedWithMeCount),
+      },
+    ];
+
+    // Own text only, exact match — same "direct Text-node children" boundary the digit-dominant
+    // check above draws, but equality instead of a digit ratio: a field's rendered value is
+    // either exactly this string somewhere on the page, or the manifest and the app have drifted
+    // apart (caught as "not found" below, not silently skipped).
+    const findOwnTextMatches = async (route, expectedText) => {
+      await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
+      await page.waitForSelector('main', { timeout: 10_000 });
+      return page.evaluate((text) => {
+        const out = [];
+        for (const el of document.querySelectorAll('body *')) {
+          let direct = '';
+          for (const child of el.childNodes) {
+            if (child.nodeType === Node.TEXT_NODE) direct += child.textContent;
+          }
+          if (direct.trim() === text) out.push(getComputedStyle(el).fontFamily);
+        }
+        return out;
+      }, expectedText);
+    };
+
+    const fieldViolations = [];
+    for (const { field, route, query, expected } of MONO_FIELDS) {
+      const families = await findOwnTextMatches(`${route}${query ?? ''}`, expected);
+      if (families.length === 0) {
+        // Not a pass: a value the manifest expects to find rendered nowhere means the fixture
+        // and the route have drifted apart, which is worth failing loudly on rather than
+        // silently treating as "nothing to check" (monoRouteCoverage.test.js's own convention).
+        fieldViolations.push(
+          `${field}: expected value ${JSON.stringify(expected)} was not found anywhere on ` +
+            `${route}${query ?? ''} — the fixture and the route have drifted apart`,
+        );
+        continue;
+      }
+      const wrongFace = families.find((family) => !family.includes('Chivo Mono'));
+      if (wrongFace) {
+        fieldViolations.push(
+          `${field}: ${JSON.stringify(expected)} on ${route}${query ?? ''} rendered in ` +
+            `"${wrongFace}", not Chivo Mono`,
+        );
+      }
+    }
+
+    record(MONO_FIELDS.length > 0, 'found more than zero catalogue fields in the manifest', '');
+    record(
+      fieldViolations.length === 0,
+      'every catalogue field is mono wherever its fixture value renders',
+      fieldViolations.join('; '),
     );
   }
 } finally {

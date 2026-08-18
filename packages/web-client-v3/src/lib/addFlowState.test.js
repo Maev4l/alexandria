@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { seedFromAddFlowState } from './addFlowState.js';
+import { NO_INPUT_MESSAGE, seedFromAddFlowState } from './addFlowState.js';
 
 describe('seedFromAddFlowState', () => {
   it('seeds the collection id from the query', () => {
@@ -17,5 +17,18 @@ describe('seedFromAddFlowState', () => {
     expect(seedFromAddFlowState(new URL('https://example.com/x?collectionId=c1').search)).toEqual(
       { collectionId: 'c1' },
     );
+  });
+});
+
+describe('NO_INPUT_MESSAGE', () => {
+  // Finding 3 (task 19, fix round 2): AddBook.test.jsx and AddVideo.test.jsx both compare their
+  // rendered notice against this SAME imported constant, which proves the conditional-render
+  // wiring and the import path but cannot catch the constant's own CONTENT drifting back to the
+  // exact defect that was ruled on — a message that references a photo, image or capture that
+  // never happened. This asserts against a LITERAL pattern, not derived from the constant, so it
+  // is not the same tautology one level down. One assertion here guards both flows, since both
+  // import and render this single string.
+  it('never mentions a photo, image or capture — nothing here was lost, because nothing arrived', () => {
+    expect(NO_INPUT_MESSAGE).not.toMatch(/photo|image|capture/i);
   });
 });

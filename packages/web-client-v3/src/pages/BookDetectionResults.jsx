@@ -32,9 +32,21 @@ const BookDetectionResults = () => {
   const load = useCallback(() => {
     if (!isbn) {
       // No ISBN in the query at all is not a detection failure — there was never a code to look
-      // up (e.g. this URL was typed or edited by hand). Distinct message, same recovery shape.
-      setStatus('error');
-      setErrorMessage('No ISBN was carried through. Go back and scan or type it again.');
+      // up (e.g. this URL was typed or edited by hand, or bookmarked mid-flow). `guard()` in
+      // routes.jsx checks only that a user is signed in, not that the query it lands on makes
+      // sense, so this is a genuinely reachable dead end, not a theoretical one. Redirected back
+      // to AddBook with one shared, type-agnostic message (`NO_INPUT_MESSAGE`,
+      // `src/lib/addFlowState.js`) rather than shown inline here — the same construction
+      // VideoDetectionResults uses for its own identical case, so "this results route has no
+      // input to resolve" reads as one meaning across both flows rather than two invented
+      // stories. `replace: true` so the dead-end entry does not linger in history.
+      const back = new URLSearchParams();
+      if (collectionId) back.set('collectionId', collectionId);
+      const qs = back.toString();
+      navigate(`/libraries/${libraryId}/add/book${qs ? `?${qs}` : ''}`, {
+        replace: true,
+        state: { noInput: true },
+      });
       return;
     }
     setStatus('loading');
@@ -49,7 +61,7 @@ const BookDetectionResults = () => {
         setErrorMessage(err.message);
         setStatus('error');
       });
-  }, [isbn]);
+  }, [isbn, libraryId, collectionId, navigate]);
 
   useEffect(() => {
     load();

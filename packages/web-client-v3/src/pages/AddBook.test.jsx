@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { detectionApi } from '@/api';
+import { NO_INPUT_MESSAGE } from '@/lib/addFlowState.js';
 
 // The camera is mocked: jsdom has no getUserMedia, and the behaviour under test here is the
 // escape hatch and the lookup flow, not the decoder itself (that lives in
@@ -44,9 +45,13 @@ const LocationProbe = () => {
   );
 };
 
-const renderPage = (initialPath = '/libraries/lib-1/add/book') =>
+const renderPage = (initialPath = '/libraries/lib-1/add/book', initialState) =>
   render(
-    <MemoryRouter initialEntries={[initialPath]}>
+    <MemoryRouter
+      initialEntries={[
+        initialState ? { pathname: initialPath, state: initialState } : initialPath,
+      ]}
+    >
       <Routes>
         <Route path="/libraries/:libraryId/add/book" element={<AddBook />} />
         <Route path="/libraries/:libraryId/add/book/results" element={<LocationProbe />} />
@@ -63,6 +68,33 @@ describe('AddBook', () => {
   it('always shows the manual entry escape, before anything goes wrong', () => {
     renderPage();
     expect(screen.getByLabelText(/isbn/i)).toBeInTheDocument();
+  });
+
+  // Fix round 2 (finding 1): a disabled "Look it up" sitting next to the always-enabled "Enter by
+  // hand" — same 2px ink outline, same transparent ground — was indistinguishable at rest, on
+  // this screen exactly as much as AddVideo's (AddVideo.test.jsx carries the fuller comment).
+  // DESIGN.md §6's second form replaces the button entirely with the reason, in caps, in the
+  // control's own position, both while the field is empty and while it holds an invalid format —
+  // a same-colour ruled neighbour forces the second form regardless of which.
+  it('shows the reason instead of a disabled button while the code is empty, and calls nothing', async () => {
+    renderPage();
+    expect(screen.queryByRole('button', { name: /look it up/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/an isbn/i)).toBeInTheDocument();
+    screen.getByLabelText(/isbn/i).focus();
+    await userEvent.keyboard('{Enter}');
+    expect(detectionApi.book).not.toHaveBeenCalled();
+  });
+
+  it('links the reason to the code field for a screen-reader user, and drops the link once valid', async () => {
+    renderPage();
+    const field = screen.getByLabelText(/isbn/i);
+    const reasonId = screen.getByText(/an isbn/i).id;
+    expect(field.getAttribute('aria-describedby')).toContain(reasonId);
+
+    await userEvent.type(field, '9782070404209');
+    expect(screen.queryByText(/an isbn/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^look it up$/i })).toBeEnabled();
+    expect(field.getAttribute('aria-describedby')).not.toContain(reasonId);
   });
 
   it('says what to do when the camera is refused, rather than only that it failed', async () => {
@@ -171,5 +203,15 @@ describe('AddBook', () => {
     const header = within(document.querySelector('header'));
     expect(header.getByText('Add a book')).toBeInTheDocument();
     expect(header.queryByText(/alexandria/i)).not.toBeInTheDocument();
+  });
+
+  // Fix round 1: this shared message and the redirect that feeds it belong to
+  // BookDetectionResults (a bare `/add/book/results` with no `?isbn=`), but the printed line
+  // itself is asserted here, on the screen that renders it — mirroring AddVideo.test.jsx's
+  // identical case. Asserted against the exact shared string (`NO_INPUT_MESSAGE`), not a
+  // substring, so the two screens cannot silently drift apart.
+  it('prints the shared no-input message when redirected back here with nothing to resolve', () => {
+    renderPage('/libraries/lib-1/add/book', { noInput: true });
+    expect(screen.getByText(NO_INPUT_MESSAGE)).toBeInTheDocument();
   });
 });

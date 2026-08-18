@@ -5,7 +5,7 @@ import BarcodeScanner from '@/components/BarcodeScanner.jsx';
 import Field from '@/components/imprint/Field.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import { detectionApi } from '@/api';
-import { seedFromAddFlowState } from '@/lib/addFlowState.js';
+import { NO_INPUT_MESSAGE, seedFromAddFlowState } from '@/lib/addFlowState.js';
 import { isbnError, normalizeIsbn } from '@/lib/isbn.js';
 
 // Both paths visible at once, never one behind the other (ui-v3.md task 18): the live scanner
@@ -35,6 +35,13 @@ const AddBook = () => {
   const [cameraError, setCameraError] = useState(null);
   const [isBusy, setIsBusy] = useState(false);
   const [lookupError, setLookupError] = useState(null);
+  // Set only by BookDetectionResults' own redirect: a reader landed back here because the
+  // results route had no `?isbn=` at all — a typed, edited, or bookmarked-mid-flow URL, never a
+  // lost capture (this screen has no camera state of its own to lose). Printed, not a toast,
+  // because it explains why the reader is on this screen rather than the results page they may
+  // have expected. Shared text and shape with AddVideo's identical case
+  // (`src/lib/addFlowState.js`'s `NO_INPUT_MESSAGE`).
+  const noInput = Boolean(location.state?.noInput);
 
   const resultsPath = (isbn) => {
     const params = new URLSearchParams({ isbn });
@@ -85,12 +92,35 @@ const AddBook = () => {
   };
 
   const canSubmit = !isBusy && !isbnError(code);
+  // DESIGN.md §6's second form for an inert action slot: a disabled primary reads as a plain
+  // ruled outline, indistinguishable at rest from the "Enter by hand" secondary beside it — same
+  // 2px ink outline, same transparent ground, no fill on either. The FIRST form (bare disabled
+  // outline, no words) holds only while that outline is the only one in its row; a same-colour
+  // ruled neighbour is permanently present here, so the first form never actually applies on this
+  // screen — whether the field is empty or carries a format error already shown inline. While
+  // there is nothing valid to submit (and no request already in flight — a busy "Looking it up"
+  // is a real action underway, not an inert control), the slot carries the reason in caps instead
+  // of the button.
+  const hasReason = !isBusy && !canSubmit;
+  const codeReasonId = 'add-book-code-reason';
 
   return (
     <div className="min-h-dvh bg-paper">
       <AppHeader title="Add a book" onBack={() => navigate(-1)} search={false} />
       <main className="p-4">
         <h1 className="sr-only">Add a book</h1>
+
+        {/* Nothing failed here — the reader arrived at a route with no input, usually a typed or
+            shared bare URL. `--out` means on loan and nothing else (DESIGN.md palette law), and
+            §6's Error construction (a 2px OUT rule) tells a reader they did something wrong when
+            they did not. Borrowed from `src/pwa/UpdateNotice.jsx`'s own recessed-notice
+            construction instead — 3px ink, not 2px out — the shape this app already uses for "a
+            fact worth a printed line" that is not a failure. */}
+        {noInput && (
+          <p className="mb-6 border-t-[3px] border-ink bg-paper-deep p-4 text-sm text-ink">
+            {NO_INPUT_MESSAGE}
+          </p>
+        )}
 
         {cameraError ? (
           <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
@@ -106,6 +136,7 @@ const AddBook = () => {
             value={code}
             error={codeError}
             hint={codeError ? undefined : 'Type the 10- or 13-digit ISBN printed on the book.'}
+            describedBy={hasReason ? codeReasonId : undefined}
             onChange={onCodeChange}
           />
 
@@ -115,9 +146,23 @@ const AddBook = () => {
             </p>
           )}
 
-          <PlateButton type="submit" disabled={!canSubmit}>
-            {isBusy ? 'Looking it up' : 'Look it up'}
-          </PlateButton>
+          {hasReason ? (
+            // "instead of the control", per §6 — no button at all in this state, so there is
+            // nothing left to collide with "Enter by hand". `min-h-12` reserves the same height
+            // PlateButton itself claims, so nothing jumps when the swap happens either way.
+            // `id` is what `Field`'s `describedBy` links to above, for the reader interacting
+            // with the actual control (the code field) rather than a button that isn't there.
+            <p
+              id={codeReasonId}
+              className="caps flex min-h-12 items-center text-xs font-extrabold tracking-[0.12em] text-ink-soft"
+            >
+              An ISBN
+            </p>
+          ) : (
+            <PlateButton type="submit" disabled={isBusy}>
+              {isBusy ? 'Looking it up' : 'Look it up'}
+            </PlateButton>
+          )}
         </form>
 
         <PlateButton

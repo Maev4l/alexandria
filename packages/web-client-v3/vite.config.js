@@ -84,6 +84,9 @@ export default defineConfig(({ command }) => {
             // cataloguing sessions, so the barcode decoder must not cost every reader who never
             // opens the camera a single byte of it.
             zxing: ['@zxing/browser', '@zxing/library'],
+            // Same reasoning, same isolation, for the cover-capture screen: react-webcam is only
+            // ever imported by the add-a-film route.
+            webcam: ['react-webcam'],
           },
         },
       },
