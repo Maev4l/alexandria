@@ -4,7 +4,16 @@ import { ChevronDown, Eye, EyeOff } from '@/components/icons/index.jsx';
 
 // No radius, a 2px bottom rule, a caps label above. No floating label: it would animate, and
 // print does not. Errors sit under the field, in place, never only in a toast.
-const Field = ({ label, error, hint, counter, className, as = 'input', type, describedBy, ...props }) => {
+//
+// `required` speaks at the point where fixing the problem actually happens: `required` +
+// `aria-required` announce "<label>, required" while the reader is IN the field, rather than only
+// at a disabled submit button where a sighted reader merely observes the consequence (see
+// PlateButton's `reason`). The location of a visual affordance is not necessarily the right
+// location for its non-visual equivalent — that is now DESIGN.md §6's general rule, and this and
+// `reason` are its two instances. `noValidate` on every form using Field is what keeps `required`
+// from also raising the browser's own validation bubble, chrome this world has no vocabulary for
+// (§9) — verified against every `<form>` in the app before relying on it here.
+const Field = ({ label, error, hint, counter, className, as = 'input', type, required = false, ...props }) => {
   const id = useId();
   const Tag = as;
   // Reveal state lives in plain component state and NOWHERE else — no localStorage, no
@@ -16,12 +25,14 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, des
 
   const borderClass = error ? 'border-out' : 'border-ink';
   const noteId = error || hint ? `${id}-note` : undefined;
-  // `describedBy` is an EXTRA id a caller supplies (a reason the submit control beside this
-  // field can't be used yet, per DESIGN.md §6's second form for an inert action slot) — merged
-  // with the field's own note id rather than replacing it, so a screen-reader user gets both the
-  // ordinary hint/error AND that reason when both exist. `aria-describedby` accepts a
-  // space-separated list; `undefined` when neither is present, never an empty string.
-  const ariaDescribedBy = [noteId, describedBy].filter(Boolean).join(' ') || undefined;
+  // A prior attempt at the disabled-reason gap routed it through here — an extra id a caller
+  // supplied, merged into this field's own `aria-describedby` so the FIELD spoke the submit
+  // button's reason. That mechanism is gone: a disabled button is not focusable, so a description
+  // that only fires when the field itself is read is no better placed than the button was. The
+  // replacement (PlateButton's `reason`) is self-contained in the button that needs it and reads
+  // in browse mode with no cooperation from the field, so there is nothing left for a
+  // `describedBy` prop here to do.
+  const ariaDescribedBy = noteId;
 
   return (
     <div className={cn('mb-6', className)}>
@@ -38,6 +49,8 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, des
           <Tag
             id={id}
             type={revealed ? 'text' : 'password'}
+            required={required}
+            aria-required={required || undefined}
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={ariaDescribedBy}
             className="min-h-12 min-w-0 flex-1 bg-transparent px-0 py-2 text-base text-ink"
@@ -63,6 +76,8 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, des
         <div className="relative">
           <Tag
             id={id}
+            required={required}
+            aria-required={required || undefined}
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={ariaDescribedBy}
             className={cn(
@@ -80,6 +95,8 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, des
         <Tag
           id={id}
           type={type}
+          required={required}
+          aria-required={required || undefined}
           aria-invalid={error ? 'true' : undefined}
           aria-describedby={ariaDescribedBy}
           className={cn(

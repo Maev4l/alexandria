@@ -30,8 +30,20 @@ const VARIANTS = {
 // onto "Keep it" the moment it is revealed (the safe default, never the destructive button), the
 // same "focus the thing that just appeared" mechanism Sheet.jsx already uses for its panel. That
 // caller needs the real DOM node, not a React element.
+// `reason` is the non-visual half of the outline-fills-to-plate affordance above. That swap is
+// PURELY visual and has no equivalent for a screen-reader user: a disabled button is announced
+// as unavailable and nothing connects that to the empty field that caused it. An
+// `aria-describedby` was tried here first and removed — a disabled button is not focusable, so a
+// description attached to it is never announced on tab and is reachable only by browse-mode
+// reading, which made the attribute mostly dead weight where it lived.
+//
+// So the reason is rendered as `sr-only` text INSIDE the button instead: it becomes part of the
+// button's own accessible name, which is exactly what a screen reader's linear/browse-mode
+// reading walks over even though the element cannot take focus while disabled. Nothing new
+// appears on screen — the caption text this replaces is exactly what §6 rejected as visible
+// nonsense duplicating a control that already speaks for itself visually.
 const PlateButton = forwardRef(
-  ({ variant = 'primary', disabled = false, className, children, ...props }, ref) => (
+  ({ variant = 'primary', disabled = false, reason, className, children, ...props }, ref) => (
     <button
       ref={ref}
       type="button"
@@ -46,6 +58,11 @@ const PlateButton = forwardRef(
       {...props}
     >
       {children}
+      {/* Only when disabled: an enabled button needs no reason, and a reason with nothing to
+          explain would just be noise appended to every accessible name. The leading space is a
+          real text node, not styling — without it the accessible-name algorithm concatenates the
+          two text runs with nothing between them ("Look upEnter an ISBN..."). */}
+      {disabled && reason && <span className="sr-only"> {reason}</span>}
     </button>
   ),
 );

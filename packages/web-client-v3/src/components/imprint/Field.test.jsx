@@ -93,4 +93,24 @@ describe('Field', () => {
       expect(container.querySelector('.num')).toHaveTextContent('0 left');
     });
   });
+
+  // `required` announces "<label>, required" WHILE the reader is in the field — where the fix
+  // actually happens — rather than only at a disabled submit button, where a sighted reader
+  // merely observes the consequence. Every form using Field already sets `noValidate`, so this
+  // never raises the browser's own validation bubble (DESIGN.md §9 refuses platform chrome).
+  describe('required', () => {
+    it('exposes a required field as required to the accessibility tree', () => {
+      render(<Field label="ISBN" required onChange={() => {}} />);
+      const input = screen.getByLabelText('ISBN');
+      expect(input).toBeRequired();
+      expect(input).toHaveAttribute('aria-required', 'true');
+    });
+
+    it('leaves an ordinary field alone — no required attribute invented', () => {
+      render(<Field label="Summary" onChange={() => {}} />);
+      const input = screen.getByLabelText('Summary');
+      expect(input).not.toBeRequired();
+      expect(input).not.toHaveAttribute('aria-required');
+    });
+  });
 });

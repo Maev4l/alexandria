@@ -62,4 +62,49 @@ describe('PlateButton', () => {
     rerender(<PlateButton>Create library</PlateButton>);
     expect(screen.getByRole('button').className).toContain('bg-imprint');
   });
+
+  // The outline-to-plate swap (above) is the sighted affordance for "why is this inert" and has
+  // no non-visual equivalent anywhere in the app. `reason` closes that: a screen reader moving
+  // through the page in browse mode (not tab order — a disabled button is unfocusable) must
+  // encounter the cause, not just the "dimmed" state.
+  describe('disabled reason', () => {
+    it('exposes the reason in the accessibility tree when disabled', () => {
+      render(
+        <PlateButton disabled reason="Enter an ISBN to continue">
+          Look up
+        </PlateButton>,
+      );
+      const button = screen.getByRole('button');
+      // toHaveAccessibleName reads exactly what browse-mode reading computes: the button's own
+      // label plus this sr-only text, both folded into one accessible name — proving the reason
+      // is reachable without ever focusing an element that cannot take focus.
+      expect(button).toHaveAccessibleName(/Enter an ISBN to continue/);
+      expect(button).toHaveAccessibleName(/Look up/);
+    });
+
+    it('keeps the reason out of the rendered page — sr-only, not a visible caption', () => {
+      render(
+        <PlateButton disabled reason="Enter an ISBN to continue">
+          Look up
+        </PlateButton>,
+      );
+      // §6's outline-fills-to-plate stays the only thing a sighted reader sees; a printed caption
+      // reading "Enter an ISBN to continue" next to a button already labelled "Look up" is exactly
+      // the visible-nonsense the removed aria-describedby attempt produced.
+      expect(screen.getByText('Enter an ISBN to continue')).toHaveClass('sr-only');
+    });
+
+    it('never speaks a reason for a button that is not disabled', () => {
+      render(
+        <PlateButton reason="Enter an ISBN to continue">Look up</PlateButton>,
+      );
+      expect(screen.queryByText('Enter an ISBN to continue')).toBeNull();
+      expect(screen.getByRole('button')).toHaveAccessibleName('Look up');
+    });
+
+    it('is harmless when disabled with no reason given — the existing, unchanged case', () => {
+      render(<PlateButton disabled>Create library</PlateButton>);
+      expect(screen.getByRole('button')).toHaveAccessibleName('Create library');
+    });
+  });
 });
