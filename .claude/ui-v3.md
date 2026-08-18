@@ -718,6 +718,27 @@ was a no-op and the wrap assertion that could not fail. The pattern is specific 
 guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
 from a comment.
 
+**Capture a failure whole before you filter it — and make the command do that, not your memory.** A
+suite reported `1 failed | 1220 passed` immediately after a comment-only edit, which cannot cause a
+failure. The verification command grepped for a summary line and a failure banner; the detail did not
+match those patterns, the output scrolled away, and four subsequent runs were clean. So the one instance
+of a genuine intermittent failure that anybody has seen was **held and then discarded by the act of
+filtering it**.
+
+This is *evidence has a time* with a twist: the evidence existed, in hand, and grepping at the moment of
+observation threw it away. A tail or a grep is a reasonable default for a green run and the wrong default
+for a red one, and you do not know which you have until after it has scrolled.
+
+**The fix is not resolve-to-remember, it is `tee`.** Pipe the full run to a file and grep the file, so the
+detail survives regardless of what the summary matched. Same principle as every other rule here: a
+criterion holds, and an intention does not.
+
+It also stands as a caveat rather than a closed item: a suite that has been seen red once for unknown
+reasons is not the same as a suite that has always been green, and "1221 passing" carries that asterisk
+until the flake is identified. Not worth hunting from cold — a failure that will not reproduce in four
+attempts is likelier to be diagnosable at its next sighting than by a search now — but not to be
+forgotten either.
+
 **Prefer removing a false trigger to suppressing a true check — and notice which of those needs
 permission.** The design hook fired three times on `BookDetectionResults.jsx`, at three line numbers as
 the file moved, always on a JSX comment that spells out `<img src="">` while explaining why the code
