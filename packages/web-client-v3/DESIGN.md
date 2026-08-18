@@ -780,6 +780,28 @@ already see why:
   carries the reason in `--ink-soft` caps *instead of* the control, in the control's own position,
   which is the best possible place for the explanation.
 
+**The first form is purely visual, and it has no non-visual equivalent anywhere.** *"Becoming a filled
+plate the moment the form is valid is itself the affordance saying so"* — true, and it says nothing to a
+screen reader. Of the two forms only the second, being words, carried non-visually, and it has now been
+removed from the capture screens for good reasons. So the gap is not a lost attribute on one screen: it
+is that **every** disabled primary in the app announces its state visually and its reason not at all.
+
+`aria-describedby` was the wrong repair even while it existed, and honestly so — a `disabled` button is
+not focusable, so a description on it is reachable in browse mode and never by tabbing. It was doing less
+than its presence implied.
+
+**The ruling: a disabled primary keeps its ruled-outline treatment, sets `aria-disabled` rather than
+`disabled` so it stays focusable, and carries a description naming what is missing.** That makes the
+reason genuinely reachable instead of merely present, and it belongs **inside `PlateButton`**, which also
+swallows activation while so marked — one component, no consumer changes, and the whole class fixed
+rather than the two screens that surfaced it. A local patch to a system-wide gap is how the same defect
+comes back on the next screen, which this project has now demonstrated four times with §6's collision
+alone.
+
+Not a regression and not urgent: the gap predates today and the attribute that briefly covered part of it
+was itself ineffective. It is a small piece of code work across a shared primitive, so it waits on the
+owner's word rather than riding along with a fix to something else.
+
 So a disabled destructive action has no treatment, because the case does not exist: a destructive
 button is already an outline and has nowhere to go. Unshare's bar therefore has exactly three
 states — hint, action, reason — and never a greyed control. Reserve the slot's height across all

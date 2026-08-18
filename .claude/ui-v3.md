@@ -718,6 +718,22 @@ was a no-op and the wrap assertion that could not fail. The pattern is specific 
 guard that has only ever been green is an untested guard, and an untested guard is indistinguishable
 from a comment.
 
+**The tool that checks the substrate can have the wrong substrate — and here it did.** `check:browser`
+guarded its port with `isPortFree`, which probed `127.0.0.1`, while every consumer browsed `localhost`.
+On macOS `localhost` resolves to `::1` first, and another of the owner's projects was listening there on
+IPv6 only. So the guard declared the port free, the suite browsed to a **different application**, and its
+assertions passed or failed about software that is not this one.
+
+That is this project's recurring defect — a true answer about an unverified substrate — occurring *inside
+the tool built to prevent it*, which is as far as the pattern can go. It also means some of today's
+`check:browser` green results were statements about someone else's app, and nobody could have told from
+the output.
+
+The general form: **a probe and its consumer must resolve the same name, not equivalent-looking ones.**
+`127.0.0.1` and `localhost` are not synonyms on a dual-stack host, and the difference is invisible until
+something else is listening. Where a tool asserts a precondition, assert it through the same path the
+work will take.
+
 **Capture a failure whole before you filter it — and make the command do that, not your memory.** A
 suite reported `1 failed | 1220 passed` immediately after a comment-only edit, which cannot cause a
 failure. The verification command grepped for a summary line and a failure banner; the detail did not
