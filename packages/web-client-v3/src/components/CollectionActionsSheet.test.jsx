@@ -149,7 +149,7 @@ describe('CollectionActionsSheet', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /add an item/i }));
     await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
-    await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+    await userEvent.click(await screen.findByRole('link', { name: /enter by hand/i }));
 
     // Anchored: a loose /collection/i also matches "Order in the collection", which this form
     // renders once a collection is selected.

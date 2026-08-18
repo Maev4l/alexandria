@@ -198,7 +198,7 @@ describe('AddItemSheet', () => {
         </MemoryRouter>,
       );
       await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
-      await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+      await userEvent.click(await screen.findByRole('link', { name: /enter by hand/i }));
       expect(await screen.findByText('state:none')).toBeInTheDocument();
       expect(screen.getByLabelText(/^collection$/i)).toHaveValue('');
     });
@@ -225,7 +225,7 @@ describe('AddItemSheet', () => {
         </MemoryRouter>,
       );
       await userEvent.click(screen.getByRole('button', { name: /^film$/i }));
-      await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+      await userEvent.click(await screen.findByRole('link', { name: /enter by hand/i }));
       expect(await screen.findByText('state:none')).toBeInTheDocument();
       expect(screen.getByLabelText(/^collection$/i)).toHaveValue('');
     });
@@ -259,7 +259,7 @@ describe('AddItemSheet', () => {
         </MemoryRouter>,
       );
       await userEvent.click(screen.getByRole('button', { name: /^book$/i }));
-      await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+      await userEvent.click(await screen.findByRole('link', { name: /enter by hand/i }));
       // Not just "the field ends up right" — it must end up right BECAUSE OF THE QUERY. A form
       // that quietly started reading `location.state` too would still show 'c1' here even after
       // the mechanism regressed; asserting state is none is what catches that, rather than
@@ -298,7 +298,7 @@ describe('AddItemSheet', () => {
         </MemoryRouter>,
       );
       await userEvent.click(screen.getByRole('button', { name: /^film$/i }));
-      await userEvent.click(await screen.findByRole('button', { name: /enter by hand/i }));
+      await userEvent.click(await screen.findByRole('link', { name: /enter by hand/i }));
       expect(await screen.findByText('state:none')).toBeInTheDocument();
       expect(screen.getByLabelText(/^collection$/i)).toHaveValue('c1');
     });

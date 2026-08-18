@@ -92,31 +92,31 @@ describe('AddBook', () => {
     expect(collectionsApi.get).not.toHaveBeenCalled();
   });
 
-  // Fix round 2 (finding 1): a disabled "Look it up" sitting next to the always-enabled "Enter by
-  // hand" — same 2px ink outline, same transparent ground — was indistinguishable at rest, on
-  // this screen exactly as much as AddVideo's (AddVideo.test.jsx carries the fuller comment).
-  // DESIGN.md §6's second form replaces the button entirely with the reason, in caps, in the
-  // control's own position, both while the field is empty and while it holds an invalid format —
-  // a same-colour ruled neighbour forces the second form regardless of which.
-  it('shows the reason instead of a disabled button while the code is empty, and calls nothing', async () => {
+  // Round 2 tried a caps reason ("An ISBN") standing in for the disabled button, to distinguish
+  // it at rest from the always-enabled "Enter by hand" secondary beside it — same 2px ink
+  // outline, same transparent ground. The user looked at the running app and found the reason
+  // itself the defect: the field is already labelled ISBN and hinted, and a bare caps noun phrase
+  // reads as a heading for the control beneath it, not an explanation of an absent one. The real
+  // fix moves "Enter by hand" off the outline treatment entirely (see the link test below), which
+  // dissolves the collision at its source: the disabled "Look it up" becomes the only ruled
+  // outline in its row, so DESIGN.md §6's FIRST form — a plain disabled outline, no words —
+  // applies correctly, and the button itself, not a caps stand-in, is what proves the state.
+  it('disables Look it up while the code is empty, and calls nothing on Enter', async () => {
     renderPage();
-    expect(screen.queryByRole('button', { name: /look it up/i })).not.toBeInTheDocument();
-    expect(screen.getByText(/an isbn/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /look it up/i })).toBeDisabled();
+    expect(screen.queryByText(/an isbn/i)).not.toBeInTheDocument();
     screen.getByLabelText(/isbn/i).focus();
     await userEvent.keyboard('{Enter}');
     expect(detectionApi.book).not.toHaveBeenCalled();
   });
 
-  it('links the reason to the code field for a screen-reader user, and drops the link once valid', async () => {
+  it('enables Look it up once the code is a valid ISBN', async () => {
     renderPage();
     const field = screen.getByLabelText(/isbn/i);
-    const reasonId = screen.getByText(/an isbn/i).id;
-    expect(field.getAttribute('aria-describedby')).toContain(reasonId);
+    expect(screen.getByRole('button', { name: /^look it up$/i })).toBeDisabled();
 
     await userEvent.type(field, '9782070404209');
-    expect(screen.queryByText(/an isbn/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^look it up$/i })).toBeEnabled();
-    expect(field.getAttribute('aria-describedby')).not.toContain(reasonId);
   });
 
   it('says what to do when the camera is refused, rather than only that it failed', async () => {
@@ -189,7 +189,7 @@ describe('AddBook', () => {
 
   it('still offers Enter by hand, unrelated to any ISBN lookup state, and carries the collection through its own query', async () => {
     renderPage('/libraries/lib-1/add/book?collectionId=c1');
-    await userEvent.click(screen.getByRole('button', { name: /^enter by hand$/i }));
+    await userEvent.click(screen.getByRole('link', { name: /^enter by hand$/i }));
     expect(
       await screen.findByText('landed:/libraries/lib-1/items/new/book?collectionId=c1 state:none'),
     ).toBeInTheDocument();
@@ -199,7 +199,7 @@ describe('AddBook', () => {
   // escape must add no query at all — not an empty `?collectionId=`, and never `location.state`.
   it('sends no query at all into Enter by hand with no collection on its own URL', async () => {
     renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /^enter by hand$/i }));
+    await userEvent.click(screen.getByRole('link', { name: /^enter by hand$/i }));
     expect(
       await screen.findByText('landed:/libraries/lib-1/items/new/book state:none'),
     ).toBeInTheDocument();

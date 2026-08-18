@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import CoverCapture from '@/components/CoverCapture.jsx';
 import Field from '@/components/imprint/Field.jsx';
@@ -117,16 +117,6 @@ const AddVideo = () => {
   };
 
   const canSubmit = !isBusy && title.trim().length > 0;
-  // DESIGN.md §6's second form for an inert action slot: a disabled primary reads as a plain
-  // ruled outline, indistinguishable at rest from the "Enter by hand" secondary beside it — same
-  // 2px ink outline, same transparent ground, no fill on either. The FIRST form (bare disabled
-  // outline, no words) holds only while that outline is the only one in its row; a same-colour
-  // ruled neighbour is permanently present here, so the first form never actually applies on this
-  // screen. While there is nothing valid to submit (and no request already in flight — a busy
-  // "Looking it up" is a real action underway, not an inert control), the slot carries the reason
-  // in caps instead of the button.
-  const hasReason = !isBusy && !canSubmit;
-  const titleReasonId = 'add-video-title-reason';
 
   return (
     <div className="min-h-dvh bg-paper">
@@ -161,7 +151,6 @@ const AddVideo = () => {
             label="Title"
             value={title}
             hint="Type or correct the film’s title."
-            describedBy={hasReason ? titleReasonId : undefined}
             onChange={onTitleChange}
           />
 
@@ -171,32 +160,33 @@ const AddVideo = () => {
             </p>
           )}
 
-          {hasReason ? (
-            // "instead of the control", per §6 — no button at all in this state, so there is
-            // nothing left to collide with "Enter by hand". `min-h-12` reserves the same height
-            // PlateButton itself claims, so nothing jumps when the swap happens either way.
-            // `id` is what `Field`'s `describedBy` links to above, for the reader interacting
-            // with the actual control (the title field) rather than a button that isn't there.
-            <p
-              id={titleReasonId}
-              className="caps flex min-h-12 items-center text-xs font-extrabold tracking-[0.12em] text-ink-soft"
-            >
-              A film's title
-            </p>
-          ) : (
-            <PlateButton type="submit" disabled={isBusy}>
-              {isBusy ? 'Looking it up' : 'Look it up'}
-            </PlateButton>
-          )}
+          {/* Always the same control — a ruled outline that fills to a plate the moment the
+              field is valid (DESIGN.md §6's FIRST form). That form holds here only because
+              "Enter by hand" below is no longer a second ruled outline in this row: a caps
+              reason used to stand in for this button while disabled, but the actual collision
+              was two identical outlines side by side, not a missing explanation, so moving the
+              manual escape off the outline treatment (see below) is what lets the plain disabled
+              button work correctly on its own. */}
+          <PlateButton type="submit" disabled={!canSubmit}>
+            {isBusy ? 'Looking it up' : 'Look it up'}
+          </PlateButton>
         </form>
 
-        <PlateButton
-          variant="secondary"
-          className="mt-4"
-          onClick={() => navigate(manualEntryPath)}
+        {/* Navigation to another route, not an action performed on this screen — so it takes the
+            underlined-link treatment DetailMarks already uses for "IN <library>"
+            (DESIGN.md §5), not a PlateButton. As a PlateButton it was a second ruled outline
+            sitting beside the disabled "Look it up" button, indistinguishable from it at rest;
+            as a link it carries no border or fill at all, so there is nothing left to collide
+            with. `inline-flex min-h-12 items-center` reserves the same 48px hit target a
+            PlateButton claims (DESIGN.md §4) without drawing a second box — the text itself is
+            long enough that width is never the constraint the way it is for a short library name
+            embedded mid-sentence in DetailMarks. */}
+        <Link
+          to={manualEntryPath}
+          className="mt-4 inline-flex min-h-12 items-center text-sm text-ink underline underline-offset-[3px]"
         >
           Enter by hand
-        </PlateButton>
+        </Link>
       </main>
     </div>
   );
