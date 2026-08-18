@@ -233,6 +233,33 @@ it covers.
 | Detail summary, `IN <library>` value | 14 | 400 | sans | `--cover-body` |
 | Search field input, ledger name row, ribbon owner | 13 | 400 | sans | ribbon owner sets `text-transform: none` |
 
+**Which numerals, precisely — because the rule was only half enforceable without this.** §3 states the
+split in both directions: nothing but numerals may be mono, *and* catalogue numerals must be mono. Only
+the first was ever checkable, which is how a candidate ISBN shipped in the sans past two mono guards and
+1169 green tests.
+
+The boundary is **a numeral presented as a value against a numeral inside a sentence**:
+
+- **Mono — a labelled datum.** The figure is the content, alone or beside a label: ISBN, TMDB id,
+  release year, runtime, collection order, a library's item count, a collection's member count, an
+  index-letter run count, ledger dates, a loan's day count. `Field`'s counter is this case and gets it
+  right already: the figure inherits `.num` and only the word `left` is sans.
+- **Sans — a numeral in running prose the app authored.** `Delete Fiction and its 412 items?` is a
+  sentence, and setting its figure in mono would break the line it sits in. The digit is a grammatical
+  constituent, not a datum on display.
+
+**And the guard must be a manifest, not a digit scan.** A blanket "any numeral not in mono fails" cannot
+tell those two apart — no checker parses sentences — so it would fire on correct confirmation copy, which
+is the crying-wolf first act that gets a guard deleted rather than fixed (the type-scale guard failed
+three times that way before it worked). Instead enumerate the catalogue data, name the screen and
+selector each appears at, and assert the **computed** `font-family` is Chivo Mono there. Positive
+per-datum coverage, no false positives, and it must live in the browser suite because the face a node
+actually resolves to is a computed-style fact the unit layer cannot see.
+
+The cost is that a numeral on a new screen is uncovered until someone lists it, so **the manifest needs
+its own drift alarm**, exactly as `monoRouteCoverage` guards `MONO_ROUTES`. An unlisted datum must fail
+the alarm rather than pass the check.
+
 **Mono — numerals only (§3, the mono rule)**
 
 | Role | Size | Weight | Notes |
