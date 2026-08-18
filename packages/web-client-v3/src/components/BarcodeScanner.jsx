@@ -132,13 +132,24 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
     // a failed image") and it applies here too — before the stream attaches, this box is
     // waiting for a live picture the same way an empty frame is. The rule alone describes it.
     //
-    // 140px, not 280 — an AIMING aid only, nothing more. `@zxing` decodes from
+    // Full column width, fixed height 416px (52 divisions) — not the 2:3 Volume Frame ratio.
+    // An EAN-13/EAN-8 barcode is landscape; a portrait window forced the reader to hold the
+    // phone so a wide code occupied only a small fraction of a tall box. `@zxing` decodes from
     // `mediaElement.videoWidth/videoHeight` (`BrowserCodeReader.js:283-284`), the stream's
-    // intrinsic size, so this box's CSS dimensions and the `scale-150` below play no part in
-    // what gets decoded: a smaller, zoomed preview cannot introduce a false negative, because a
-    // barcode visible on screen here is already within the decoded frame. `overflow-hidden` is
-    // required now that the video is scaled up past the box's own edges.
-    <div className="relative aspect-[2/3] w-full max-w-[140px] overflow-hidden border-2 border-ink">
+    // intrinsic size, so this box's CSS dimensions and the `scale-150` below play no part
+    // DIRECTLY in what gets decoded — but the frame's shape decides where the reader holds the
+    // phone, which decides what the sensor sees, and that indirect effect is real but
+    // unmeasured; this comment makes no claim about decode success or scan accuracy.
+    //
+    // Height is a fixed division-scale value, not an aspect ratio, on purpose: this is a
+    // targeting window sized to its subject, so its ratio may vary by device — unlike an
+    // artwork frame, where imprecision is never acceptable. That is also why the film capture
+    // frame (`CoverCapture`, out of scope here) stays the 2:3 Volume Frame ratio: a cover is
+    // 2:3, so its viewfinder matches its subject exactly as this one now matches its own — one
+    // rule applied twice, not an inconsistency.
+    //
+    // `overflow-hidden` is required now that the video is scaled up past the box's own edges.
+    <div className="relative h-[416px] w-full overflow-hidden border-2 border-ink">
       {/* Mounted from the first render so the ref exists before decodeFromConstraints needs it.
           The zoom is purely visual — see the box comment above — making a small code easier to
           aim at, never easier to decode. */}

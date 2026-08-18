@@ -142,20 +142,27 @@ describe('BarcodeScanner — the state machine', () => {
     await waitFor(() => expect(stop).toHaveBeenCalledTimes(1));
   });
 
-  // The geometry task's Change 2: a smaller, zoomed viewport is an AIMING aid only. This
-  // component decodes off the fake `decodeFromConstraints`, which never reads the video
-  // element's CSS at all — so these assertions are necessarily about layout, not decoding; the
-  // "decoding is unaffected" half of the claim is structural (§ the source comment) rather than
-  // something this suite can exercise, since nothing here ever measured decode success against
-  // box size in the first place.
-  it('halves the viewport to 140px, half of the original 280px', () => {
+  // The geometry task's barcode-frame reshape: full column width, fixed height. This component
+  // decodes off the fake `decodeFromConstraints`, which never reads the video element's CSS at
+  // all — so this assertion is necessarily about layout, not decoding; the "decoding is
+  // unaffected" half of the claim is structural (§ the source comment) rather than something
+  // this suite can exercise, since nothing here ever measured decode success against box size.
+  //
+  // Pin the HEIGHT, not a width: a full-width frame's width is a consequence of the column it
+  // sits in, so asserting it would just re-test `w-full`. The height is the actual decision —
+  // 416px (52 divisions) replacing the old `aspect-[2/3]` — so that is what must be pinned.
+  it('sets a fixed 416px height instead of the old 2:3 aspect ratio', () => {
     decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
     const { container } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
-    expect(container.firstChild.className).toContain('max-w-[140px]');
-    expect(container.firstChild.className).not.toContain('max-w-[280px]');
+    expect(container.firstChild.className).toContain('h-[416px]');
+    expect(container.firstChild.className).not.toContain('aspect-[2/3]');
+    expect(container.firstChild.className).not.toContain('max-w-[140px]');
   });
 
-  it('zooms the feed inside the smaller box, clipped so it never escapes the ruled frame', () => {
+  // Named for what it asserts, not for a box size that has since changed: this test was written
+  // when the frame was halved, and the frame is now full-width at a fixed height. The zoom and
+  // the clipping are what it checks, and both outlive any particular geometry.
+  it('zooms the feed and clips it so it never escapes the ruled frame', () => {
     decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
     const { container } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
     expect(container.firstChild.className).toContain('overflow-hidden');
