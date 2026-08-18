@@ -150,11 +150,19 @@ describe('BarcodeScanner — the state machine', () => {
   //
   // Pin the HEIGHT, not a width: a full-width frame's width is a consequence of the column it
   // sits in, so asserting it would just re-test `w-full`. The height is the actual decision —
-  // 416px (52 divisions) replacing the old `aspect-[2/3]` — so that is what must be pinned.
-  it('sets a fixed 416px height instead of the old 2:3 aspect ratio', () => {
+  // 192px (24 divisions) replacing the old `aspect-[2/3]`.
+  //
+  // 192 rather than the 416 this first shipped with, and the reason is measured rather than
+  // judged: at a 667-tall viewport the 416 frame pushed the document to 772px and the manual
+  // escape to a bottom of 756, so the fallback path sat below the fold on a small phone. At 192
+  // the document is exactly 667 and the escape ends at 532 — the whole screen fits on EVERY
+  // phone rather than only the large ones. It also matches web-client-v2's own scanner
+  // (`h-48 w-full max-w-xs`), which is where the height came from: the previous v2 is an
+  // anti-reference for IDENTITY, not for what a viewfinder has to physically fit into.
+  it('sets a fixed 192px height instead of the old 2:3 aspect ratio', () => {
     decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
     const { container } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
-    expect(container.firstChild.className).toContain('h-[416px]');
+    expect(container.firstChild.className).toContain('h-48');
     expect(container.firstChild.className).not.toContain('aspect-[2/3]');
     expect(container.firstChild.className).not.toContain('max-w-[140px]');
   });

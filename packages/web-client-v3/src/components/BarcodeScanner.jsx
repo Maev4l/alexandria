@@ -149,7 +149,7 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
     // rule applied twice, not an inconsistency.
     //
     // `overflow-hidden` is required now that the video is scaled up past the box's own edges.
-    <div className="relative h-[416px] w-full overflow-hidden border-2 border-ink">
+    <div className="relative h-48 w-full overflow-hidden border-2 border-ink">
       {/* Mounted from the first render so the ref exists before decodeFromConstraints needs it.
           The zoom is purely visual — see the box comment above — making a small code easier to
           aim at, never easier to decode. */}
