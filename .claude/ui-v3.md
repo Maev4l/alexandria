@@ -929,7 +929,7 @@ Two suites, with a division that matters: `yarn test` asserts rules are DECLARED
 `yarn check:browser` asserts they SURVIVE the cascade and that gestures actually fire.
 `yarn profile:stream` measures the stream at 1000 items against a pinned baseline.
 
-### The remediation pass, and the four guards it produced
+### The remediation pass, and the guards it produced
 
 Slice C's critique scored 27/40. Both P0s, all three P1s, the P2 and every minor observation are
 closed (`1d6eaae..6b38149`, 1005 tests across 51 files, clean tree). But the durable output is four
@@ -942,6 +942,8 @@ not applied**:
 | `groundForeground.test.js` | "Anything that sets a ground sets its foreground" was written into `DESIGN.md` §2 and then **violated five times in the two commits after it**. |
 | `routeLandmarks.test.jsx` | `<main>` and `<h1>` were declared binding in §7, then added only to the files each slice happened to touch. |
 | `monoText.test.js` + `monoRouteCoverage.test.js` | §3's mono/sans split was **unenforceable** for three slices: while both faces resolved to the same fallback, a name in mono and a name in sans rendered identically. A whole section sat dormant with nothing able to report it. |
+| `typeScale.test.js` | §3's scale was **never enforceable**: nothing read the list of steps. A 9px plate shipped, survived a critique that named it the clearest finding of its run, survived the provenance check that closed it, and the suite was green at 1111 before and after the fix. It resolves Tailwind's named sizes to pixels, because 70 of 114 size classes are named and a `text-[Npx]`-only guard would have covered 44 and reported clean. |
+| `MONO_FIELDS` in `check-browser.mjs` + `monoFieldCoverage.test.js` | The two guards above enforce only **one direction** of §3 — that nothing but numerals is mono. A candidate ISBN shipped in the **sans** past both of them and 1169 green tests. This one is **field-driven, not site-driven**: it takes the catalogue fields' values from the fixture, finds them anywhere in the rendered DOM, and asserts the computed face — so a new screen rendering a listed field in the sans fails with **zero registration**. The default is enforcement, with a short reviewed exception list for numerals inside authored prose. |
 
 **The throughline is not bad reasoning — it is correct reasoning on an unverified substrate.** The
 index-letter withdrawal, `A–Z: true` from a single sample, the `#` fragmentation reading, a wrap
@@ -973,8 +975,16 @@ fail loudly when the substrate moves.
 - [x] ItemDetail on the black cover, deep-linkable, inline loan ledger — with the marks column
       beside the hero carrying `IN <library>`, sharing and the stamp, and the actions laid out
       as what they are rather than gathered behind a menu
-- [ ] Add flows: ISBN scan, cover OCR, preview-before-commit — `AddBook`, `AddVideo` and both
-      detection-results screens are still placeholder stubs
+- [x] Add flows: ISBN scan, cover OCR, preview-before-commit — all four screens real. The fixture
+      `/detections` route carries the failure cases, so every state of the flow is reachable and
+      reviewable; the decoder sits behind a fake-able interface; `@zxing` and the webcam load only on
+      the capture routes. Three defects came out of **rendering** the states rather than reading the
+      diff, and none was visible to a green suite: a failed resolver rendered as a candidate titled
+      `Untitled` — above `NO MATCH FOUND` on a true miss, so one screen made two opposite claims; a
+      disabled primary sat identical to the manual escape beside it, the fourth instance of §6's
+      collision; and the no-input notice wore the Error construction for something that had not failed.
+      The camera *surface* is still undesigned by intent — the viewport is plain, and the marks that
+      distinguish scanning from decoding wait on a live feed on a device
 - [x] Manual entry and edit forms (`ItemForm`, `NewBook`, `NewVideo`, `EditItem`) with `COVER IMAGE`
       as a real field on all three, plus `Fetch cover` on the item-detail frame for the separate
       repair case. The order field is **optional where the server ranks last** and required only when
