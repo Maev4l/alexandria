@@ -987,7 +987,7 @@ These are facts about the backend, not preferences. Nothing in the UI may contra
 | Collection endpoint returns a header but not its members | A cold link to a collection cannot load its contents; collections stay inline in the listing rather than becoming destinations. |
 | Mutations return empty bodies | Re-read the single item after a write instead of assuming. |
 | `picture` is a CloudFront URL produced asynchronously; often absent. It is also **synthesised from a template whenever `pictureUrl` exists, without checking S3**, so a present URL may still 404 | The empty Volume Frame is a designed state, not a placeholder. Degrade to it on image load failure — never a broken-image glyph — and re-poll once. Cache-bust with `?v={updatedAt}`. |
-| **Optional fields are `omitempty`** (`handlers/models.go`), so `lentTo`, `picture`, `order`, `collectionId` and `updatedAt` arrive **absent, not null** | Any `=== null` test is wrong. Check presence, or use `== null` so `undefined` is covered. **Except `pictureUrl` on a detection candidate, where presence is the wrong test** — see below. |
+| **Optional fields are `omitempty`** (`handlers/models.go`), so `lentTo`, `picture`, `order`, `collectionId` and `updatedAt` arrive **absent, not null** | Any `=== null` test is wrong. Check presence, or use `== null` so `undefined` is covered. **Except `pictureUrl` on a detection candidate, where presence is the wrong test** — see below. **And this rule governs WRITES as well as reads: a spread cannot delete an absent key.** |
 | **A detected candidate's `pictureUrl` can be PRESENT AND EMPTY** | `services/resolvers/google.go:99` takes the address of the thumbnail field unconditionally, so an item with no thumbnail yields a non-nil pointer to `""`. `goodreads.go:91-94` and `tmdb.go:267-270` set the pointer only inside guards, so they yield absence. Three resolvers, two shapes, one field. This is the single field rendered straight into an `<img src>`, and `src=""` produces the broken-image glyph `DESIGN.md` §6 forbids outright — so here the row above's advice is actively wrong: **test truthiness, not presence.** |
 | Renames and index updates propagate via streams (~100ms, not guaranteed) | Tolerate a just-written value not yet reflected everywhere. |
 | Access/ID tokens 60 min, refresh 365 days | Silent refresh; a hard expiry returns to `/login` without losing the current route. |
@@ -1326,6 +1326,26 @@ Two constructions in that profiler worth copying. It reports the commit as the *
 mean**, because a commit blocks the main thread and appears as one long frame — an average would hide exactly
 the thing under test. And it marks the response at the moment the **JSON body is parsed**, not when headers
 arrive, so network time is never credited to the commit.
+
+**`omitempty` governs the WRITE path too, and a spread cannot delete an absent key.** §6 records in bold
+that optional fields arrive **absent, not null**, so any `=== null` test is wrong. That was applied to
+reading and never to patching. `Search.jsx` merged a re-read with `{ ...row, ...fresh }` — and because a
+returned item comes back with `lentTo` **gone from the response rather than set to null**, the merge kept the
+stale value: the write succeeded, the row went on printing `OUT`, and the reader's natural response — tap
+`Mark returned` again — wrote **three `RETURNED` events for one loan** into the append-only ledger the
+product is positioned on. `StreamContext.patchItem` does it correctly with `return fresh`, four files away,
+for the same job.
+
+**So the rule for patching a record from a re-read is replacement, never merge.** A merge is only correct
+when the response is a partial, and none of this API's reads are. Where a merge exists to preserve fields the
+read does not return, verify that claim — here every field the row needed was present, so the merge was
+guarding nothing.
+
+**And it is invisible to a test written on the adding direction.** A lend *adds* `lentTo` and a spread
+handles that perfectly; only removal fails. Any probe for this must assert that an **omitted** field
+**clears** its rendering, and the same question applies to the other four fields §6 names — `picture`,
+`order`, `collectionId`, `updatedAt`. That is the shape of check this project keeps discovering it lacks: one
+that fails on absence rather than on presence.
 
 **Import a fixture's constants; never retype its values.** A dispatch of mine named `TERM_MIXED = 'blake'`
 where the fixture says `'roman'`. The implementer imported the constant rather than the literal — and a wrong
