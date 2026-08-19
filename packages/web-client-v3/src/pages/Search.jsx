@@ -145,11 +145,26 @@ const Search = () => {
     // to — and that text is not hidden from anyone; it was never announced, which is a different
     // problem. "Nothing matched" is the fact that was missing, and it is what sends a reader to
     // the detail rather than leaving them with silence.
-    if (state.results.length === 0) return 'Nothing matched';
+    // OUTCOME PLUS A POINTER, not the paragraph. Repeating the scope sentence would make a
+    // browse-mode reader meet it twice, once announced and once as text they navigate to — but a
+    // `role="status"` fires WITHOUT moving the reading cursor, so announcing the head alone leaves
+    // the reader where they were typing with no sign that an explanation exists a few nodes away.
+    // A sighted reader takes the head and the reason in one visual field; the pointer is what
+    // makes those two readers equal. One clause is the difference between "there is nothing here"
+    // and "there is nothing here, and here is where the reason is".
+    if (state.results.length === 0) return 'Nothing matched. What search covers is explained below.';
     return `${state.results.length} ${state.results.length === 1 ? 'result' : 'results'}`;
   })();
 
   const showRecents = state.status === 'idle' && recents.length > 0;
+  // A first visit has no recents and no query, so the surface below the field was BLANK — and
+  // §6's Empty rule is "a ruled frame with a caps invitation, at the same weight as a full
+  // block", never nothing at all. It is also the one state where the reader may not know what
+  // It does NOT restate what search covers. That is ruling 3 — the limits print at zero results
+  // and nowhere else — and the first draft of this block broke it, caught by the probe that
+  // asserts the scope sentence is absent whenever there is no failed lookup to explain. An
+  // invitation says what to do; the limits explain a result the reader did not expect.
+  const showEmptyInvitation = state.status === 'idle' && recents.length === 0;
 
   return (
     <div className="min-h-dvh bg-paper">
@@ -169,7 +184,18 @@ const Search = () => {
             is in the reader's eye line far louder than a heading would. */}
         <h1 className="sr-only">Search</h1>
 
-        <SearchField value={terms} onQueryChange={setTerms} />
+        {/* STICKY, because at four hundred results the surface is 42,464px tall and the field
+            scrolled away with everything else — refining a query meant scrolling back roughly
+            4,000px to reach the only control that can refine it. The measurement I ran asked
+            whether the list stutters and never asked whether the reader can get anywhere; it is
+            fast and, until this, unnavigable.
+            `-mx-4 px-4` so the ground spans the full column rather than letting rows show through
+            beside it, and its own 2px rule so it reads as a surface the content passes under
+            rather than as a block that happens to be stuck. The header is not sticky, so `top-0`
+            is the viewport edge and nothing overlaps. */}
+        <div className="sticky top-0 z-10 -mx-4 border-b-2 border-ink bg-paper px-4 pb-3">
+          <SearchField value={terms} onQueryChange={setTerms} />
+        </div>
 
         {/* ONE PERSISTENT role="status", carrying the outcome for EVERY state.
             At rest with eight results the surface announced nothing at all: the only live region
@@ -206,6 +232,17 @@ const Search = () => {
             >
               Try again
             </PlateButton>
+          </div>
+        )}
+
+        {showEmptyInvitation && (
+          <div className="mt-6 border-2 border-ink p-8">
+            <p className="caps text-xs font-extrabold tracking-[0.16em] text-ink-soft">
+              Search every library
+            </p>
+            <p className="mt-4 text-sm text-ink">
+              Type three characters or more to look across every library you can see.
+            </p>
           </div>
         )}
 

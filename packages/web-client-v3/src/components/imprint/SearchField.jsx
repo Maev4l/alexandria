@@ -103,18 +103,27 @@ const SearchField = ({ className, value, onQueryChange }) => {
           <Close />
         </button>
       )}
-      <button
-        type="submit"
-        aria-label="Search"
-        // 48px floor (P1 #4): the field's own row is already 48px tall because the input
-        // above carries the same min-h-12, so growing this from a 32px icon square to the
-        // full size-12 box costs nothing — it only ever consumed slack that was already
-        // sitting unused inside the row, never inflating it. The icon itself stays 16px;
-        // only the tappable box grows.
-        className="on-imprint flex size-12 shrink-0 items-center justify-center text-ink"
-      >
-        <Search size={16} />
-      </button>
+      {/* DROPPED IN CONTROLLED MODE. On the search surface the query runs as it is typed, so
+          submitting has nothing to do — `submit` returns immediately — and §6 forbids the action
+          slot holding an inert control. It sat 56px from `Clear the search`, which wipes the
+          query: a control that does nothing, beside a control that destroys something, at
+          thumb distance.
+          It stays in launcher mode, where it is the whole point: the root's field carries what
+          has been typed to this surface. */}
+      {!isControlled && (
+        <button
+          type="submit"
+          aria-label="Search"
+          // 48px floor (P1 #4): the field's own row is already 48px tall because the input
+          // above carries the same min-h-12, so growing this from a 32px icon square to the
+          // full size-12 box costs nothing — it only ever consumed slack that was already
+          // sitting unused inside the row, never inflating it. The icon itself stays 16px;
+          // only the tappable box grows.
+          className="on-imprint flex size-12 shrink-0 items-center justify-center text-ink"
+        >
+          <Search size={16} />
+        </button>
+      )}
     </form>
   );
 };

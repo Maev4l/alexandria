@@ -1041,14 +1041,21 @@ try {
 
   // ---- Three tab stops in one control must be distinguishable ----
   // DESIGN.md §2: the whole-box `:focus-within` construction "holds only while the control has
-  // exactly one focusable descendant". The search field has three — the input, the submit mark and
+  // exactly one focusable descendant". The search field had THREE — the input, the submit mark and
   // the clear mark — and under `focus-within` the box lit for all of them while each mark's own
   // ring was suppressed. Pixel-diffed by the critique: `Clear the search` and `Search` were
   // IDENTICAL when focused, 0 pixels differing, with one of the two destroying the query.
   //
+  // It has two now: the submit mark is gone from this surface, because on a field that searches as
+  // it is typed submitting does nothing, and §6 forbids an inert control in the action slot. TWO is
+  // still more than one, so the rule and this check both stand — but the pair being compared is
+  // the input against the clear mark rather than the two marks against each other. Recorded
+  // because a reader finding "three tab stops" in the history and two on the screen would
+  // otherwise wonder which is stale.
+  //
   // Diffed rather than read from a computed style, because what failed was not a property — every
   // rule was correct in isolation — it was which ELEMENT the indicator landed on.
-  console.log('the search field distinguishes its three tab stops when focused');
+  console.log('the search field distinguishes its tab stops when focused');
   {
     await page.goto(`${BASE}/search`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('main input');
@@ -1074,25 +1081,26 @@ try {
     };
 
     const onInput = await shootFocused('input');
-    const onSearch = await shootFocused('^search$');
     const onClear = await shootFocused('clear');
 
-    const clearVsSearch = await diff(onClear, onSearch);
-    const inputVsSearch = await diff(onInput, onSearch);
-    console.log(`    clear vs search: ${clearVsSearch} bytes differ; input vs search: ${inputVsSearch}`);
+    const inputVsClear = await diff(onInput, onClear);
+    console.log(`    input vs clear: ${inputVsClear} bytes differ`);
 
-    // The pair the critique measured at zero. Both are marks inside one control, and only one of
-    // them wipes the query.
+    // The caret being in the field and the caret being on the control that WIPES the field must
+    // not look the same. Under `:focus-within` they did.
     record(
-      clearVsSearch > 0,
-      'focusing the clear mark looks different from focusing the submit mark',
-      `${clearVsSearch} bytes differ`,
+      inputVsClear > 0,
+      'focusing the input looks different from focusing the clear mark',
+      `${inputVsClear} bytes differ`,
     );
-    record(
-      inputVsSearch > 0,
-      'focusing the input looks different from focusing a mark',
-      `${inputVsSearch} bytes differ`,
+
+    // And the inert control is gone rather than merely quiet: a submit that returns immediately is
+    // §6's action slot holding something that does nothing, 56px from the control that destroys
+    // the query.
+    const submitMarks = await page.evaluate(() =>
+      [...document.querySelectorAll('form[role=search] button')].filter((b) => b.type === 'submit').length,
     );
+    record(submitMarks === 0, 'the surface carries no inert submit control', `${submitMarks} found`);
   }
 
   // ---- The surface focuses the field it IS ----

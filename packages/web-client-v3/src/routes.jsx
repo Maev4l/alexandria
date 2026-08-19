@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import AddFlowLayout from '@/components/AddFlowLayout.jsx';
+import AppHeader from '@/components/AppHeader.jsx';
 import { useAuth } from '@/auth/AuthContext.jsx';
 
 // Route-level code splitting. The capture routes are the reason this matters: @zxing must
@@ -30,7 +31,24 @@ const Account = lazy(() => import('@/pages/Account.jsx'));
 const About = lazy(() => import('@/pages/About.jsx'));
 
 // The ground, at full height, so the layout does not jump when the route lands.
-const RouteFallback = () => <div className="min-h-dvh bg-paper" aria-busy="true" />;
+// A WAY OUT, because the fallback can be on screen for a whole chunk fetch. The header lives
+// inside the lazy chunk, so until now every route transition rendered a blank page with no
+// control at all — and `/search` is the loudest mark in the design, reached one-handed on the
+// worst connection PRODUCT.md describes, in an installed PWA with no browser chrome to fall back
+// on. A reader who taps it and gets a blank page has nothing to press.
+//
+// `AppHeader` is imported EAGERLY here rather than lazily: it is on every authenticated screen, so
+// it is in the entry bundle regardless of this — what changes is only that the fallback can use
+// it. `navigate(-1)` for the same reason ItemDetail and Search use it: the fallback has no idea
+// which route it is standing in for, so the only honest destination is wherever the reader was.
+const RouteFallback = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="min-h-dvh bg-paper" aria-busy="true">
+      <AppHeader onBack={() => navigate(-1)} search={false} />
+    </div>
+  );
+};
 
 // Sends an unauthenticated visitor to /login while remembering where they were headed, so a
 // hard token expiry costs them the session but not their place.

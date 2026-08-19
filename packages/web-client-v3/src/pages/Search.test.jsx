@@ -463,7 +463,11 @@ describe('Search — what a reader who cannot see it hears', () => {
 
     await userEvent.clear(field());
     await userEvent.type(field(), TERM_NONE);
+    // The head AND a pointer to the explanation. `role="status"` fires without moving the reading
+    // cursor, so a reader who hears only "Nothing matched" is left with the wrong conclusion this
+    // screen exists to prevent, delivered faster.
     await waitFor(() => expect(status()).toHaveTextContent(/nothing matched/i));
+    expect(status()).toHaveTextContent(/what search covers/i);
 
     await userEvent.clear(field());
     await userEvent.type(field(), TERM_ERROR);
@@ -476,6 +480,37 @@ describe('Search — what a reader who cannot see it hears', () => {
     await screen.findByText('Nadja');
     await waitFor(() => expect(status()).toHaveTextContent('1 result'));
     expect(status()).not.toHaveTextContent('1 results');
+  });
+});
+
+describe('Search — the surface before a query exists', () => {
+  // §6's Empty rule: "a ruled frame with a caps invitation, at the same weight as a full block",
+  // never nothing at all. A first visit has no recents and no query, so the whole surface below
+  // the field was blank.
+  it('invites rather than showing a blank page when there are no recents', async () => {
+    renderSearch();
+    expect(await screen.findByText(/search every library/i, { selector: 'p' })).toBeInTheDocument();
+    expect(screen.getByText(/three characters or more/i)).toBeInTheDocument();
+  });
+
+  it('does not restate what search covers — that belongs to the zero-result block alone', async () => {
+    renderSearch();
+    await screen.findByText(/three characters or more/i);
+    // Ruling 3, and the first draft of the invitation broke it: the limits explain a result the
+    // reader did not expect, and nothing has been looked up yet.
+    expect(screen.queryByText(/not summaries/i)).toBeNull();
+    expect(screen.queryByText(/accents count/i)).toBeNull();
+  });
+
+  it('gives way to recents once there are any', async () => {
+    renderSearch();
+    await userEvent.type(field(), TERM_MIXED);
+    await screen.findByText('1984');
+    await userEvent.clear(field());
+
+    // The recents block is headed by a caps `Recent` label rather than a labelled list.
+    await screen.findByText('Recent');
+    expect(screen.queryByText(/three characters or more/i)).toBeNull();
   });
 });
 
