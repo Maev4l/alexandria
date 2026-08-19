@@ -7036,103 +7036,214 @@ git commit -m "feat(web-v3): add-film capture — cover OCR with an editable tit
 
 ---
 
-### Task 20: Search
+### Measured before this slice was planned
+
+Three numbers, because the design session asked for the virtualisation question to be settled
+with a measurement rather than a prior. All three change the task.
+
+**1. The browse stream is not virtualised, and the mechanism it does have is inert.** There is no
+windowing library. There is pagination at 30 per page, plus a CSS containment utility (`.row-skip`
+— `content-visibility: auto` on `ItemRow`). Run `yarn profile:stream` and the project's own
+profiler reports:
+
+```
+1x, with row-skip      p50 8.3ms  p95 24.2ms  max 83.7ms  over 50ms: 5
+1x, without row-skip   p50 8.3ms  p95 25.0ms  max 82.7ms  over 50ms: 5
+4x, with row-skip      p50 8.2ms  p95 75.5ms  max 273.0ms over 50ms: 46
+4x, without            p50 8.3ms  p95 72.5ms  max 270.8ms over 50ms: 46
+```
+
+Containment changes the slowest frame by 1%, in both directions, throttled and not. So "search
+inherits the stream's virtualisation" would inherit a mechanism that does no measurable work.
+Reusing `ItemRow` still brings `row-skip` along for free, and that is fine — it costs nothing
+either. What it must not do is stand in for having answered the question.
+
+**2. The risk search has is different in kind from the stream's, and containment does not touch
+it.** The stream commits 30 rows at a time; search commits *all* of them in one go. Containment
+skips layout and paint for offscreen rows — it does not skip React's reconciliation or the DOM
+construction of N rows in a single commit. The stream profiler measures *scrolling*; nothing in
+this codebase has ever measured *mounting* a large list at once, which is the only thing search
+does that the stream does not.
+
+**3. The result set is unbounded by construction, and worse than "unpaginated" implies.**
+`services/search.go:89` builds `bluge.NewAllMatches(finalQuery)` — no size, no top-N. And the
+query is not merely fuzzy: each term contributes a **prefix wildcard** (`termLower + "*"`) across
+title, authors, directors, cast and collection, plus a fuzzy clause on the same five fields.
+
+A three-character term is therefore a prefix over five fields. On a catalogue `PRODUCT.md`
+describes as deliberately half French, `les`, `des`, `une`, `histoire` are extremely common
+leading tokens. A large result set is not a hypothetical worst case here — it is the *likely*
+shape of a short query.
+
+**So the requirement is real and the named mechanism is the wrong one.** The plan therefore
+measures the mount cost and gates it (Task 20b), rather than either assuming windowing is needed
+or assuming `row-skip` covers it.
+
+**A fourth measurement, which improves the copy rather than the architecture.**
+`bluge.NewFuzzyQuery` defaults to `fuzziness: 1` (bluge@v0.2.2 `query.go:415-420`), and terms are
+lowercased with no accent folding. So `etranger` reaches `étranger` — one substitution, distance
+1 — while a two-accent difference like `elephants` against `éléphants` is distance 2 and does not.
+The zero-result copy can therefore say something actionable instead of hedging: one missing accent
+usually still finds it, two do not.
+
+---
+
+### Task 20a: The fixture `/search` route — prerequisite to Task 20
 
 **Files:**
-- Create: `packages/web-client-v3/src/api/search.js`
-- Create: `packages/web-client-v3/src/lib/useDebounced.js`
-- Modify: `packages/web-client-v3/src/pages/Search.jsx`
-- Test: `packages/web-client-v3/src/pages/Search.test.jsx`
+- Create: `packages/web-client-v3/tools/mock-search.js`
+- Modify: `packages/web-client-v3/tools/mock-api.js`
+- Test: `packages/web-client-v3/src/test/mock-search.test.js`
 
-- [ ] **Step 1: Write the failing test**
+`tools/mock-api.js` has no `/search` route, so the screen is unbuildable and unreviewable without
+AWS — the same reason Task 18a came before Task 18.
 
-Create `packages/web-client-v3/src/pages/Search.test.jsx`:
+**It must serve the states that decide the design, keyed by term** (follow `mock-detections.js`
+for the middleware shape, its registration under `tools/`, and the keyed-constant convention):
 
-```jsx
-describe('Search', () => {
-  it('waits for three characters before asking the server', async () => {
-    renderPage();
-    await userEvent.type(screen.getByRole('searchbox'), 'le');
-    await new Promise((r) => setTimeout(r, 400));
-    expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining('/search'), expect.anything());
-  });
+| Term constant | Serves | Why it must exist |
+|---|---|---|
+| `TERM_MIXED` | ~8 results across two owned libraries and one shared, most with artwork, one without, one **lent**, one from a **shared** library | The ordinary case, and the only one that exercises the stamp and the shared tag side by side |
+| `TERM_LARGE` | **400 results** | The mount-cost measurement (Task 20b) has nothing to measure without it. 400 is not a guess: a 3-char prefix over five fields on a 1000-item half-French catalogue is the likely shape, and the fixture must be able to produce the case the code has to survive |
+| `TERM_SINGLE` | 1 result | The row's own layout, uncrowded |
+| `TERM_NONE` | `{ results: [] }` | The zero state, which is where the honest limits and the accent note print |
+| `TERM_ERROR` | 500 | The failure state — inline and in place, never a toast |
 
-  it('names the library on each result, because here the library is new information', async () => {
-    renderPage();
-    await userEvent.type(screen.getByRole('searchbox'), 'grand');
-    expect(await screen.findByText(/marie's shelf/i)).toBeInTheDocument();
-  });
+**`results` is the response key** (`SearchResponse.results`, openapi.yaml) and every entry is a
+`GetBookResponse`/`GetVideoResponse` shape — the SAME shape the listing returns, which is what
+lets a result row be a stream row. Include `libraryId` and `libraryName` on every entry: the row
+prints the library, and a fixture that omitted it would make that field untestable.
 
-  it('states what search actually matches, so an absent result is not a mystery', () => {
-    renderPage();
-    expect(
-      screen.getByText(/titles, authors, directors, cast and collections/i),
-    ).toBeInTheDocument();
-  });
-
-  it('keeps recent searches so a repeated lookup is one tap', async () => {
-    renderPage();
-    await userEvent.type(screen.getByRole('searchbox'), 'chandler{Enter}');
-    await screen.findByRole('list', { name: /recent/i });
-  });
-
-  it('returns the reader to where they were', async () => {
-    renderPage();
-    expect(screen.getByRole('button', { name: /close search/i })).toBeInTheDocument();
-  });
-});
-```
-
-- [ ] **Step 2: Run it, then write the screen**
-
-Create `packages/web-client-v3/src/api/search.js`:
-
-```js
-import { api } from './client.js';
-
-// Bluge fuzzy search over title, authors, directors, cast and collection — NOT summary and
-// NOT ISBN. Unpaginated: one response is the whole result set.
-export const searchApi = {
-  query: (terms) => api.post('/search', { terms }),
-};
-```
-
-Create `packages/web-client-v3/src/lib/useDebounced.js` — a 300ms debounce returning the settled
-value.
-
-`Search.jsx` is a full-screen surface on `--paper-deep`, opened from the header field and closed
-back to where the reader was (`navigate(-1)`). Terms are split on whitespace. Below three
-characters it shows recent searches from `localStorage` (cap 8) instead of querying.
-
-State the limits where they are relevant, not in a help page:
-
-```jsx
-<p className="caps mt-2 text-[11px] text-ink-soft">
-  Searches titles, authors, directors, cast and collections — not summaries or ISBNs
-</p>
-```
-
-Results are on-paper rows reusing `ItemRow`, each additionally naming its library, since here
-the library **is** new information. A result from a shared library carries an inline `--shared`
-tag rather than a left edge, keeping the edge free for on-loan. Owned results long-press to
-`ItemActionsSheet` and update in place; shared results have no long press.
-
-Note in the empty state that a very recent addition may not be indexed yet — the index updates
-asynchronously, so "no results" can be temporarily wrong:
-
-```jsx
-<p className="mt-2 text-sm text-ink-soft">
-  Nothing matched. An item added in the last moment or two may not be indexed yet.
-</p>
-```
-
-- [ ] **Step 3: Run the tests, lint, commit**
+- [ ] **Step 1: Write the failing tests, then the route, then commit**
 
 ```bash
 yarn --cwd packages/web-client-v3 test
 yarn --cwd packages/web-client-v3 lint
 git add packages/web-client-v3
-git commit -m "feat(web-v3): search surface with recents and an honest statement of match scope"
+git commit -m "feat(web-client-v3): fixture search route, including the 400-result case"
+```
+
+---
+
+### Task 20: The search surface
+
+**Files:**
+- Create: `packages/web-client-v3/src/api/search.js`
+- Create: `packages/web-client-v3/src/lib/useDebounced.js`
+- Create: `packages/web-client-v3/src/lib/recentSearches.js`
+- Modify: `packages/web-client-v3/src/pages/Search.jsx`
+- Test: `packages/web-client-v3/src/pages/Search.test.jsx`,
+  `packages/web-client-v3/src/lib/recentSearches.test.js`
+
+The spec is `.claude/ui-v3.md` § Search, as extended at `7532906`. Its four decisions are binding
+and are restated in the criteria below, because a rule in a document does not travel into a brief.
+
+**Composition.** `<main>`, an `<h1>`, the header's back control (already built — do not weaken it,
+see the criteria). A search field, debounced at 300ms and gated at 3+ characters. Results are
+`ItemRow`s, each additionally naming its library. Recents below the field before a query exists.
+
+**The row.** `ItemRow` unchanged — 2:3 Volume Frame, title, Plate Line, and the Overprint Stamp
+when lent. What the search row *adds* is the library: a caps mark, and where the library is shared
+an **inline `--shared` tag**, never a left edge — the left edge stays free for the stamp's `--out`
+rule (DESIGN.md §6, "One left edge per element").
+
+**Owned results long-press to `ItemActionsSheet` and update IN PLACE. Shared results have no
+long-press and no Row Actions**, which is how read-only declares itself.
+
+**The result set must survive a mutation without re-running the query**, and this is not an
+optimisation. The index propagates asynchronously (~100ms, not guaranteed), so a re-run after a
+lend could legitimately return a set that no longer contains the row just acted on — the reader
+would watch the item they just lent vanish. Patch the row in local state; never refetch.
+
+- [ ] **Step 1: Write the failing tests**
+
+**Do NOT reuse the assertions the previous draft of this task carried.** One of them —
+`expect(screen.getByText(/titles, authors, directors, cast and collections/i)).toBeInTheDocument()`
+on a freshly rendered screen — asserts the honest limits render *unconditionally*, which is
+exactly what the spec now rules against. Writing it would pin the defect, the way
+`AddItemSheet`'s reachability test once pinned a control that made a film unenterable by hand.
+An assertion inherits the correctness of the rule it encodes and adds nothing to it.
+
+Cases:
+
+- below three characters, no request fires and the recents stay on screen
+- at three characters, exactly one request fires per settled value (debounce, not per keystroke)
+- a result names its library
+- a result from a shared library carries the inline `--shared` tag and **no left edge**
+- a lent result carries the Overprint Stamp
+- an owned result opens `ItemActionsSheet`; a shared result has no Row Actions
+- lending from the sheet updates the row **without a second `/search` call**
+- zero results prints the match scope AND the accent note; a non-zero result prints **neither**
+- a failed search reports inline, with a `Try again` control, and never a toast
+- `Clear` empties the recents with no confirmation
+
+- [ ] **Step 2: Build it**
+
+`recentSearches.js`: at most **five**, most recent first, de-duplicated, `localStorage`. (The
+previous draft said eight; the spec says five.)
+
+`useDebounced.js`: 300ms, returning the settled value.
+
+`api/search.js`: `POST /search` with `{ terms }`, terms split on whitespace.
+
+- [ ] **Step 3: Verify and commit**
+
+```bash
+yarn --cwd packages/web-client-v3 test
+yarn --cwd packages/web-client-v3 lint
+CHECK_PORT=5261 yarn --cwd packages/web-client-v3 check:browser
+git add packages/web-client-v3
+git commit -m "feat(web-client-v3): the search surface, with its limits stated where they matter"
+```
+
+**Acceptance criteria** — each restates a rule this task can breach:
+
+- **The screen keeps its own name and drops nothing.** `<main>`, exactly one `<h1>`, and the
+  existing back control. `routeExits.test.jsx` and `routeLandmarks.test.jsx` already walk this
+  route and their assertions predate the screen being real — **do not weaken either**.
+- **The honest limits print at zero results and nowhere else.** A test must assert both halves:
+  present when empty, ABSENT when there are results. A positive assertion cannot detect surplus.
+- **No client-side accent folding, anywhere.** It would diverge from the index the server queries,
+  for the same reason the stream's letters never use `localeCompare`.
+- **No sort and no filter controls.** The API offers neither.
+- **Recents cap at five.**
+- **Mono only for numerals** (§3). A library name is content and takes the sans; if the row prints
+  any figure, it takes the mono and needs a `MONO_FIELDS` entry.
+- **Anything that sets a ground sets its foreground** (§2), and any disabled control waiting on the
+  reader carries a `reason` — `disabledReason.test.js` enforces the second.
+
+---
+
+### Task 20b: Measure the mount, then decide windowing with a number
+
+**Files:**
+- Create: `packages/web-client-v3/scripts/profile-search.mjs`
+- Modify: `packages/web-client-v3/package.json` (`profile:search`)
+
+Task 20 ships without windowing. This task establishes whether that was right.
+
+**What to measure, on `TERM_LARGE` (400 results) at 390x844, unthrottled and at 4x:**
+
+- time from the response settling to the list being interactive (the single large commit)
+- p50/p95 frame times while flinging the result list
+- the same two with `.row-skip` disabled, so containment's contribution here is a number rather
+  than an inheritance from a screen where it measured 1%
+
+**Then rule, and record the ruling in this plan:**
+
+- if the commit is comfortable at 400, windowing is not warranted and the reason is written down
+- if it is not, windowing is warranted — and it is a real one (a windowing implementation), not
+  `content-visibility`, which measurement has already shown does not address this cost
+
+**Gate it the way `profile-stream.mjs` gates**: pin the baseline (fixture, viewport, page size,
+throttle) beside the number, because a percentile is only comparable against the same workload.
+
+- [ ] **Step 1: Write the profiler, run it, record the number, commit**
+
+```bash
+yarn --cwd packages/web-client-v3 profile:search
+git add packages/web-client-v3 docs/superpowers/plans
+git commit -m "perf(web-client-v3): measure the search mount at 400 results, and rule on windowing"
 ```
 
 ---
