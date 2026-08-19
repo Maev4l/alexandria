@@ -246,7 +246,13 @@ const AddVideo = () => {
               CoverCapture's own "Look up this cover" — so each of the two independent paths to
               the results screen names the outcome it performs, not a step ("Capture"/"Look it
               up") that used to need the OTHER one to finish. */}
-          <PlateButton type="submit" disabled={!canSubmit}>
+          {/* See AddBook's identical control for why this is `reason` and not
+              `aria-describedby`. */}
+          <PlateButton
+            type="submit"
+            disabled={!canSubmit}
+            reason="Type the film’s title first."
+          >
             {isBusy ? 'Looking up this title' : 'Look up this title'}
           </PlateButton>
         </form>

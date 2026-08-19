@@ -207,7 +207,21 @@ const AddBook = () => {
               was two identical outlines side by side, not a missing explanation, so moving the
               manual escape off the outline treatment (see below) is what lets the plain disabled
               button work correctly on its own. */}
-          <PlateButton type="submit" disabled={!canSubmit}>
+          {/* `reason` is the non-visual half of the outline-fills-to-plate affordance. That swap
+              is purely visual and says nothing to a screen reader, so the reason is rendered
+              `sr-only` INSIDE the button, where it joins the accessible name a browse-mode read
+              walks over — a disabled button is not focusable, so an `aria-describedby` there
+              would never be announced on tab (DESIGN.md §6, and PlateButton's own comment).
+              The mechanism existed and was passed nowhere in the app: built, tested, and unused
+              on every screen that has exactly this control.
+              Always the same sentence, never `codeError`: the field already announces its own
+              error, and repeating it into the button's accessible name would state one fact
+              twice — to the only readers who cannot see that it is the same fact. */}
+          <PlateButton
+            type="submit"
+            disabled={!canSubmit}
+            reason="Enter the 10- or 13-digit ISBN printed on the book first."
+          >
             {isBusy ? 'Looking it up' : 'Look it up'}
           </PlateButton>
         </form>

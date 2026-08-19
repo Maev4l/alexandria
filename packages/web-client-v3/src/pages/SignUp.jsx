@@ -83,7 +83,12 @@ const SignUp = () => {
             // Name what is missing while they type, rather than rejecting on submit.
             hint={issues.length > 0 ? `Needs ${issues.join(', ')}` : 'Meets every requirement'}
           />
-          <PlateButton type="submit" disabled={isBusy || !canSubmit} className="w-full">
+          <PlateButton
+            type="submit"
+            disabled={isBusy || !canSubmit}
+            reason="Fill in your email, a display name, and a password that meets every rule above."
+            className="w-full"
+          >
             {isBusy ? 'Creating' : 'Create account'}
           </PlateButton>
         </form>

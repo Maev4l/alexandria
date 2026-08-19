@@ -117,7 +117,7 @@ const EditCollection = () => {
             value={description}
             onChange={(event) => setDescription(event.target.value)}
           />
-          <PlateButton type="submit" disabled={isBusy || !name.trim()}>
+          <PlateButton type="submit" disabled={isBusy || !name.trim()} reason="Give the collection a name first.">
             {isBusy ? 'Saving' : 'Save changes'}
           </PlateButton>
         </form>

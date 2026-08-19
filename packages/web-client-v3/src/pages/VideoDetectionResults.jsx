@@ -278,6 +278,7 @@ const VideoDetectionResults = () => {
               type="submit"
               variant="secondary"
               disabled={isResearching || editTitle.trim().length === 0}
+              reason="Type a title to search for first."
             >
               {isResearching ? 'Looking up this title' : 'Look up this title'}
             </PlateButton>

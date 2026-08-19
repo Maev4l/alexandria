@@ -114,13 +114,17 @@ describe('AddBook', () => {
     expect(detectionApi.book).not.toHaveBeenCalled();
   });
 
+  // The matchers below are start-anchored rather than exact: a DISABLED primary carries an
+  // `sr-only` reason inside the button (DESIGN.md §6), so its accessible name is the label plus
+  // that sentence. That is the mechanism working — the outline-fills-to-plate affordance is
+  // purely visual, and this is the half a screen reader gets — not a name to assert around.
   it('enables Look it up once the code is a valid ISBN', async () => {
     renderPage();
     const field = screen.getByLabelText(/isbn/i);
-    expect(screen.getByRole('button', { name: /^look it up$/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^look it up/i })).toBeDisabled();
 
     await userEvent.type(field, '9782070404209');
-    expect(screen.getByRole('button', { name: /^look it up$/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^look it up/i })).toBeEnabled();
   });
 
   it('says what to do when the camera is refused, rather than only that it failed', async () => {

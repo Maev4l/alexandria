@@ -125,7 +125,7 @@ describe('AddVideo', () => {
     );
     renderPage();
     await userEvent.type(screen.getByLabelText(/title/i), 'Inception');
-    await userEvent.click(screen.getByRole('button', { name: /^look up this title$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^look up this title/i }));
     // The lookup IS in flight (the submit button already narrates "Looking up this title"), but
     // no cover was ever captured, so CoverCapture must not claim one was.
     expect(screen.getByText('capture-busy:false')).toBeInTheDocument();
@@ -195,10 +195,10 @@ describe('AddVideo', () => {
   it('enables Look up this title once a title is typed', async () => {
     renderPage();
     const field = screen.getByLabelText(/title/i);
-    expect(screen.getByRole('button', { name: /^look up this title$/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /^look up this title/i })).toBeDisabled();
 
     await userEvent.type(field, 'Inception');
-    expect(screen.getByRole('button', { name: /^look up this title$/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^look up this title/i })).toBeEnabled();
   });
 
   it('a hand-typed title with no camera at all makes exactly one call and carries its candidates forward as a fast path', async () => {
@@ -207,7 +207,7 @@ describe('AddVideo', () => {
     });
     renderPage();
     await userEvent.type(screen.getByLabelText(/title/i), 'Inception');
-    await userEvent.click(screen.getByRole('button', { name: /^look up this title$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^look up this title/i }));
     expect(detectionApi.video).toHaveBeenCalledTimes(1);
     expect(detectionApi.video).toHaveBeenCalledWith({ title: 'Inception' });
     // `state` is no longer `none` on this path (round 2): the candidates this one call already
@@ -223,7 +223,7 @@ describe('AddVideo', () => {
     vi.mocked(detectionApi.video).mockResolvedValue({ detectedVideos: [] });
     renderPage('/libraries/lib-1/add/video?collectionId=c1');
     await userEvent.type(screen.getByLabelText(/title/i), 'Inception');
-    await userEvent.click(screen.getByRole('button', { name: /^look up this title$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^look up this title/i }));
     expect(
       await screen.findByText(
         'landed:/libraries/lib-1/add/video/results?title=Inception&collectionId=c1 state:{"candidates":[],"forTitle":"Inception"}',
@@ -237,7 +237,7 @@ describe('AddVideo', () => {
     );
     renderPage();
     await userEvent.type(screen.getByLabelText(/title/i), 'Inception');
-    await userEvent.click(screen.getByRole('button', { name: /^look up this title$/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^look up this title/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach the server/i);
     expect(screen.queryByText(/^landed:/)).not.toBeInTheDocument();
   });

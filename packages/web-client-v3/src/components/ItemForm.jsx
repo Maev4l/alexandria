@@ -289,7 +289,16 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
         </p>
       )}
 
-      <PlateButton type="submit" disabled={isBusy || !values.title.trim() || orderRequired}>
+      {/* Two different reasons, and naming the right one matters more here than anywhere else in
+          the app: `orderRequired` fires when an item is staying in its current collection and the
+          order has been cleared, which is a hazard nothing else on screen explains (see the
+          `orderRequired` comment above). A single generic reason would send a reader looking at
+          the title field. */}
+      <PlateButton
+        type="submit"
+        disabled={isBusy || !values.title.trim() || orderRequired}
+        reason={orderRequired ? 'Give this item its order within the collection first.' : 'Give this item a title first.'}
+      >
         {isBusy ? 'Saving' : submitLabel}
       </PlateButton>
     </form>
