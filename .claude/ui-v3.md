@@ -941,6 +941,27 @@ its repetition is incidental to whatever order the response arrives in. Grouping
 also invent an order `POST /search` does not define. The rule is about a fact restated, not a column that
 happens to repeat.
 
+**The search header has no title, so it has no tap-to-scroll-top — and that is correct rather than a gap.**
+`LibraryBrowse` has the gesture because its stream is **alphabetical**: position means something, and the top
+is a place. A result set arrives in an order `POST /search` does not define, so it has no privileged top to
+return to, and the problem scroll-to-top would have solved — reaching the control that refines — is solved by
+the sticky field. Inventing a title purely to hang a gesture on would undo the decision that **the field is
+the screen**.
+
+**And the item-detail search plate links to a bare `/search`, deliberately: resuming a query there would
+reintroduce P0 #2 in a worse form.** That defect was a stale query resurrected on a navigation the reader did
+not ask for. Carrying one onto a **forward** tap has the same shape and a weaker excuse — the reader may have
+reached that item by browsing, never having searched, and would be handed their own past query as though they
+had asked for it. The case it would serve is already served: a reader who arrived from search presses **Back**,
+which now restores their query exactly, because `?q=` moves with it. **The plate is for a new lookup, and a new
+lookup starts empty.**
+
+**An invitation and a limitation sound like the same sentence and are not.** The idle surface's first draft
+restated what search covers — which is precisely what ruling 3 confines to the zero-result state — and was
+caught by the probe asserting that copy's *absence*. The distinction: **an invitation says what to do; the
+limits explain a result the reader did not expect.** One belongs where nothing has happened yet, the other
+only where something has.
+
 **Before typing, the screen carries recent searches** — at most five, most recent first, `localStorage`,
 each a catalogue tag that re-runs its term. One `Clear` control, no confirmation: nothing is destroyed
 that the reader cannot recreate by searching again, and §7 reserves confirmation for what is actually
