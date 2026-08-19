@@ -67,7 +67,7 @@ const VideoDetectionResults = () => {
     setEditTitle(titleParam);
   }, [titleParam]);
 
-  const load = useCallback(() => {
+  const load = useCallback((allowFastPath = true) => {
     if (!titleParam) {
       // No title in the query at all: there was never a search to run, so this redirects to
       // AddVideo rather than showing an inline error — the same shared construction
@@ -85,7 +85,17 @@ const VideoDetectionResults = () => {
     // The fast path: AddVideo already ran this exact search (capture or typed) and handed its
     // own candidates over via `state`. Only used when `forTitle` matches the title this render is
     // showing — see the module comment above for why an unmatched tag must not be trusted.
-    if (location.state?.forTitle === titleParam) {
+    // `allowFastPath` is what `Try again` turns off, and this is the defect it fixes: after a
+    // failed re-search the URL is unchanged, so the tag still matched and this path re-served the
+    // PREVIOUS candidates as `ready` — a control labelled with a specific action presenting stale
+    // results as fresh, the rule ui-v3.md §7 records as already learned on item detail and which
+    // shipped again four screens later. A retry is a demand for a real fetch.
+    //
+    // A PARAMETER, not a read of `status`. Deriving it from state would put `status` in this
+    // callback's dependencies, and this callback drives a fetch that SETS `status` — an effect
+    // that retriggers itself, which is not a subtle risk: it exhausted a mocked response queue and
+    // crashed the suite on the first run.
+    if (allowFastPath && location.state?.forTitle === titleParam) {
       setCandidates(location.state.candidates ?? []);
       setErrorMessage(null);
       setStatus('ready');
@@ -224,7 +234,11 @@ const VideoDetectionResults = () => {
         {status === 'error' && (
           <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">
             <p className="text-sm">{errorMessage}</p>
-            <PlateButton variant="secondary" className="mt-4" onClick={load}>
+            {/* `() => load(false)`, never a bare `onClick={load}`: React hands the click event
+                through as the first argument, so passing the function directly would send a
+                SyntheticEvent where `allowFastPath` is read — truthy, and the fast path would
+                stay on. */}
+            <PlateButton variant="secondary" className="mt-4" onClick={() => load(false)}>
               Try again
             </PlateButton>
           </div>
@@ -242,13 +256,22 @@ const VideoDetectionResults = () => {
             correct a misread cover without walking back to AddVideo. It takes the SANS, not the
             mono, the same as the read-only version it replaces: §3 reserves Chivo Mono for
             numerals, and a film title is not one — unlike BookDetectionResults' scanned ISBN,
-            which this pattern otherwise mirrors exactly. */}
+            which this pattern otherwise mirrors exactly.
+            THE HINT NO LONGER NAMES OCR. This screen is reached three ways — a captured cover, a
+            hand-typed title, and the camera-denied fallback — and the hint read "OCR can misread a
+            cover" on all of them, telling a reader who typed the title themselves that a camera
+            had misread something. Wording it for what is true on every path costs nothing and
+            asserts nothing that did not happen; carrying a `source: 'ocr'` flag to print two
+            variants would buy a sentence about a mechanism the reader cannot act on either way.
+            COLLAPSED ON A HIT. When candidates are on screen the head is the field alone, no hint:
+            the answer is below, and a correction affordance shouting over it inverts the screen.
+            On a miss the hint returns, because that is exactly when correcting is the next move. */}
         {status !== 'loading' && (
           <form onSubmit={onResearch} className="mb-2" noValidate>
             <Field
               label="Title"
               value={editTitle}
-              hint="OCR can misread a cover — correct the title and search again if this looks wrong."
+              hint={usable.length > 0 ? undefined : 'Not the right film? Correct the title and search again.'}
               onChange={(event) => setEditTitle(event.target.value)}
             />
             <PlateButton
@@ -267,9 +290,9 @@ const VideoDetectionResults = () => {
               const key = candidate.id || `${candidate.source}-${index}`;
               return (
                 <li key={key} className="flex gap-4 border-b-2 border-ink pb-4">
-                  <VolumeFrame item={{ picture: candidate.pictureUrl || null }} />
+                  <VolumeFrame item={{ picture: candidate.pictureUrl || null }} size="candidate" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[17px] font-semibold leading-tight text-ink">
+                    <p className="text-[17px] font-semibold leading-tight text-ink">
                       {candidate.title}
                     </p>
                     <PlateLine

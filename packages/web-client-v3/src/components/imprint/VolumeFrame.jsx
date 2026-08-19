@@ -7,6 +7,12 @@ import VolumePlate from './VolumePlate.jsx';
 // turning the stream into a polling loop.
 const RETRY_MS = 4000;
 
+const SIZES = {
+  row: 'h-[72px] w-12 border-ink',
+  candidate: 'h-[132px] w-[88px] border-ink',
+  hero: 'h-[198px] w-[132px] border-paper',
+};
+
 // One ratio for every item: portrait 2:3. Book covers and TMDB posters are both that shape,
 // so a single frame crops nothing and the stream keeps one row height.
 //
@@ -14,8 +20,14 @@ const RETRY_MS = 4000;
 // a book and a film take the IDENTICAL frame now. The Plate Line — AUTHOR vs DIRECTOR · YEAR —
 // is the only place they differ, and it already survives with no artwork at all.
 //
-// `hero` is the item-detail size on the inverted cover: same ratio, ruled in paper instead of
-// ink because the ground is black there.
+// THREE SIZES, one ratio. `row` (48x72) is the browse stream, where a reader is scanning a
+// thousand titles and the words do the work. `hero` (132x198) is item detail on the inverted
+// cover — ruled in paper rather than ink, because the ground is black there. `candidate`
+// (88x132) sits between them, on the detection-results screens, and it exists because ui-v3.md
+// says of that one screen that "the picture is what decides the match": a candidate list is the
+// moment a reader compares editions, and choosing the wrong one writes a record they cannot
+// detect as wrong later. It shipped at the row's 48x72 — smaller than a stream row's job
+// required, on the screen with the most vertical room to spare (measured: 284px unused at 844).
 //
 // `onFailedChange` surfaces the `failed` state below to whoever asked for it, without this
 // component taking on any opinion about what a caller does with it. Today that is only the
@@ -23,7 +35,7 @@ const RETRY_MS = 4000;
 // lives on the PAGE (ItemDetail.jsx), not here, so ItemRow (every row in the browse stream) can
 // keep calling `<VolumeFrame item={item} />` with no `hero` and no `onFailedChange` and see
 // nothing different at all: an optional prop nobody passes is a no-op, not a per-row action.
-const VolumeFrame = ({ item, hero = false, className, onFailedChange }) => {
+const VolumeFrame = ({ item, size = 'row', className, onFailedChange }) => {
   const src = pictureSrc(item);
   const [failed, setFailed] = useState(false);
 
@@ -50,7 +62,7 @@ const VolumeFrame = ({ item, hero = false, className, onFailedChange }) => {
         // non-hero frame's `bg-paper-deep` read as harmless (~1.05:1, near-invisible against
         // `--paper`) but was still a fill where the rule alone was already doing the job — so
         // both are unfilled here, not just the one that looked wrong.
-        hero ? 'h-[198px] w-[132px] border-paper' : 'h-[72px] w-12 border-ink',
+        SIZES[size],
         className,
       )}
     >

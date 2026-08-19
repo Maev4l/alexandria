@@ -73,7 +73,7 @@ describe('VolumeFrame', () => {
     expect(row.firstChild.className).not.toMatch(/bg-(paper-deep|cover-rule)/);
 
     const { container: hero } = render(
-      <VolumeFrame hero item={{ id: 'h', type: 0, title: 'X' }} />,
+      <VolumeFrame size="hero" item={{ id: 'h', type: 0, title: 'X' }} />,
     );
     expect(hero.firstChild.className).not.toMatch(/bg-(paper-deep|cover-rule)/);
   });
@@ -84,7 +84,7 @@ describe('VolumeFrame', () => {
   });
 
   it('takes the hero size on the inverted cover, ruled in paper', () => {
-    const { container } = render(<VolumeFrame hero item={{ id: 'f', type: 1, title: 'X' }} />);
+    const { container } = render(<VolumeFrame size="hero" item={{ id: 'f', type: 1, title: 'X' }} />);
     expect(container.firstChild.className).toContain('border-paper');
     expect(container.querySelector('[data-spine]')).toBeNull();
   });
@@ -100,7 +100,7 @@ describe('VolumeFrame', () => {
     expect(onFailedChange).toHaveBeenLastCalledWith(true);
   });
 
-  // ItemRow (the browse stream) calls this with neither `hero` nor `onFailedChange` — an
+  // ItemRow (the browse stream) calls this with neither a `size` nor `onFailedChange` — an
   // optional prop nobody passes must be a true no-op, not something that needs a default to
   // avoid crashing. This is what keeps the "Fetch cover" repair from being reachable per-row.
   it('never requires onFailedChange — a caller that never passes it sees nothing different', () => {
@@ -108,5 +108,20 @@ describe('VolumeFrame', () => {
       render(<VolumeFrame item={bookWithArt} />);
       fireEvent.error(screen.getByRole('presentation'));
     }).not.toThrow();
+  });
+
+  // The third size, and the reason it exists: ui-v3.md says of the detection-results screen that
+  // "the picture is what decides the match" — a candidate list is where a reader compares
+  // editions, and choosing the wrong one writes a record they cannot detect as wrong later. It
+  // shipped at the row's 48x72, smaller than a stream row's job needs, on the screen with the
+  // most vertical room to spare.
+  it('takes a larger frame on the candidate screens, still ruled in ink and still 2:3', () => {
+    const { container } = render(<VolumeFrame size="candidate" item={{ id: 'c', type: 0, title: 'X' }} />);
+    expect(container.firstChild.className).toContain('h-[132px]');
+    expect(container.firstChild.className).toContain('w-[88px]');
+    expect(container.firstChild.className).toContain('border-ink');
+    // 88x132 is exactly 2:3, like the other two — the size changes, never the ratio (DESIGN.md
+    // §4: one ratio for every item, so nothing is ever cropped).
+    expect(132 / 88).toBeCloseTo(3 / 2, 5);
   });
 });

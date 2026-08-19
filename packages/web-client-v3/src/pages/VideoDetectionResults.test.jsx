@@ -379,6 +379,60 @@ describe('VideoDetectionResults', () => {
     expect(await screen.findByText('Inception')).toBeInTheDocument();
   });
 
+  // `Try again` did not try again. After a failed re-search the URL is unchanged, so the tagged
+  // state still matched the title on screen and `load()` re-served the PREVIOUS candidates as
+  // `ready` — a control labelled with a specific action presenting stale results as fresh, which
+  // is the rule §7 records as already learned on item detail and which shipped again four screens
+  // later on this one.
+  it('a retry after a failed re-search fetches again instead of re-serving the tagged candidates', async () => {
+    const carried = [{ id: 't1', title: 'Le Samouraï', directors: ['Melville'], releaseYear: 1967, duration: 105, cast: [], source: TMDB }];
+    renderPage('?title=Le%20Samoura%C3%AF', { candidates: carried, forTitle: 'Le Samouraï' });
+    await screen.findAllByText('Le Samouraï');
+    expect(detectionApi.video).not.toHaveBeenCalled();
+
+    // The reader corrects the title and the network fails. The URL still carries the ORIGINAL
+    // title, so the tag still matches — which is exactly the trap.
+    vi.mocked(detectionApi.video).mockRejectedValueOnce(new Error('Something went wrong on our side.'));
+    await userEvent.clear(screen.getByLabelText(/title/i));
+    await userEvent.type(screen.getByLabelText(/title/i), 'Le Trou');
+    await userEvent.click(screen.getByRole('button', { name: /look up this title/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/something went wrong/i);
+
+    vi.mocked(detectionApi.video).mockResolvedValueOnce({
+      detectedVideos: [{ id: 't9', title: 'Le Trou', directors: ['Becker'], releaseYear: 1960, duration: 132, cast: [], source: TMDB }],
+    });
+    await userEvent.click(screen.getByRole('button', { name: /try again/i }));
+
+    // The discriminating observable is what comes BACK, not the call count: the old code also
+    // "handled" the retry, by rendering the stale candidate as though it were a fresh answer.
+    expect(await screen.findByText('Le Trou')).toBeInTheDocument();
+    expect(screen.queryByText('Le Samouraï')).not.toBeInTheDocument();
+  });
+
+  // The hint asserted a mechanism that had not run. This screen is reached three ways — a captured
+  // cover, a hand-typed title, and the camera-denied fallback — and it read "OCR can misread a
+  // cover" on all of them, telling a reader who typed the title that a camera had misread it.
+  it('never blames OCR for a title the reader typed', async () => {
+    vi.mocked(detectionApi.video).mockResolvedValue({ detectedVideos: [] });
+    renderPage('?title=Inception');
+    await screen.findByText(/no match found/i);
+    expect(screen.queryByText(/ocr/i)).not.toBeInTheDocument();
+    // The correction affordance is still explained where it matters — on a miss.
+    expect(screen.getByText(/correct the title and search again/i)).toBeInTheDocument();
+  });
+
+  it('drops the hint once candidates are on screen — the answer outranks the correction', async () => {
+    vi.mocked(detectionApi.video).mockResolvedValue({
+      detectedVideos: [{ id: 't1', title: 'Le Samouraï', directors: ['Melville'], releaseYear: 1967, duration: 105, cast: [], source: TMDB }],
+    });
+    renderPage('?title=Le%20Samoura%C3%AF');
+    await screen.findAllByText('Le Samouraï');
+    // On a hit the head is the field alone. The field itself stays, because correcting a misread
+    // is still the next move when the candidates are wrong — it just stops shouting over them.
+    expect(screen.queryByText(/correct the title and search again/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
+  });
+
   // A bare `/add/video/results` with no `?title=` is a genuinely reachable dead end — routes.jsx's
   // `guard()` checks only that a user is signed in, not that the query it lands on makes sense —
   // reachable by a typed, edited, or bookmarked-mid-flow URL. Redirects to AddVideo with the

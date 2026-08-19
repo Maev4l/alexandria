@@ -249,10 +249,18 @@ const detectBook = (code) => {
             isbn: code,
             source: GOOGLE,
           },
+          // A LONG TITLE, deliberately, on a candidate that also has artwork. Titles on this
+          // screen used to be `truncate`d, so a row could show two editions of one book cut at
+          // the same word — on the screen whose entire job is telling editions apart, and where a
+          // wrong pick writes a record the reader cannot detect as wrong later. The truncation is
+          // gone and the title wraps; a fixture where nothing is long enough to wrap would let
+          // that assertion pass vacuously, which is the third time this project has caught a
+          // check passing for the wrong reason. Realistic rather than synthetic: Babelio does
+          // return full edition titles where Google returns the short form.
           {
             id: 'babelio-petit-prince',
             authors: ['Antoine de Saint-Exupéry'],
-            title: 'Le Petit Prince',
+            title: 'Le Petit Prince — édition originale illustrée par l’auteur, aquarelles restaurées',
             summary: 'Un aviateur en panne dans le désert du Sahara.',
             pictureUrl: cover(4),
             isbn: code,
@@ -416,9 +424,13 @@ const detectVideoFromTitle = (title) => {
             // `error` omitted, not `null` - see the file header's "fix round 2" note and the
             // first book candidate above for the identical rule (handlers/models.go:39).
           },
+          // A LONG TITLE on the film side too, and for the same reason as the book fixture's
+          // Babelio candidate: nothing here wrapped, so an assertion that the title is no longer
+          // truncated could pass without ever exercising a wrap. TMDB genuinely returns
+          // sub-titled release variants like this.
           {
             id: 'tmdb-tontons-2',
-            title: 'Les Tontons flingueurs',
+            title: 'Les Tontons flingueurs — version restaurée 4K, édition collector du 60e anniversaire',
             summary: 'Édition remasterisée.',
             pictureUrl: cover(6),
             directors: ['Georges Lautner'],

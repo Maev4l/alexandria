@@ -367,7 +367,7 @@ const ItemDetail = () => {
                 is the flex child now (beside DetailMarks' `flex-1`) and the one that must not
                 shrink. */}
             <div className="relative shrink-0">
-              <VolumeFrame item={item} hero onFailedChange={setCoverFailed} />
+              <VolumeFrame item={item} size="hero" onFailedChange={setCoverFailed} />
               {/* Gated on the REAL failure, not on `pictureUrl` merely existing — the fix for
                   the defect this replaces. Detection often returns no cover at all, which
                   `pictureUrl` being present would have excluded from getting help; here the

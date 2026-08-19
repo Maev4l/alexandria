@@ -40,7 +40,7 @@ const BookDetectionResults = () => {
   const { filedCount, recordFiled } = useFilingSession();
   const [saveError, setSaveError] = useState(null);
 
-  const load = useCallback(() => {
+  const load = useCallback((allowFastPath = true) => {
     if (!isbn) {
       // No ISBN in the query at all is not a detection failure — there was never a code to look
       // up (e.g. this URL was typed or edited by hand, or bookmarked mid-flow). `guard()` in
@@ -66,7 +66,12 @@ const BookDetectionResults = () => {
     // the wrong code. Identical in shape and reasoning to VideoDetectionResults' own fast path;
     // this screen simply never had one, and paid for a second full resolver fan-out on every
     // single scan because of it.
-    if (location.state?.forIsbn === isbn) {
+    // `allowFastPath` is turned off by `Try again`, so a retry is always a real fetch — see
+    // VideoDetectionResults, where a retry re-serving tagged candidates as fresh was a shipped
+    // defect. This screen cannot reach that state today (state only ever arrives after a
+    // SUCCESSFUL detection, so the tag never matches while `status` is 'error'), but a safety that
+    // holds only because of the current call order is one refactor from not holding.
+    if (allowFastPath && location.state?.forIsbn === isbn) {
       setCandidates(location.state.candidates ?? []);
       setErrorMessage(null);
       setStatus('ready');
@@ -169,7 +174,9 @@ const BookDetectionResults = () => {
         {status === 'error' && (
           <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">
             <p className="text-sm">{errorMessage}</p>
-            <PlateButton variant="secondary" className="mt-4" onClick={load}>
+            {/* `() => load(false)`, never a bare `onClick={load}`: the click event would arrive
+                as `allowFastPath` and read truthy. */}
+            <PlateButton variant="secondary" className="mt-4" onClick={() => load(false)}>
               Try again
             </PlateButton>
           </div>
@@ -205,14 +212,14 @@ const BookDetectionResults = () => {
                       (Google, ruling B) to the same falsy input `pictureSrc()` already treats
                       as "no picture" — never an empty image source, which resolves against the
                       page URL and produces the broken-image glyph DESIGN.md section 6 forbids. */}
-                  <VolumeFrame item={{ picture: candidate.pictureUrl || null }} />
+                  <VolumeFrame item={{ picture: candidate.pictureUrl || null }} size="candidate" />
                   <div className="min-w-0 flex-1">
                     {/* No `|| 'Untitled'` fallback (fix round 2 finding 1): a candidate reaching
                         this branch already has no `error`, so its title is real. Fabricating
                         one for the branch that DOES fail is a different bug this round removes
                         entirely — see the failure register below, which never reaches this row
                         at all. */}
-                    <p className="truncate text-[17px] font-semibold leading-tight text-ink">
+                    <p className="text-[17px] font-semibold leading-tight text-ink">
                       {candidate.title}
                     </p>
                     {candidate.authors?.length > 0 && (

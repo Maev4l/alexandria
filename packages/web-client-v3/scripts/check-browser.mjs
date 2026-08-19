@@ -982,6 +982,59 @@ try {
     await page.setViewport(previousViewport);
   }
 
+  // ---- The candidate screens are where the picture decides, so the picture gets room ----
+  // ui-v3.md says of this one screen that "the picture is what decides the match". It shipped at
+  // the browse row's 48x72 — smaller than a stream row's job needs, on the screen with the most
+  // vertical space to spare — and truncated the title as well, on the surface whose entire job is
+  // telling two editions of one book apart. A mis-selection here writes a record the reader
+  // cannot detect as wrong later.
+  console.log('candidate rows give the artwork room and never cut the title');
+  for (const [label, url, screenName] of [
+    ['book', '/libraries/lib-fiction/add/book/results?isbn=9782070408504', 'Book results'],
+    ['film', '/libraries/lib-films/add/video/results?title=Les%20Tontons%20flingueurs', 'Film results'],
+  ]) {
+    await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle0' });
+    await waitForScreen(screenName);
+    await page.waitForSelector('main li');
+
+    const rows = await page.evaluate(() => {
+      const lineHeight = 21; // 17px at leading-tight
+      return [...document.querySelectorAll('main li')].map((li) => {
+        const frame = li.querySelector('div.border-2');
+        const title = li.querySelector('p');
+        const box = frame?.getBoundingClientRect();
+        return {
+          frame: box ? { w: Math.round(box.width), h: Math.round(box.height) } : null,
+          truncated: title ? title.className.includes('truncate') : null,
+          // A wrapped title is taller than one line AND is not clipped: `scrollWidth` equal to
+          // `clientWidth` means nothing overflowed horizontally, which is what truncation causes.
+          lines: title ? Math.round(title.getBoundingClientRect().height / lineHeight) : 0,
+          clipped: title ? title.scrollWidth > title.clientWidth : null,
+        };
+      });
+    });
+
+    record(rows.length >= 3, `${label}: the fixture serves several candidates to compare`, `${rows.length} rows`);
+    record(
+      rows.every((r) => r.frame?.w === 88 && r.frame?.h === 132),
+      `${label}: every candidate frame is 88x132, larger than a browse row's 48x72`,
+      JSON.stringify(rows.map((r) => r.frame)),
+    );
+    record(
+      rows.every((r) => r.truncated === false && r.clipped === false),
+      `${label}: no candidate title is truncated or clipped`,
+      JSON.stringify(rows.map((r) => ({ truncated: r.truncated, clipped: r.clipped }))),
+    );
+    // Without this the assertion above passes vacuously on a fixture where nothing is long enough
+    // to wrap — the third time this project has caught a check passing for the wrong reason, so
+    // the fixture carries a genuinely long title and the guard insists on seeing it wrap.
+    record(
+      rows.some((r) => r.lines >= 2),
+      `${label}: at least one candidate title actually wraps, so the check is not vacuous`,
+      JSON.stringify(rows.map((r) => r.lines)),
+    );
+  }
+
   // ---- Pinch-zoom must not be disabled: WCAG 1.4.4, and this app is used in poor light ----
   console.log('viewport permits zoom');
   await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
