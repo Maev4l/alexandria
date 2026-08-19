@@ -849,6 +849,41 @@ Owned results long-press to the ItemActionsSheet and update in place; shared res
 cast and collection only — not summary, not ISBN — and returns a single unpaginated set.
 **API:** `POST /search`.
 
+This is the screen `PRODUCT.md`'s first principle names — *lookup is the front door* — and the surface the
+loudest mark in the design opens. Four decisions the eight lines above do not make:
+
+**The result set is unpaginated, so it must be virtualised.** `POST /search` returns everything in one
+response with no `nextToken`; a common term over a 1000-item collection can return hundreds of rows.
+The browse stream is virtualised for exactly this reason and search inherits the requirement — it is the
+same list problem arriving without the pagination that made it visible. There are no sort or filter
+controls, because the API offers none.
+
+**A result row is a stream row, not a new invention.** The 2:3 Volume Frame, the title, the Plate Line.
+Artwork is the normal case (`PRODUCT.md`), and the frame is how an item is recognised — this screen is
+recognition at its purest, since the reader is holding the object. What the row *adds* is the library,
+because here the shelf genuinely is new information; §6 already rules how: a caps mark, with a shared
+library named by an **inline `--shared` tag** so the left edge stays free for the Overprint Stamp's
+`--out` rule. A lent item carries the stamp here as it does anywhere.
+
+**The honest limits are stated at the zero-result state and nowhere else.** Printed permanently they are
+noise on every successful search; printed at zero they prevent the one wrong conclusion this screen can
+produce — *I don't own it* — when the truth is *we did not look there*. So the empty result reads as what
+was searched and what was not: title, authors, directors, cast and collection, **not the summary and not
+the ISBN**.
+
+**And the accents belong in that same copy, because the server does not fold them.** Terms are lowercased
+with no explicit accent folding, so `Etranger` may or may not reach `L'Étranger` depending on fuzzy edit
+distance — on a catalogue that is deliberately half French. **The client must not fold accents itself**:
+that would diverge from the index the server actually queries, the same reason the stream's letters never
+use `localeCompare`. A client-side fold would produce matches the server cannot explain and hide the ones
+it can. So the limitation is disclosed rather than papered over — at zero results, suggest trying the
+accented spelling.
+
+**Before typing, the screen carries recent searches** — at most five, most recent first, `localStorage`,
+each a catalogue tag that re-runs its term. One `Clear` control, no confirmation: nothing is destroyed
+that the reader cannot recreate by searching again, and §7 reserves confirmation for what is actually
+destructive. Below three characters nothing fires and the recents stay: the field is not yet a query.
+
 ### Settings / Account / About
 Settings: Account, About, Sign out. Account: initials plate, email from the JWT, `custom:Id`
 copyable (it is the owner id used for support), password change with the same complexity rules as
