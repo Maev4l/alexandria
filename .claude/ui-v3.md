@@ -264,6 +264,24 @@ dropped. Each candidate carries its artwork in the standard 2:3 Volume Frame —
 resolver supplies none — because on this one screen the picture is what decides the match.
 **API:** `POST /libraries/{libraryId}/books`.
 
+**`USE THIS` is the primary plate — the accent belongs on the commit, not on the fallback.** The critique
+found that **at rest no chrome-yellow plate exists anywhere in the capture flow**: every `USE THIS`, both
+shutters, both escapes and the re-search are `secondary`, and the only `primary` controls are the two
+manual-field submits, which are `disabled` at rest and therefore render *as* the secondary outline. So the
+accent marked the fallback path and nothing else, against §2's law that `--imprint` is the apparatus of
+finding and **acting**. Filing a candidate is the flow's only write.
+
+Three small plates in a candidate list are not the accent spent decoratively — each is a genuine commit,
+and three ruled outlines instead read as three options where nothing acts. It also resolves the film head's
+collision without a second mechanism: the re-search stays `secondary`, so redo and commit stop looking
+identical, and the wider control is no longer the one that discards the answer.
+
+**Conditional on the list's length, which nobody has measured.** Books return at most one candidate per
+resolver, so three. **TMDB is uncapped in our request** — if a title search can return eight or ten, that
+many plates is a wall of accent and the ruling inverts: the row becomes the affordance, with a single plate
+committing the selected row. **Measure the real maximum before building this**, and if it exceeds about
+five, come back rather than shipping either answer.
+
 **A failed resolver is a NOTE, not a candidate — and it must never be given a title.** Found by
 rendering the fixture's failure states, which is what 18a existed for. As built, a resolver that
 returned an `error` rendered as a full candidate row: ruled 2:3 frame, the ISBN, the source, and — the
