@@ -1514,6 +1514,7 @@ not applied**:
 | `monoText.test.js` + `monoRouteCoverage.test.js` | §3's mono/sans split was **unenforceable** for three slices: while both faces resolved to the same fallback, a name in mono and a name in sans rendered identically. A whole section sat dormant with nothing able to report it. |
 | `typeScale.test.js` | §3's scale was **never enforceable**: nothing read the list of steps. A 9px plate shipped, survived a critique that named it the clearest finding of its run, survived the provenance check that closed it, and the suite was green at 1111 before and after the fix. It resolves Tailwind's named sizes to pixels, because 70 of 114 size classes are named and a `text-[Npx]`-only guard would have covered 44 and reported clean. |
 | `MONO_FIELDS` in `check-browser.mjs` + `monoFieldCoverage.test.js` | The two guards above enforce only **one direction** of §3 — that nothing but numerals is mono. A candidate ISBN shipped in the **sans** past both of them and 1169 green tests. This one is **field-driven, not site-driven**: it takes the catalogue fields' values from the fixture, finds them anywhere in the rendered DOM, and asserts the computed face — so a new screen rendering a listed field in the sans fails with **zero registration**. The default is enforcement, with a short reviewed exception list for numerals inside authored prose. |
+| Native-chrome pixel check (`check-browser.mjs`) | §9 refuses "native control chrome this world has no vocabulary for", and `Field` makes exactly that refusal for the `<textarea>` grabber and the number spinner — while a **blue WebKit clear button sat in the search field from slice A to slice E**, on the loudest mark in the design. It survived because the libraries root's field navigates away before it holds text, so the control only exists on a screen that did not exist yet. The check samples the **rendered** field and fails on any pixel where blue clearly leads — unsatisfiable by a palette of yellow, ink and paper, all with b ≤ r. Its first version asserted `getComputedStyle(input, '::-webkit-search-cancel-button')`, which Chrome does not reflect: a true answer about the wrong substrate, inside the check written to prevent one. |
 
 **The throughline is not bad reasoning — it is correct reasoning on an unverified substrate.** The
 index-letter withdrawal, `A–Z: true` from a single sample, the `#` fragmentation reading, a wrap
@@ -1562,7 +1563,21 @@ fail loudly when the substrate moves.
       a constraint this spec invented and the build faithfully implemented
 - [x] Lend / return / history — `ItemHistory` paginated, events paired client-side into loans,
       each row naming its borrower from the `LENT` event
-- [ ] Search surface with recents and honest match-scope
+- [x] Search surface with recents and honest match-scope — the screen `PRODUCT.md`'s first principle
+      names, and the one the loudest mark in the design opens. Result rows are stream rows unchanged, so
+      the lent stamp, the `--out` edge and read-only-by-absence all arrive for free; the library is the
+      only field added, since here the shelf genuinely is new information. The match scope and the accent
+      note print **at zero results and nowhere else**, which is the one moment this screen can produce a
+      wrong conclusion. Recents collapse a typed prefix asymmetrically.
+
+      Two findings the slice produced were worth more than the screen. **A blue native clear button had
+      been sitting in the search field since slice A** — `type="search"` gives WebKit its own control, in
+      a colour absent from the palette, on the loudest mark in the design; invisible until now because
+      the root's field never keeps text. Found by looking at a render. **And windowing was refused by
+      measurement**: scrolling 400 results is p95 10.3ms with zero frames over budget, so my §7
+      requirement named a mechanism that does nothing, a stream that never implemented it, and a cost
+      that does not exist. `yarn profile:search` measures the mount, which is the only thing search does
+      that the stream does not, and which nothing here had ever measured
 - [ ] Settings, Account, About
 - [x] PWA update prompt — pulled ahead of slice C because without it the app cannot be
       updated at all: `registerType: 'prompt'` installs a worker that waits for a
