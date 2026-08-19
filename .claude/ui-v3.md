@@ -1219,6 +1219,24 @@ ruling would give the results screens the same visibility, so the distinction ha
 load-bearing on either surface. **A distinction that dissolves when an unrelated decision ships was
 never the reason** — it was a coincidence doing the work of an argument.
 
+**A component earns a direct test the moment it gains a second construction.** `PlateLine` had **no test
+file at all** — covered incidentally through the screens that render it, which is survivable with one shape
+and a gap the instant there are two. With two surfaces, *"the browse row is unchanged"* is nobody's
+assertion: every existing test is about a screen, and none of them is about the component's contract. Its
+new tests include that the default surface does **not** inherit the candidate runtime, and that a
+zero-minute film keeps its figure where a truthy check would silently drop it.
+
+Related, and the reason the second construction was written out rather than derived: `detailLineParts`
+returns the **ISBN**, which §4 forbids on any row, so reusing it would make a book candidate sprout an
+identifier the moment anyone handed that screen a `PlateLine`. Two constructions that look alike and obey
+different rules should not share a derivation — and the assertion guarding that leak is one that only earns
+its keep years later.
+
+**And *a positive assertion cannot detect surplus* generalises past tests.** It is why "the screen renders"
+told us nothing about a badge that should not have been there, and why the plate check had to read the
+**resolved colour** rather than the class name. Anywhere a check confirms the presence of what should exist,
+ask separately what must be absent — the two are different questions and only one of them is usually asked.
+
 **A fixture written to test a judgement must not model the easy version of that judgement.** The
 five-candidate film fixture was first built as **five editions of one film** — which is the *book* side's
 shape, since an ISBN identifies one edition and Google may hold several volume records against it, whereas
