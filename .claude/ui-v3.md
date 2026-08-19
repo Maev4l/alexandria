@@ -1348,6 +1348,34 @@ mean**, because a commit blocks the main thread and appears as one long frame �
 the thing under test. And it marks the response at the moment the **JSON body is parsed**, not when headers
 arrive, so network time is never credited to the commit.
 
+**A critique can measure the wrong substrate too — and a deferred finding can outlive its subject.** Three
+touch-target failures were reported, dispatched by me, and **all three already passed**: the figures were
+element boxes, and every one of those controls carries a `::before` expansion, so the box understates the
+target *by design*. `IN <library>` measures 42.2×18.2 as a box and **49×56 as a hit area**; the library rows
+measure 25.3px and hit 57.
+
+Three things compound, and the third is the one to guard against:
+
+**The box and the hit area are different things, one of them is what a finger touches, and reading the first
+while naming the second produces a finding that is precise, reproducible and wrong.**
+
+**The rider text I dispatched was a verbatim description of the code before its own fix** — `inset-x-0 gives
+it none, and its width is the library name's text width` is what `DetailMarks.jsx:82` says to explain *why*
+`inset-x-0` was replaced. A comment documenting a repair reads exactly like a report of a defect.
+
+**And the correction was already on record.** Slice D's own assessment caught this for the library rows and
+wrote *"so nobody re-files it"* — then the next critique re-filed it, and I passed it on, having read and
+synthesised that correction myself. **A prior critique's corrections are inputs to the next one, not an
+archive**, which is what `.impeccable/critique/ignore.md` exists for and why it now exists here.
+
+The peer's framing is the durable one: **a measurement, like a comment, keeps asserting after its premise has
+gone.** Same shape as the stale enumeration, in a number instead of a sentence.
+
+And the right response was theirs, not a geometry change: **adjusting something that already passes to satisfy
+a number nobody re-measured is the failure mode itself.** What was missing was the *check* — two of the three
+had no hit-area guard, which is precisely why only those two could be re-reported as failing without anything
+going red.
+
 **A probe for a transient state must hold that state open, or it asserts nothing.** The list-unmount probe
 deliberately keeps the next search pending, because the mock answers inside a tick — race that window and the
 test passes or fails on scheduling rather than on behaviour. **The window is the whole subject.** Same family

@@ -38,6 +38,15 @@ dist/
 # Caught by reading `git status`, not by reasoning about the pattern.
 **/.impeccable/*
 !/.impeccable/config.json
+# ...and the critique ignore list, for the same reason: it records investigated
+# non-defects, so losing it means the next critique re-files them. That is not
+# hypothetical — three touch-target findings were re-filed across two consecutive runs,
+# the second time after the first had explicitly corrected them. The snapshots stay
+# ignored (generated); only this decision record is tracked. The three lines below are
+# the shape git needs: permit the directory, exclude its contents, admit the one file.
+!/.impeccable/critique/
+/.impeccable/critique/*
+!/.impeccable/critique/ignore.md
 
 # Playwright MCP output: screenshots, accessibility snapshots (.yml) and console
 # logs, written to the repo root by the browser tools. Verified by observation
