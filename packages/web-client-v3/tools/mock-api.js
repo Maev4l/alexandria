@@ -1,12 +1,9 @@
 import { libraries } from '../src/test/fixtures/libraries.js';
-import {
-  collectionsByLibrary,
-  itemsByLibrary,
-  searchResults,
-} from '../src/test/fixtures/items.js';
+import { collectionsByLibrary, itemsByLibrary } from '../src/test/fixtures/items.js';
 import { eventsByItem } from '../src/test/fixtures/events.js';
 import { hugeItems } from '../src/test/fixtures/huge.js';
 import { handleDetection } from './mock-detections.js';
+import { handleSearch } from './mock-search.js';
 
 const COLLECTION = 2;
 
@@ -106,7 +103,11 @@ export const handleMockRequest = (method, url, body) => {
     return found ? ok(found) : notFound();
   }
 
-  if (method === 'POST' && path === '/search') return ok({ results: searchResults });
+  // Delegated to its own module for the same reason /detections is: the fixture cases it must
+  // serve (the mixed/large/single/none/error states, per tools/mock-search.js) are numerous
+  // enough that inlining them here would bury the route-matching this file otherwise stays flat
+  // and easy to scan.
+  if (method === 'POST' && path === '/search') return handleSearch(body);
 
   // Writes acknowledge with the empty body the real API returns, so the client's
   // re-read-after-write path is exercised rather than short-circuited.
