@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import CaptureCaption from '@/components/CaptureCaption.jsx';
 
 // A book's own barcode is always one of these two symbologies (EAN-13 is what an ISBN-13
 // prints as; EAN-8 covers the rarer short/compact editions) — restricting the reader to them
@@ -132,7 +133,7 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
     // a failed image") and it applies here too — before the stream attaches, this box is
     // waiting for a live picture the same way an empty frame is. The rule alone describes it.
     //
-    // Full column width, fixed height 416px (52 divisions) — not the 2:3 Volume Frame ratio.
+    // Full column width, fixed height 192px (24 divisions) — not the 2:3 Volume Frame ratio.
     // An EAN-13/EAN-8 barcode is landscape; a portrait window forced the reader to hold the
     // phone so a wide code occupied only a small fraction of a tall box. `@zxing` decodes from
     // `mediaElement.videoWidth/videoHeight` (`BrowserCodeReader.js:283-284`), the stream's
@@ -143,10 +144,15 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
     //
     // Height is a fixed division-scale value, not an aspect ratio, on purpose: this is a
     // targeting window sized to its subject, so its ratio may vary by device — unlike an
-    // artwork frame, where imprecision is never acceptable. That is also why the film capture
-    // frame (`CoverCapture`, out of scope here) stays the 2:3 Volume Frame ratio: a cover is
-    // 2:3, so its viewfinder matches its subject exactly as this one now matches its own — one
-    // rule applied twice, not an inconsistency.
+    // artwork frame, where imprecision is never acceptable. 192px is what makes the whole page
+    // fit a 667px-tall phone with the manual escape above the fold; a taller frame pushed it
+    // under, which is the one thing a manual escape may never do.
+    //
+    // `CoverCapture` follows the SAME rule to a different number: full column width by 240px,
+    // landscape, because what that capture reads is a film's TITLE — the poster comes from TMDB
+    // and never from the photograph. Two frames, one rule (match the subject), and this comment
+    // asserted the opposite for four commits, describing a 2:3 portrait frame the app had
+    // stopped rendering. Both figures here were stale numbers of mine, in someone else's file.
     //
     // `overflow-hidden` is required now that the video is scaled up past the box's own edges.
     <div className="relative h-48 w-full overflow-hidden border-2 border-ink">
@@ -155,12 +161,7 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
           aim at, never easier to decode. */}
       <video ref={videoRef} muted playsInline className="size-full scale-150 object-cover" />
       {state === 'requesting' && (
-        <p
-          aria-live="polite"
-          className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
-        >
-          Requesting camera access
-        </p>
+        <CaptureCaption>Requesting camera access</CaptureCaption>
       )}
       {/* Two facts, deliberately, because an automatic decode gives the reader neither for free:
           that a code was captured at all, and that a lookup for it is now running. CoverCapture's
@@ -169,12 +170,7 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
           the surface stays the design session's), because this is the SAME kind of thing: state
           text over a live, still-running feed, never a wash or a dimming. */}
       {state === 'scanning' && busy && (
-        <p
-          aria-live="polite"
-          className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
-        >
-          Code read · looking it up
-        </p>
+        <CaptureCaption>Code read · looking it up</CaptureCaption>
       )}
     </div>
   );

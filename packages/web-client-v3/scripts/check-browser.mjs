@@ -51,7 +51,21 @@ const record = (ok, label, detail) => {
 
 console.log(`starting a fixture dev server on :${PORT} (the one on :5173 is left alone)\n`);
 const server = await startFixtureServer({ port: PORT });
-const browser = await puppeteer.launch({ executablePath: resolveChrome(), headless: true });
+// A FAKE CAMERA, granted up front. Until this, neither capture screen could be checked here at
+// all: `getUserMedia` was refused, both viewports fell straight to their denied state and
+// rendered nothing, so of 90 checks not one visited /add/book or /add/video. That is precisely
+// why five unreadable captions over a live feed shipped — nothing in this suite had ever seen
+// the surface they sit on.
+//
+// `--use-fake-device-for-media-stream` supplies a synthetic 640x480 stream and
+// `--use-fake-ui-for-media-stream` auto-grants the permission prompt. The feed's CONTENT is a
+// test pattern rather than a barcode, so this makes the viewports' layout, states and computed
+// styles checkable — never the decode itself, which stays a device-verified thing.
+const browser = await puppeteer.launch({
+  executablePath: resolveChrome(),
+  headless: true,
+  args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
+});
 
 try {
   const page = await browser.newPage();
@@ -586,6 +600,43 @@ try {
   );
   record(lookupCode.text === '9782070408504', 'the head code is the scanned ISBN', lookupCode.text);
 
+  // ---- Shared by the two capture-flow checks below ----
+  //
+  // Wait on the DESTINATION SCREEN's own name, never on a selector the previous screen also has.
+  // The capture routes are lazy chunks, so after a save the URL changes while React keeps the
+  // results screen up until the chunk arrives — and the results screen renders the session tally
+  // too. `waitForSelector('[data-mark="session-tally"]')` therefore matched immediately, on the
+  // page the reader had just left, and every assertion after it described the wrong screen.
+  // Found by probing, not by the check failing: it PASSED that way.
+  const waitForScreen = (name) =>
+    page.waitForFunction(
+      (text) => document.querySelector('main h1')?.textContent?.trim() === text,
+      { timeout: 10_000 },
+      name,
+    );
+
+  // Waits for its own target before clicking, and REPORTS whether it clicked. The results
+  // screen renders its <h1> while still loading, so "the screen is here" and "a candidate is
+  // here" are different moments — clicking on the first one is a no-op that leaves the next
+  // wait to time out ten seconds later, blaming the wrong step. A helper that can silently
+  // click nothing is the same shape as a mutation that silently does not land.
+  const useFirstCandidate = async () => {
+    await page.waitForFunction(
+      () => [...document.querySelectorAll('main button')].some((el) =>
+        el.textContent.trim().toLowerCase().startsWith('use this'),
+      ),
+      { timeout: 10_000 },
+    );
+    const clicked = await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('main button')].find(
+        (el) => el.textContent.trim().toLowerCase().startsWith('use this'),
+      );
+      btn?.click();
+      return Boolean(btn);
+    });
+    if (!clicked) throw new Error('no "Use this" control to press on the results screen');
+  };
+
   // ---- Filing an item says so, and the session tally accumulates ----
   // The P0 from slice D's critique: `USE THIS` posted the item, replaced back to the capture
   // screen, and produced a DOM textually identical to a fresh arrival. Saved-and-looping and
@@ -602,40 +653,6 @@ try {
       waitUntil: 'networkidle0',
     });
 
-    // Waits for its own target before clicking, and REPORTS whether it clicked. The results
-    // screen renders its <h1> while still loading, so "the screen is here" and "a candidate is
-    // here" are different moments — clicking on the first one is a no-op that leaves the next
-    // wait to time out ten seconds later, blaming the wrong step. A helper that can silently
-    // click nothing is the same shape as a mutation that silently does not land.
-    const useFirstCandidate = async () => {
-      await page.waitForFunction(
-        () => [...document.querySelectorAll('main button')].some((el) =>
-          el.textContent.trim().toLowerCase().startsWith('use this'),
-        ),
-        { timeout: 10_000 },
-      );
-      const clicked = await page.evaluate(() => {
-        const btn = [...document.querySelectorAll('main button')].find(
-          (el) => el.textContent.trim().toLowerCase().startsWith('use this'),
-        );
-        btn?.click();
-        return Boolean(btn);
-      });
-      if (!clicked) throw new Error('no "Use this" control to press on the results screen');
-    };
-
-    // Waiting on the DESTINATION SCREEN's own name, never on the tally's selector. The capture
-    // routes are lazy chunks, so after a save the URL changes while React keeps the results
-    // screen on screen until the chunk arrives — and the results screen renders the tally too.
-    // A `waitForSelector('[data-mark="session-tally"]')` therefore matched immediately, on the
-    // OLD screen, and every assertion after it described a page the reader had already left.
-    // Found by probing rather than by the check failing: it PASSED that way.
-    const waitForScreen = (name) =>
-      page.waitForFunction(
-        (text) => document.querySelector('main h1')?.textContent?.trim() === text,
-        { timeout: 10_000 },
-        name,
-      );
 
     await useFirstCandidate();
     // The toast is rendered by ToastProvider OUTSIDE <main>, so it is waited on by its own hook.
@@ -692,6 +709,95 @@ try {
     await waitForScreen('Add a book');
     const afterLeaving = await page.evaluate(() => document.querySelector('[data-mark="session-tally"]'));
     record(afterLeaving === null, 'the tally is absent again after leaving and re-entering the flow', 'still present');
+  }
+
+  // ---- The capture captions are readable over a live feed, and do not cover their own target ----
+  // Slice D's P1. Five byte-identical instances set `--ink-soft` on nothing at all, `absolute
+  // inset-0` over the <video>: measured between 1.45:1 and 5.1:1 against the SAME string
+  // depending on what the lens was pointing at. This is the first check in this suite that has
+  // ever loaded a capture screen — see the fake-camera flags on the launch above for why the
+  // whole surface was unobserved until now.
+  //
+  // The reachable caption is the film screen's idle guidance. The busy captions cannot be held
+  // still here (they exist only while a lookup is in flight), but all five go through ONE
+  // component now, so a measurement of any one of them is a measurement of the construction.
+  console.log('capture captions print on their own ground, at the frame\'s bottom edge');
+  {
+    await page.goto(`${BASE}/libraries/lib-films/add/video`, { waitUntil: 'networkidle0' });
+    await page.waitForFunction(
+      () => document.querySelector('main video')?.readyState === 4,
+      { timeout: 15_000 },
+    );
+
+    const caption = await page.evaluate(() => {
+      const video = document.querySelector('main video');
+      const el = [...document.querySelectorAll('main p')].find(
+        (p) => p.textContent.trim().toLowerCase() === 'frame the title',
+      );
+      if (!el) return null;
+      const style = getComputedStyle(el);
+      const box = el.getBoundingClientRect();
+      const frame = video.parentElement.getBoundingClientRect();
+      return {
+        color: style.color,
+        background: style.backgroundColor,
+        // Pinned to the bottom edge: its top must sit BELOW the frame's midpoint, so the
+        // aiming region stays clear. `inset-0` put it dead centre, over the title itself.
+        topWithinFrame: box.top - frame.top,
+        frameHeight: frame.height,
+        // Full-width strip, not a floating pill: it spans the frame it belongs to.
+        spansFrame: Math.abs(box.width - frame.width) <= 4,
+        videoLive: video.readyState === 4,
+        videoSize: `${video.videoWidth}x${video.videoHeight}`,
+      };
+    });
+
+    record(caption !== null, 'the film capture screen renders its idle caption over a live feed', 'no caption found');
+    if (caption) {
+      console.log(`    feed ${caption.videoSize}, readyState 4; caption color ${caption.color} on ${caption.background}`);
+      const toHex = (rgb) => {
+        const [r, g, b] = rgb.match(/\d+/g).map(Number);
+        return `#${[r, g, b].map((n) => n.toString(16).padStart(2, '0')).join('')}`;
+      };
+      // A transparent background is the DEFECT, not merely a low ratio: with nothing painted, the
+      // ratio is whatever the camera is looking at, and contrastRatio has nothing to compute.
+      const opaque = !/rgba\(0,\s*0,\s*0,\s*0\)/.test(caption.background);
+      record(opaque, 'the caption paints its own ground rather than sitting on the feed', caption.background);
+      if (opaque) {
+        const ratio = contrastRatio(toHex(caption.color), toHex(caption.background));
+        record(ratio >= 4.5, `the caption clears AA on its own ground (${ratio.toFixed(2)}:1)`, `${ratio.toFixed(2)}:1`);
+      }
+      record(
+        caption.topWithinFrame > caption.frameHeight / 2,
+        'the caption sits below the frame\'s midpoint, clear of the aiming region',
+        `top ${Math.round(caption.topWithinFrame)}px of ${Math.round(caption.frameHeight)}px`,
+      );
+      record(caption.spansFrame, 'the caption spans the frame as a strip, not a floating block', 'width mismatch');
+    }
+
+    // FIRST USE ONLY. "Frame the title" is an instruction, and an instruction that has been read
+    // is furniture — by film ten it is a permanent strip on the frame restating what the reader
+    // learned at film one. Filing one item is what retires it, which also proves the wiring:
+    // the caption is driven by the same session tally, not by a second notion of "seen it".
+    await page.goto(`${BASE}/libraries/lib-films/add/video/results?title=Les%20Tontons%20flingueurs`, {
+      waitUntil: 'networkidle0',
+    });
+    await useFirstCandidate();
+    await waitForScreen('Add a film');
+    await page.waitForFunction(
+      () => document.querySelector('main video')?.readyState === 4,
+      { timeout: 15_000 },
+    );
+    const guidanceAfterFiling = await page.evaluate(() =>
+      [...document.querySelectorAll('main p')].some(
+        (p) => p.textContent.trim().toLowerCase() === 'frame the title',
+      ),
+    );
+    record(
+      guidanceAfterFiling === false,
+      'the idle guidance retires once the session has filed something',
+      'still printed on the frame',
+    );
   }
 
   // ---- Pinch-zoom must not be disabled: WCAG 1.4.4, and this app is used in poor light ----

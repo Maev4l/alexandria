@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
+import CaptureCaption from '@/components/CaptureCaption.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 
 const hasCamera = () =>
@@ -96,7 +97,7 @@ const captureFramedRegion = (video) => {
 // caller decides when it's true (AddVideo.jsx's `busySource`), because the same lookup call is
 // also reachable from the manual title field, and narrating here for a title-only lookup would
 // claim a cover lookup that never happened.
-const CoverCapture = ({ onCapture, onError, busy = false }) => {
+const CoverCapture = ({ onCapture, onError, busy = false, showGuidance = true }) => {
   const webcamRef = useRef(null);
   const [state, setState] = useState(() => (hasCamera() ? 'requesting' : 'unsupported'));
 
@@ -162,12 +163,7 @@ const CoverCapture = ({ onCapture, onError, busy = false }) => {
           className="size-full object-cover"
         />
         {state === 'requesting' && (
-          <p
-            aria-live="polite"
-            className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
-          >
-            Requesting camera access
-          </p>
+          <CaptureCaption>Requesting camera access</CaptureCaption>
         )}
         {/* One fact, matching the control that was tapped — see the prop comment above for why
             this is a single-fact string where BarcodeScanner's is two. Same vocabulary as the
@@ -175,26 +171,21 @@ const CoverCapture = ({ onCapture, onError, busy = false }) => {
             the shutter below stays tappable throughout (deliberately not disabled — see AddVideo
             and CoverCapture.test.jsx's own "explicitly out of scope" case). */}
         {state === 'ready' && busy && (
-          <p
-            aria-live="polite"
-            className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
-          >
-            Looking up this cover
-          </p>
+          <CaptureCaption>Looking up this cover</CaptureCaption>
         )}
         {/* The one fact that changed when the read target changed from the whole cover to the
             title (WYSIWYG: the frame now defines the region actually read): the reader needs
-            telling what to aim at. Same caps vocabulary and position as the requesting/busy
-            captions, gated so the three are mutually exclusive BY CONSTRUCTION —
-            `requesting`, `ready && busy`, `ready && !busy` partition every reachable state —
-            rather than merely arranged to avoid overlapping today. */}
-        {state === 'ready' && !busy && (
-          <p
-            aria-live="polite"
-            className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
-          >
-            Frame the title
-          </p>
+            telling what to aim at. Same construction as the requesting/busy captions, gated so
+            the three are mutually exclusive BY CONSTRUCTION — `requesting`, `ready && busy`,
+            `ready && !busy` partition every reachable state — rather than merely arranged to
+            avoid overlapping today.
+            FIRST USE ONLY (`showGuidance`). It is an instruction, and an instruction that has
+            been read is furniture: by film ten it is a permanent strip on the frame restating
+            what the reader learned at film one. The caller decides — AddVideo turns it off once
+            the session has filed anything, which is the same signal the tally is built on, not a
+            second notion of "has this reader seen it". */}
+        {state === 'ready' && !busy && showGuidance && (
+          <CaptureCaption>Frame the title</CaptureCaption>
         )}
       </div>
       {state === 'ready' && (

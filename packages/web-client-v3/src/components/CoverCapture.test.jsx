@@ -388,4 +388,20 @@ describe('CoverCapture — narrating a lookup in flight', () => {
     act(() => latestProps.onUserMedia());
     expect(screen.getByRole('button', { name: /look up this cover/i })).toBeEnabled();
   });
+
+  // ---- The idle guidance is a FIRST-USE state ----
+  it('prints "Frame the title" while the frame is idle', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} />);
+    act(() => latestProps.onUserMedia());
+    expect(screen.getByText(/frame the title/i)).toBeInTheDocument();
+  });
+
+  it('drops it once the caller says the reader has done this before', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} showGuidance={false} />);
+    act(() => latestProps.onUserMedia());
+    // Asserts something that DOES render first, so this cannot pass merely because the component
+    // is still in its `requesting` state — a bare `queryByText` there would be vacuously true.
+    expect(screen.getByRole('button', { name: /look up this cover/i })).toBeInTheDocument();
+    expect(screen.queryByText(/frame the title/i)).not.toBeInTheDocument();
+  });
 });

@@ -194,6 +194,11 @@ const AddVideo = () => {
               onCapture={onCaptured}
               onError={setCameraError}
               busy={busySource === 'capture'}
+              // "Frame the title" is an instruction, so it belongs on the film the reader has
+              // not framed before and nowhere after. The session tally is exactly that signal
+              // already — nothing filed yet means nothing learned yet — so this reuses it rather
+              // than inventing a second, competing idea of first use.
+              showGuidance={filedCount === 0}
             />
           )}
         </div>
