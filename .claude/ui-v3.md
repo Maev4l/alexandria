@@ -900,6 +900,31 @@ use `localeCompare`. A client-side fold would produce matches the server cannot 
 it can. So the limitation is disclosed rather than papered over — at zero results, suggest trying the
 accented spelling.
 
+**No result count yet — and the reason is that 20b is about to make the decision for us.** A count is a
+legitimate device here (a library row carries `totalItems`, an index run carries its own), and on a
+five-field-prefix set it would signal *narrow the term*. But apply the test: its absence produces **no wrong
+conclusion** — the reader scrolls and works harder. So it is an affordance, not a defect, and on the dominant
+case of a specific title returning one to three rows it is a line of noise on every search.
+
+**And if a set is large enough that its size matters, the right answer is probably not to print 412 — it is
+to say the term is too broad.** Whether that state is needed at all is exactly what measuring the mount at
+400 will show. Deciding the count now would pre-empt a measurement already scheduled, and if a too-broad
+state does arrive, the count belongs in *its* copy rather than above every result list.
+
+**Recents collapse a prefix, asymmetrically.** A pause mid-word executes a real search, so `rom` is genuinely
+recorded on the way to `roman` and the list fills with fragments of one intent. Rule: **when a term is
+recorded, drop any existing recent that is a prefix of it.** That removes typing artefacts, which are always
+prefixes of the completed term, while keeping a *later* deliberate shorter search — `roman` is not a prefix of
+a subsequent `rom`, so it survives. Case is folded, matching the server; **accents never are, anywhere.**
+
+**Repetition that varies is not "labelled twice".** Six consecutive results printing `IN Fiction` looks like
+the `TMDB` badge repeated down five film candidates, and it is not the same case. That badge was a
+**constant** — one resolver, so it differentiated nothing and could only be a fifth copy of one fact. The
+library **varies** across a search set (Fiction, Films, Polars) and is the field answering *which shelf*, so
+its repetition is incidental to whatever order the response arrives in. Grouping results by library would
+also invent an order `POST /search` does not define. The rule is about a fact restated, not a column that
+happens to repeat.
+
 **Before typing, the screen carries recent searches** — at most five, most recent first, `localStorage`,
 each a catalogue tag that re-runs its term. One `Clear` control, no confirmation: nothing is destroyed
 that the reader cannot recreate by searching again, and §7 reserves confirmation for what is actually
@@ -1274,6 +1299,18 @@ sound-sounding and wrong (see *NewBook / NewVideo*). What broke it was noticing 
 ruling would give the results screens the same visibility, so the distinction had never been
 load-bearing on either surface. **A distinction that dissolves when an unrelated decision ships was
 never the reason** — it was a coincidence doing the work of an argument.
+
+**Import a fixture's constants; never retype its values.** A dispatch of mine named `TERM_MIXED = 'blake'`
+where the fixture says `'roman'`. The implementer imported the constant rather than the literal — and a wrong
+literal would not have failed: it would have fallen through the mock's *any other term* branch and **silently
+tested a different state than its name claimed**, green throughout. A fixture's values are the substrate, and
+retyping one forks it.
+
+**And a task-id scheme where one id is a prefix of another breaks any heading-matching extractor.**
+`task-brief 20` prefix-matched **Task 20a** and then ran to the end of the file, emitting 20a + 20 + 20b as
+one brief — which would have told an implementer to rebuild the fixture route and to build the profiler that
+must not exist yet. Same family as prose filed between two task headings: the extraction is mechanical and
+silent, and only reading the generated brief reveals it.
 
 **A component earns a direct test the moment it gains a second construction.** `PlateLine` had **no test
 file at all** — covered incidentally through the screens that render it, which is survivable with one shape
