@@ -874,8 +874,22 @@ search commits **all of them in one go**. Containment skips layout and paint for
 not skip reconciliation or the DOM construction of N rows in a single commit. The stream profiler measures
 **scrolling**; nothing in this codebase has ever measured **mounting**, which is the only thing search does
 that the stream does not. So the requirement is real and the mechanism I named is the wrong one: ship
-without windowing, **measure the mount at 400 results, and rule with a number** — and if windowing is
-warranted it must be a real one, since `content-visibility` is already known not to address that cost.
+without windowing, **measure the mount at 400 results, and rule with a number.**
+
+**Measured, and windowing is refused.** Scrolling a 400-result list is already flawless — p95 **10.3ms**,
+**zero** frames over budget, unchanged at 4× throttle and *better than the browse stream's 24.2ms*, because
+search fetches nothing while it scrolls. **Windowing exists to fix scrolling, and there is nothing here to
+fix**; it would trade a one-off cost for per-scroll work that is currently free.
+
+The whole cost is **one commit the reader is already waiting through**: 400 rows arrive as a single ~110ms
+frame, ~327ms on a 4× mid-range model, at the instant the response lands rather than during interaction.
+Roughly linear at ~0.27ms/row and ~0.8ms throttled, so a pathological 1000 costs ~270ms and ~800ms — still
+one-off. And containment measured inert here too (−1%, −3%), a **second independent confirmation** on a
+completely different workload, which matters because containment was the mechanism my original requirement
+named.
+
+So my performance requirement was wrong three times over: the mechanism did nothing, the stream never
+implemented it, and the cost it aimed at is not the cost that exists.
 
 **A result row is a stream row, not a new invention.** The 2:3 Volume Frame, the title, the Plate Line.
 Artwork is the normal case (`PRODUCT.md`), and the frame is how an item is recognised — this screen is
@@ -900,16 +914,18 @@ use `localeCompare`. A client-side fold would produce matches the server cannot 
 it can. So the limitation is disclosed rather than papered over — at zero results, suggest trying the
 accented spelling.
 
-**No result count yet — and the reason is that 20b is about to make the decision for us.** A count is a
+**No result count — and the measurement closed it rather than deferring it.** A count is a
 legitimate device here (a library row carries `totalItems`, an index run carries its own), and on a
 five-field-prefix set it would signal *narrow the term*. But apply the test: its absence produces **no wrong
 conclusion** — the reader scrolls and works harder. So it is an affordance, not a defect, and on the dominant
 case of a specific title returning one to three rows it is a line of noise on every search.
 
-**And if a set is large enough that its size matters, the right answer is probably not to print 412 — it is
-to say the term is too broad.** Whether that state is needed at all is exactly what measuring the mount at
-400 will show. Deciding the count now would pre-empt a measurement already scheduled, and if a too-broad
-state does arrive, the count belongs in *its* copy rather than above every result list.
+**And if a set were large enough that its size mattered, the right answer would be to say the term is too
+broad rather than to print 412 — but the measurement produces no such state.** At 400 the list is
+comfortable and at 1000 it is still one frame, merely a longer one. There is no size at which this screen
+breaks and needs to say so, so the state that would have justified a count does not exist. If one is ever
+wanted it must be argued from **the commit**, not from scroll performance, and the ~0.8ms/row figure is the
+only evidence that could support it.
 
 **Recents collapse a prefix, asymmetrically.** A pause mid-word executes a real search, so `rom` is genuinely
 recorded on the way to `roman` and the list fills with fragments of one intent. Rule: **when a term is
@@ -1300,6 +1316,17 @@ ruling would give the results screens the same visibility, so the distinction ha
 load-bearing on either surface. **A distinction that dissolves when an unrelated decision ships was
 never the reason** — it was a coincidence doing the work of an argument.
 
+**A performance gate must be set from the observed value, not from a round number — a gate at ten times the
+observation is a comment.** The search profiler's first budgets were **1200ms and 34ms** against observations
+of ~110ms and ~10ms: ten times and three times the thing measured, so **neither could ever have fired**. Reset
+to ~1.5× the observed run (200ms, 16ms) and demonstrated firing at a forced 50ms budget. Same family as a
+guard that has only ever been green, with the failure hidden in a number rather than in a missing test.
+
+Two constructions in that profiler worth copying. It reports the commit as the **longest frame rather than a
+mean**, because a commit blocks the main thread and appears as one long frame — an average would hide exactly
+the thing under test. And it marks the response at the moment the **JSON body is parsed**, not when headers
+arrive, so network time is never credited to the commit.
+
 **Import a fixture's constants; never retype its values.** A dispatch of mine named `TERM_MIXED = 'blake'`
 where the fixture says `'roman'`. The implementer imported the constant rather than the literal — and a wrong
 literal would not have failed: it would have fallen through the mock's *any other term* branch and **silently
@@ -1412,10 +1439,14 @@ response-headers policy and `/assets/*` carries `immutable`. No new Terraform is
 write any.
 
 **Performance.** Route-level code splitting, with the scanner (`@zxing`) and the webcam loaded
-only by the capture routes. **The library stream must hold 1000+ items — and note that this line has said
-"virtualize" since it was written while the build uses pagination at 30 plus `content-visibility`, which the
-profiler measures as inert (1% on the slowest frame, both directions). The requirement was never met as
-written and the substitute does nothing; what has held the stream up is the page size.** Two
+only by the capture routes. **The library stream must hold 1000+ items — and windowing is REFUSED, measured
+twice.** This line said "virtualize" for four slices; the build uses pagination at 30 plus
+`content-visibility`, and the profiler measures that containment as **inert in both workloads** (−1% on the
+stream, −1% and −3% on a 400-row search list). Search then measured the real question: scrolling 400 rows is
+p95 10.3ms with **zero** frames over budget, so there is no scrolling cost for windowing to fix, and the only
+cost is a single ~110ms mount commit (~327ms at 4×) that lands while the reader waits on the network. **Do
+not reinstate windowing without a measurement that contradicts these**; what holds the stream up is the page
+size. Two
 self-hosted variable fonts, subset to Latin + Latin Extended-A.
 
 **Page size is a network knob as well as a rendering one, and the network side wins.** Frame-time
