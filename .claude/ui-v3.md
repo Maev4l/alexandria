@@ -410,6 +410,29 @@ the resolution fix above addresses the actual complaint.
 Because there is no band, there is no landscape region, so the capture frame stays **2:3** and the
 structural ruling that the feed sits inside a Volume Frame stands unchanged.
 
+**Before accepting a cost, check whether a value exists that avoids it.** I approved a 416px scan frame
+and *owned* the consequence: on a 667-tall phone the manual escape falls below the fold. That was an
+honest trade and an unexamined one. The owner pointed at v2, where the whole page fits, and the
+measurement found **192px gives a 667px document exactly** — fitting every phone rather than only the
+large ones, and *more* landscape at full width, so the subject-shaped argument gets stronger rather than
+weaker. There was no trade to make.
+
+Owning a cost is better than discovering one and worse than not paying it. **"I accept this consequence"
+is a conclusion, not a search** — and it reads as diligence, which is what makes it easy to stop there.
+
+**A layout change can make a control bottom-anchored while leaving that control untouched in the diff.**
+Centring the film capture pushed the form and the manual escape against the viewport's bottom edge
+instead of letting them trail the content, so `p-4` left the escape 16px from the edge — under the home
+indicator on an installed PWA, which is §7's bottom-anchored case. **The safe-area rule attaches when the
+layout makes a control bottom-anchored, not when someone edits that control's line.** A reviewer reading
+only changed lines cannot see it, because the line that now needs the padding is not in the diff.
+
+And a variant of the substrate failure arriving from a new direction: an intermediate `mx-auto w-fit`
+centred the *wrapper*, while the shutter — wider than the frame — kept the camera left-aligned inside it.
+Still 101/149. Reporting that step as "centred" would have been **a true statement about the wrong
+element**, and this time the wrong element was in the *remedy* rather than in the defect. Caught by
+re-measuring, not by reading the diff.
+
 **A capture viewport must narrate its own lookup — neither of them did, and both hide the app's slowest
 call behind a frame that looks idle.** Reported from use: tapping a control and seeing nothing happen.
 
