@@ -391,3 +391,91 @@ describe('Search — recents', () => {
     expect(JSON.parse(localStorage.getItem('alexandria.v3.recent-searches') ?? '[]')).toEqual([]);
   });
 });
+
+describe('Search — the list survives a refinement', () => {
+  // Gating the list on `status === 'done'` unmounted every row on each refinement: measured,
+  // eight rows collapsed <main> to 135px, and four hundred took scrollHeight from 42,464 to 844
+  // and scrollY from 4,180 to zero. A reader refining a query lost their place on every keystroke
+  // past the third — and it falsified the premise of the mount measurement, which assumed one
+  // commit per SEARCH rather than one per settled query.
+  it('keeps the previous results mounted while the next query is in flight', async () => {
+    renderSearch();
+
+    await userEvent.type(field(), TERM_MIXED);
+    await screen.findByText('1984');
+
+    // The mock answers synchronously, so the `loading` window closes inside a tick and racing it
+    // would make this test pass or fail on scheduling. Hold the NEXT search open deliberately:
+    // that window is the whole subject, and a probe that cannot observe it asserts nothing.
+    let release;
+    const settled = new Promise((resolve) => { release = resolve; });
+    const immediate = globalThis.fetch;
+    vi.stubGlobal('fetch', vi.fn(async (url, init) => {
+      if (String(url).endsWith('/search')) await settled;
+      return immediate(url, init);
+    }));
+
+    await userEvent.clear(field());
+    await userEvent.type(field(), TERM_SINGLE);
+
+    // The old rows must still be on screen while the new search runs.
+    // Two nodes say "Searching": the visible caps mark and the sr-only status region. Scoped to
+    // the visible one, since this test is about what stays ON SCREEN.
+    await waitFor(() =>
+      expect(screen.getAllByText('Searching').some((el) => !el.hasAttribute('role'))).toBe(true),
+    );
+    expect(screen.getByText('1984')).toBeInTheDocument();
+
+    release();
+
+    // And cleared only when the new set lands.
+    await screen.findByText('Nadja');
+    expect(screen.queryByText('1984')).toBeNull();
+  });
+});
+
+describe('Search — what a reader who cannot see it hears', () => {
+  // At rest with eight results the surface announced nothing at all: the only live region was the
+  // empty toast container, and "Searching" existed during load then left the DOM. So a non-sighted
+  // reader heard "Searching" and then permanent silence, and could not tell eight results from
+  // nothing matched — the block that exists specifically to prevent "I don't own it" was the one
+  // thing never spoken.
+  const status = () => document.querySelector('[role="status"]');
+
+  it('is present in every state, because a region that unmounts takes its announcement with it', async () => {
+    renderSearch();
+    // Before a query exists. A live region announces CHANGES TO ITSELF, so it has to be mounted
+    // before the change happens — a conditionally rendered one announces nothing on the render
+    // that creates it.
+    expect(status()).toBeInTheDocument();
+
+    await userEvent.type(field(), TERM_MIXED);
+    await screen.findByText('1984');
+    expect(status()).toBeInTheDocument();
+  });
+
+  it('states the outcome for a hit, a miss and a failure', async () => {
+    renderSearch();
+
+    await userEvent.type(field(), TERM_MIXED);
+    await screen.findByText('1984');
+    await waitFor(() => expect(status()).toHaveTextContent(/\d+ results/));
+
+    await userEvent.clear(field());
+    await userEvent.type(field(), TERM_NONE);
+    await waitFor(() => expect(status()).toHaveTextContent(/nothing matched/i));
+
+    await userEvent.clear(field());
+    await userEvent.type(field(), TERM_ERROR);
+    await waitFor(() => expect(status()).toHaveTextContent(/search failed/i));
+  });
+
+  it('says "1 result", not "1 results"', async () => {
+    renderSearch();
+    await userEvent.type(field(), TERM_SINGLE);
+    await screen.findByText('Nadja');
+    await waitFor(() => expect(status()).toHaveTextContent('1 result'));
+    expect(status()).not.toHaveTextContent('1 results');
+  });
+});
+

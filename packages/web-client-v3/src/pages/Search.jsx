@@ -116,6 +116,39 @@ const Search = () => {
     }));
   }, []);
 
+  // THE PREVIOUS SET STAYS ON SCREEN WHILE THE NEXT ONE IS IN FLIGHT. Gating the list on
+  // `status === 'done'` unmounted every row on each refinement: measured, eight rows collapsed
+  // `<main>` to 135px, and four hundred took `scrollHeight` from 42,464 to 844 and `scrollY` from
+  // 4,180 to zero. A reader refining a query lost their place on every keystroke past the third.
+  //
+  // It also falsified the premise of the mount measurement I ran: I ruled windowing out because
+  // ~110ms is "one commit the reader is already waiting through", and it is in fact one commit
+  // PER SETTLED QUERY, each followed by a scroll to zero. The refusal of windowing stands —
+  // scrolling is genuinely free, measured at p95 10.3ms with no frames over budget — but I should
+  // have measured a refinement rather than a cold search. Keeping the rows mounted is the fix;
+  // windowing never was.
+  //
+  // Cleared only when the new set lands, so `loading` shows the OLD answer under a `SEARCHING`
+  // mark rather than a blank page. An error keeps them too: a failed refinement should not
+  // destroy the results the reader already had.
+  const visibleResults = state.status === 'idle' ? [] : state.results;
+
+  // Every state says what it is, in one place, for the one reader who cannot see any of it.
+  // Written as a value rather than inline so the region's text is a single expression with no
+  // state that can silently produce an empty string.
+  const announcement = (() => {
+    if (state.status === 'loading') return 'Searching';
+    if (state.status === 'error') return `Search failed. ${state.error}`;
+    if (state.status !== 'done') return '';
+    // THE OUTCOME, not the whole block. Repeating the scope sentence here would make a
+    // browse-mode reader meet it twice — once announced, once again as visible text they navigate
+    // to — and that text is not hidden from anyone; it was never announced, which is a different
+    // problem. "Nothing matched" is the fact that was missing, and it is what sends a reader to
+    // the detail rather than leaving them with silence.
+    if (state.results.length === 0) return 'Nothing matched';
+    return `${state.results.length} ${state.results.length === 1 ? 'result' : 'results'}`;
+  })();
+
   const showRecents = state.status === 'idle' && recents.length > 0;
 
   return (
@@ -138,8 +171,24 @@ const Search = () => {
 
         <SearchField value={terms} onQueryChange={setTerms} />
 
+        {/* ONE PERSISTENT role="status", carrying the outcome for EVERY state.
+            At rest with eight results the surface announced nothing at all: the only live region
+            was the empty toast container, and "Searching" existed during load and then left the
+            DOM. So a non-sighted reader heard "Searching" and then permanent silence, and could
+            not tell eight results from nothing matched — the block that exists specifically to
+            prevent "I don't own it" was the one thing never spoken.
+            It must not be conditionally rendered. A live region announces CHANGES to itself, so a
+            region that unmounts takes its own announcement with it; this one is always in the DOM
+            and only its text changes. `aria-live="polite"` is implicit in role=status, and polite
+            is right — a result set is not an interruption. */}
+        <p role="status" className="sr-only">
+          {announcement}
+        </p>
+
+        {/* The mark, not the list's absence. Rendering it as a caps line ABOVE the previous
+            results is what lets those results stay mounted — see `visibleResults`. */}
         {state.status === 'loading' && (
-          <p role="status" className="caps mt-6 text-[11px] font-extrabold tracking-[0.16em] text-ink-soft">
+          <p className="caps mt-6 text-[11px] font-extrabold tracking-[0.16em] text-ink-soft">
             Searching
           </p>
         )}
@@ -180,9 +229,9 @@ const Search = () => {
           </div>
         )}
 
-        {state.status === 'done' && state.results.length > 0 && (
+        {visibleResults.length > 0 && (
           <ul className="mt-6">
-            {state.results.map((item) => {
+            {visibleResults.map((item) => {
               const library = byId(item.libraryId);
               // Positive knowledge only, exactly as LibraryBrowse gates its own actions: a
               // library this client cannot vouch for is treated as read-only. Absence of

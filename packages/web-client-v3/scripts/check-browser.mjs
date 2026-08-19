@@ -1039,6 +1039,84 @@ try {
     );
   }
 
+  // ---- Three tab stops in one control must be distinguishable ----
+  // DESIGN.md §2: the whole-box `:focus-within` construction "holds only while the control has
+  // exactly one focusable descendant". The search field has three — the input, the submit mark and
+  // the clear mark — and under `focus-within` the box lit for all of them while each mark's own
+  // ring was suppressed. Pixel-diffed by the critique: `Clear the search` and `Search` were
+  // IDENTICAL when focused, 0 pixels differing, with one of the two destroying the query.
+  //
+  // Diffed rather than read from a computed style, because what failed was not a property — every
+  // rule was correct in isolation — it was which ELEMENT the indicator landed on.
+  console.log('the search field distinguishes its three tab stops when focused');
+  {
+    await page.goto(`${BASE}/search`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main input');
+    await page.type('main input', 'roman');
+    await page.waitForSelector('main li', { timeout: 10_000 });
+
+    const shootFocused = async (label) => {
+      await page.evaluate((name) => {
+        const form = document.querySelector('form[role=search]');
+        const el = name === 'input'
+          ? form.querySelector('input')
+          : [...form.querySelectorAll('button')].find((b) => new RegExp(name, 'i').test(b.getAttribute('aria-label') ?? ''));
+        el.focus();
+      }, label);
+      return (await page.$('form[role=search]')).screenshot();
+    };
+
+    const diff = async (a, b) => {
+      const [x, y] = await Promise.all([sharp(a).raw().toBuffer(), sharp(b).raw().toBuffer()]);
+      let differing = 0;
+      for (let i = 0; i < Math.min(x.length, y.length); i += 1) if (x[i] !== y[i]) differing += 1;
+      return differing;
+    };
+
+    const onInput = await shootFocused('input');
+    const onSearch = await shootFocused('^search$');
+    const onClear = await shootFocused('clear');
+
+    const clearVsSearch = await diff(onClear, onSearch);
+    const inputVsSearch = await diff(onInput, onSearch);
+    console.log(`    clear vs search: ${clearVsSearch} bytes differ; input vs search: ${inputVsSearch}`);
+
+    // The pair the critique measured at zero. Both are marks inside one control, and only one of
+    // them wipes the query.
+    record(
+      clearVsSearch > 0,
+      'focusing the clear mark looks different from focusing the submit mark',
+      `${clearVsSearch} bytes differ`,
+    );
+    record(
+      inputVsSearch > 0,
+      'focusing the input looks different from focusing a mark',
+      `${inputVsSearch} bytes differ`,
+    );
+  }
+
+  // ---- The surface focuses the field it IS ----
+  // `SearchField`'s own comment says a reader arriving mid-lookup "must land on the thing they
+  // were typing into", and none of them did — `activeElement` was `body` on a cold load, on
+  // arrival from the pinned field, and after Back. Another description that outlived its
+  // behaviour, which is the same shape as the stale enumeration in index.css that let the focus
+  // rule break in the first place.
+  console.log('the search surface focuses its own field on arrival');
+  {
+    await page.goto(`${BASE}/search`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main input');
+    const focused = await page.evaluate(() => document.activeElement?.tagName?.toLowerCase());
+    record(focused === 'input', 'the field has focus on a cold load', String(focused));
+
+    // And the launcher on the libraries root must NOT steal it: that is a browse screen, and
+    // raising the keyboard over the list on every visit to the app's home would be worse than
+    // the problem this fixes.
+    await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('header input, main input');
+    const rootFocus = await page.evaluate(() => document.activeElement?.tagName?.toLowerCase());
+    record(rootFocus !== 'input', 'the pinned launcher does not steal focus on the root', String(rootFocus));
+  }
+
   // ---- The search field draws its own controls, and none of the browser's ----
   // `type="search"` gives WebKit a clear button of its own, in BLUE — a colour that appears
   // nowhere in the palette — on the loudest mark in the design. It had been there since the field

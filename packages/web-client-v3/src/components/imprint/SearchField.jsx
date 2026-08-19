@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Close, Search } from '@/components/icons';
 
@@ -20,8 +20,23 @@ import { Close, Search } from '@/components/icons';
 // diverge from them the first time any one moved.
 const SearchField = ({ className, value, onQueryChange }) => {
   const [typed, setTyped] = useState('');
+  const inputRef = useRef(null);
   const navigate = useNavigate();
   const isControlled = onQueryChange != null;
+
+  // CONTROLLED MODE ONLY: this file's own comment says a reader arriving mid-lookup "must land on
+  // the thing they were typing into", and until now none of them did — `activeElement` was `body`
+  // on a cold load, on arrival from the pinned field, and after Back. Another description that
+  // outlived its behaviour.
+  //
+  // Never in launcher mode: the libraries root is a browse screen, and stealing focus there would
+  // raise the phone keyboard over the list on every visit to the app's home.
+  useEffect(() => {
+    if (isControlled) inputRef.current?.focus();
+    // Mount only. Re-focusing on any later render would fight a reader who has tabbed to the
+    // clear mark, which is the control this field just learned to distinguish.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const terms = isControlled ? (value ?? '') : typed;
 
   const submit = (event) => {
@@ -39,9 +54,18 @@ const SearchField = ({ className, value, onQueryChange }) => {
     <form
       role="search"
       onSubmit={submit}
-      className={`focus-control mt-3 flex min-h-12 items-center gap-2 border-2 border-ink bg-imprint px-2 ${className ?? ''}`}
+      // `field-control`, not `focus-control`. DESIGN.md §2: the whole-box `:focus-within` construction
+      // "holds only while the control has exactly one focusable descendant", and this control has
+      // three — the input, the submit mark, and the clear mark. Measured under `focus-within`,
+      // `Clear the search` and `Search` were pixel-identical when focused, because the box lit for
+      // both and neither drew a ring of its own: three tab stops, two indistinguishable, and one of
+      // those destroys the query. `:has(input:focus-visible)` keys the box to the INPUT
+      // specifically and leaves each mark to show its own ring — the same construction `Field`
+      // already uses for its password reveal.
+      className={`field-control mt-3 flex min-h-12 items-center gap-2 border-2 border-ink bg-imprint px-2 ${className ?? ''}`}
     >
       <input
+        ref={inputRef}
         type="search"
         value={terms}
         onChange={(event) => (isControlled ? onQueryChange(event.target.value) : setTyped(event.target.value))}

@@ -154,11 +154,25 @@
      The search field is one thing — ground, rule, input and mark — so the indicator renders on
      the whole box and the inner node carries none.
 
+     THE ENUMERATION THIS COMMENT USED TO CARRY IS WHY THE RULE BROKE. It justified
+     `:focus-within` by naming the field's two focusable descendants — the input and its submit —
+     and DESIGN.md §2 states the condition plainly: "that construction holds only while the
+     control has exactly one focusable descendant". A third arrived when the search surface gained
+     a clear mark, and the comment still described two, so nobody noticed the premise had gone.
+     Measured after it did: `Clear the search` and `Search` were pixel-identical when focused —
+     0 pixels differing — because the whole box lit for both and neither showed a ring of its own.
+     Three tab stops, two of them indistinguishable, one of which DESTROYS the query.
+
+     A stale enumeration is worse than no comment: it reads as a checked condition.
+
+     So the search field uses `.field-control`, the same `:has(input:focus-visible)` construction
+     §2 prescribes and `Field` already uses for its password reveal. This rule stays for controls
+     that genuinely have one focusable descendant, and the browser suite proves the difference by
+     reverting the selector and asserting the check fails.
+
      SUPPRESSING AN INNER OUTLINE IS WHAT KILLED THE FOCUS RING IN SLICE A, so this is scoped to
      descendants of a control that is ITSELF showing an indicator at that moment, and never
-     applied by analogy elsewhere. scripts/check-browser.mjs asserts in real Chrome that focusing
-     the input leaves the control visibly outlined; if that check ever fails, this rule is the
-     first suspect and must go rather than be adjusted. */
+     applied by analogy elsewhere. */
   .focus-control:focus-within :focus-visible {
     outline: none;
   }
