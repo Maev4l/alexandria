@@ -189,9 +189,3 @@ export const collectionsByLibrary = {
   'lib-empty': [],
   'lib-shared-in': [],
 };
-
-export const searchResults = [
-  fictionItems[0],
-  fictionItems[3],
-  itemsByLibrary['lib-shared-in'][0],
-];
