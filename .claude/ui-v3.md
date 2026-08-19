@@ -426,6 +426,27 @@ the resolution fix above addresses the actual complaint.
 Because there is no band, there is no landscape region, so the capture frame stays **2:3** and the
 structural ruling that the feed sits inside a Volume Frame stands unchanged.
 
+**Two constraints that look like they compound may be mutually exclusive in the real world — check the
+population before budgeting for both.** I worried that a device's bottom safe-area inset could push the
+240px viewfinder past a 667px viewport, since the harness reports an inset of 0. It cannot: **the
+667-class devices are precisely the ones with a home *button*** — iPhone SE 2/3, iPhone 8 — so the inset
+genuinely is 0 there, and every device that *has* a home indicator is 812 or taller, verified to fit at
+844 with a 34px inset injected. The tight viewport and the inset never co-occur.
+
+That is `DESIGN.md` §6's rule — *establish whether two states can co-occur before tuning them apart* —
+generalised from states to **devices**, and it turned a value I had hedged into one that needed no hedge.
+The same move settled the idle caps line: making it `state === 'ready' && !busy` renders all three
+conditions mutually exclusive **by construction**, so stacking and flicker are impossible rather than
+merely avoided.
+
+**And the thing that needs editing is often not in the diff — twice in two rounds now.** A horizontal
+centring fix from four commits earlier wrapped the capture in `mx-auto flex w-fit flex-col items-center`,
+and a `w-fit` wrapper sizes to its widest child — so a frame set to full width resolves against the
+wrapper, not the column, and measured 319px where 358 was expected. The class blocking the change lives in
+a file the change would not otherwise touch. Its own purpose also **dissolves** at that moment, since a
+full-width frame is centred by definition. Same shape as the safe-area rule attaching to a control nobody
+edited: a reviewer reading changed lines cannot see either, and only a measurement of the result can.
+
 **Before accepting a cost, check whether a value exists that avoids it.** I approved a 416px scan frame
 and *owned* the consequence: on a 667-tall phone the manual escape falls below the fold. That was an
 honest trade and an unexamined one. The owner pointed at v2, where the whole page fits, and the
