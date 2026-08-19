@@ -3,6 +3,7 @@ import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import CaptureCaption from '@/components/CaptureCaption.jsx';
 import { acquireCameraStream } from '@/lib/cameraStream.js';
+import { useReattachOnVisible } from '@/lib/useReattachOnVisible.js';
 
 // A book's own barcode is always one of these two symbologies (EAN-13 is what an ISBN-13
 // prints as; EAN-8 covers the rarer short/compact editions) — restricting the reader to them
@@ -39,6 +40,14 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
   const videoRef = useRef(null);
   const controlsRef = useRef(null);
   const [state, setState] = useState(() => (hasCamera() ? 'requesting' : 'unsupported'));
+
+  // The stream is released when the app goes to the background (AddFlowLayout); this takes a
+  // fresh one on the way back. The decode loop is left alone deliberately — it scans the ELEMENT,
+  // not the stream, so swapping `srcObject` underneath it resumes decoding with nothing restarted.
+  useReattachOnVisible(videoRef, (err) => {
+    setState('denied');
+    onError(err);
+  });
 
   useEffect(() => {
     // Mount-only, deliberately not keyed on `state`: `setState('scanning')` below is itself a

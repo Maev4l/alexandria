@@ -32,7 +32,21 @@ const AddFlowLayout = () => {
       clearTimeout(pendingRelease);
       pendingRelease = null;
     }
+
+    // Backgrounding the app releases it too. Returning to a backgrounded app is not a loop
+    // iteration, so this costs the cataloguing loop nothing — and it is what makes the trade
+    // defensible in one sentence: the camera is open while the reader is inside the add flow AND
+    // the app is in front of them. Without it the claim would be "open until they leave the
+    // flow", which includes an app sitting backgrounded for an hour. Re-attaching on the way back
+    // belongs to whichever viewport is on screen (`useReattachOnVisible`), since only a component
+    // with a <video> can do it — and the results screen, which has none, correctly needs nothing.
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') releaseCameraStream();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       pendingRelease = setTimeout(() => {
         pendingRelease = null;
         releaseCameraStream();

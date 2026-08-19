@@ -815,11 +815,24 @@ try {
     // Counts `getUserMedia` calls from inside the page, installed before any app code runs so a
     // reload cannot slip a call past it.
     await page.evaluateOnNewDocument(() => {
+      // Two counters, both installed before any app code runs so nothing can slip past them:
+      // how many times the app asked the browser for a camera, and how many tracks it stopped.
+      // The second is what makes "leaving released it" observable rather than assumed.
       window.__cameraOpens = 0;
+      window.__trackStops = 0;
       const real = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
       navigator.mediaDevices.getUserMedia = (...args) => {
         window.__cameraOpens += 1;
-        return real(...args);
+        return real(...args).then((stream) => {
+          for (const track of stream.getTracks()) {
+            const realStop = track.stop.bind(track);
+            track.stop = () => {
+              window.__trackStops += 1;
+              return realStop();
+            };
+          }
+          return stream;
+        });
       };
     });
 
@@ -862,21 +875,32 @@ try {
     record(liveOnSecondItem, 'the feed is still live after the second save', 'feed not live');
 
     // Leaving the flow releases it: the layout route unmounts, the tracks stop, and coming back
-    // opens the device again. A lease with no owner would stay at 1 here, having never let go.
+    // opens the device again.
     //
-    // IN-APP navigation, not `page.goto`. A full document load resets this counter along with
+    // IN-APP navigation, not `page.goto`. A full document load resets these counters along with
     // everything else, so it can say nothing about whether the previous document released
-    // anything — the first draft of this assertion did exactly that and was measuring a fresh
-    // page rather than a release. Back and forward through the SPA's own history keeps one
-    // document, and therefore one counter.
+    // anything — the first draft of this assertion did exactly that, and was measuring a fresh
+    // page rather than a release.
+    //
+    // `goBack`, not `goForward`: the capture screen's own back control is an explicit
+    // `navigate(library)` PUSH rather than a history step (it has two possible predecessors and a
+    // relative step is wrong for one of them), so leaving adds an entry rather than consuming
+    // one — there is no forward entry to go to.
     await page.evaluate(() => {
       document.querySelector('header button')?.click();
     });
     await waitForScreen('Fiction');
-    // `goBack`, not `goForward`: the capture screen's own back control is an explicit
-    // `navigate(library)` PUSH rather than a history step (it has two possible predecessors and
-    // a relative step is wrong for one of them), so leaving the flow adds an entry rather than
-    // consuming one — there is no forward entry to go to.
+
+    // WAIT FOR THE RELEASE, do not assume it. The release is deferred by one macrotask so a
+    // StrictMode remount can cancel it, which means a re-entry issued inside that same tick
+    // legitimately keeps the camera — and puppeteer can issue one that fast where a reader
+    // cannot. Racing it made this assertion pass or fail on how many CDP round trips happened to
+    // sit in between, which is the definition of a flaky check. Waiting on the stop counter
+    // asserts the release as its own fact AND removes the race.
+    await page.waitForFunction(() => window.__trackStops >= 1, { timeout: 10_000 });
+    const stopsAfterLeaving = await page.evaluate(() => window.__trackStops);
+    record(stopsAfterLeaving >= 1, 'leaving the flow stops the camera track', `${stopsAfterLeaving} stops`);
+
     await page.goBack();
     await waitForScreen('Add a book');
     await page.waitForFunction(() => document.querySelector('main video')?.readyState === 4, {
@@ -885,7 +909,7 @@ try {
     const opensAfterReentry = await page.evaluate(() => window.__cameraOpens);
     record(
       opensAfterReentry === 2,
-      're-entering the flow opens the camera again, so leaving it genuinely released the device',
+      're-entering the flow opens the camera again, so the release was real and not a leak',
       `counter read ${opensAfterReentry} in one document`,
     );
   }

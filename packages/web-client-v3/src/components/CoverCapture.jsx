@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import CaptureCaption from '@/components/CaptureCaption.jsx';
 import { acquireCameraStream } from '@/lib/cameraStream.js';
+import { useReattachOnVisible } from '@/lib/useReattachOnVisible.js';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 
 const hasCamera = () =>
@@ -99,6 +100,13 @@ const captureFramedRegion = (video) => {
 const CoverCapture = ({ onCapture, onError, busy = false, showGuidance = true }) => {
   const videoRef = useRef(null);
   const [state, setState] = useState(() => (hasCamera() ? 'requesting' : 'unsupported'));
+
+  // The stream is released when the app goes to the background (AddFlowLayout); this takes a
+  // fresh one on the way back, into the same element.
+  useReattachOnVisible(videoRef, (err) => {
+    setState('denied');
+    onError(err);
+  });
 
   useEffect(() => {
     if (!hasCamera()) {
