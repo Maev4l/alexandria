@@ -306,6 +306,20 @@ why it should not be decided as a side effect.
 **What does change: the fixtures carry a five-candidate response**, so the wall-of-accent question is
 reviewable rather than theoretical. Nothing in either suite has ever rendered more than three.
 
+**A film candidate's runtime folds into the Plate Line — `DIRECTOR · YEAR · RUNTIME` — rather than taking a
+line of its own.** §4 refuses runtime on a *browse* row, on the grounds that it is for deciding what to watch
+tonight, which is not what this product is for. A candidate row is a different job and the exception is real,
+but not for the reason first given: with five **distinct** films it discriminates almost nothing. It earns its
+place as a **confirmation** field — the DVD case is in the reader's hand and prints its runtime, so a matching
+number is evidence this is the right disc. That is the positioning's own mechanism, capture by pointing at the
+object.
+
+Folding it is not widening a component's contract, which is why the implementation session was right to refer
+it rather than act. **§5 already varies the Plate Line by surface** — on item detail it gains the edition,
+`AUTHOR · ISBN`. A candidate row gaining the runtime is the third surface variant of one rule, in the same
+construction: sans, `--ink-soft`, figures in the mono. What it must not do is grow a line, because on a
+comparison screen every row's height is paid five times.
+
 **A candidate row prints two cast names by design — that is not truncation, and the truncation rule does not
 apply to a field whose length is chosen.** The critique named title, authors *and* cast under §5's
 nothing-is-truncated rule and I instructed only the title, which left `Nathalie D…` cutting a person's name
