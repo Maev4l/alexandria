@@ -50,14 +50,26 @@ export const stubFetch = () => {
 // AppRoutes has no hooks of its own — RequireAuth's hook lives in a child component that this
 // never invokes — so calling it as a plain function is safe and returns exactly the React
 // elements the JSX produced (Suspense > Routes > Route[]), with no rendering involved.
+// RECURSIVE, because the table is no longer flat. The add flow's four routes now sit inside a
+// PATHLESS layout <Route> that renders only the filing-session provider's <Outlet/>
+// (routes.jsx) — their URLs are unchanged, but a one-level scan sees one route with
+// `path === undefined` where four screens used to be. That is precisely how it failed when the
+// layout landed: `undefined` in the walked list, four screens silently dropped, and the
+// not-shrinking assertion catching it. A layout route contributes its CHILDREN, never itself.
+const collectRoutePaths = (node) => {
+  if (node == null || node === false) return [];
+  if (Array.isArray(node)) return node.flatMap(collectRoutePaths);
+  const { path, children } = node.props ?? {};
+  // A pathless route is a layout: it renders no screen of its own, so only its children are
+  // walkable. A route WITH a path is a screen — and cannot also nest children in this table.
+  if (path === undefined) return collectRoutePaths(children);
+  return path === '*' ? [] : [path]; // the catch-all is a redirect, not a screen to walk
+};
+
 export const getRoutePaths = () => {
   const tree = AppRoutes();
   const routesElement = tree.props.children;
-  const routeChildren = routesElement.props.children;
-  const routeElements = Array.isArray(routeChildren) ? routeChildren : [routeChildren];
-  return routeElements
-    .map((route) => route.props.path)
-    .filter((path) => path !== '*'); // the catch-all is a redirect, not a screen to walk
+  return collectRoutePaths(routesElement.props.children);
 };
 
 // Concrete IDs that exist in the shared fixtures (src/test/fixtures), so a dynamic segment in a

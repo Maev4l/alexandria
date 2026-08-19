@@ -1,4 +1,7 @@
-// The "Filing into <name>" mark, shared by every screen a cataloguing session touches: the two
+// The "Filing into <name>" mark, shared by every screen a cataloguing session touches. Always
+// rendered inside `FlowMarks`, which owns the row's own bottom margin and pairs this with the
+// session tally — this component sets no margin of its own for that reason.
+// the two
 // capture screens (AddBook, AddVideo) where the session actually SITS, and the two candidate-list
 // screens (BookDetectionResults, VideoDetectionResults) it passes through briefly, N times per
 // session. Printed, never a toast, for exactly that reason — it must survive being ignored for a
@@ -17,7 +20,7 @@
 const FilingInto = ({ name }) => {
   if (!name) return null;
   return (
-    <p className="caps mb-4 text-[11px] font-bold tracking-[0.16em] text-ink-soft">
+    <p className="caps text-[11px] font-bold tracking-[0.16em] text-ink-soft">
       Filing into{' '}
       <span
         data-mark="filing-into-name"

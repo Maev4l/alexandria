@@ -586,6 +586,114 @@ try {
   );
   record(lookupCode.text === '9782070408504', 'the head code is the scanned ISBN', lookupCode.text);
 
+  // ---- Filing an item says so, and the session tally accumulates ----
+  // The P0 from slice D's critique: `USE THIS` posted the item, replaced back to the capture
+  // screen, and produced a DOM textually identical to a fresh arrival. Saved-and-looping and
+  // bounced-back-by-an-error were indistinguishable, which is a defect with no reporter — the
+  // reader assumes the scan failed, re-scans, and never mentions it.
+  //
+  // Belongs in THIS suite, not the unit one: what makes the defect a defect is that the screen
+  // after a save looks unchanged, and only a real navigation through a real save can show that
+  // it no longer does. The unit suite asserts the toast is requested; this asserts a reader
+  // would see it, and that the tally survives the replace that follows.
+  console.log('filing an item confirms it, and the session tally accumulates across the loop');
+  {
+    await page.goto(`${BASE}/libraries/lib-fiction/add/book/results?isbn=9782070408504`, {
+      waitUntil: 'networkidle0',
+    });
+
+    // Waits for its own target before clicking, and REPORTS whether it clicked. The results
+    // screen renders its <h1> while still loading, so "the screen is here" and "a candidate is
+    // here" are different moments — clicking on the first one is a no-op that leaves the next
+    // wait to time out ten seconds later, blaming the wrong step. A helper that can silently
+    // click nothing is the same shape as a mutation that silently does not land.
+    const useFirstCandidate = async () => {
+      await page.waitForFunction(
+        () => [...document.querySelectorAll('main button')].some((el) =>
+          el.textContent.trim().toLowerCase().startsWith('use this'),
+        ),
+        { timeout: 10_000 },
+      );
+      const clicked = await page.evaluate(() => {
+        const btn = [...document.querySelectorAll('main button')].find(
+          (el) => el.textContent.trim().toLowerCase().startsWith('use this'),
+        );
+        btn?.click();
+        return Boolean(btn);
+      });
+      if (!clicked) throw new Error('no "Use this" control to press on the results screen');
+    };
+
+    // Waiting on the DESTINATION SCREEN's own name, never on the tally's selector. The capture
+    // routes are lazy chunks, so after a save the URL changes while React keeps the results
+    // screen on screen until the chunk arrives — and the results screen renders the tally too.
+    // A `waitForSelector('[data-mark="session-tally"]')` therefore matched immediately, on the
+    // OLD screen, and every assertion after it described a page the reader had already left.
+    // Found by probing rather than by the check failing: it PASSED that way.
+    const waitForScreen = (name) =>
+      page.waitForFunction(
+        (text) => document.querySelector('main h1')?.textContent?.trim() === text,
+        { timeout: 10_000 },
+        name,
+      );
+
+    await useFirstCandidate();
+    // The toast is rendered by ToastProvider OUTSIDE <main>, so it is waited on by its own hook.
+    await page.waitForSelector('[data-toast]', { timeout: 10_000 });
+    const toastText = await page.evaluate(() => document.querySelector('[data-toast]')?.textContent?.trim());
+    record(
+      Boolean(toastText) && toastText.length > 0,
+      'a save confirms with a printed toast naming the item',
+      String(toastText),
+    );
+
+    await waitForScreen('Add a book');
+    const afterFirst = await page.evaluate(() => ({
+      tally: document.querySelector('[data-mark="session-tally"]')?.textContent?.trim(),
+      path: window.location.pathname,
+    }));
+    record(afterFirst.tally === '1', 'the tally reads 1 on the capture screen after one save', String(afterFirst.tally));
+    record(
+      afterFirst.path === '/libraries/lib-fiction/add/book',
+      'the save loops back to the capture screen',
+      afterFirst.path,
+    );
+
+    // The whole point of the tally rather than a second toast: it ACCUMULATES. A count that
+    // resets to 1 on every item answers "did that one save?" and never "where did I get to?".
+    //
+    // The second item is reached the way a reader reaches it — typing the code and pressing the
+    // screen's own control — NOT by a second `page.goto`. A `goto` is a full document load, which
+    // tears down the whole app and with it the layout route holding the session, so the tally
+    // would correctly read 1 again and this check would fail on correct code. (It did, on the
+    // first run: the mistake was mine, and the guard was right.) A hard reload genuinely IS a new
+    // session; only an in-app navigation continues this one, which is exactly the property under
+    // test.
+    await page.type('main input', '9782070408504');
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('main button')].find(
+        (el) => el.textContent.trim().toLowerCase().startsWith('look it up'),
+      );
+      btn?.click();
+    });
+    await waitForScreen('Book results');
+    await useFirstCandidate();
+    await waitForScreen('Add a book');
+    const afterSecond = await page.evaluate(
+      () => document.querySelector('[data-mark="session-tally"]')?.textContent?.trim(),
+    );
+    record(afterSecond === '2', 'the tally accumulates rather than resetting per item', String(afterSecond));
+
+    // And it is scoped to the flow, not to the app: leaving for the library and coming back is a
+    // NEW cataloguing session, which is exactly what the layout-route provider defines. A tally
+    // that survived this would be lying about the word "session".
+    await page.goto(`${BASE}/libraries/lib-fiction`, { waitUntil: 'networkidle0' });
+    await page.goto(`${BASE}/libraries/lib-fiction/add/book`, { waitUntil: 'networkidle0' });
+    await waitForScreen('Add a book');
+    const afterLeaving = await page.evaluate(() => document.querySelector('[data-mark="session-tally"]'));
+    record(afterLeaving === null, 'the tally is absent again after leaving and re-entering the flow', 'still present');
+  }
+
   // ---- Pinch-zoom must not be disabled: WCAG 1.4.4, and this app is used in poor light ----
   console.log('viewport permits zoom');
   await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
@@ -1617,6 +1725,25 @@ try {
         query: '?title=Les%20Tontons%20flingueurs',
         expected: '105′',
       },
+      // The session tally. A count on display beside its own label is a labelled datum, exactly
+      // like a library's item count, so §3 puts it in the mono. It is the first manifest entry
+      // that has to ACT to exist: `reach` files one item, which is what produces the mark.
+      {
+        field: 'filed-this-session tally',
+        sourceFile: 'src/components/imprint/FlowMarks.jsx',
+        route: '/libraries/lib-fiction/add/book/results',
+        query: '?isbn=9782070408504',
+        reach: async () => {
+          await page.evaluate(() => {
+            const btn = [...document.querySelectorAll('main button')].find(
+              (el) => el.textContent.trim().toLowerCase().startsWith('use this'),
+            );
+            btn?.click();
+          });
+          await page.waitForSelector('[data-mark="session-tally"]', { timeout: 10_000 });
+        },
+        expected: '1',
+      },
       {
         field: 'releaseYear (row)',
         sourceFile: 'src/components/imprint/PlateLine.jsx',
@@ -1712,9 +1839,16 @@ try {
     // check above draws, but equality instead of a digit ratio: a field's rendered value is
     // either exactly this string somewhere on the page, or the manifest and the app have drifted
     // apart (caught as "not found" below, not silently skipped).
-    const findOwnTextMatches = async (route, expectedText) => {
+    // `reach` (optional) runs after the navigation and before the search: some catalogue values
+    // do not exist on a cold route at all. The session tally is the first — it is produced BY a
+    // save, so a plain `goto` would find nothing and the loop would correctly report the fixture
+    // and the route as drifted apart. Without this the only alternatives were to leave a `.num`
+    // site uncovered or to weaken the drift alarm, both of which trade a real guard for a
+    // convenience.
+    const findOwnTextMatches = async (route, expectedText, reach) => {
       await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
       await page.waitForSelector('main', { timeout: 10_000 });
+      if (reach) await reach();
       return page.evaluate((text) => {
         const out = [];
         for (const el of document.querySelectorAll('body *')) {
@@ -1729,8 +1863,8 @@ try {
     };
 
     const fieldViolations = [];
-    for (const { field, route, query, expected } of MONO_FIELDS) {
-      const families = await findOwnTextMatches(`${route}${query ?? ''}`, expected);
+    for (const { field, route, query, expected, reach } of MONO_FIELDS) {
+      const families = await findOwnTextMatches(`${route}${query ?? ''}`, expected, reach);
       if (families.length === 0) {
         // Not a pass: a value the manifest expects to find rendered nowhere means the fixture
         // and the route have drifted apart, which is worth failing loudly on rather than

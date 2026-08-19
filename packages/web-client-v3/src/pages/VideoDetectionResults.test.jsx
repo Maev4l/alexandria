@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ToastProvider } from '@/state/ToastContext.jsx';
 import { collectionsApi, detectionApi, itemsApi } from '@/api';
 
 vi.mock('@/api', async (importOriginal) => {
@@ -73,11 +74,15 @@ const renderPage = (searchOrPath, state) =>
           : `/libraries/lib-1/add/video/results${searchOrPath ?? ''}`,
       ]}
     >
-      <Routes>
-        <Route path="/libraries/:libraryId/add/video/results" element={<VideoDetectionResults />} />
-        <Route path="/libraries/:libraryId/add/video" element={<LocationProbe />} />
-        <Route path="/libraries/:libraryId/items/new/video" element={<LocationProbe />} />
-      </Routes>
+      {/* The real app always has a ToastProvider above every route (App.jsx); this screen now
+          confirms each save through it. */}
+      <ToastProvider>
+        <Routes>
+          <Route path="/libraries/:libraryId/add/video/results" element={<VideoDetectionResults />} />
+          <Route path="/libraries/:libraryId/add/video" element={<LocationProbe />} />
+          <Route path="/libraries/:libraryId/items/new/video" element={<LocationProbe />} />
+        </Routes>
+      </ToastProvider>
     </MemoryRouter>,
   );
 
@@ -333,6 +338,21 @@ describe('VideoDetectionResults', () => {
       path.startsWith('/libraries/lib-1/add/video?'),
     );
     expect(loopNavigation?.[1]).toEqual(expect.objectContaining({ replace: true }));
+  });
+
+  it('confirms the save, so filing is never silent', async () => {
+    vi.mocked(detectionApi.video).mockResolvedValue({
+      detectedVideos: [{ id: 't1', title: 'Le Samouraï', directors: ['Melville'], releaseYear: 1967, source: TMDB }],
+    });
+    renderPage('?title=Le%20Samoura%C3%AF');
+    await screen.findByText('Le Samouraï');
+
+    await userEvent.click(screen.getByRole('button', { name: /use this/i }));
+
+    // Same P0 as the book side, same reasoning — see BookDetectionResults.test.jsx. Scoped to
+    // the toast's own hook because the title also renders in the candidate row above it.
+    const toast = await screen.findByText(/samoura/i, { selector: '[data-toast]' });
+    expect(toast).toBeInTheDocument();
   });
 
   it('reports a failed save in place rather than navigating away on it', async () => {

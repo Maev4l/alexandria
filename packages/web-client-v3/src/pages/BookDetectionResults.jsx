@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
-import FilingInto from '@/components/imprint/FilingInto.jsx';
+import FlowMarks from '@/components/imprint/FlowMarks.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import VolumeFrame from '@/components/imprint/VolumeFrame.jsx';
 import { detectionApi, itemsApi } from '@/api';
 import { useCollectionName } from '@/lib/useCollectionName.js';
+import { useFilingSession } from '@/state/FilingSessionContext.jsx';
+import { useToast } from '@/state/ToastContext.jsx';
 
 // The identifying input lives in the QUERY, never `location.state` (ui-v3.md ruling H): a cold
 // load — a reload, a PWA restart, a shared URL — must re-run detection from `?isbn=` and land
@@ -26,6 +28,16 @@ const BookDetectionResults = () => {
   const [errorMessage, setErrorMessage] = useState(null);
   const collectionName = useCollectionName(libraryId, collectionId);
   const [savingKey, setSavingKey] = useState(null);
+  // Filing was completely silent before this: the POST succeeded, the app replaced back to the
+  // capture screen, and the DOM there was textually identical to a fresh arrival. A reader could
+  // not tell "saved, next please" from "something bounced me back" — and would not report it,
+  // because there is nothing to point at. Every other mutation in this app already confirms
+  // (lend, return, delete, collection delete, clear history); capture was the only one that did
+  // not, so this closes an inconsistency with our own convention rather than an outside one.
+  const { confirm } = useToast();
+  // The toast answers the LAST item and auto-dismisses after four seconds. The tally accumulates
+  // and stays, which is what answers "where did I get to?" at item ten.
+  const { filedCount, recordFiled } = useFilingSession();
   const [saveError, setSaveError] = useState(null);
 
   const load = useCallback(() => {
@@ -114,6 +126,8 @@ const BookDetectionResults = () => {
       // Replacing it means the capture screen's own explicit "back goes to the library" (below)
       // is the only route away from here, in one step, regardless of how many items the session
       // has already catalogued.
+      confirm(`${candidate.title} filed`);
+      recordFiled();
       const p = collectionId ? `?collectionId=${encodeURIComponent(collectionId)}` : '';
       navigate(`/libraries/${libraryId}/add/book${p}`, { replace: true });
     } catch (err) {
@@ -138,7 +152,7 @@ const BookDetectionResults = () => {
 
         {/* Shared with AddBook, AddVideo and VideoDetectionResults — see FilingInto.jsx for why
             this is a component now rather than a fourth copy of the same markup. */}
-        <FilingInto name={collectionName} />
+        <FlowMarks collectionName={collectionName} filedCount={filedCount} />
 
         {status === 'error' && (
           <div role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-ink">

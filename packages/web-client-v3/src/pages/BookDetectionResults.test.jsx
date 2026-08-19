@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ToastProvider } from '@/state/ToastContext.jsx';
 import { collectionsApi, detectionApi, itemsApi } from '@/api';
 
 vi.mock('@/api', async (importOriginal) => {
@@ -61,11 +62,13 @@ const LocationProbe = () => {
 const renderPage = (search) =>
   render(
     <MemoryRouter initialEntries={[`/libraries/lib-1/add/book/results${search}`]}>
+      <ToastProvider>
       <Routes>
         <Route path="/libraries/:libraryId/add/book/results" element={<BookDetectionResults />} />
         <Route path="/libraries/:libraryId/add/book" element={<LocationProbe />} />
         <Route path="/libraries/:libraryId/items/new/book" element={<LocationProbe />} />
       </Routes>
+      </ToastProvider>
     </MemoryRouter>,
   );
 
@@ -88,9 +91,11 @@ describe('BookDetectionResults', () => {
     vi.mocked(detectionApi.book).mockResolvedValue({ detectedBooks: [] });
     render(
       <MemoryRouter initialEntries={['/libraries/lib-1/add/book/results?isbn=9780000000000']}>
+        <ToastProvider>
         <Routes>
           <Route path="/libraries/:libraryId/add/book/results" element={<BookDetectionResults />} />
         </Routes>
+        </ToastProvider>
       </MemoryRouter>,
     );
     await screen.findByRole('button', { name: /enter by hand/i });
@@ -299,6 +304,24 @@ describe('BookDetectionResults', () => {
       path.startsWith('/libraries/lib-1/add/book?'),
     );
     expect(loopNavigation?.[1]).toEqual(expect.objectContaining({ replace: true }));
+  });
+
+  it('confirms the save, so filing is never silent', async () => {
+    vi.mocked(detectionApi.book).mockResolvedValue({
+      detectedBooks: [{ id: 'g1', title: 'Ouvrage', authors: ['A'], isbn: '1', pictureUrl: '/c.webp', source: GOOGLE }],
+    });
+    renderPage('?isbn=1');
+    await screen.findByText('Ouvrage');
+
+    await userEvent.click(screen.getByRole('button', { name: /use this/i }));
+
+    // The P0 this closes: the POST succeeded, the app replaced back to the capture screen, and
+    // the DOM there was textually identical to a fresh arrival — "saved, next please" and
+    // "something bounced me back" looked the same, so the reader re-scans and never reports it.
+    // Scoped to the toast's own hook, not a bare text query: the item title also appears in the
+    // candidate list, so an unscoped match would pass with no toast rendered at all.
+    const toast = await screen.findByText(/ouvrage/i, { selector: '[data-toast]' });
+    expect(toast).toBeInTheDocument();
   });
 
   it('reports a failed save in place rather than navigating away on it', async () => {

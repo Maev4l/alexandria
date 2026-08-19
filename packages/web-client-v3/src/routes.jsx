@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { FilingSessionProvider } from '@/state/FilingSessionContext.jsx';
 import { useAuth } from '@/auth/AuthContext.jsx';
 
 // Route-level code splitting. The capture routes are the reason this matters: @zxing and
@@ -57,10 +58,17 @@ const AppRoutes = () => (
         path="/libraries/:libraryId/collections/:collectionId/edit"
         element={guard(<EditCollection />)}
       />
-      <Route path="/libraries/:libraryId/add/book" element={guard(<AddBook />)} />
-      <Route path="/libraries/:libraryId/add/book/results" element={guard(<BookDetectionResults />)} />
-      <Route path="/libraries/:libraryId/add/video" element={guard(<AddVideo />)} />
-      <Route path="/libraries/:libraryId/add/video/results" element={guard(<VideoDetectionResults />)} />
+      {/* A LAYOUT route, not a path segment: it renders only an <Outlet/>, so these four keep
+          the exact URLs they had. Its job is to stay mounted for the whole cataloguing session —
+          across capture -> results -> capture, however many items — and to unmount, resetting the
+          tally, the moment the reader leaves the flow. Nesting is what defines "this session";
+          see FilingSessionContext.jsx. */}
+      <Route element={<FilingSessionProvider />}>
+        <Route path="/libraries/:libraryId/add/book" element={guard(<AddBook />)} />
+        <Route path="/libraries/:libraryId/add/book/results" element={guard(<BookDetectionResults />)} />
+        <Route path="/libraries/:libraryId/add/video" element={guard(<AddVideo />)} />
+        <Route path="/libraries/:libraryId/add/video/results" element={guard(<VideoDetectionResults />)} />
+      </Route>
       <Route path="/libraries/:libraryId/items/new/book" element={guard(<NewBook />)} />
       <Route path="/libraries/:libraryId/items/new/video" element={guard(<NewVideo />)} />
       <Route path="/libraries/:libraryId/items/:itemId" element={guard(<ItemDetail />)} />

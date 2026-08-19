@@ -3,11 +3,12 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import CoverCapture from '@/components/CoverCapture.jsx';
 import Field from '@/components/imprint/Field.jsx';
-import FilingInto from '@/components/imprint/FilingInto.jsx';
+import FlowMarks from '@/components/imprint/FlowMarks.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import { detectionApi } from '@/api';
 import { NO_INPUT_MESSAGE, seedFromAddFlowState } from '@/lib/addFlowState.js';
 import { useCollectionName } from '@/lib/useCollectionName.js';
+import { useFilingSession } from '@/state/FilingSessionContext.jsx';
 
 // Both paths visible at once, the same discipline AddBook uses for ISBN scan vs. manual entry
 // (ui-v3.md task 18): a live cover capture sits above a labelled, always-editable title field —
@@ -29,6 +30,9 @@ const AddVideo = () => {
   // at least as much as there (ui-v3.md ruling E). Missing from this screen, it was missing from
   // the one place a whole session of back-to-back captures could actually see it.
   const collectionName = useCollectionName(libraryId, collectionId);
+  // How many items have gone in since the reader entered this flow. Zero on arrival, so the
+  // mark is absent until the first save actually produces something to count.
+  const { filedCount } = useFilingSession();
 
   // Manual title search only — no longer dual-purpose as the OCR-extracted title's holding pen.
   // A capture used to write into this same field and need a SECOND press ("Look it up") to do
@@ -161,7 +165,7 @@ const AddVideo = () => {
       <main className="flex flex-1 flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <h1 className="sr-only">Add a film</h1>
 
-        <FilingInto name={collectionName} />
+        <FlowMarks collectionName={collectionName} filedCount={filedCount} />
 
         {/* Nothing failed here — the reader arrived at a route with no input, usually a typed or
             shared bare URL. `--out` means on loan and nothing else (DESIGN.md palette law), and
