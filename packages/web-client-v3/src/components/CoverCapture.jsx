@@ -125,7 +125,18 @@ const CoverCapture = ({ onCapture, onError, busy = false }) => {
     // The frame now spans the full column width (below), so `mx-auto`/`w-fit` have nothing left
     // to centre — a full-width frame is centred by definition. `items-center` stays: it is what
     // centres the shutter beneath a frame wider than the button.
-    <div className="flex flex-col items-center">
+    // `w-full` on the ROOT, not only on the frame: this element is a flex item in AddVideo's
+    // centring slot, so without it the root sizes to its content and the frame's own `w-full`
+    // resolves against that instead of the column — measured at 319px inside a 358px column,
+    // left gap 0 and right gap 39, which is what "not centred" looked like.
+    //
+    // No vertical offset to centre the CAMERA rather than the block: the frame's midpoint sits
+    // 32px above the slot's, because the shutter hangs below it. Correcting that costs 64px of
+    // layout height, which is affordable at 844 and not at 667 — measured, the document goes to
+    // 724 against a 667 viewport and the page starts scrolling, losing the no-scroll property
+    // the 240px height was chosen to preserve. The block is centred; the camera is 32px high of
+    // centre; that is the trade and it is deliberate.
+    <div className="flex w-full flex-col items-center">
       {/* Ruled, not filled (DESIGN.md §5): "ruled means the rule and nothing else" — a filled
           rectangle where a live picture belongs reads as a failed image before the stream ever
           attaches, the same reasoning that emptied VolumeFrame's and BarcodeScanner's boxes.
