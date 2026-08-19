@@ -507,6 +507,26 @@ Still 101/149. Reporting that step as "centred" would have been **a true stateme
 element**, and this time the wrong element was in the *remedy* rather than in the defect. Caught by
 re-measuring, not by reading the diff.
 
+**The camera lease is held for the whole add-flow session, and released when the app is not in front of
+the reader.** Not restarting the stream per item necessarily means it stays open while the reader is on the
+candidate list — inherent to the fix, and true of every version of it. Accepted: the stream is local,
+nothing leaves the device except an explicit capture, the reader is inside a flow they opened *to use the
+camera*, and the OS indicator tells them the truth throughout. No grace window is possible, because the gap
+between leaving the capture screen and returning is however long choosing takes, so any window short enough
+to bound privacy is too short to survive the loop.
+
+**But "the whole session" must mean the app is in the foreground.** Release on `visibilitychange` to hidden
+and reacquire on visible: returning to a backgrounded app is not a loop iteration, so it costs the loop
+nothing, and it bounds the open camera to *inside the flow, app in front of the reader*, which is a
+defensible sentence. Leaving the add-flow routes releases it already, including the exit to manual entry.
+
+**And a check that waits on a marker present on BOTH the origin and the destination cannot tell you it
+arrived.** A browser check waited for the session tally after a save — and the results screen renders the
+tally too, while the capture route's lazy chunk loads, so the selector matched **on the page the reader had
+just left**. It passed while asserting the wrong screen, and it was found by probing rather than by failing.
+Wait on something only the destination has — its own `<h1>` — and note the sibling trap: that `<h1>` renders
+during `loading`, so *the screen is here* and *its content is here* are different moments.
+
 **A capture viewport must narrate its own lookup — neither of them did, and both hide the app's slowest
 call behind a frame that looks idle.** Reported from use: tapping a control and seeing nothing happen.
 
