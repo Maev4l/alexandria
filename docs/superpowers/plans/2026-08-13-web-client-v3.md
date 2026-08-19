@@ -7114,7 +7114,7 @@ for the middleware shape, its registration under `tools/`, and the keyed-constan
 lets a result row be a stream row. Include `libraryId` and `libraryName` on every entry: the row
 prints the library, and a fixture that omitted it would make that field untestable.
 
-- [ ] **Step 1: Write the failing tests, then the route, then commit**
+- [x] **Step 1: Write the failing tests, then the route, then commit**
 
 ```bash
 yarn --cwd packages/web-client-v3 test
@@ -7155,7 +7155,7 @@ optimisation. The index propagates asynchronously (~100ms, not guaranteed), so a
 lend could legitimately return a set that no longer contains the row just acted on — the reader
 would watch the item they just lent vanish. Patch the row in local state; never refetch.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 **Do NOT reuse the assertions the previous draft of this task carried.** One of them —
 `expect(screen.getByText(/titles, authors, directors, cast and collections/i)).toBeInTheDocument()`
@@ -7177,7 +7177,7 @@ Cases:
 - a failed search reports inline, with a `Try again` control, and never a toast
 - `Clear` empties the recents with no confirmation
 
-- [ ] **Step 2: Build it**
+- [x] **Step 2: Build it**
 
 `recentSearches.js`: at most **five**, most recent first, de-duplicated, `localStorage`. (The
 previous draft said eight; the spec says five.)
@@ -7186,7 +7186,7 @@ previous draft said eight; the spec says five.)
 
 `api/search.js`: `POST /search` with `{ terms }`, terms split on whitespace.
 
-- [ ] **Step 3: Verify and commit**
+- [x] **Step 3: Verify and commit**
 
 ```bash
 yarn --cwd packages/web-client-v3 test
@@ -7277,7 +7277,7 @@ ever wanted, that is the number it would be argued from, not scroll performance.
 Gates are set FROM the observed run at roughly 1.5x — 200ms mount, 16ms p95 — because a budget ten
 times the observation cannot fire, and a gate that cannot fire is a comment. Demonstrated firing.
 
-- [ ] **Step 1: Write the profiler, run it, record the number, commit**
+- [x] **Step 1: Write the profiler, run it, record the number, commit**
 
 ```bash
 yarn --cwd packages/web-client-v3 profile:search
