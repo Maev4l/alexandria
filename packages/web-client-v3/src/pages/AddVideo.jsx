@@ -142,7 +142,13 @@ const AddVideo = () => {
   const canSubmit = !isBusy && title.trim().length > 0;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-paper">
+    // `max-h-dvh` alongside `min-h-dvh` is what makes the frame yield instead of the page
+    // growing. `min-h-dvh` alone lets the column grow past the viewport, so a flexible slot never
+    // has to shrink and `max-h-full` on the frame has nothing to resolve against — measured: the
+    // notice state stayed 739px tall with the frame still at its full 240. Capping the column
+    // forces the one flexible thing on the screen to give way, which is the capture frame, by
+    // design (see its own comment). Everything that must not shrink says so explicitly below.
+    <div className="flex max-h-dvh min-h-dvh flex-col bg-paper">
       {/* Explicit destination, not `navigate(-1)`: this screen has two genuinely different
           predecessors — a fresh add from the library (push), and the post-save loop landing
           here after VideoDetectionResults REPLACES its own spent results entry (see that
@@ -162,7 +168,7 @@ const AddVideo = () => {
           viewport's bottom edge rather than following the content. `p-4` alone would leave the
           escape 16px from the edge — under the home indicator on an installed PWA, which is
           exactly the case ui-v3.md §7 names for a bottom-anchored action. */}
-      <main className="flex flex-1 flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <main className="flex min-h-0 flex-1 flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <h1 className="sr-only">Add a film</h1>
 
         <FlowMarks collectionName={collectionName} filedCount={filedCount} />
@@ -174,7 +180,7 @@ const AddVideo = () => {
             construction instead — 3px ink, not 2px out — the shape this app already uses for "a
             fact worth a printed line" that is not a failure. */}
         {noInput && (
-          <p className="mb-6 border-t-[3px] border-ink bg-paper-deep p-4 text-sm text-ink">
+          <p className="mb-6 shrink-0 border-t-[3px] border-ink bg-paper-deep p-4 text-sm text-ink">
             {NO_INPUT_MESSAGE}
           </p>
         )}
@@ -184,7 +190,20 @@ const AddVideo = () => {
             the manual escape keep their natural height below, so nothing is pushed off-screen —
             only the slack moves. Deliberately vertical only: the frame stays flush left, which
             is where the column's own margin puts every other block on this screen. */}
-        <div className="flex flex-1 items-center">
+        {/* `min-h-0` is what lets this slot shrink below its content, which is what makes the
+            frame yield rather than the page grow. Without it a flex item's automatic minimum is
+            its content size, so a notice above pushed the document past the viewport and took
+            the manual escape below the fold with it — measured at 390x667: 739px tall with the
+            escape's bottom at 723. The no-scroll property is not negotiable on this screen,
+            because a manual escape that has scrolled off is the one thing PRODUCT.md says must
+            always be in reach; the capture frame is, so it gives way by exactly the notice's
+            height (see the frame's own `shrink`).
+            A COLUMN, not a row with `items-center`. In a row-direction container the child's
+            height is its content height and shrinking applies to the horizontal axis, so the
+            capture simply overflowed instead of yielding — visible in landscape (667x390), where
+            the document measured 419 against a 390 viewport with the frame still at its full
+            240. `justify-center` keeps the same centring the row gave it. */}
+        <div className="flex min-h-0 flex-1 flex-col justify-center">
           {cameraError ? (
             <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
               Camera access is off for this site. Type the title below instead.
@@ -203,7 +222,7 @@ const AddVideo = () => {
           )}
         </div>
 
-        <form onSubmit={onSubmit} className="mt-6" noValidate>
+        <form onSubmit={onSubmit} className="mt-6 shrink-0" noValidate>
           <Field
             label="Title"
             value={title}
@@ -243,7 +262,7 @@ const AddVideo = () => {
             embedded mid-sentence in DetailMarks. */}
         <Link
           to={manualEntryPath}
-          className="mt-4 inline-flex min-h-12 items-center text-sm text-ink underline underline-offset-[3px]"
+          className="mt-4 inline-flex min-h-12 shrink-0 items-center text-sm text-ink underline underline-offset-[3px]"
         >
           Enter by hand
         </Link>

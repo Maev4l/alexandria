@@ -914,6 +914,74 @@ try {
     );
   }
 
+  // ---- The capture screens fit a 667px phone in EVERY state, notice included ----
+  // The spec measured the plain state, found 240px fitted exactly, and generalised — which is
+  // ruling for all states from one. Reached via the bare-results redirect, which prints a notice
+  // above the frame, the film screen measured 739px tall with `Enter by hand` at y≈723: below the
+  // fold, on the one control PRODUCT.md says must always be in reach.
+  //
+  // The constraint stands and the FRAME yields, down to a 120px floor. Both states are asserted,
+  // because asserting one is how this was got wrong the first time.
+  console.log('the capture screens fit a 667px viewport, in the plain state and with a notice');
+  {
+    const previousViewport = page.viewport();
+    await page.setViewport({ width: 390, height: 667 });
+
+    const measureFit = async (url, screenName) => {
+      await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle0' });
+      await waitForScreen(screenName);
+      await page.waitForFunction(() => document.querySelector('main video')?.readyState === 4, {
+        timeout: 15_000,
+      });
+      return page.evaluate(() => {
+        const escape = [...document.querySelectorAll('main a')].find((el) =>
+          /enter by hand/i.test(el.textContent),
+        );
+        const frame = document.querySelector('main video')?.parentElement;
+        return {
+          documentHeight: document.documentElement.scrollHeight,
+          escapeBottom: escape
+            ? Math.round(escape.getBoundingClientRect().bottom + window.scrollY)
+            : null,
+          frameHeight: frame ? Math.round(frame.getBoundingClientRect().height) : null,
+        };
+      });
+    };
+
+    for (const [label, url, screenName] of [
+      ['film, plain', '/libraries/lib-films/add/video', 'Add a film'],
+      // The redirect prints the no-input notice above the frame — the state the original ruling
+      // never measured.
+      ['film, with the notice', '/libraries/lib-films/add/video/results', 'Add a film'],
+      ['book, plain', '/libraries/lib-fiction/add/book', 'Add a book'],
+      ['book, with the notice', '/libraries/lib-fiction/add/book/results', 'Add a book'],
+    ]) {
+      const fit = await measureFit(url, screenName);
+      console.log(
+        `    ${label}: document ${fit.documentHeight}px, escape ends at ${fit.escapeBottom}, frame ${fit.frameHeight}px`,
+      );
+      record(
+        fit.documentHeight <= 667,
+        `${label}: the page fits a 667px viewport without scrolling`,
+        `${fit.documentHeight}px`,
+      );
+      record(
+        fit.escapeBottom !== null && fit.escapeBottom <= 667,
+        `${label}: the manual escape is above the fold`,
+        `ends at ${fit.escapeBottom}`,
+      );
+      // A frame that has yielded to nothing is still a camera. Asserting the floor here is what
+      // stops a future "just shrink it more" from buying the fit with a viewfinder nobody can aim.
+      record(
+        fit.frameHeight >= 120,
+        `${label}: the capture frame is still usable (>= 120px)`,
+        `${fit.frameHeight}px`,
+      );
+    }
+
+    await page.setViewport(previousViewport);
+  }
+
   // ---- Pinch-zoom must not be disabled: WCAG 1.4.4, and this app is used in poor light ----
   console.log('viewport permits zoom');
   await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });

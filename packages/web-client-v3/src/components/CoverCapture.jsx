@@ -165,7 +165,7 @@ const CoverCapture = ({ onCapture, onError, busy = false, showGuidance = true })
     // 724 against a 667 viewport and the page starts scrolling, losing the no-scroll property
     // the 240px height was chosen to preserve. The block is centred; the camera is 32px high of
     // centre; that is the trade and it is deliberate.
-    <div className="flex w-full flex-col items-center">
+    <div className="flex min-h-0 w-full flex-col items-center">
       {/* Ruled, not filled (DESIGN.md §5): "ruled means the rule and nothing else" — a filled
           rectangle where a live picture belongs reads as a failed image before the stream ever
           attaches, the same reasoning that emptied VolumeFrame's and BarcodeScanner's boxes.
@@ -177,8 +177,16 @@ const CoverCapture = ({ onCapture, onError, busy = false, showGuidance = true })
           no-scroll constraint. Landscape is cheap in the dimension that binds. Capture still
           draws from the sensor's own resolution rather than this box's rendered size
           (`captureFramedRegion` above), so the preview's size has no bearing on what gets read —
-          this is a pure layout choice. */}
-      <div className="relative h-[240px] w-full border-2 border-ink">
+          this is a pure layout choice.
+          `min-h-0` with the default `shrink` is the yielding half: 240 is the height this frame
+          WANTS, and it gives way when something above it — the no-input notice, or a landscape
+          viewport — needs the room. `min-h-0` is not decoration: a flex item's automatic minimum
+          is its specified size, so `height: 240px` alone made this refuse to shrink at all, and
+          the page overflowed instead. Same reason the root above carries it. The alternative was letting the page grow, which pushes the manual escape
+          below the fold on a 667px phone, and an escape that has scrolled away is exactly the
+          thing PRODUCT.md says must always be in reach. Measured rather than reasoned: with the
+          notice present the document was 739px and the escape's bottom sat at 723. */}
+      <div className="relative h-[240px] min-h-[120px] w-full shrink border-2 border-ink">
         {/* Mounted from the first render so the ref exists before the stream arrives, exactly
             as BarcodeScanner's own <video> is. `muted` and `playsInline` are what let a mobile
             browser autoplay it without a gesture and without going fullscreen. */}
