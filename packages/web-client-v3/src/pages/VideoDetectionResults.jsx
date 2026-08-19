@@ -303,10 +303,29 @@ const VideoDetectionResults = () => {
                       <p className="num mt-1 text-[12px] text-ink-soft">{candidate.duration}′</p>
                     )}
                     {candidate.cast?.length > 0 && (
-                      <p className="truncate text-sm text-ink-soft">{candidate.cast.join(', ')}</p>
+                      // THE FIRST TWO NAMES, and nothing is truncated — the field is DEFINED
+                      // shorter than the data, which is a different act from clipping a string.
+                      // `truncate` cut mid-word (`Nathalie D…`) and letting all five wrap is the
+                      // other wrong answer: three lines per row across five rows, on a screen
+                      // whose job is comparison. §4 settles it — the row carries recognition,
+                      // detail carries identification — and a cast line discriminates through its
+                      // LEAD; nobody chooses on the fourth and fifth names. The browse stream
+                      // prints no cast at all, so this field exists only for comparison and is
+                      // sized for it. Item detail carries the full five.
+                      <p className="text-sm text-ink-soft">{candidate.cast.slice(0, 2).join(', ')}</p>
                     )}
-                    <p className="caps mt-1 text-[11px] text-ink-soft">{candidate.source}</p>
-                    {/* Nothing is written before this: no candidate reaches itemsApi until the
+                    {/* NO SOURCE BADGE on a successful film candidate. Video has one resolver, so
+                        `TMDB` is a constant: five identical labels down a five-row list, five
+                        copies of one fact differentiating nothing — "nothing is labelled twice"
+                        applied vertically. It is NOT relocated to the head either; a reader does
+                        not act on a film's provenance, so stating it once would still be stating
+                        something nobody needs.
+                        It stays on the BOOK rows, where it genuinely varies (Google / Babelio /
+                        Goodreads), and on the failure notes below on both screens, where naming
+                        WHICH resolver did not answer is the whole content of the note. Same rule,
+                        different data — the same asymmetry that gives the two capture frames
+                        different shapes.
+                        Nothing is written before this: no candidate reaches itemsApi until the
                         reader confirms it themselves. */}
                     {/* THE PRIMARY PLATE, and the only one in this flow. At rest no chrome
                         yellow existed anywhere in the add path: every `Use this`, both shutters,

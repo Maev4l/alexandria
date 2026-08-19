@@ -433,6 +433,55 @@ describe('VideoDetectionResults', () => {
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
   });
 
+  // §4: the row carries recognition, detail carries identification. A cast line discriminates
+  // through its LEAD — nobody chooses on the fourth and fifth names — so the field is the first
+  // two, and NOTHING IS TRUNCATED because the field is defined shorter than the data rather than
+  // clipping a string. `truncate` cut mid-word ("Nathalie D…"); letting all five wrap is the other
+  // wrong answer, at three lines per row across five rows on a comparison screen.
+  it('prints the first two cast names, cut by definition rather than by ellipsis', async () => {
+    vi.mocked(detectionApi.video).mockResolvedValue({
+      detectedVideos: [{
+        id: 't1',
+        title: 'Le Samouraï',
+        directors: ['Jean-Pierre Melville'],
+        releaseYear: 1967,
+        duration: 105,
+        cast: ['Alain Delon', 'François Périer', 'Nathalie Delon', 'Cathy Rosier', 'Jacques Leroy'],
+        source: TMDB,
+      }],
+    });
+    renderPage('?title=Le%20Samoura%C3%AF');
+    const cast = await screen.findByText('Alain Delon, François Périer');
+    expect(cast).toBeInTheDocument();
+    // Not merely "the first two are present": the third must be ABSENT, or a test would pass on
+    // the full join. And no `truncate`, so the browser is not clipping what the field kept.
+    expect(screen.queryByText(/Nathalie Delon/)).not.toBeInTheDocument();
+    expect(cast).not.toHaveClass('truncate');
+  });
+
+  // Video has one resolver, so `TMDB` is a constant: five identical labels down a five-row list,
+  // five copies of one fact differentiating nothing — "nothing is labelled twice" applied
+  // vertically. It stays on the book rows, where it varies, and on the failure notes here, where
+  // naming WHICH resolver did not answer is the note's whole content.
+  it('does not badge a successful candidate with its source, because film has only one', async () => {
+    vi.mocked(detectionApi.video).mockResolvedValue({
+      detectedVideos: [{ id: 't1', title: 'Le Samouraï', directors: ['Melville'], releaseYear: 1967, duration: 105, cast: [], source: TMDB }],
+    });
+    renderPage('?title=Le%20Samoura%C3%AF');
+    await screen.findByText('Le Samouraï');
+    expect(screen.queryByText(TMDB)).not.toBeInTheDocument();
+  });
+
+  it('still names the resolver on a failure note, where it is the whole point', async () => {
+    vi.mocked(detectionApi.video).mockResolvedValue({
+      detectedVideos: [{ id: 't1', source: TMDB, error: 'No movies found for title: Inconnu' }],
+    });
+    renderPage('?title=Inconnu');
+    await screen.findByText(/no match found/i);
+    // The note reads "TMDB — no answer": the source is the content here, not a badge.
+    expect(screen.getByText(/tmdb — no answer/i)).toBeInTheDocument();
+  });
+
   // A bare `/add/video/results` with no `?title=` is a genuinely reachable dead end — routes.jsx's
   // `guard()` checks only that a user is signed in, not that the query it lands on makes sense —
   // reachable by a typed, edited, or bookmarked-mid-flow URL. Redirects to AddVideo with the
