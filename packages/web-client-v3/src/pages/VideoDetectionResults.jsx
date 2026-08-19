@@ -296,12 +296,21 @@ const VideoDetectionResults = () => {
                     <p className="text-[17px] font-semibold leading-tight text-ink">
                       {candidate.title}
                     </p>
+                    {/* `DIRECTOR · YEAR · RUNTIME`, one line. The runtime used to keep a line of
+                        its own, which spends a whole row-line on a single number — and on a
+                        comparison screen every row's height is paid once per candidate, five
+                        times at the resolver's maximum. §5 already varies this line by surface
+                        (it gains the edition on item detail), so this is a third variant of one
+                        rule rather than a new construction. */}
                     <PlateLine
-                      item={{ type: FILM, directors: candidate.directors, releaseYear: candidate.releaseYear }}
+                      surface="candidate"
+                      item={{
+                        type: FILM,
+                        directors: candidate.directors,
+                        releaseYear: candidate.releaseYear,
+                        duration: candidate.duration,
+                      }}
                     />
-                    {candidate.duration != null && (
-                      <p className="num mt-1 text-[12px] text-ink-soft">{candidate.duration}′</p>
-                    )}
                     {candidate.cast?.length > 0 && (
                       // THE FIRST TWO NAMES, and nothing is truncated — the field is DEFINED
                       // shorter than the data, which is a different act from clipping a string.

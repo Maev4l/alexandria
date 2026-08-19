@@ -19,6 +19,35 @@ export const plateLineParts = (item) => {
   return { names: names || null, year };
 };
 
+// THE THIRD SURFACE. §5 already varies the Plate Line by surface — on item detail it gains the
+// edition, `AUTHOR · ISBN` — so a candidate row gaining the runtime is a third variant of one
+// rule rather than a widening of the component's contract.
+//
+// Why the runtime is here at all is worth stating, because the obvious answer is wrong and a
+// later pass acting on it would delete this correctly. It is NOT a discriminator: five distinct
+// films are already separated by title, director and year, so a runtime separates almost nothing.
+// It earns its place as CONFIRMATION — the DVD case is in the reader's hand and prints its
+// runtime, so a matching number is evidence this is the right disc. That is the product's own
+// mechanism, capture by pointing at the object.
+//
+// Explicit rather than reusing `detailLineParts`, which for a book returns the ISBN: a row must
+// never print one (§4, "the row carries recognition"), and on this screen the scanned code
+// already sits once at the head. Deriving the candidate line from the detail line would make a
+// book candidate sprout an identifier the moment someone gave that screen a PlateLine.
+export const candidateLineParts = (item) => {
+  const { names } = plateLineParts(item);
+  if (item.type !== FILM) return { names, identifiers: [] };
+  return {
+    names,
+    identifiers: [
+      // Presence, not truthiness — `duration` permits 0, and a truthy check would silently drop
+      // the runtime of a short film. Same idiom as `detailLineParts` below.
+      item.releaseYear != null ? String(item.releaseYear) : null,
+      item.duration != null ? `${item.duration}′` : null,
+    ].filter(Boolean),
+  };
+};
+
 // Detail earns the fields the row withholds — an ISBN or TMDB id, and a runtime — because
 // here the reader is examining one object rather than recognising it in a scan (DESIGN.md §4,
 // "the row carries recognition; detail carries identification").
