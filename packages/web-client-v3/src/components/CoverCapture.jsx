@@ -122,19 +122,23 @@ const CoverCapture = ({ onCapture, onError, busy = false }) => {
   };
 
   return (
-    // Centred, so the viewfinder has equal space left and right rather than sitting flush
-    // against the column's left margin with all the slack on one side. `w-fit` keeps the
-    // wrapper as wide as the frame, so `mx-auto` centres the frame itself rather than a
-    // full-width box that merely contains it — and the shutter beneath centres with it, since
-    // a centred camera over a left-aligned button reads as a mistake rather than a choice.
-    <div className="mx-auto flex w-fit flex-col items-center">
+    // The frame now spans the full column width (below), so `mx-auto`/`w-fit` have nothing left
+    // to centre — a full-width frame is centred by definition. `items-center` stays: it is what
+    // centres the shutter beneath a frame wider than the button.
+    <div className="flex flex-col items-center">
       {/* Ruled, not filled (DESIGN.md §5): "ruled means the rule and nothing else" — a filled
           rectangle where a live picture belongs reads as a failed image before the stream ever
           attaches, the same reasoning that emptied VolumeFrame's and BarcodeScanner's boxes.
-          140px, not 280: now that capture draws from the sensor's own resolution rather than
-          this box's rendered size (`captureFramedRegion` above), the preview's size has no
-          bearing on what gets read, so halving it is a pure layout choice. */}
-      <div className="relative aspect-[2/3] w-full max-w-[140px] border-2 border-ink">
+          Full width, fixed 240px tall, landscape: the capture reads a TITLE, not cover art — the
+          poster comes from TMDB, never from this photograph — so the frame should frame what
+          needs reading. 240px is the ceiling before the page scrolls at a 667px-tall viewport;
+          at that same ceiling a 2:3 portrait frame is only 160px wide, barely wider than the old
+          140px box, so keeping the portrait ratio could not have solved aiming within the
+          no-scroll constraint. Landscape is cheap in the dimension that binds. Capture still
+          draws from the sensor's own resolution rather than this box's rendered size
+          (`captureFramedRegion` above), so the preview's size has no bearing on what gets read —
+          this is a pure layout choice. */}
+      <div className="relative h-[240px] w-full border-2 border-ink">
         <Webcam
           ref={webcamRef}
           audio={false}
@@ -165,6 +169,20 @@ const CoverCapture = ({ onCapture, onError, busy = false }) => {
             className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
           >
             Looking up this cover
+          </p>
+        )}
+        {/* The one fact that changed when the read target changed from the whole cover to the
+            title (WYSIWYG: the frame now defines the region actually read): the reader needs
+            telling what to aim at. Same caps vocabulary and position as the requesting/busy
+            captions, gated so the three are mutually exclusive BY CONSTRUCTION —
+            `requesting`, `ready && busy`, `ready && !busy` partition every reachable state —
+            rather than merely arranged to avoid overlapping today. */}
+        {state === 'ready' && !busy && (
+          <p
+            aria-live="polite"
+            className="caps absolute inset-0 flex items-center justify-center p-4 text-center text-[11px] font-bold text-ink-soft"
+          >
+            Frame the title
           </p>
         )}
       </div>

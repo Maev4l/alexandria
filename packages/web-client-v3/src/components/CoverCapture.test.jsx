@@ -59,9 +59,9 @@ describe('CoverCapture — the state machine', () => {
 
   beforeEach(() => {
     latestProps = undefined;
-    // A 1920x1080 sensor is wider than the 2:3 frame either way, so it crops but never fails —
-    // the exact crop maths are the geometry suite's job, not this suite's.
-    fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 140, clientHeight: 210 };
+    // A 1920x1080 sensor is wider than the shipped 358×240 frame either way, so it crops but
+    // never fails — the exact crop maths are the geometry suite's job, not this suite's.
+    fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 358, clientHeight: 240 };
     mockCanvas();
     originalMediaDevices = navigator.mediaDevices;
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -100,12 +100,27 @@ describe('CoverCapture — the state machine', () => {
     expect(box.className).not.toMatch(/\bbg-(?!transparent)/);
   });
 
-  // Change 3: halved from 280px now that capture is decoupled from this box's rendered size.
-  it('halves the viewport to 140px, half of the original 280px', () => {
+  // The frame reads a title now, not cover art — landscape at a fixed height is the shape that
+  // target needs (CoverCapture.jsx's own comment on why). Pin the HEIGHT, not a width: a
+  // full-width frame's width is a consequence of the column, so asserting it would only re-test
+  // `w-full`.
+  it('is a fixed 240px tall, landscape rather than portrait', () => {
     const { container } = render(<CoverCapture onCapture={() => {}} onError={() => {}} />);
     const box = container.querySelector('.border-ink');
-    expect(box.className).toContain('max-w-[140px]');
-    expect(box.className).not.toContain('max-w-[280px]');
+    expect(box.className).toContain('h-[240px]');
+    expect(box.className).not.toContain('aspect-[2/3]');
+    expect(box.className).not.toContain('max-w-[140px]');
+  });
+
+  // `w-fit` sized the wrapper to its widest child, which silently un-does a full-width frame
+  // (measured at 319px where 358 was expected). Once the frame itself spans the column, `mx-auto
+  // w-fit` have nothing left to do; `items-center` alone still centres the shutter beneath it.
+  it('drops w-fit and mx-auto from the wrapper now that the frame is full width', () => {
+    const { container } = render(<CoverCapture onCapture={() => {}} onError={() => {}} />);
+    const wrapper = container.querySelector('.border-ink').parentElement;
+    expect(wrapper.className).not.toContain('w-fit');
+    expect(wrapper.className).not.toContain('mx-auto');
+    expect(wrapper.className).toContain('items-center');
   });
 
   it('drops the requesting caption and shows the shutter once the stream attaches', () => {
@@ -168,6 +183,13 @@ describe('CoverCapture — the state machine', () => {
 describe('CoverCapture — capture geometry (what object-cover displays, at sensor resolution)', () => {
   let originalMediaDevices;
 
+  // The frame this component actually renders: `h-[240px] w-full`, measured at 358×240 at a
+  // 390px viewport (aspect ~1.4917, landscape). It used to be a 2:3 portrait box (aspect
+  // 0.667) — the reshape changed the frame's shape without this describe block noticing, so
+  // every fixture below kept exercising the crop maths against an aspect the app no longer
+  // renders anywhere. Fixed by using the shipped shape here, once.
+  const REAL_FRAME = { clientWidth: 358, clientHeight: 240 };
+
   beforeEach(() => {
     latestProps = undefined;
     mockCanvas();
@@ -186,18 +208,20 @@ describe('CoverCapture — capture geometry (what object-cover displays, at sens
     vi.restoreAllMocks();
   });
 
-  it('crops the left/right edges when the sensor is relatively WIDER than the 2:3 frame', async () => {
-    // 1920x1080 (aspect 1.778) is wider than 2:3 (0.667): object-cover keeps the full height
-    // and crops the sides, centred.
-    fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 140, clientHeight: 210 };
+  it('crops the left/right edges when the sensor is relatively WIDER than the real 358×240 frame', async () => {
+    // 1920x1080 (aspect 1.778) is wider than the shipped frame's ~1.4917 (358/240): object-cover
+    // keeps the full height and crops the sides, centred. This fixture was already in the WIDE
+    // branch against the old 2:3 frame (1.778 > 0.667) too, so the reshape does not move it to
+    // the other branch — only the crop amount changes, since less is now cropped off each side.
+    fakeVideo = { videoWidth: 1920, videoHeight: 1080, ...REAL_FRAME };
     const onCapture = vi.fn();
     render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
     act(() => latestProps.onUserMedia());
     await shootShutter();
 
-    expect(capturedCanvas.width).toBe(720); // 1080 * (2 / 3)
+    expect(capturedCanvas.width).toBe(1611); // 1080 * (358 / 240)
     expect(capturedCanvas.height).toBe(1080);
-    expect(drawImageMock).toHaveBeenCalledWith(fakeVideo, 600, 0, 720, 1080, 0, 0, 720, 1080);
+    expect(drawImageMock).toHaveBeenCalledWith(fakeVideo, 154.5, 0, 1611, 1080, 0, 0, 1611, 1080);
     expect(onCapture).toHaveBeenCalledWith('ZmFrZS1mcmFtZQ==');
   });
 
@@ -217,34 +241,66 @@ describe('CoverCapture — capture geometry (what object-cover displays, at sens
     expect(onCapture).not.toHaveBeenCalled();
   });
 
-  it('crops the top/bottom edges when the sensor is relatively TALLER than the 2:3 frame', async () => {
-    // 480x1280 (aspect 0.375) is taller than 2:3 (0.667): object-cover keeps the full width and
-    // crops top and bottom, centred.
-    fakeVideo = { videoWidth: 480, videoHeight: 1280, clientWidth: 140, clientHeight: 210 };
+  it('crops the top/bottom edges when the sensor is relatively TALLER than the real 358×240 frame', async () => {
+    // 480x1280 (aspect 0.375) is taller than the shipped frame's ~1.4917: object-cover keeps
+    // the full width and crops top and bottom, centred. Also unchanged branch from the old 2:3
+    // frame (0.375 < 0.667 too) — but the crop amount moved non-trivially: the new frame is far
+    // wider relative to its height, so MORE is cropped off top and bottom than the old 2:3 frame
+    // cropped (was 720px kept of 1280, now ~322px kept).
+    fakeVideo = { videoWidth: 480, videoHeight: 1280, ...REAL_FRAME };
     const onCapture = vi.fn();
     render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
     act(() => latestProps.onUserMedia());
     await shootShutter();
 
     expect(capturedCanvas.width).toBe(480);
-    expect(capturedCanvas.height).toBe(720); // 480 / (2 / 3)
-    expect(drawImageMock).toHaveBeenCalledWith(fakeVideo, 0, 280, 480, 720, 0, 0, 480, 720);
+    expect(capturedCanvas.height).toBe(322); // Math.round(480 / (358 / 240)) = Math.round(321.79)
+    expect(drawImageMock).toHaveBeenCalledWith(
+      fakeVideo,
+      0,
+      479.10614525139664, // (1280 - 480/(358/240)) / 2
+      480,
+      321.7877094972067, // 480 / (358 / 240)
+      0,
+      0,
+      480,
+      322,
+    );
     expect(onCapture).toHaveBeenCalledWith('ZmFrZS1mcmFtZQ==');
   });
 
   it('derives capture size from the INTRINSIC sensor resolution, not the ~280px rendered element', async () => {
     // The defect this replaces: react-webcam's default getCanvas() sizes off video.clientWidth,
-    // never the sensor. A 4K sensor cropped to this frame's ratio must still yield a 4K-scale
-    // crop — nowhere near 280 — proving the element's rendered size plays no part in the maths.
-    fakeVideo = { videoWidth: 3840, videoHeight: 2160, clientWidth: 140, clientHeight: 210 };
+    // never the sensor. A 4K sensor cropped to the shipped frame's ratio must still yield a
+    // 4K-scale crop — nowhere near 280 — proving the element's rendered size plays no part in
+    // the maths. Same WIDE branch as the 1920x1080 case above, at 2x the resolution.
+    fakeVideo = { videoWidth: 3840, videoHeight: 2160, ...REAL_FRAME };
     const onCapture = vi.fn();
     render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
     act(() => latestProps.onUserMedia());
     await shootShutter();
 
-    expect(capturedCanvas.width).toBe(1440); // 2160 * (2 / 3)
+    expect(capturedCanvas.width).toBe(3222); // 2160 * (358 / 240)
     expect(capturedCanvas.height).toBe(2160);
     expect(capturedCanvas.width).not.toBe(280);
+    expect(onCapture).toHaveBeenCalledWith('ZmFrZS1mcmFtZQ==');
+  });
+
+  // Not modelling the shipped frame, nor the retired one — a plain aspect-0.5 portrait box, kept
+  // only to exercise the branch-selection maths generically. `objectCoverSourceRect` takes
+  // `containerAspect` as a parameter and must resolve correctly for ANY aspect, not just the two
+  // this app has ever shipped (0.667, then 1.4917); this proves the WIDE branch at a third,
+  // arbitrary one.
+  it('resolves the WIDE branch correctly at an arbitrary aspect the app has never shipped (generic check)', async () => {
+    fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 100, clientHeight: 200 }; // aspect 0.5
+    const onCapture = vi.fn();
+    render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
+    act(() => latestProps.onUserMedia());
+    await shootShutter();
+
+    expect(capturedCanvas.width).toBe(540); // 1080 * (100 / 200)
+    expect(capturedCanvas.height).toBe(1080);
+    expect(drawImageMock).toHaveBeenCalledWith(fakeVideo, 690, 0, 540, 1080, 0, 0, 540, 1080);
     expect(onCapture).toHaveBeenCalledWith('ZmFrZS1mcmFtZQ==');
   });
 });
@@ -259,7 +315,10 @@ describe('CoverCapture — narrating a lookup in flight', () => {
 
   beforeEach(() => {
     latestProps = undefined;
-    fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 140, clientHeight: 210 };
+    // Dimensions unchecked by this describe block (it asserts caption text, never crop geometry)
+    // — kept at the shipped 358×240 frame's shape anyway so nothing here implies a box the app
+    // does not render.
+    fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 358, clientHeight: 240 };
     mockCanvas();
     originalMediaDevices = navigator.mediaDevices;
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -280,6 +339,30 @@ describe('CoverCapture — narrating a lookup in flight', () => {
     render(<CoverCapture onCapture={() => {}} onError={() => {}} busy={false} />);
     act(() => latestProps.onUserMedia());
     expect(screen.queryByText(/looking up this cover/i)).not.toBeInTheDocument();
+  });
+
+  // The three captions — requesting, ready-idle, ready-busy — are gated to be mutually exclusive
+  // BY CONSTRUCTION (`state === 'requesting'`, `state === 'ready' && busy`,
+  // `state === 'ready' && !busy` partition every reachable state). These three assertions pin
+  // each one individually so a later edit widening any gate cannot make two overlap unnoticed.
+  it('shows "Frame the title" once ready and not busy — the idle caption', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy={false} />);
+    act(() => latestProps.onUserMedia());
+    expect(screen.getByText(/frame the title/i)).toBeInTheDocument();
+  });
+
+  it('hides "Frame the title" while a lookup is in flight', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy />);
+    act(() => latestProps.onUserMedia());
+    expect(screen.queryByText(/frame the title/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/looking up this cover/i)).toBeInTheDocument();
+  });
+
+  it('hides "Frame the title" before the stream is ready', () => {
+    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy={false} />);
+    // Still `requesting` — onUserMedia has not fired.
+    expect(screen.queryByText(/frame the title/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/requesting camera access/i)).toBeInTheDocument();
   });
 
   it('narrates the lookup — and only the one fact — once ready and busy', () => {
