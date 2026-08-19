@@ -1035,6 +1035,58 @@ try {
     );
   }
 
+  // ---- The accent marks the commit, and the flow's longest list is where that is tested ----
+  // At rest no chrome-yellow plate existed anywhere in the add flow: every `Use this`, both
+  // shutters, both manual escapes and the re-search were `secondary`, and the two `primary`
+  // submits are disabled at rest and therefore render AS the secondary outline. So `--imprint`,
+  // which DESIGN.md §2 reserves for the apparatus of ACTING, marked only the fallback path.
+  // Filing a candidate is this flow's only write.
+  //
+  // Asserted on the five-candidate fixtures rather than the three: five is the most either
+  // resolver can serve (TMDB slices to 5 at tmdb.go:161; the book side reaches five when Google
+  // returns three volume records for one ISBN alongside Babelio and Goodreads), so this renders
+  // the worst case for "is that a wall of accent" rather than the comfortable one.
+  console.log('the commit control is the plate, and the redo control is not');
+  for (const [label, url, screenName, expectedRows] of [
+    ['book', '/libraries/lib-fiction/add/book/results?isbn=9782070368228', 'Book results', 5],
+    ['film', '/libraries/lib-films/add/video/results?title=Le%20Samoura%C3%AF', 'Film results', 5],
+  ]) {
+    await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle0' });
+    await waitForScreen(screenName);
+    await page.waitForSelector('main li button');
+
+    const controls = await page.evaluate(() => {
+      const read = (el) => {
+        const style = getComputedStyle(el);
+        return { bg: style.backgroundColor, color: style.color, label: el.textContent.trim() };
+      };
+      return {
+        commits: [...document.querySelectorAll('main li button')].map(read),
+        // The film screen's re-search sits in the head form; the book screen has no such control,
+        // which the assertion below accounts for rather than assuming one exists.
+        redo: [...document.querySelectorAll('main form button')].map(read),
+      };
+    });
+
+    record(
+      controls.commits.length === expectedRows,
+      `${label}: the fixture renders ${expectedRows} candidates — the resolver's own maximum`,
+      `${controls.commits.length} rows`,
+    );
+    // `--imprint` is #F2C200. Read as a resolved colour rather than a class, because a class says
+    // what was declared and this asserts what the cascade actually painted.
+    record(
+      controls.commits.every((c) => c.bg === 'rgb(242, 194, 0)' && c.color === 'rgb(11, 11, 11)'),
+      `${label}: every commit control is the imprint plate with ink caps`,
+      JSON.stringify(controls.commits.map((c) => c.bg)),
+    );
+    record(
+      controls.redo.every((c) => c.bg === 'rgba(0, 0, 0, 0)'),
+      `${label}: the redo control is NOT a plate, so commit and redo stop looking identical`,
+      JSON.stringify(controls.redo.map((c) => ({ label: c.label, bg: c.bg }))),
+    );
+  }
+
   // ---- Pinch-zoom must not be disabled: WCAG 1.4.4, and this app is used in poor light ----
   console.log('viewport permits zoom');
   await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });

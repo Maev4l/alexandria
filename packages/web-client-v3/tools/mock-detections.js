@@ -86,6 +86,22 @@ const TMDB = 'TMDB';
 // check downstream never rejects it.
 export const ISBN_MIXED_ARTWORK = '9782070408504';
 
+// THREE GOOGLE VOLUMES AGAINST ONE ISBN, plus Babelio and Goodreads: five candidates on the book
+// side. This is the REALISTIC bad case, not the theoretical one, and the distinction is the whole
+// point of the fixture.
+//
+// Babelio and Goodreads emit exactly zero or one candidate each — verified, every `ch <-` in both
+// files is a zero- or one-element slice. Google does not: `google.go:92-106` appends every item
+// from `?q=isbn:<code>` with no `maxResults` requested and no slice applied, so the bound is the
+// Google Books API's own default page size, 10, and the theoretical worst case for this screen is
+// twelve. That number is NOT modelled here, deliberately. `q=isbn:` is an exact identifier match,
+// so the real shape is one volume per identifier and occasionally a handful where Google holds
+// several records against one — which is what this serves.
+//
+// What the true maximum is cannot be answered by reading the resolver at all; it needs the live
+// Google Books API across real ISBNs. Modelling twelve would be dressing a guess as a measurement.
+export const ISBN_MULTI_VOLUME = '9782070368228';
+
 // A THIRD artwork shape, distinct from both "has a cover" and "absent": Google always takes the
 // address of its thumbnail field unconditionally (`PictureUrl: &b.VolumeInfo.ImageLinks.Thumbnail`,
 // google.go:99) - no nil check, no empty check. A Google match with no thumbnail therefore
@@ -235,6 +251,51 @@ const detectBook = (code) => {
     };
   }
 
+  if (code === ISBN_MULTI_VOLUME) {
+    // Three Google volume records for one identifier, plus one each from Babelio and Goodreads.
+    // Five rows of 88x132 artwork and five primary plates — the state the plate ruling has to
+    // survive being looked at, and the one nothing in either suite had ever rendered.
+    const googleVolume = (suffix, edition, art) => ({
+      id: `google-madame-bovary-${suffix}`,
+      authors: ['Gustave Flaubert'],
+      title: `Madame Bovary${edition}`,
+      summary: 'Emma Rouault épouse Charles Bovary, officier de santé.',
+      ...(art === undefined ? {} : { pictureUrl: art }),
+      isbn: code,
+      source: GOOGLE,
+    });
+    return {
+      status: 200,
+      body: {
+        detectedBooks: [
+          googleVolume('folio', '', cover(1)),
+          googleVolume('classique', ' — édition classique annotée', cover(3)),
+          // One of the five with no artwork, so the empty frame is exercised inside a long list
+          // rather than only in the three-candidate case.
+          googleVolume('poche', ' (poche)', undefined),
+          {
+            id: 'babelio-madame-bovary',
+            authors: ['Gustave Flaubert'],
+            title: 'Madame Bovary',
+            summary: 'Mœurs de province.',
+            pictureUrl: cover(4),
+            isbn: code,
+            source: BABELIO,
+          },
+          {
+            id: 'goodreads-madame-bovary',
+            authors: ['Gustave Flaubert'],
+            title: 'Madame Bovary',
+            summary: 'Édition Goodreads.',
+            pictureUrl: cover(2),
+            isbn: code,
+            source: GOODREADS,
+          },
+        ],
+      },
+    };
+  }
+
   if (code === ISBN_MIXED_ARTWORK) {
     return {
       status: 200,
@@ -312,6 +373,19 @@ const detectBook = (code) => {
 // Several candidates, most with artwork and one without - the video-side twin of
 // ISBN_MIXED_ARTWORK, reached through the typed-title path.
 export const TITLE_MIXED_ARTWORK = 'Les Tontons flingueurs';
+
+// THE RESOLVER'S OWN MAXIMUM, five candidates. Measured rather than assumed: `tmdb.go:161` slices
+// the deduped `fr-FR` + `en-US` results to `maxResults := 5` before fetching any details, so five
+// is the most this screen can ever show for a film — and the cap is OURS, not TMDB's. The search
+// request asks for no limit at all and TMDB returns a full page of 20; a line in our resolver is
+// what a visual ruling now depends on, which is exactly why this fixture exists rather than a
+// note saying "probably three".
+//
+// It exists because nothing in either suite had ever rendered more than three candidates, so
+// "what do five primary plates look like stacked" was a question nobody could answer by looking.
+// A design ruling defended on a count nobody has seen is the substrate problem in its purest
+// form.
+export const TITLE_FIVE_CANDIDATES = 'Le Samouraï';
 
 // A response with NO candidates at all. Video detection queries only TMDB
 // (services/lookup_video.go), and TMDB never returns an empty array on a real content miss (see
@@ -399,6 +473,87 @@ const detectVideoFromTitle = (title) => {
             tmdbId: '',
             source: TMDB,
             error: `No movies found for title: ${title}`,
+          },
+        ],
+      },
+    };
+  }
+
+  if (title === TITLE_FIVE_CANDIDATES) {
+    // Exactly `tmdb.go:161`'s `maxResults := 5` — the most this screen can ever hold for a film,
+    // and the state the primary-plate ruling has to survive being looked at.
+    //
+    // FIVE DIFFERENT FILMS, not five editions of one, and the first draft of this fixture got it
+    // wrong. `search/movie?query=` matches TITLES and returns distinct movies; editions of a
+    // single work are the BOOK side's shape, because an ISBN identifies one edition and Google
+    // may hold several volume records against it. Rendered, the mistake was obvious and would
+    // have been invisible in the source: five rows carrying the identical director, year, runtime
+    // and cast, differing only by a suffix I had invented. That misrepresents both what the
+    // reader is choosing between and how hard the choice is.
+    return {
+      status: 200,
+      body: {
+        detectedVideos: [
+          {
+            id: 'tmdb-samourai-1967',
+            title: 'Le Samouraï',
+            summary: 'Jef Costello, tueur à gages, prépare son alibi.',
+            pictureUrl: cover(5),
+            directors: ['Jean-Pierre Melville'],
+            cast: ['Alain Delon', 'François Périer', 'Nathalie Delon'],
+            releaseYear: 1967,
+            duration: 105,
+            tmdbId: '10366',
+            source: TMDB,
+          },
+          {
+            id: 'tmdb-samourai-1945',
+            title: 'The Last Samurai',
+            summary: 'Un capitaine américain formé par un chef samouraï.',
+            pictureUrl: cover(6),
+            directors: ['Edward Zwick'],
+            cast: ['Tom Cruise', 'Ken Watanabe', 'Billy Connolly'],
+            releaseYear: 2003,
+            duration: 154,
+            tmdbId: '616',
+            source: TMDB,
+          },
+          // No poster ingested for this entry — the empty frame exercised inside a long list
+          // rather than only in the three-candidate case.
+          {
+            id: 'tmdb-samourai-doc',
+            title: 'Melville, le dernier samouraï',
+            summary: 'Portrait documentaire du cinéaste.',
+            directors: ['Olivier Bohler'],
+            cast: ['Jean-Pierre Melville'],
+            releaseYear: 2015,
+            duration: 62,
+            tmdbId: '387412',
+            source: TMDB,
+          },
+          {
+            id: 'tmdb-samourai-7',
+            title: 'Les Sept Samouraïs',
+            summary: 'Un village de paysans engage sept rōnin pour le défendre.',
+            pictureUrl: cover(1),
+            directors: ['Akira Kurosawa'],
+            cast: ['Toshirō Mifune', 'Takashi Shimura', 'Keiko Tsushima'],
+            releaseYear: 1954,
+            duration: 207,
+            tmdbId: '346',
+            source: TMDB,
+          },
+          {
+            id: 'tmdb-samourai-ghost',
+            title: 'Ghost Dog : la voie du samouraï',
+            summary: 'Un tueur à gages vit selon le code du bushido.',
+            pictureUrl: cover(3),
+            directors: ['Jim Jarmusch'],
+            cast: ['Forest Whitaker', 'John Tormey', 'Cliff Gorman'],
+            releaseYear: 1999,
+            duration: 116,
+            tmdbId: '9464',
+            source: TMDB,
           },
         ],
       },

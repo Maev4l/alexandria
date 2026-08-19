@@ -7,10 +7,12 @@ import {
   IMAGE_OCR_TRUE_MISS,
   ISBN_GOOGLE_BLANK_PICTURE,
   ISBN_MIXED_ARTWORK,
+  ISBN_MULTI_VOLUME,
   ISBN_NETWORK_ERROR,
   ISBN_NO_RESULT,
   ISBN_RESOLVER_ERROR,
   ISBN_TRUE_MISS,
+  TITLE_FIVE_CANDIDATES,
   TITLE_MIXED_ARTWORK,
   TITLE_NETWORK_ERROR,
   TITLE_NO_RESULT,
@@ -124,6 +126,28 @@ describe('handleMockRequest - POST /detections', () => {
       // the assertion that would pass on the wrong (round-1) shape, so it is not used here.
       expect(res.body.detectedBooks[0]).not.toHaveProperty('error');
     });
+
+    // The longest list this screen can serve on the book side, and the reason it exists: nothing
+    // in either suite had ever rendered more than three candidates, so "what do five primary
+    // plates look like stacked" was a question nobody could answer by looking.
+    it('serves five candidates — three Google volumes against one ISBN, plus Babelio and Goodreads', () => {
+      const res = detect({ type: 0, code: ISBN_MULTI_VOLUME });
+      expect(res.status).toBe(200);
+      expect(res.body.detectedBooks).toHaveLength(5);
+      // The shape that makes this realistic rather than invented: Babelio and Goodreads emit at
+      // most one candidate each (verified — every `ch <-` in both resolvers is a zero- or
+      // one-element slice), so a long book list can only come from Google, which appends every
+      // item from `?q=isbn:` with no limit requested.
+      const bySource = (name) => res.body.detectedBooks.filter((c) => c.source === name);
+      expect(bySource('Google')).toHaveLength(3);
+      expect(bySource('Babelio')).toHaveLength(1);
+      expect(bySource('Goodreads')).toHaveLength(1);
+      // Every candidate answers the SAME identifier — they are volume records for one edition,
+      // not different books, which is what distinguishes this from the film side's title search.
+      expect(res.body.detectedBooks.every((c) => c.isbn === ISBN_MULTI_VOLUME)).toBe(true);
+      // One without artwork, so the empty frame is exercised inside a long list too.
+      expect(res.body.detectedBooks.filter((c) => !c.pictureUrl)).toHaveLength(1);
+    });
   });
 
   describe('videos (type 1) - typed title search', () => {
@@ -170,6 +194,29 @@ describe('handleMockRequest - POST /detections', () => {
     it('400s a video detection request with neither image nor title', () => {
       const res = detect({ type: 1 });
       expect(res.status).toBe(400);
+    });
+    // The resolver's own maximum, measured rather than assumed: `tmdb.go:161` slices the deduped
+    // fr-FR + en-US results to five before fetching any details, so five is the most this screen
+    // can ever show for a film. The cap is OURS — the search request asks for no limit and TMDB
+    // returns a full page of 20 — which is why a fixture pins it rather than a note guessing.
+    it('serves the resolver\'s maximum of five candidates, as five DIFFERENT films', () => {
+      const res = detect({ type: 1, title: TITLE_FIVE_CANDIDATES });
+      expect(res.status).toBe(200);
+      expect(res.body.detectedVideos).toHaveLength(5);
+      // Different films, not editions of one. `search/movie?query=` matches TITLES; editions of a
+      // single work are the BOOK side's shape, because an ISBN identifies one edition and Google
+      // may hold several volume records against it. The first draft of this fixture had five
+      // editions of one film — invisible in the source, obvious the moment it was rendered as
+      // five rows carrying an identical director, year, runtime and cast.
+      const titles = new Set(res.body.detectedVideos.map((c) => c.title));
+      const directors = new Set(res.body.detectedVideos.map((c) => c.directors[0]));
+      const years = new Set(res.body.detectedVideos.map((c) => c.releaseYear));
+      expect(titles.size).toBe(5);
+      expect(directors.size).toBe(5);
+      expect(years.size).toBe(5);
+      // One without a poster, so the empty frame is exercised inside a long list too.
+      expect(res.body.detectedVideos.filter((c) => !c.pictureUrl)).toHaveLength(1);
+      expect(res.body.detectedVideos.every((c) => !('error' in c))).toBe(true);
     });
   });
 

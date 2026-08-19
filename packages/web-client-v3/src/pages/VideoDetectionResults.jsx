@@ -308,8 +308,20 @@ const VideoDetectionResults = () => {
                     <p className="caps mt-1 text-[11px] text-ink-soft">{candidate.source}</p>
                     {/* Nothing is written before this: no candidate reaches itemsApi until the
                         reader confirms it themselves. */}
+                    {/* THE PRIMARY PLATE, and the only one in this flow. At rest no chrome
+                        yellow existed anywhere in the add path: every `Use this`, both shutters,
+                        both manual escapes and the re-search were `secondary`, and the two
+                        `primary` submits are disabled at rest and therefore render AS the
+                        secondary outline. So the accent marked the fallback route and nothing
+                        else, against DESIGN.md §2's law that `--imprint` is the apparatus of
+                        acting. Filing a candidate is this flow's only write.
+                        Three small plates in a list are not the accent spent decoratively —
+                        each is a genuine commit, and three ruled outlines read as three options
+                        where nothing acts. It also settles the head collision with no second
+                        mechanism: the re-search stays `secondary`, so redo and commit stop
+                        looking identical and the wider control is no longer the one that
+                        discards the answer. */}
                     <PlateButton
-                      variant="secondary"
                       className="mt-2"
                       disabled={savingKey != null}
                       onClick={() => onConfirm(candidate, key)}
