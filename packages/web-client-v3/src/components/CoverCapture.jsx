@@ -122,7 +122,12 @@ const CoverCapture = ({ onCapture, onError, busy = false }) => {
   };
 
   return (
-    <div>
+    // Centred, so the viewfinder has equal space left and right rather than sitting flush
+    // against the column's left margin with all the slack on one side. `w-fit` keeps the
+    // wrapper as wide as the frame, so `mx-auto` centres the frame itself rather than a
+    // full-width box that merely contains it — and the shutter beneath centres with it, since
+    // a centred camera over a left-aligned button reads as a mistake rather than a choice.
+    <div className="mx-auto flex w-fit flex-col items-center">
       {/* Ruled, not filled (DESIGN.md §5): "ruled means the rule and nothing else" — a filled
           rectangle where a live picture belongs reads as a failed image before the stream ever
           attaches, the same reasoning that emptied VolumeFrame's and BarcodeScanner's boxes.
