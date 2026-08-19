@@ -1327,6 +1327,24 @@ mean**, because a commit blocks the main thread and appears as one long frame �
 the thing under test. And it marks the response at the moment the **JSON body is parsed**, not when headers
 arrive, so network time is never credited to the commit.
 
+**A probe for a transient state must hold that state open, or it asserts nothing.** The list-unmount probe
+deliberately keeps the next search pending, because the mock answers inside a tick — race that window and the
+test passes or fails on scheduling rather than on behaviour. **The window is the whole subject.** Same family
+as a guard that has only ever been green: a probe that cannot observe the condition it names is indistinguishable
+from one that observes it and finds nothing.
+
+**And an announced outcome must signpost an explanation the reader cannot see.** A `role="status"` fires
+without moving the reading cursor, so a screen-reader reader who hears *"Nothing matched"* is left exactly
+where they were typing, with no indication that the scope-and-accents copy exists a few nodes away. A sighted
+reader gets the head and the explanation **in one visual field**; announcing only the head hands the
+non-sighted reader the head alone — which is the wrong conclusion this screen was built to prevent, delivered
+faster.
+
+So the live region carries the outcome **plus a pointer**, not the whole paragraph: repeating the scope
+sentence would make a browse-mode reader meet it twice, once announced and once as text they navigate to. One
+clause is the difference between *there is nothing here* and *there is nothing here, and here is where the
+reason is.*
+
 **When a defect's whole class is small enough to close, make the wrong construction unavailable rather than
 building a checker to detect it.** The audit after the patch defect found **exactly one** merge-style patch of
 a server record in the app — the defect itself. Every other spread is a payload built from local form state,
