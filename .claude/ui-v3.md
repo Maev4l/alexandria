@@ -306,6 +306,29 @@ why it should not be decided as a side effect.
 **What does change: the fixtures carry a five-candidate response**, so the wall-of-accent question is
 reviewable rather than theoretical. Nothing in either suite has ever rendered more than three.
 
+**A candidate row prints two cast names by design — that is not truncation, and the truncation rule does not
+apply to a field whose length is chosen.** The critique named title, authors *and* cast under §5's
+nothing-is-truncated rule and I instructed only the title, which left `Nathalie D…` cutting a person's name
+mid-word on the screen whose job is telling candidates apart. Letting all five wrap is the other wrong
+answer: three lines per row, five rows, on a comparison screen.
+
+§4 settles it — *the row carries recognition, detail carries identification*. A cast line discriminates
+through its **lead**; the fourth and fifth names add nothing a reader chooses on. So the row's field is
+**the first two names, no ellipsis**, and detail carries all five. Nothing is cut, so nothing is truncated;
+the field is simply defined shorter than the data. The browse stream already prints no cast at all, so this
+is a field specific to comparison, sized for comparison.
+
+**And the source badge is dropped from successful FILM candidates, kept everywhere else.** Film has one
+resolver, so `TMDB` is a constant printed down five rows — five copies of one fact, differentiating nothing,
+which is *nothing is labelled twice* applied vertically. On the book screen it genuinely varies
+(GOOGLE / GOOGLE / GOOGLE / BABELIO / GOODREADS) and earns its place; on a **failure note** it names which
+resolver failed and is essential on both. It is not relocated to the head either: a reader does not act on a
+film's provenance, so stating it once would still be stating something nobody needs.
+
+A per-screen difference in what a row prints is correct here for the same reason the two capture frames
+differ — same rule, different data. Raised by the implementation session, which had the argument fully formed
+and correctly treated it as a design call rather than acting on it.
+
 **A failed resolver is a NOTE, not a candidate — and it must never be given a title.** Found by
 rendering the fixture's failure states, which is what 18a existed for. As built, a resolver that
 returned an `error` rendered as a full candidate row: ruled 2:3 frame, the ISBN, the source, and — the
@@ -1181,6 +1204,18 @@ sound-sounding and wrong (see *NewBook / NewVideo*). What broke it was noticing 
 ruling would give the results screens the same visibility, so the distinction had never been
 load-bearing on either surface. **A distinction that dissolves when an unrelated decision ships was
 never the reason** — it was a coincidence doing the work of an argument.
+
+**A fixture written to test a judgement must not model the easy version of that judgement.** The
+five-candidate film fixture was first built as **five editions of one film** — which is the *book* side's
+shape, since an ISBN identifies one edition and Google may hold several volume records against it, whereas
+`search/movie?query=` matches titles and returns **distinct films**. In source it looked right. Rendered,
+five rows carried an identical director, year, runtime and cast, differing only by an invented suffix.
+
+That would have made the wall-of-accent question **easier than it really is**: five near-identical rows read
+trivially as "a list", where five genuinely different films are five real candidates. The fixture existed
+precisely to make a design judgement reviewable, and its error would have biased the judgement toward the
+answer already expected. Caught by rendering it, corrected to five distinct films, with the test asserting
+titles, directors and years all differ so the shape cannot quietly regress.
 
 **A fixture must contain the failure cases, because the failure cases are the ones that go
 undesigned.** The fixture API needs `/detections`, and what it returns decides which states anyone
