@@ -10,6 +10,7 @@ import { itemsApi, searchApi } from '@/api';
 import { useLibraries } from '@/state/LibrariesContext.jsx';
 import useDebounced from '@/lib/useDebounced.js';
 import { addRecent, clearRecents, readRecents } from '@/lib/recentSearches.js';
+import { replaceById } from '@/lib/replaceById.js';
 
 // Three, per ui-v3.md § Search. Below it the index would return most of the catalogue, which
 // answers nothing and costs a round trip on the poor signal PRODUCT.md describes.
@@ -100,7 +101,7 @@ const Search = () => {
         // `LibraryId` and `LibraryName` (handlers/items.go:577-578), which are the only fields a
         // search row needs beyond the listing shape. Same construction as
         // `StreamContext.patchItem`, which has always replaced.
-        results: current.results.map((row) => (row.id === item.id ? fresh : row)),
+        results: replaceById(current.results, fresh),
       }));
     } catch {
       // The write succeeded — only the re-read failed. Leaving the row as it was is honest;

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { itemsApi } from '@/api';
+import { replaceById } from '@/lib/replaceById.js';
 import { appendPage, toLetterRuns } from '@/lib/stream';
 
 // A per-library paged stream. Pages append in the SERVER's order and are never re-sorted:
@@ -69,7 +70,7 @@ export const useStream = (libraryId) => {
           if (entry.type !== COLLECTION) return entry;
           const items = entry.items ?? [];
           if (!items.some((member) => member.id === itemId)) return entry;
-          return { ...entry, items: items.map((m) => (m.id === itemId ? fresh : m)) };
+          return { ...entry, items: replaceById(items, fresh) };
         }),
       );
     },

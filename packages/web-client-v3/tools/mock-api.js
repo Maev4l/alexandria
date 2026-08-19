@@ -33,7 +33,25 @@ export const resetMockState = () => {
   eventsState = structuredClone(eventsByItem);
 };
 
-export const handleMockRequest = (method, url, body) => {
+// Every response body is CLONED on the way out, and this is not defensiveness — it is what makes
+// mock-backed tests able to fail.
+//
+// The store holds live objects. Handing them straight to a caller meant the app's state held the
+// SAME object the mock mutates, so a `RETURNED` event deleting `lentTo` in the store also deleted
+// it from the array a screen was already rendering. Every patch implementation then looked
+// correct: replacing, merging, or doing nothing at all produced an identical result, because the
+// object had already changed underneath all three.
+//
+// Found by writing a probe for `patchItem` and watching it pass against a no-op of the very
+// function it names. A fixture that shares references cannot distinguish a component that re-reads
+// from one that never does — which is precisely the distinction this file's own comment below
+// says it exists to preserve.
+const cloneBody = (result) =>
+  result && result.body != null ? { ...result, body: structuredClone(result.body) } : result;
+
+export const handleMockRequest = (method, url, body) => cloneBody(handleRequest(method, url, body));
+
+const handleRequest = (method, url, body) => {
   const { pathname, searchParams } = new URL(url, 'http://localhost');
   const path = pathname.replace(/^\/api\/v1/, '');
 

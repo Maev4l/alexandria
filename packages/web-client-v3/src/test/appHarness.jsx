@@ -24,17 +24,29 @@ export const renderApp = (initialPath) =>
 
 // A fetch stub good enough to let every route settle past its loading state, backed by the same
 // fixtures/mock-api.js the rest of the suite already uses — not a second, parallel set of fakes.
+//
+// IT FORWARDS THE REAL METHOD AND BODY, and until now it did not: every request was dispatched to
+// the mock as a `GET` regardless of what the app actually sent. Reads were unaffected, which is
+// why it went unnoticed — this harness was built for route-walking guards that only ever read.
+//
+// But it meant any test using it COULD NOT exercise a write. A `POST .../events` reached the mock
+// as a GET, so the branch that clears `lentTo` on a RETURNED event never ran, and a probe
+// asserting "the stamp goes when the item comes back" failed against completely correct code.
+// Found by writing exactly that probe for the browse stream — the harness, not the app, was
+// answering. A stub that silently rewrites the method is a substrate that agrees with itself.
 export const stubFetch = () => {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (url) => {
+    vi.fn(async (url, init) => {
       const path = String(url);
-      const result = path.endsWith('/libraries')
+      const method = init?.method ?? 'GET';
+      const body = init?.body ? JSON.parse(init.body) : undefined;
+      const result = path.endsWith('/libraries') && method === 'GET'
         ? { status: 200, body: { libraries } }
         // handleMockRequest returns null for a path it does not recognise; treat that as a 404
         // rather than let `result.status` throw, since an unmatched path is a real (if unlikely)
         // outcome for a guard walking every route rather than a hand-picked pair of them.
-        : (handleMockRequest('GET', path) ?? { status: 404, body: { message: 'Not found' } });
+        : (handleMockRequest(method, path, body) ?? { status: 404, body: { message: 'Not found' } });
       return {
         ok: result.status < 400,
         status: result.status,

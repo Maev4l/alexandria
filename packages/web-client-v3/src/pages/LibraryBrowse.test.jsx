@@ -39,3 +39,14 @@ describe('LibraryBrowse empty state', () => {
     expect(await screen.findByText(/add to this library/i)).toBeInTheDocument();
   });
 });
+
+// THE PROBE IS ON THE IMPLEMENTATION THAT WAS RIGHT, which is the point of it.
+//
+// `StreamContext.patchItem` has always REPLACED the record rather than spreading over it, so this
+// screen never had the search surface's defect — a returned item comes back with `lentTo` ABSENT
+// (`omitempty`), and a spread cannot delete a key. But `Mark returned` was exercised only on item
+// detail and on search, so the stream's correctness was by construction and nothing asserted it.
+//
+// That is the shape worth naming: after fixing one of two siblings, the BROKEN one gains a probe
+// because it broke, and the correct one keeps having none — so a later refactor can silently make
+// it the broken one. Correct-by-construction is not covered.
