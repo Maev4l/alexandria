@@ -852,11 +852,30 @@ cast and collection only — not summary, not ISBN — and returns a single unpa
 This is the screen `PRODUCT.md`'s first principle names — *lookup is the front door* — and the surface the
 loudest mark in the design opens. Four decisions the eight lines above do not make:
 
-**The result set is unpaginated, so it must be virtualised.** `POST /search` returns everything in one
-response with no `nextToken`; a common term over a 1000-item collection can return hundreds of rows.
-The browse stream is virtualised for exactly this reason and search inherits the requirement — it is the
-same list problem arriving without the pagination that made it visible. There are no sort or filter
-controls, because the API offers none.
+**The result set is unpaginated, and a large one is the LIKELY shape of a short query — but "inherit the
+stream's virtualisation" was wrong twice over.** `POST /search` returns everything in one response with no
+`nextToken`. Worse than that: `services/search.go:89` builds `bluge.NewAllMatches` with no size and no
+top-N, and **each term contributes a prefix wildcard** (`term + "*"`) across title, authors, directors, cast
+and collection. So a three-character query is a prefix over five fields, and on a catalogue `PRODUCT.md`
+calls deliberately half French, `les`, `des` and `une` are common leading tokens. **A large set is not the
+hypothetical worst case; it is what a short query normally produces.** No sort or filter controls, since the
+API offers none.
+
+**My instruction to inherit the stream's virtualisation was factually wrong: the stream is not virtualised.**
+It is **paginated at 30 per page** plus a containment utility (`content-visibility: auto` on `ItemRow`), and
+the project's own profiler measures that utility doing **nothing** — p95 24.2ms with it against 25.0ms
+without, 75.5 against 72.5 at 4× throttle, the same count of frames over 50ms in every arm. **1% on the
+slowest frame, in both directions.** So the named mechanism does no measurable work, and §7's own
+*"virtualize the library stream"* has never been implemented as written — a requirement whose substitute was
+measured to be inert and whose divergence nobody noticed until search asked to copy it.
+
+**And search's risk is a different kind from the stream's.** The stream commits **30 rows at a time**;
+search commits **all of them in one go**. Containment skips layout and paint for offscreen rows — it does
+not skip reconciliation or the DOM construction of N rows in a single commit. The stream profiler measures
+**scrolling**; nothing in this codebase has ever measured **mounting**, which is the only thing search does
+that the stream does not. So the requirement is real and the mechanism I named is the wrong one: ship
+without windowing, **measure the mount at 400 results, and rule with a number** — and if windowing is
+warranted it must be a real one, since `content-visibility` is already known not to address that cost.
 
 **A result row is a stream row, not a new invention.** The 2:3 Volume Frame, the title, the Plate Line.
 Artwork is the normal case (`PRODUCT.md`), and the frame is how an item is recognised — this screen is
@@ -871,9 +890,11 @@ produce — *I don't own it* — when the truth is *we did not look there*. So t
 was searched and what was not: title, authors, directors, cast and collection, **not the summary and not
 the ISBN**.
 
-**And the accents belong in that same copy, because the server does not fold them.** Terms are lowercased
-with no explicit accent folding, so `Etranger` may or may not reach `L'Étranger` depending on fuzzy edit
-distance — on a catalogue that is deliberately half French. **The client must not fold accents itself**:
+**And the accents belong in that same copy, because the server does not fold them — with the behaviour
+measured rather than hedged.** `bluge.NewFuzzyQuery` defaults to **`fuzziness: 1`**, and terms are lowercased
+with no folding. So **one missing accent usually still finds the item** — `etranger` reaches `étranger` at
+distance 1 — while **two do not**: `elephants` against `éléphants` is distance 2 and misses. The copy says
+that, actionably, rather than "may or may not depending on fuzzy edit distance — on a catalogue that is deliberately half French. **The client must not fold accents itself**:
 that would diverge from the index the server actually queries, the same reason the stream's letters never
 use `localeCompare`. A client-side fold would produce matches the server cannot explain and hide the ones
 it can. So the limitation is disclosed rather than papered over — at zero results, suggest trying the
@@ -1354,7 +1375,10 @@ response-headers policy and `/assets/*` carries `immutable`. No new Terraform is
 write any.
 
 **Performance.** Route-level code splitting, with the scanner (`@zxing`) and the webcam loaded
-only by the capture routes. Virtualize the library stream, which must hold 1000+ items. Two
+only by the capture routes. **The library stream must hold 1000+ items — and note that this line has said
+"virtualize" since it was written while the build uses pagination at 30 plus `content-visibility`, which the
+profiler measures as inert (1% on the slowest frame, both directions). The requirement was never met as
+written and the substitute does nothing; what has held the stream up is the page size.** Two
 self-hosted variable fonts, subset to Latin + Latin Extended-A.
 
 **Page size is a network knob as well as a rendering one, and the network side wins.** Frame-time
