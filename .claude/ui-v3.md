@@ -360,15 +360,31 @@ number, because a viewfinder's subject is not an item.
 
   The rule against claiming improvement **still stands**: the indirect path is real but **unmeasured**,
   and an unmeasured causal claim in a comment is the same defect as a false one. Comments say aiming.
-- **Film — 2:3, unchanged in ratio. Its SIZE is now load-bearing and the halving to 140px is under
-  review.** Once capture is the framed region, the frame is not merely aiming: it *defines the image that
-  gets read*. So a reader judging "is the title inside the frame and legible?" does that on the preview,
-  and at 140px wide they are judging a DVD cover in a thumbnail. Capture resolution is unaffected —
-  intrinsic pixels either way — but **mis-aiming now removes the title from the captured region, and OCR
-  extracting nothing produces the no-result dead end**, which is the precise failure mode the title-band
-  crop was refused for. Halving that frame was accepted on the grounds it had become cosmetic once
-  capture was decoupled from CSS size; the aiming argument shows it is not cosmetic. Raised by the
-  implementation session unprompted, and referred to the owner because the halving was their request.
+- **Film — full column width × 240px (30 divisions), landscape, aimed at the TITLE rather than the whole
+  cover.** This reverses the "film stays 2:3" ruling above, and it is a correction rather than a
+  reversal of taste: the rule is *match the subject*, and I had the subject wrong. What the capture reads
+  is a **title**; the poster comes from TMDB and never from our photograph, so cover art in the captured
+  image is dead weight.
+
+  Measured at 390×667 with a real feed: a full-width frame fits at **240px** with the document exactly
+  667 and no scroll; **264 scrolls** (684). And the decisive number — at that same 240px ceiling a 2:3
+  frame is only **160px wide**, 14% more than today's 140, so *keeping the portrait ratio cannot fix the
+  aiming problem inside the no-scroll constraint*. The landscape shape is what makes the geometry
+  possible, not a preference: it is cheap in vertical space, which is the binding limit. Area goes from
+  29,400px² to 85,920 — 2.9× — with page height unchanged.
+
+  **This is not the automatic band crop refused above.** That was refused because nothing can know where
+  a title sits. Here the **reader aims**, so the placement problem no algorithm could solve is solved by
+  the person holding the phone, and the capture is still exactly the previewed region.
+
+  The frame carries one line of guidance in the caps state position that already exists for
+  `REQUESTING CAMERA ACCESS`: **`FRAME THE TITLE`** while idle. No new device. The shutter keeps
+  `LOOK UP THIS COVER` — the reader is still pointing at a cover, and it stays distinct from the field's
+  `LOOK UP THIS TITLE`.
+
+  **Superseded, kept for the reasoning:** the frame was 2:3 on the grounds that its subject *is* a 2:3
+  cover and, since `71b4494`, that the frame defines the region read. The second half is what condemned
+  the first — once the frame defines what is read, it should frame what needs reading.
 
 So this is one rule applied twice, not two competing conventions. **Recorded because it is exactly the
 asymmetry a later pass "harmonises" without knowing it was deliberate** — the same way the two primary
