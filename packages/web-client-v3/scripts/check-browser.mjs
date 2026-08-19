@@ -1410,6 +1410,91 @@ try {
     `IN left: ${marks.in}, SHARED left: ${marks.shared}`,
   );
 
+  // ---- The other two controls a critique measured as failing, which measure as passing ----
+  // Slice E's critique reported `Full record` at 90.8x15.4 and four `/libraries` rows at
+  // 44.7-47.5px against §4's 48px floor. Those are the ELEMENT BOXES, and both controls carry a
+  // `::before` expansion — so the box understates the target by design, exactly as the
+  // `IN <library>` check below already establishes for its own case.
+  //
+  // Measured as a hit area, both clear the floor comfortably. Guarded rather than "fixed":
+  // changing geometry that already passes would have been a change made to satisfy a number
+  // nobody re-measured. What was genuinely missing is this check — the `IN <library>` link had
+  // one from an earlier round and these two did not, which is why only they could be reported
+  // as failing without anything going red.
+  //
+  // WALKED FROM THE CENTRE with `elementFromPoint`, never read off a class. A class can be
+  // present while its expansion resolves to nothing — `before:inset-x-0` gives no horizontal
+  // expansion at all, which is the precise bug the `IN <library>` fix exists for — so the only
+  // honest measurement is asking the document what is actually at each point.
+  console.log('the controls a box measurement called too small clear the floor as hit areas');
+  {
+    const hitArea = (selector, text) =>
+      page.evaluate(
+        ([sel, wanted]) => {
+          const el = [...document.querySelectorAll(sel)].find((n) =>
+            new RegExp(wanted, 'i').test(n.textContent.trim()),
+          );
+          if (!el) return null;
+          const r = el.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const owns = (x, y) => {
+            const t = document.elementFromPoint(x, y);
+            return t === el || el.contains(t);
+          };
+          let up = 0;
+          while (up < 60 && owns(cx, cy - up - 1)) up += 1;
+          let down = 0;
+          while (down < 60 && owns(cx, cy + down + 1)) down += 1;
+          let left = 0;
+          while (left < 80 && owns(cx - left - 1, cy)) left += 1;
+          let right = 0;
+          while (right < 80 && owns(cx + right + 1, cy)) right += 1;
+          return { box: `${r.width.toFixed(1)}x${r.height.toFixed(1)}`, w: left + right, h: up + down };
+        },
+        [selector, text],
+      );
+
+    await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main h1');
+    const fullRecord = await hitArea('main a', 'full record');
+    console.log(`    Full record: box ${fullRecord?.box}, hit ${fullRecord?.w}x${fullRecord?.h}`);
+    record(
+      fullRecord !== null && fullRecord.w >= 48 && fullRecord.h >= 48,
+      'Full record clears the 48px floor as a hit area, though its box is 15px tall',
+      JSON.stringify(fullRecord),
+    );
+
+    await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main a');
+    // The SHORTEST row, which is the one that fails first — a library with no sharing mark and a
+    // short name has the least text to stand on.
+    const rows = await page.evaluate(() =>
+      [...document.querySelectorAll('main a')].map((el) => {
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const owns = (x, y) => {
+          const t = document.elementFromPoint(x, y);
+          return t === el || el.contains(t);
+        };
+        let up = 0;
+        while (up < 60 && owns(cx, cy - up - 1)) up += 1;
+        let down = 0;
+        while (down < 60 && owns(cx, cy + down + 1)) down += 1;
+        return { box: r.height.toFixed(1), h: up + down, text: el.textContent.trim().slice(0, 18) };
+      }),
+    );
+    const shortest = rows.reduce((a, b) => (a.h <= b.h ? a : b), rows[0]);
+    console.log(`    shortest library row: box ${shortest?.box}px tall, hit ${shortest?.h}px ("${shortest?.text}")`);
+    record(rows.length >= 3, 'the libraries root renders several rows to measure', `${rows.length} rows`);
+    record(
+      shortest !== undefined && shortest.h >= 48,
+      'every library row clears the 48px floor as a hit area, on the screen a cold open lands on',
+      JSON.stringify(shortest),
+    );
+  }
+
   // ---- The IN <library> link clears the 48px floor in BOTH dimensions ----
   // DetailMarks' own `::before` hit-box comment reasoned at length about the VERTICAL axis
   // (-top-[30px]/-bottom-[8px]) and never mentioned the horizontal one, because `before:inset-x-0`
