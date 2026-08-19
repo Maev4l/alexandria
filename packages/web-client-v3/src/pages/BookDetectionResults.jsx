@@ -60,6 +60,18 @@ const BookDetectionResults = () => {
       });
       return;
     }
+    // The fast path: AddBook already ran this exact lookup and handed its own candidates over
+    // via `state`. Used ONLY when `forIsbn` matches the ISBN this render is showing — an
+    // unmatched or absent tag falls through to a real fetch, so a stale entry can never answer
+    // the wrong code. Identical in shape and reasoning to VideoDetectionResults' own fast path;
+    // this screen simply never had one, and paid for a second full resolver fan-out on every
+    // single scan because of it.
+    if (location.state?.forIsbn === isbn) {
+      setCandidates(location.state.candidates ?? []);
+      setErrorMessage(null);
+      setStatus('ready');
+      return;
+    }
     setStatus('loading');
     setErrorMessage(null);
     detectionApi
@@ -78,7 +90,7 @@ const BookDetectionResults = () => {
   // but an upgrade that destabilised it would reintroduce a refetch loop in PRODUCTION, not only
   // in a test, and the symptom (repeated /detections calls) is one a reader would never report as
   // a bug. Written here rather than only in the test that first tripped over it.
-  }, [isbn, libraryId, collectionId, navigate]);
+  }, [isbn, libraryId, collectionId, navigate, location.state]);
 
   useEffect(() => {
     load();

@@ -151,12 +151,25 @@ describe('AddBook', () => {
   });
 
   it('looks up a manually typed code and hands it to the results screen in the query', async () => {
+    vi.mocked(detectionApi.book).mockResolvedValueOnce({
+      detectedBooks: [{ id: 'g1', title: 'Le Petit Prince', source: 'Google' }],
+    });
     renderPage();
     await userEvent.type(screen.getByLabelText(/isbn/i), '9782070404209');
     await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
     expect(detectionApi.book).toHaveBeenCalledWith('9782070404209');
+    // The state is asserted EXACTLY, not as `state:none` and not as "contains candidates". The
+    // code this screen looked up must travel in the query — ruling H — and the candidates it
+    // already paid for travel alongside as a tagged fast path, so the results screen need not
+    // repeat the whole resolver fan-out. An exact match is what still catches the regression the
+    // old `state:none` assertion was written for: a wholesale `location.state` forward riding on
+    // top of a correct query fails here, because it would carry keys this shape does not have.
     expect(
-      await screen.findByText('landed:/libraries/lib-1/add/book/results?isbn=9782070404209 state:none'),
+      await screen.findByText(
+        'landed:/libraries/lib-1/add/book/results?isbn=9782070404209 ' +
+          'state:{"candidates":[{"id":"g1","title":"Le Petit Prince","source":"Google"}],' +
+          '"forIsbn":"9782070404209"}',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -166,7 +179,8 @@ describe('AddBook', () => {
     await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
     expect(
       await screen.findByText(
-        'landed:/libraries/lib-1/add/book/results?isbn=9782070404209&collectionId=c1 state:none',
+        'landed:/libraries/lib-1/add/book/results?isbn=9782070404209&collectionId=c1 ' +
+          'state:{"candidates":[],"forIsbn":"9782070404209"}',
       ),
     ).toBeInTheDocument();
   });
@@ -187,7 +201,10 @@ describe('AddBook', () => {
     await userEvent.click(screen.getByRole('button', { name: /simulate decode/i }));
     expect(detectionApi.book).toHaveBeenCalledWith('9782070408504');
     expect(
-      await screen.findByText('landed:/libraries/lib-1/add/book/results?isbn=9782070408504 state:none'),
+      await screen.findByText(
+        'landed:/libraries/lib-1/add/book/results?isbn=9782070408504 ' +
+          'state:{"candidates":[],"forIsbn":"9782070408504"}',
+      ),
     ).toBeInTheDocument();
   });
 

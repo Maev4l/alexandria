@@ -77,8 +77,22 @@ const AddBook = () => {
     setLookupError(null);
     setBusySource(source);
     try {
-      await detectionApi.book(rawCode);
-      navigate(resultsPath(rawCode));
+      const response = await detectionApi.book(rawCode);
+      // The candidates this call already paid for travel forward as a FAST PATH, exactly as
+      // AddVideo's do. Until now this response was thrown away and BookDetectionResults ran the
+      // identical `POST /detections` again on mount — two full Google/Babelio/GoodReads fan-outs
+      // per scan, on the connection PRODUCT.md describes as poor, in a flow whose whole layout
+      // argument (DESIGN.md §4) is that it loops. The film path was fixed for this and its
+      // sibling was never checked.
+      //
+      // Tagged with the ISBN it answers, and trusted on the other side only when the tag
+      // matches, so a stale value (browser back/forward, an edited query) falls through to a
+      // real fetch instead of answering a different question. The query still carries `?isbn=`
+      // unconditionally, so ruling H is untouched: state only ever saves a repeat call, it is
+      // never the only way to recover.
+      navigate(resultsPath(rawCode), {
+        state: { candidates: response?.detectedBooks ?? [], forIsbn: rawCode },
+      });
     } catch (err) {
       // Detection genuinely failing (a network/server error) is the one outcome that must NOT
       // navigate — the reader stays here, on the screen where retrying (or falling back to

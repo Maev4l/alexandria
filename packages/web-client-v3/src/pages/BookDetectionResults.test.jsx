@@ -59,9 +59,18 @@ const LocationProbe = () => {
   );
 };
 
-const renderPage = (search) =>
+// `state` needs the OBJECT form of `initialEntries`, not a path string, so a query string and
+// router state can coexist on the same entry — the exact shape the fast-path cases below need,
+// and the one VideoDetectionResults.test.jsx already learned it had to use.
+const renderPage = (search, state) =>
   render(
-    <MemoryRouter initialEntries={[`/libraries/lib-1/add/book/results${search}`]}>
+    <MemoryRouter
+      initialEntries={[
+        state
+          ? { pathname: '/libraries/lib-1/add/book/results', search: search ?? '', state }
+          : `/libraries/lib-1/add/book/results${search ?? ''}`,
+      ]}
+    >
       <ToastProvider>
       <Routes>
         <Route path="/libraries/:libraryId/add/book/results" element={<BookDetectionResults />} />
@@ -304,6 +313,49 @@ describe('BookDetectionResults', () => {
       path.startsWith('/libraries/lib-1/add/book?'),
     );
     expect(loopNavigation?.[1]).toEqual(expect.objectContaining({ replace: true }));
+  });
+
+  // The fast path this screen never had. AddBook already ran this exact lookup and hands over
+  // the candidates it already paid for, tagged with the ISBN they answer. Before this, every
+  // single scan paid for TWO full Google/Babelio/GoodReads fan-outs — once on AddBook (result
+  // discarded) and once here on mount — on the connection PRODUCT.md calls poor, in the flow
+  // whose entire layout argument is that it loops.
+  //
+  // The call count is the DISCRIMINATING observable here, unlike on the capture screen: the old
+  // code made exactly one call at that point too, and what caught it there was the navigation.
+  it('renders location.state candidates with no network call when they match the query ISBN', async () => {
+    const candidates = [{ id: 'g1', title: 'Le Petit Prince', authors: ['Saint-Exupéry'], isbn: '9782070408504', pictureUrl: '/c.webp', source: GOOGLE }];
+    // Mocked so a run against the pre-fix code fails on the assertion rather than crashing on an
+    // unmocked call.
+    vi.mocked(detectionApi.book).mockResolvedValue({ detectedBooks: candidates });
+    renderPage('?isbn=9782070408504', { candidates, forIsbn: '9782070408504' });
+    await screen.findByText('Le Petit Prince');
+    expect(detectionApi.book).not.toHaveBeenCalled();
+  });
+
+  // The other direction, and the one that makes the fast path safe to have at all: a payload
+  // tagged for a different code — browser back/forward, an edited query — must be ignored and
+  // refetched, never rendered as though it answered the ISBN on screen.
+  it('ignores location.state candidates tagged for a DIFFERENT ISBN than the query', async () => {
+    vi.mocked(detectionApi.book).mockResolvedValue({
+      detectedBooks: [{ id: 'g2', title: 'Nouveau titre', authors: [], isbn: '9782070404209', source: GOOGLE }],
+    });
+    const stale = [{ id: 'g1', title: 'Ancien titre', authors: [], isbn: '9782070408504', source: GOOGLE }];
+    renderPage('?isbn=9782070404209', { candidates: stale, forIsbn: '9782070408504' });
+    await screen.findByText('Nouveau titre');
+    expect(screen.queryByText('Ancien titre')).not.toBeInTheDocument();
+    expect(detectionApi.book).toHaveBeenCalledWith('9782070404209');
+  });
+
+  // Ruling H is untouched by the fast path: a cold load carries no state at all and must still
+  // recover the whole screen from the query alone.
+  it('still re-runs detection from the query when no state came with the navigation', async () => {
+    vi.mocked(detectionApi.book).mockResolvedValue({
+      detectedBooks: [{ id: 'g1', title: 'Le Petit Prince', authors: [], isbn: '9782070408504', source: GOOGLE }],
+    });
+    renderPage('?isbn=9782070408504');
+    await screen.findByText('Le Petit Prince');
+    expect(detectionApi.book).toHaveBeenCalledTimes(1);
   });
 
   it('confirms the save, so filing is never silent', async () => {
