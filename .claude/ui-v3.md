@@ -276,11 +276,35 @@ and three ruled outlines instead read as three options where nothing acts. It al
 collision without a second mechanism: the re-search stays `secondary`, so redo and commit stop looking
 identical, and the wider control is no longer the one that discards the answer.
 
-**Conditional on the list's length, which nobody has measured.** Books return at most one candidate per
-resolver, so three. **TMDB is uncapped in our request** — if a title search can return eight or ten, that
-many plates is a wall of accent and the ruling inverts: the row becomes the affordance, with a single plate
-committing the selected row. **Measure the real maximum before building this**, and if it exceeds about
-five, come back rather than shipping either answer.
+**Measured, and the ruling ships — but my reason for the condition was wrong and the exposure is on the
+other path.**
+
+- **Film: at most 5**, and the cap is **ours**, not TMDB's. `services/resolvers/tmdb.go:161` slices
+  `maxResults := 5` after deduping the two locale searches. I wrote that "TMDB is uncapped in our request",
+  which is true — we ask for no limit and TMDB returns a page of 20 — so the number I relied on is
+  guaranteed by **a line of our own that someone could delete without knowing a visual ruling rested on
+  it.** Recorded here because that is where the dependency belongs; a comment in the Go file would be
+  belt-and-braces.
+- **Book: no cap anywhere.** Babelio and GoodReads emit at most one each. `google.go:92-106` appends **every
+  item** with no `maxResults` requested, so Google Books' own default page size governs — **10**. Theoretical
+  worst case **12**. The realistic case for an exact `q=isbn:` match is 1 per resolver, and 3 is the only
+  shape anyone has rendered; the true distribution is **unmeasured**, and reading the resolver cannot answer
+  it.
+
+**The ruling ships anyway, because the count exposure is pre-existing and orthogonal to it.** If Google
+returns ten volumes for one ISBN, the reader already gets ten rows of 88×132 artwork and three text lines
+each. The plate does not create that problem; it makes an existing one louder. Gating a treatment on a
+list-length question the list already has would fix nothing and defer the accent to the fallback for another
+slice.
+
+**Capping Google in the resolver is refused as a route to this.** It is a *product* decision about whether to
+hide volume records, not a consequence of a button's colour, and making a backend change to serve a visual
+ruling inverts the order — establish that ten candidates is a real shape first. `PRODUCT.md` also binds this
+rework to require no endpoint changes; a resolver-side slice arguably sits inside that line, which is exactly
+why it should not be decided as a side effect.
+
+**What does change: the fixtures carry a five-candidate response**, so the wall-of-accent question is
+reviewable rather than theoretical. Nothing in either suite has ever rendered more than three.
 
 **A failed resolver is a NOTE, not a candidate — and it must never be given a title.** Found by
 rendering the fixture's failure states, which is what 18a existed for. As built, a resolver that
