@@ -138,7 +138,7 @@ const AddVideo = () => {
   const canSubmit = !isBusy && title.trim().length > 0;
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="flex min-h-dvh flex-col bg-paper">
       {/* Explicit destination, not `navigate(-1)`: this screen has two genuinely different
           predecessors — a fresh add from the library (push), and the post-save loop landing
           here after VideoDetectionResults REPLACES its own spent results entry (see that
@@ -153,7 +153,12 @@ const AddVideo = () => {
         onBack={() => navigate(`/libraries/${libraryId}`)}
         search={false}
       />
-      <main className="p-4">
+      {/* Bottom safe-area padding is load-bearing HERE and was not before: with the capture
+          surface taking the free space, the form and the manual escape are pushed against the
+          viewport's bottom edge rather than following the content. `p-4` alone would leave the
+          escape 16px from the edge — under the home indicator on an installed PWA, which is
+          exactly the case ui-v3.md §7 names for a bottom-anchored action. */}
+      <main className="flex flex-1 flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <h1 className="sr-only">Add a film</h1>
 
         <FilingInto name={collectionName} />
@@ -170,17 +175,24 @@ const AddVideo = () => {
           </p>
         )}
 
-        {cameraError ? (
-          <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
-            Camera access is off for this site. Type the title below instead.
-          </p>
-        ) : (
-          <CoverCapture
-            onCapture={onCaptured}
-            onError={setCameraError}
-            busy={busySource === 'capture'}
-          />
-        )}
+        {/* The capture surface takes the free vertical space and centres in it, rather than
+            hugging the header with the page's dead space collecting at the bottom. The form and
+            the manual escape keep their natural height below, so nothing is pushed off-screen —
+            only the slack moves. Deliberately vertical only: the frame stays flush left, which
+            is where the column's own margin puts every other block on this screen. */}
+        <div className="flex flex-1 items-center">
+          {cameraError ? (
+            <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
+              Camera access is off for this site. Type the title below instead.
+            </p>
+          ) : (
+            <CoverCapture
+              onCapture={onCaptured}
+              onError={setCameraError}
+              busy={busySource === 'capture'}
+            />
+          )}
+        </div>
 
         <form onSubmit={onSubmit} className="mt-6" noValidate>
           <Field
