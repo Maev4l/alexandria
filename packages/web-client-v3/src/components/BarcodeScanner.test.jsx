@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { __resetCameraStreamForTests } from '@/lib/cameraStream.js';
 import BarcodeScanner from './BarcodeScanner.jsx';
 
 // LAYER 1 of the three the task brief names: the state machine — permission requested/denied,
@@ -13,7 +14,11 @@ import BarcodeScanner from './BarcodeScanner.jsx';
 // pretending to cover a layer this file cannot actually reach — see the task-18 report for the
 // honest accounting. LAYER 3 (the live camera on a real device) is manual-only and not asserted
 // anywhere in this codebase.
-const decodeFromConstraintsMock = vi.fn();
+// `decodeFromVideoElement`, not `decodeFromVideoElement`: the component no longer opens the
+// device at all. It borrows the shared lease (lib/cameraStream.js), attaches that stream to its
+// own <video>, and asks zxing only to scan an element it already owns — which is what lets the
+// stream outlive a remount instead of being re-requested on every item of a cataloguing session.
+const decodeFromVideoElementMock = vi.fn();
 
 // A real `function`, not an arrow, so `new BrowserMultiFormatReader(...)` — exactly how the
 // component constructs it — has something constructible to call. Named differently from the
@@ -21,7 +26,7 @@ const decodeFromConstraintsMock = vi.fn();
 // the constructor-call assertions.
 vi.mock('@zxing/browser', () => ({
   BrowserMultiFormatReader: vi.fn(function FakeBrowserMultiFormatReader() {
-    this.decodeFromConstraints = decodeFromConstraintsMock;
+    this.decodeFromVideoElement = decodeFromVideoElementMock;
   }),
 }));
 
@@ -37,12 +42,17 @@ describe('BarcodeScanner — the state machine', () => {
   let originalMediaDevices;
 
   beforeEach(() => {
-    decodeFromConstraintsMock.mockReset();
+    decodeFromVideoElementMock.mockReset();
     vi.mocked(BrowserMultiFormatReader).mockClear();
+    // The lease caches its stream in module scope, so it must be reset between specs or one
+    // test's open camera answers the next test's acquire and the requesting state never appears.
+    __resetCameraStreamForTests();
     originalMediaDevices = navigator.mediaDevices;
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
-      value: { getUserMedia: vi.fn() },
+      // A stand-in stream: this suite never reads it, it only has to be something the lease can
+      // cache and hand to the component's <video>.
+      value: { getUserMedia: vi.fn(async () => ({ getTracks: () => [], getVideoTracks: () => [{ readyState: 'live', stop: vi.fn() }] })) },
     });
   });
 
@@ -63,13 +73,13 @@ describe('BarcodeScanner — the state machine', () => {
   });
 
   it('shows a requesting caption before permission resolves — no decoration, plain text', () => {
-    decodeFromConstraintsMock.mockReturnValue(new Promise(() => {})); // never settles in this test
+    decodeFromVideoElementMock.mockReturnValue(new Promise(() => {})); // never settles in this test
     render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
     expect(screen.getByText(/requesting camera access/i)).toBeInTheDocument();
   });
 
   it('drops the requesting caption once scanning starts, adding nothing in its place', async () => {
-    decodeFromConstraintsMock.mockResolvedValue({ stop: vi.fn() });
+    decodeFromVideoElementMock.mockResolvedValue({ stop: vi.fn() });
     render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
     await waitFor(() =>
       expect(screen.queryByText(/requesting camera access/i)).not.toBeInTheDocument(),
@@ -85,7 +95,7 @@ describe('BarcodeScanner — the state machine', () => {
   // reason — "a filled rectangle where an image belongs reads as a failed image" — and this box
   // is waiting for a live picture the same way. The rule alone describes it.
   it('is a ruled box with no fill, before the stream attaches', () => {
-    decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
+    decodeFromVideoElementMock.mockReturnValue(new Promise(() => {}));
     const { container } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
     expect(container.firstChild.className).not.toContain('bg-paper-deep');
     expect(container.firstChild.className).not.toMatch(/\bbg-(?!transparent)/);
@@ -93,7 +103,7 @@ describe('BarcodeScanner — the state machine', () => {
 
   it('reports a decoded result through onCode and ignores frames with no result', async () => {
     let capturedCallback;
-    decodeFromConstraintsMock.mockImplementation((_constraints, _video, callback) => {
+    decodeFromVideoElementMock.mockImplementation((_video, callback) => {
       capturedCallback = callback;
       return Promise.resolve({ stop: vi.fn() });
     });
@@ -111,7 +121,9 @@ describe('BarcodeScanner — the state machine', () => {
 
   it('moves to denied and calls onError when the browser refuses permission, rendering nothing', async () => {
     const onError = vi.fn();
-    decodeFromConstraintsMock.mockRejectedValue(new Error('NotAllowedError'));
+    // The refusal arrives from `getUserMedia` now — the component asks the lease for a stream and
+    // the lease asks the browser. The decoder is never reached at all on this path.
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockRejectedValue(new Error('NotAllowedError'));
     const { container } = render(<BarcodeScanner onCode={() => {}} onError={onError} />);
     await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
     expect(onError.mock.calls[0][0].message).toBe('NotAllowedError');
@@ -120,7 +132,7 @@ describe('BarcodeScanner — the state machine', () => {
 
   it('stops the stream on unmount — an abandoned camera is a battery/privacy problem, not a leak', async () => {
     const stop = vi.fn();
-    decodeFromConstraintsMock.mockResolvedValue({ stop });
+    decodeFromVideoElementMock.mockResolvedValue({ stop });
     const { unmount } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
     await waitFor(() => expect(BrowserMultiFormatReader).toHaveBeenCalledTimes(1));
     expect(stop).not.toHaveBeenCalled();
@@ -128,22 +140,42 @@ describe('BarcodeScanner — the state machine', () => {
     expect(stop).toHaveBeenCalledTimes(1);
   });
 
-  it('stops a stream that resolves AFTER the component has already unmounted', async () => {
+  it('stops a decode that resolves AFTER the component has already unmounted', async () => {
     const stop = vi.fn();
     let resolveDecode;
-    decodeFromConstraintsMock.mockReturnValue(
+    decodeFromVideoElementMock.mockReturnValue(
       new Promise((resolve) => {
         resolveDecode = resolve;
       }),
     );
     const { unmount } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
+    // Wait until the decode has actually STARTED before unmounting. Acquiring the shared stream
+    // is itself a microtask now, so unmounting immediately after render lands in the window
+    // BEFORE the decode begins — a different case, covered by its own test below.
+    await waitFor(() => expect(decodeFromVideoElementMock).toHaveBeenCalledTimes(1));
     unmount();
     resolveDecode({ stop });
     await waitFor(() => expect(stop).toHaveBeenCalledTimes(1));
   });
 
+  // The new window the shared lease opens, and the reason the test above had to grow a wait:
+  // between mount and the stream arriving, there is a span in which no decode exists yet.
+  // Unmounting there must leave nothing running — and must NOT stop the shared stream, which
+  // belongs to the flow rather than to this component and may be feeding the next screen.
+  it('starts no decode at all when unmounted before the shared stream arrives', async () => {
+    const track = { readyState: 'live', stop: vi.fn() };
+    vi.mocked(navigator.mediaDevices.getUserMedia).mockImplementation(
+      async () => ({ getTracks: () => [track], getVideoTracks: () => [track] }),
+    );
+    const { unmount } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
+    unmount();
+    await waitFor(() => expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalled());
+    expect(decodeFromVideoElementMock).not.toHaveBeenCalled();
+    expect(track.stop).not.toHaveBeenCalled();
+  });
+
   // The geometry task's barcode-frame reshape: full column width, fixed height. This component
-  // decodes off the fake `decodeFromConstraints`, which never reads the video element's CSS at
+  // decodes off the fake `decodeFromVideoElement`, which never reads the video element's CSS at
   // all — so this assertion is necessarily about layout, not decoding; the "decoding is
   // unaffected" half of the claim is structural (§ the source comment) rather than something
   // this suite can exercise, since nothing here ever measured decode success against box size.
@@ -160,7 +192,7 @@ describe('BarcodeScanner — the state machine', () => {
   // (`h-48 w-full max-w-xs`), which is where the height came from: the previous v2 is an
   // anti-reference for IDENTITY, not for what a viewfinder has to physically fit into.
   it('sets a fixed 192px height instead of the old 2:3 aspect ratio', () => {
-    decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
+    decodeFromVideoElementMock.mockReturnValue(new Promise(() => {}));
     const { container } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
     expect(container.firstChild.className).toContain('h-48');
     expect(container.firstChild.className).not.toContain('aspect-[2/3]');
@@ -171,7 +203,7 @@ describe('BarcodeScanner — the state machine', () => {
   // when the frame was halved, and the frame is now full-width at a fixed height. The zoom and
   // the clipping are what it checks, and both outlive any particular geometry.
   it('zooms the feed and clips it so it never escapes the ruled frame', () => {
-    decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
+    decodeFromVideoElementMock.mockReturnValue(new Promise(() => {}));
     const { container } = render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
     expect(container.firstChild.className).toContain('overflow-hidden');
     const video = container.querySelector('video');
@@ -179,57 +211,38 @@ describe('BarcodeScanner — the state machine', () => {
   });
 
   it('restricts decoding to EAN-13 and EAN-8 only, not the reader\'s full multi-format default', () => {
-    decodeFromConstraintsMock.mockReturnValue(new Promise(() => {}));
+    decodeFromVideoElementMock.mockReturnValue(new Promise(() => {}));
     render(<BarcodeScanner onCode={() => {}} onError={() => {}} />);
     expect(BrowserMultiFormatReader).toHaveBeenCalledTimes(1);
     const hints = BrowserMultiFormatReader.mock.calls[0][0];
     expect(hints.get('POSSIBLE_FORMATS')).toEqual(['EAN_13', 'EAN_8']);
   });
 
-  // Reproduces the reported bug faithfully rather than by hand-rolled unmount/remount calls:
-  // React double-invokes mount effects under StrictMode (mount -> cleanup -> mount), which is
-  // exactly the production shape that exposed the race. `decodeFromConstraints` is async (it
-  // awaits getUserMedia), so the cleanup between the two mounts fires while the FIRST run's
-  // promise is still pending and its controls are not yet assigned — that gap is the whole bug.
+  // The reported bug, reproduced the way production produced it: React double-invokes mount
+  // effects under StrictMode (mount -> cleanup -> mount).
   //
-  // Real zxing's `stop()` calls `cleanVideoSource(videoElement)`, which unconditionally sets
-  // `videoElement.srcObject = null` regardless of which run currently owns the element. Since
-  // decodeFromConstraints is mocked here (no real <video>/MediaStream plumbing exists in jsdom),
-  // `sharedVideoState.attached` stands in for that shared element's srcObject: each fake
-  // `decodeFromConstraints` resolution "attaches" its own id to it (mirroring the library
-  // assigning srcObject just before resolving), and each fake `stop()` unconditionally clears it
-  // (mirroring cleanVideoSource) — so the assertion below observes the exact DOM-level side
-  // effect the real component's serialization must prevent, not just its own internal refs.
-  it('does not let a stale StrictMode remount clear the surviving run\'s stream', async () => {
-    const sharedVideoState = { attached: null };
-    const makeControls = (id) => ({
-      stop: vi.fn(() => {
-        sharedVideoState.attached = null;
-      }),
-      id,
-    });
-
-    let resolveFirst;
-    let callCount = 0;
-    const controlsByCall = {};
-    decodeFromConstraintsMock.mockImplementation(() => {
-      callCount += 1;
-      const id = callCount === 1 ? 'A' : 'B';
-      if (callCount === 1) {
-        // Held open deliberately: this is the run StrictMode's cleanup discards while it is
-        // still in flight, and it is resolved LATE — after that cleanup has already run — which
-        // is the precise window the real bug lives in.
-        return new Promise((resolve) => {
-          resolveFirst = () => {
-            sharedVideoState.attached = id;
-            controlsByCall[id] = makeControls(id);
-            resolve(controlsByCall[id]);
-          };
-        });
-      }
-      sharedVideoState.attached = id;
-      controlsByCall[id] = makeControls(id);
-      return Promise.resolve(controlsByCall[id]);
+  // THE INVARIANT CHANGED WITH THE MECHANISM, and the test says so rather than keeping an
+  // assertion whose premise has gone. The original failure was zxing's: `decodeFromConstraints`
+  // owned the stream, both runs raced to attach `srcObject` to the same shared <video>, and the
+  // discarded run's late `stop()` called `cleanVideoSource()` — nulling the element's source out
+  // from under the run that survived. Live LED, sourceless element, nothing decoding. It was
+  // fixed by serialising the two attempts behind a chain promise.
+  //
+  // That window no longer exists. The component borrows the shared lease instead of opening the
+  // device, so cleanup — synchronous, in the same commit — always fires while the discarded run
+  // is still awaiting its stream, and that run returns without ever reaching the decoder. There
+  // is nothing to serialise, and `decodeFromVideoElement` registers no finalizer, so `stop()`
+  // cannot touch the stream or the element either. The chain was therefore removed rather than
+  // kept as a guard against a failure the file can no longer produce.
+  //
+  // So what is asserted is what remains true and is worth holding: the double-invoke leaves
+  // EXACTLY ONE decode running, and it belongs to the surviving run.
+  it('leaves exactly one decode running through a StrictMode double-invoke', async () => {
+    const controlsByCall = [];
+    decodeFromVideoElementMock.mockImplementation(() => {
+      const controls = { stop: vi.fn() };
+      controlsByCall.push(controls);
+      return Promise.resolve(controls);
     });
 
     render(
@@ -238,18 +251,12 @@ describe('BarcodeScanner — the state machine', () => {
       </StrictMode>,
     );
 
-    // Let the discarded first run resolve late, after its own cleanup has already fired.
-    resolveFirst();
-
-    await waitFor(() => expect(decodeFromConstraintsMock).toHaveBeenCalledTimes(2));
     await waitFor(() =>
       expect(screen.queryByText(/requesting camera access/i)).not.toBeInTheDocument(),
     );
 
-    // The invariant: whichever run survives must still own the shared element's stream — a
-    // stale run's late stop() must never clear it.
-    expect(sharedVideoState.attached).toBe('B');
-    expect(controlsByCall.B.stop).not.toHaveBeenCalled();
+    expect(controlsByCall).toHaveLength(1);
+    expect(controlsByCall[0].stop).not.toHaveBeenCalled();
   });
 });
 
@@ -263,12 +270,17 @@ describe('BarcodeScanner — narrating a lookup in flight', () => {
   let originalMediaDevices;
 
   beforeEach(() => {
-    decodeFromConstraintsMock.mockReset().mockResolvedValue({ stop: vi.fn() });
+    decodeFromVideoElementMock.mockReset().mockResolvedValue({ stop: vi.fn() });
     vi.mocked(BrowserMultiFormatReader).mockClear();
+    // The lease caches its stream in module scope, so it must be reset between specs or one
+    // test's open camera answers the next test's acquire and the requesting state never appears.
+    __resetCameraStreamForTests();
     originalMediaDevices = navigator.mediaDevices;
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
-      value: { getUserMedia: vi.fn() },
+      // A stand-in stream: this suite never reads it, it only has to be something the lease can
+      // cache and hand to the component's <video>.
+      value: { getUserMedia: vi.fn(async () => ({ getTracks: () => [], getVideoTracks: () => [{ readyState: 'live', stop: vi.fn() }] })) },
     });
   });
 
@@ -298,7 +310,7 @@ describe('BarcodeScanner — narrating a lookup in flight', () => {
   });
 
   it('does not narrate a lookup before the stream has attached, even if busy is set early', () => {
-    decodeFromConstraintsMock.mockReturnValue(new Promise(() => {})); // never settles
+    decodeFromVideoElementMock.mockReturnValue(new Promise(() => {})); // never settles
     render(<BarcodeScanner onCode={() => {}} onError={() => {}} busy />);
     // Still in `requesting` — there is no scanning frame yet to narrate a lookup against.
     expect(screen.queryByText(/code read/i)).not.toBeInTheDocument();

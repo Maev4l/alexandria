@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import AppRoutes from '@/routes.jsx';
-import { FilingSessionProvider } from '@/state/FilingSessionContext.jsx';
+import AddFlowLayout from '@/components/AddFlowLayout.jsx';
 
 // The session tally is defined by WHERE its provider is mounted: a pathless layout route above
 // the four add-flow routes, so it stays mounted across capture -> results -> capture and unmounts
@@ -28,9 +28,9 @@ const routeChildren = () => {
 describe('the add flow is nested under the filing-session provider', () => {
   const layouts = routeChildren().filter((route) => route.props.path === undefined);
 
-  it('has exactly one pathless layout route, and it is the filing-session provider', () => {
+  it('has exactly one pathless layout route, and it is the add-flow layout', () => {
     expect(layouts).toHaveLength(1);
-    expect(layouts[0].props.element.type).toBe(FilingSessionProvider);
+    expect(layouts[0].props.element.type).toBe(AddFlowLayout);
   });
 
   it('wraps every add-flow route and nothing else', () => {

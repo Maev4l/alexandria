@@ -800,6 +800,96 @@ try {
     );
   }
 
+  // ---- The camera survives the loop instead of restarting on every item ----
+  // Slice D's other P1. Each save `replace`s back to the capture screen, which is a fresh mount,
+  // and the mount-only effect used to tear the stream down and call `getUserMedia` again — ten
+  // items, ten device-open-and-refocus cycles, each showing a black frame first. DESIGN.md §4
+  // accepts a harder reach for Add BECAUSE the flow loops; the loop's per-item cost is therefore
+  // the thing most worth engineering.
+  //
+  // Counted rather than timed. A wall-clock assertion on camera warmup would be flaky on any
+  // machine and meaningless on a fake device; the number of times the app asks the browser for a
+  // camera is exact, and it is the thing that actually changed.
+  console.log('the camera is opened once per cataloguing session, not once per item');
+  {
+    // Counts `getUserMedia` calls from inside the page, installed before any app code runs so a
+    // reload cannot slip a call past it.
+    await page.evaluateOnNewDocument(() => {
+      window.__cameraOpens = 0;
+      const real = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      navigator.mediaDevices.getUserMedia = (...args) => {
+        window.__cameraOpens += 1;
+        return real(...args);
+      };
+    });
+
+    await page.goto(`${BASE}/libraries/lib-fiction/add/book/results?isbn=9782070408504`, {
+      waitUntil: 'networkidle0',
+    });
+    await useFirstCandidate();
+    await waitForScreen('Add a book');
+    await page.waitForFunction(() => document.querySelector('main video')?.readyState === 4, {
+      timeout: 15_000,
+    });
+
+    // A second item, reached the way a reader reaches it.
+    await page.type('main input', '9782070408504');
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('main button')].find(
+        (el) => el.textContent.trim().toLowerCase().startsWith('look it up'),
+      );
+      btn?.click();
+    });
+    await waitForScreen('Book results');
+    await useFirstCandidate();
+    await waitForScreen('Add a book');
+    await page.waitForFunction(() => document.querySelector('main video')?.readyState === 4, {
+      timeout: 15_000,
+    });
+
+    const opensWithinSession = await page.evaluate(() => window.__cameraOpens);
+    record(
+      opensWithinSession === 1,
+      'two items filed, the camera opened once',
+      `opened ${opensWithinSession} times`,
+    );
+    // And the feed is genuinely live on the second item, not merely un-reopened: a lease that
+    // handed back a dead stream would also count 1.
+    const liveOnSecondItem = await page.evaluate(() => {
+      const video = document.querySelector('main video');
+      return Boolean(video?.srcObject) && video.readyState === 4 && video.videoWidth > 0;
+    });
+    record(liveOnSecondItem, 'the feed is still live after the second save', 'feed not live');
+
+    // Leaving the flow releases it: the layout route unmounts, the tracks stop, and coming back
+    // opens the device again. A lease with no owner would stay at 1 here, having never let go.
+    //
+    // IN-APP navigation, not `page.goto`. A full document load resets this counter along with
+    // everything else, so it can say nothing about whether the previous document released
+    // anything — the first draft of this assertion did exactly that and was measuring a fresh
+    // page rather than a release. Back and forward through the SPA's own history keeps one
+    // document, and therefore one counter.
+    await page.evaluate(() => {
+      document.querySelector('header button')?.click();
+    });
+    await waitForScreen('Fiction');
+    // `goBack`, not `goForward`: the capture screen's own back control is an explicit
+    // `navigate(library)` PUSH rather than a history step (it has two possible predecessors and
+    // a relative step is wrong for one of them), so leaving the flow adds an entry rather than
+    // consuming one — there is no forward entry to go to.
+    await page.goBack();
+    await waitForScreen('Add a book');
+    await page.waitForFunction(() => document.querySelector('main video')?.readyState === 4, {
+      timeout: 15_000,
+    });
+    const opensAfterReentry = await page.evaluate(() => window.__cameraOpens);
+    record(
+      opensAfterReentry === 2,
+      're-entering the flow opens the camera again, so leaving it genuinely released the device',
+      `counter read ${opensAfterReentry} in one document`,
+    );
+  }
+
   // ---- Pinch-zoom must not be disabled: WCAG 1.4.4, and this app is used in poor light ----
   console.log('viewport permits zoom');
   await page.goto(`${BASE}/libraries`, { waitUntil: 'networkidle0' });

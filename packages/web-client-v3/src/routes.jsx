@@ -1,10 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { FilingSessionProvider } from '@/state/FilingSessionContext.jsx';
+import AddFlowLayout from '@/components/AddFlowLayout.jsx';
 import { useAuth } from '@/auth/AuthContext.jsx';
 
-// Route-level code splitting. The capture routes are the reason this matters: @zxing and
-// react-webcam must never be in the entry bundle for a reader who only ever looks things up.
+// Route-level code splitting. The capture routes are the reason this matters: @zxing must
+// never be in the entry bundle for a reader who only ever looks things up. (react-webcam used to
+// be named here too; the cover capture is a plain <video> now — see CoverCapture.jsx.)
 const Login = lazy(() => import('@/pages/Login.jsx'));
 const SignUp = lazy(() => import('@/pages/SignUp.jsx'));
 const Libraries = lazy(() => import('@/pages/Libraries.jsx'));
@@ -62,8 +63,9 @@ const AppRoutes = () => (
           the exact URLs they had. Its job is to stay mounted for the whole cataloguing session —
           across capture -> results -> capture, however many items — and to unmount, resetting the
           tally, the moment the reader leaves the flow. Nesting is what defines "this session";
-          see FilingSessionContext.jsx. */}
-      <Route element={<FilingSessionProvider />}>
+          see FilingSessionContext.jsx. It owns the camera lease on the same span, for the same
+          reason — see AddFlowLayout.jsx. */}
+      <Route element={<AddFlowLayout />}>
         <Route path="/libraries/:libraryId/add/book" element={guard(<AddBook />)} />
         <Route path="/libraries/:libraryId/add/book/results" element={guard(<BookDetectionResults />)} />
         <Route path="/libraries/:libraryId/add/video" element={guard(<AddVideo />)} />

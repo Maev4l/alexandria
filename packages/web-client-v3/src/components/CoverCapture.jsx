@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import Webcam from 'react-webcam';
 import CaptureCaption from '@/components/CaptureCaption.jsx';
+import { acquireCameraStream } from '@/lib/cameraStream.js';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 
 const hasCamera = () =>
@@ -11,18 +11,22 @@ const hasCamera = () =>
 // that happens to post it on.
 const stripDataUrlPrefix = (dataUrl) => dataUrl.replace(/^data:image\/[a-z]+;base64,/, '');
 
-// `react-webcam`'s own `getScreenshot()`/`getCanvas()` has two compounding defects for this
-// frame (verified in `react-webcam.js:278-280`, `:421`): it sizes the capture canvas off the
-// VIDEO ELEMENT'S RENDERED width (`video.clientWidth`, ~280px — `forceScreenshotSourceSize`
-// defaults `false`) rather than the sensor's real resolution, and it draws the WHOLE sensor
-// frame while the on-screen preview shows only the centre crop `object-cover` selects. So the
-// reader carefully frames a title and the upload contains a wider scene they never saw, with the
-// framed region occupying a fraction of an already-small image.
+// WHY THERE IS NO `react-webcam` HERE ANY MORE.
 //
-// This computes the exact source rectangle `object-cover` is displaying for a given container
-// aspect, so a canvas draw from the underlying `<video>` element reproduces WHAT THE READER
-// FRAMED, at the sensor's own resolution — by construction, not by a rule someone has to
-// remember to keep in step with the CSS.
+// It owned its own stream and offered no way to be handed one, which made it the single blocker
+// on keeping a camera warm across the cataloguing loop: every save remounts this screen, and
+// every remount re-opened the device. Everything else it contributed was a <video> and a
+// `srcObject` assignment. Its screenshot helper was already unused, for reasons worth keeping —
+// verified in `react-webcam.js:278-280`, `:421`, `getCanvas()` sized the capture from the VIDEO
+// ELEMENT'S RENDERED width (`video.clientWidth`, ~280px; `forceScreenshotSourceSize` defaults
+// false) rather than the sensor's resolution, and drew the WHOLE sensor frame while the preview
+// showed only the centre crop `object-cover` selects. Dropping the dependency retires both
+// defects rather than routing around them.
+//
+// What replaces it is what this file already did by hand: compute the exact source rectangle
+// `object-cover` is displaying, and draw THAT from the <video> at the sensor's own resolution —
+// so the upload is what the reader framed, by construction rather than by a rule someone has to
+// keep in step with the CSS.
 const objectCoverSourceRect = (videoWidth, videoHeight, containerAspect) => {
   const videoAspect = videoWidth / videoHeight;
   if (videoAspect > containerAspect) {
@@ -39,18 +43,13 @@ const objectCoverSourceRect = (videoWidth, videoHeight, containerAspect) => {
   return { sx: 0, sy: (videoHeight - sHeight) / 2, sWidth, sHeight };
 };
 
-// `webcamRef.current.video` is the underlying <video> element: `Webcam` is a class component
-// (not itself wrapped in `forwardRef`), so its instance ref exposes the `this.video` property it
-// assigns in its own render (`react-webcam.js:409`) directly — no imperative-handle indirection
-// to go through.
-//
-// The container aspect is read from THIS SAME ELEMENT'S rendered box (`clientWidth`/
-// `clientHeight`), not a second hand-written `2 / 3` constant mirroring the CSS. The <video> is
-// `size-full` inside its 2:3 parent, so its own rendered box IS the frame `object-cover` is
-// fitting into — reading it here means there is only ONE place the aspect is ever written down
-// (the CSS), and nothing to drift out of step with it. A hardcoded ratio would silently crop a
-// region the preview never showed the moment the CSS box's spec changed and this constant did
-// not; deriving it removes that possibility rather than adding a test to catch it.
+// The container aspect is read from the <video>'s OWN rendered box (`clientWidth`/
+// `clientHeight`), never a second hand-written constant mirroring the CSS. The element is
+// `size-full` inside the ruled frame, so its rendered box IS the box `object-cover` is fitting
+// into — the aspect is therefore written down in exactly one place, the CSS, with nothing to
+// drift out of step with it. A hardcoded ratio would silently crop a region the preview never
+// showed the moment the frame's spec changed and the constant did not; deriving it removes that
+// possibility rather than adding a test to catch it.
 const captureFramedRegion = (video) => {
   if (!video?.videoWidth || !video?.videoHeight || !video?.clientWidth || !video?.clientHeight) {
     // Also covers a video not yet laid out (zero-size rendered box): a division by its height
@@ -98,15 +97,36 @@ const captureFramedRegion = (video) => {
 // also reachable from the manual title field, and narrating here for a title-only lookup would
 // claim a cover lookup that never happened.
 const CoverCapture = ({ onCapture, onError, busy = false, showGuidance = true }) => {
-  const webcamRef = useRef(null);
+  const videoRef = useRef(null);
   const [state, setState] = useState(() => (hasCamera() ? 'requesting' : 'unsupported'));
 
   useEffect(() => {
     if (!hasCamera()) {
       onError(new Error('NotSupportedError'));
+      return undefined;
     }
-    // No cleanup beyond what react-webcam's own componentWillUnmount already does (it stops its
-    // stream): nothing here needs to duplicate that.
+
+    let cancelled = false;
+    acquireCameraStream()
+      .then((stream) => {
+        // `null` when the flow's lease was released while this was in flight.
+        if (cancelled || !stream || !videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        setState('ready');
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setState('denied');
+        onError(err instanceof Error ? err : new Error(String(err)));
+      });
+
+    // NOTHING IS STOPPED HERE, and that is the change. The stream is not this component's: it
+    // belongs to the add flow's lease and is released by `AddFlowLayout` when the reader leaves
+    // the flow. Stopping it on unmount is exactly what made every save re-open the device.
+    // Detaching `srcObject` is not needed either — the element goes away with the component.
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -116,9 +136,9 @@ const CoverCapture = ({ onCapture, onError, busy = false, showGuidance = true })
 
   const onShutter = () => {
     // A frame the browser could not produce yet (rare, but the video can still lack real
-    // dimensions in the instant right after `onUserMedia` fires) is simply not reported —
+    // dimensions in the instant right after the stream attaches) is simply not reported —
     // nothing to strip, nothing to post, and the shutter stays available to try again.
-    const dataUrl = captureFramedRegion(webcamRef.current?.video);
+    const dataUrl = captureFramedRegion(videoRef.current);
     if (dataUrl) onCapture(stripDataUrlPrefix(dataUrl));
   };
 
@@ -151,15 +171,14 @@ const CoverCapture = ({ onCapture, onError, busy = false, showGuidance = true })
           (`captureFramedRegion` above), so the preview's size has no bearing on what gets read —
           this is a pure layout choice. */}
       <div className="relative h-[240px] w-full border-2 border-ink">
-        <Webcam
-          ref={webcamRef}
-          audio={false}
-          videoConstraints={{ facingMode: 'environment' }}
-          onUserMedia={() => setState('ready')}
-          onUserMediaError={(err) => {
-            setState('denied');
-            onError(err instanceof Error ? err : new Error(String(err)));
-          }}
+        {/* Mounted from the first render so the ref exists before the stream arrives, exactly
+            as BarcodeScanner's own <video> is. `muted` and `playsInline` are what let a mobile
+            browser autoplay it without a gesture and without going fullscreen. */}
+        <video
+          ref={videoRef}
+          muted
+          playsInline
+          autoPlay
           className="size-full object-cover"
         />
         {state === 'requesting' && (

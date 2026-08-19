@@ -5,8 +5,8 @@ const FilingSessionContext = createContext(null);
 
 // How many items the CURRENT cataloguing session has filed, and nothing else.
 //
-// "Session" is defined here, precisely, by where this provider is mounted: it is a layout route
-// wrapping the four add-flow routes (routes.jsx), so it stays mounted for as long as the reader
+// "Session" is defined here, precisely, by where this provider is mounted: `AddFlowLayout`
+// renders it as the layout route wrapping the four add-flow routes (routes.jsx), so it stays mounted for as long as the reader
 // is inside the flow — across AddBook -> results -> AddBook, however many times — and unmounts,
 // resetting to zero, the moment they leave it for the library or anywhere else. That is exactly
 // what a reader means by "this session", with no timer, no storage key to expire, and nothing to

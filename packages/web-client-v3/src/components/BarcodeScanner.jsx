@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import CaptureCaption from '@/components/CaptureCaption.jsx';
+import { acquireCameraStream } from '@/lib/cameraStream.js';
 
 // A book's own barcode is always one of these two symbologies (EAN-13 is what an ISBN-13
 // prints as; EAN-8 covers the rarer short/compact editions) — restricting the reader to them
@@ -37,11 +38,6 @@ const hasCamera = () =>
 const BarcodeScanner = ({ onCode, onError, busy = false }) => {
   const videoRef = useRef(null);
   const controlsRef = useRef(null);
-  // Carries the PREVIOUS run's full settle+stop promise across a fast remount. Stays `null` for
-  // the ordinary single-mount case, so decodeFromConstraints is still called synchronously there
-  // exactly as before — it is only ever non-null in the window a back-to-back remount opens (see
-  // the race note below).
-  const chainRef = useRef(null);
   const [state, setState] = useState(() => (hasCamera() ? 'requesting' : 'unsupported'));
 
   useEffect(() => {
@@ -60,36 +56,47 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
     let cancelled = false;
     const reader = new BrowserMultiFormatReader(HINTS);
 
-    const start = () =>
-      reader.decodeFromConstraints(
-        { video: { facingMode: 'environment' } },
-        videoRef.current,
-        (result) => {
-          // The callback also fires on every frame with NO code found (a NotFoundException in
-          // its error slot) — that is the ordinary state of a camera pointed at anything else,
-          // not a failure, so only a real result is ever acted on here.
-          if (!cancelled && result) onCode(result.getText());
-        },
-      );
+    // `decodeFromVideoElement`, NOT `decodeFromConstraints`. The difference is ownership:
+    // `decodeFromConstraints` opens the device itself and registers a finalizer that disposes
+    // the stream when the decode stops, so every remount — and the post-save loop is a remount
+    // on every item — cost a fresh `getUserMedia` and a fresh sensor warmup. Verified in
+    // `BrowserCodeReader.js`: `decodeFromVideoElement` calls `scan(element, callbackFn)` with no
+    // finalizeCallback, so `controls.stop()` stops the decode loop and touches neither the
+    // stream nor the element's source. The stream is ours to lend (see lib/cameraStream.js),
+    // and it outlives this component by exactly the span the reader is in the add flow.
+    const start = async () => {
+      const stream = await acquireCameraStream();
+      if (cancelled || !stream) return null;
+      videoRef.current.srcObject = stream;
+      return reader.decodeFromVideoElement(videoRef.current, (result) => {
+        // The callback also fires on every frame with NO code found (a NotFoundException in
+        // its error slot) — that is the ordinary state of a camera pointed at anything else,
+        // not a failure, so only a real result is ever acted on here.
+        if (!cancelled && result) onCode(result.getText());
+      });
+    };
 
-    // React StrictMode double-invokes mount effects in dev (mount -> cleanup -> mount), and
-    // decodeFromConstraints is async (it awaits getUserMedia) — so the cleanup between the two
-    // mounts can fire while the FIRST run's promise is still pending, well before its controls
-    // are ever assigned. If the second run then calls decodeFromConstraints immediately, TWO
-    // live attempts race against the same shared <video> element: whichever resolves second
-    // assigns the element's srcObject and calls play(), and when the OTHER (stale, already
-    // "cancelled") run's promise finally settles, its cleanup calls stop() on it — which zxing
-    // implements as cleanVideoSource(), unconditionally nulling the element's srcObject again,
-    // even though the element now belongs to the surviving run. That silently tears down a
-    // stream that was never faulty: LED stays on, element goes sourceless, nothing decodes.
+    // React StrictMode double-invokes mount effects in dev (mount -> cleanup -> mount), and this
+    // used to open a race: `decodeFromConstraints` owned the stream, both runs raced to attach
+    // srcObject to the same shared <video>, and the discarded run's late `stop()` called
+    // `cleanVideoSource()` — nulling the element's source out from under the run that survived.
+    // A live LED, a sourceless element, nothing decoding. It was serialised behind a chain
+    // promise so only one attempt was ever in flight.
     //
-    // Chaining this run's start behind the previous run's full settle+stop — rather than firing
-    // both at once — guarantees only one decodeFromConstraints call is ever in flight against the
-    // element, so a stale run's late stop() can only ever clear a stream that is still its own.
-    const attempt = chainRef.current ? chainRef.current.then(start) : start();
+    // THE CHAIN IS GONE, because the redesign removed the window rather than guarding it.
+    // Cleanup runs synchronously in the same commit as the mount effect, while `start` is still
+    // awaiting the shared lease — so the discarded run is already `cancelled` when its stream
+    // arrives and returns without ever calling the decoder. There is no second decode to
+    // serialise, and `stop()` can no longer reach the stream or the element's source in any
+    // case. Keeping the chain would have been a guard against a failure this file can no longer
+    // produce: a no-op wearing a comment, which is the shape this project has paid for before.
+    const attempt = start();
 
-    const settled = attempt
+    attempt
       .then((controls) => {
+        // `null` when the lease was released mid-acquire, or when this run was cancelled before
+        // the stream arrived: there is no decode to stop and nothing to show.
+        if (!controls) return;
         if (cancelled) {
           controls.stop();
           return;
@@ -105,16 +112,14 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
 
     return () => {
       cancelled = true;
-      // Stop immediately when the stream is already attached — synchronous, exactly as before,
-      // so a real unmount (an abandoned camera) releases it without waiting on a microtask.
+      // Stops the DECODE LOOP, not the camera. The stream belongs to the add flow's lease
+      // (lib/cameraStream.js) and is released by `AddFlowLayout` when the reader leaves the
+      // flow — which is the whole point: a save remounts this component, and the next mount must
+      // re-attach a stream that is still warm rather than re-open the device.
       controlsRef.current?.stop();
       controlsRef.current = null;
-      // If decodeFromConstraints hasn't resolved yet, the setup `.then()` above already covers
-      // it: `cancelled` is now true, so it calls `controls.stop()` on whatever it receives.
-      // Chaining the next run's start against this same `settled` promise (rather than a fresh
-      // `.then()`) is what makes that guarantee usable: once `settled` resolves, this run's
-      // controls — if it ever got any — are already stopped, so the shared element is free.
-      chainRef.current = settled;
+      // A decode still resolving is covered by the setup `.then()` above: `cancelled` is now
+      // true, so it stops whatever controls it receives.
     };
     // `onCode`/`onError` are event callbacks the caller may pass as fresh inline functions on
     // every render; the effect reads their latest values through this closure at call time, so

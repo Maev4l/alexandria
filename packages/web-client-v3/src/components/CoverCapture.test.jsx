@@ -1,12 +1,21 @@
-import { forwardRef, useImperativeHandle } from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { __resetCameraStreamForTests } from '@/lib/cameraStream.js';
 import CoverCapture from './CoverCapture.jsx';
 
 // LAYER 1 of the three the task brief names: the state machine — permission requested/denied,
-// ready, and reporting a captured frame. `react-webcam` sits behind a fake here so every
+// ready, and reporting a captured frame. `getUserMedia` sits behind a stub here so every
 // transition can be driven deterministically with no camera present.
+//
+// There is no `react-webcam` mock any more, because there is no react-webcam: it owned its own
+// stream and could not be handed one, which was the only thing standing between this screen and
+// a camera that survives the cataloguing loop. The component now renders a plain <video> and
+// borrows the shared lease, so these tests drive the real element rather than a fake component's
+// props — which is why the geometry fixtures below define their dimensions ON that element
+// instead of supplying an object the mock returned. That distinction matters: the previous
+// fixtures handed back an exact 2:3 box the MOCK ITSELF provided, so when the frame was reshaped
+// to 358x240 the suite stayed green while exercising an aspect the app renders nowhere.
 //
 // LAYER 2 (a "library binding" the way BarcodeScanner has one against a real decode call) does
 // not really exist for this component: capturing a frame is a synchronous canvas draw+read with
@@ -18,19 +27,17 @@ import CoverCapture from './CoverCapture.jsx';
 //
 // LAYER 3 (the live camera on a real device) is manual-only and not asserted anywhere in this
 // codebase, identically to BarcodeScanner.
-let latestProps;
-// The underlying <video> element `webcamRef.current.video` resolves to (CoverCapture.jsx's own
-// comment on why: `Webcam` is a class component whose instance ref exposes `this.video`
-// directly). Mutable per test so the geometry suite can vary its intrinsic dimensions.
+// The dimensions each test wants the rendered <video> to report. jsdom lays nothing out, so
+// `videoWidth`/`videoHeight` (the sensor) and `clientWidth`/`clientHeight` (the rendered box) are
+// all 0 unless defined, and `renderCapture` below defines them on the real element.
 let fakeVideo;
 
-vi.mock('react-webcam', () => ({
-  default: forwardRef((props, ref) => {
-    latestProps = props;
-    useImperativeHandle(ref, () => ({ video: fakeVideo }));
-    return <video data-testid="fake-webcam" />;
-  }),
-}));
+// A stream the lease can cache and the component can attach. jsdom accepts any object as
+// `srcObject`, so nothing here has to be a real MediaStream.
+const makeStream = () => {
+  const track = { readyState: 'live', stop: vi.fn() };
+  return { getTracks: () => [track], getVideoTracks: () => [track] };
+};
 
 // Canvas support is not implemented in jsdom, so `getContext`/`toDataURL` are stubbed here for
 // every test in this file — including the geometry suite below, which additionally inspects
@@ -40,6 +47,23 @@ let capturedCanvas;
 
 const shootShutter = async () => {
   await userEvent.click(screen.getByRole('button', { name: /look up this cover/i }));
+};
+
+// Renders, waits for the shared stream to attach, and gives the real <video> the dimensions this
+// test wants it to report. Returns that element, because the capture assertions are about what
+// `drawImage` was handed — which is now the element itself rather than a mock's stand-in.
+const renderCapture = async (props = {}) => {
+  const utils = render(<CoverCapture onCapture={() => {}} onError={() => {}} {...props} />);
+  await screen.findByRole('button', { name: /look up this cover/i });
+  const video = utils.container.querySelector('video');
+  for (const [key, value] of Object.entries(fakeVideo ?? {})) {
+    Object.defineProperty(video, key, { configurable: true, value });
+  }
+  return { ...utils, video };
+};
+
+const stubCamera = (getUserMedia) => {
+  Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia } });
 };
 
 const mockCanvas = () => {
@@ -58,16 +82,13 @@ describe('CoverCapture — the state machine', () => {
   let originalMediaDevices;
 
   beforeEach(() => {
-    latestProps = undefined;
+    __resetCameraStreamForTests();
     // A 1920x1080 sensor is wider than the shipped 358×240 frame either way, so it crops but
     // never fails — the exact crop maths are the geometry suite's job, not this suite's.
     fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 358, clientHeight: 240 };
     mockCanvas();
     originalMediaDevices = navigator.mediaDevices;
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: { getUserMedia: vi.fn() },
-    });
+    stubCamera(vi.fn(async () => makeStream()));
   });
 
   afterEach(() => {
@@ -123,16 +144,14 @@ describe('CoverCapture — the state machine', () => {
     expect(wrapper.className).toContain('items-center');
   });
 
-  it('drops the requesting caption and shows the shutter once the stream attaches', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+  it('drops the requesting caption and shows the shutter once the stream attaches', async () => {
+    await renderCapture();
     expect(screen.queryByText(/requesting camera access/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /look up this cover/i })).toBeInTheDocument();
   });
 
-  it('adds no reticle, scan line or any other overlay — only the video and the shutter', () => {
-    const { container } = render(<CoverCapture onCapture={() => {}} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+  it('adds no reticle, scan line or any other overlay — only the video and the shutter', async () => {
+    const { container } = await renderCapture();
     // The capture canvas is created off-DOM (`document.createElement('canvas')`, never
     // appended), so its existence must not show up here either.
     expect(container.querySelectorAll('svg, canvas')).toHaveLength(0);
@@ -140,8 +159,7 @@ describe('CoverCapture — the state machine', () => {
 
   it('reports a captured frame through onCapture with the data-URL prefix stripped', async () => {
     const onCapture = vi.fn();
-    render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+    await renderCapture({ onCapture });
     await userEvent.click(screen.getByRole('button', { name: /look up this cover/i }));
     expect(drawImageMock).toHaveBeenCalled();
     expect(onCapture).toHaveBeenCalledWith('ZmFrZS1mcmFtZQ==');
@@ -150,8 +168,7 @@ describe('CoverCapture — the state machine', () => {
   it('does nothing if the browser could not produce a frame yet', async () => {
     fakeVideo = { videoWidth: 0, videoHeight: 0 };
     const onCapture = vi.fn();
-    render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+    await renderCapture({ onCapture });
     await userEvent.click(screen.getByRole('button', { name: /look up this cover/i }));
     expect(drawImageMock).not.toHaveBeenCalled();
     expect(onCapture).not.toHaveBeenCalled();
@@ -159,17 +176,23 @@ describe('CoverCapture — the state machine', () => {
 
   it('moves to denied and calls onError when the browser refuses permission, rendering nothing', async () => {
     const onError = vi.fn();
+    // The refusal arrives from `getUserMedia` now — the component asks the shared lease and the
+    // lease asks the browser. There is no third-party callback in between any more.
+    stubCamera(vi.fn().mockRejectedValue(new Error('NotAllowedError')));
     const { container } = render(<CoverCapture onCapture={() => {}} onError={onError} />);
-    act(() => latestProps.onUserMediaError(new Error('NotAllowedError')));
     await waitFor(() => expect(container).toBeEmptyDOMElement());
     expect(onError).toHaveBeenCalledTimes(1);
     expect(onError.mock.calls[0][0].message).toBe('NotAllowedError');
   });
 
-  it('asks for the environment-facing camera, not the front one', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} />);
-    expect(latestProps.videoConstraints).toEqual({ facingMode: 'environment' });
-    expect(latestProps.audio).toBe(false);
+  it('asks for the environment-facing camera, not the front one', async () => {
+    await renderCapture();
+    // Asserted on the lease's own request now. Audio was never asked for and cannot be: the
+    // lease requests `{ video: ... }` and nothing else, so there is no audio flag left to get
+    // wrong.
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
+      video: { facingMode: 'environment' },
+    });
   });
 });
 
@@ -191,13 +214,10 @@ describe('CoverCapture — capture geometry (what object-cover displays, at sens
   const REAL_FRAME = { clientWidth: 358, clientHeight: 240 };
 
   beforeEach(() => {
-    latestProps = undefined;
+    __resetCameraStreamForTests();
     mockCanvas();
     originalMediaDevices = navigator.mediaDevices;
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: { getUserMedia: vi.fn() },
-    });
+    stubCamera(vi.fn(async () => makeStream()));
   });
 
   afterEach(() => {
@@ -215,13 +235,12 @@ describe('CoverCapture — capture geometry (what object-cover displays, at sens
     // the other branch — only the crop amount changes, since less is now cropped off each side.
     fakeVideo = { videoWidth: 1920, videoHeight: 1080, ...REAL_FRAME };
     const onCapture = vi.fn();
-    render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+    const { video } = await renderCapture({ onCapture });
     await shootShutter();
 
     expect(capturedCanvas.width).toBe(1611); // 1080 * (358 / 240)
     expect(capturedCanvas.height).toBe(1080);
-    expect(drawImageMock).toHaveBeenCalledWith(fakeVideo, 154.5, 0, 1611, 1080, 0, 0, 1611, 1080);
+    expect(drawImageMock).toHaveBeenCalledWith(video, 154.5, 0, 1611, 1080, 0, 0, 1611, 1080);
     expect(onCapture).toHaveBeenCalledWith('ZmFrZS1mcmFtZQ==');
   });
 
@@ -233,8 +252,7 @@ describe('CoverCapture — capture geometry (what object-cover displays, at sens
     // browser could not produce.
     fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 0, clientHeight: 0 };
     const onCapture = vi.fn();
-    render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+    await renderCapture({ onCapture });
     await shootShutter();
 
     expect(drawImageMock).not.toHaveBeenCalled();
@@ -249,14 +267,13 @@ describe('CoverCapture — capture geometry (what object-cover displays, at sens
     // cropped (was 720px kept of 1280, now ~322px kept).
     fakeVideo = { videoWidth: 480, videoHeight: 1280, ...REAL_FRAME };
     const onCapture = vi.fn();
-    render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+    const { video } = await renderCapture({ onCapture });
     await shootShutter();
 
     expect(capturedCanvas.width).toBe(480);
     expect(capturedCanvas.height).toBe(322); // Math.round(480 / (358 / 240)) = Math.round(321.79)
     expect(drawImageMock).toHaveBeenCalledWith(
-      fakeVideo,
+      video,
       0,
       479.10614525139664, // (1280 - 480/(358/240)) / 2
       480,
@@ -276,8 +293,7 @@ describe('CoverCapture — capture geometry (what object-cover displays, at sens
     // the maths. Same WIDE branch as the 1920x1080 case above, at 2x the resolution.
     fakeVideo = { videoWidth: 3840, videoHeight: 2160, ...REAL_FRAME };
     const onCapture = vi.fn();
-    render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+    await renderCapture({ onCapture });
     await shootShutter();
 
     expect(capturedCanvas.width).toBe(3222); // 2160 * (358 / 240)
@@ -294,13 +310,12 @@ describe('CoverCapture — capture geometry (what object-cover displays, at sens
   it('resolves the WIDE branch correctly at an arbitrary aspect the app has never shipped (generic check)', async () => {
     fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 100, clientHeight: 200 }; // aspect 0.5
     const onCapture = vi.fn();
-    render(<CoverCapture onCapture={onCapture} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+    const { video } = await renderCapture({ onCapture });
     await shootShutter();
 
     expect(capturedCanvas.width).toBe(540); // 1080 * (100 / 200)
     expect(capturedCanvas.height).toBe(1080);
-    expect(drawImageMock).toHaveBeenCalledWith(fakeVideo, 690, 0, 540, 1080, 0, 0, 540, 1080);
+    expect(drawImageMock).toHaveBeenCalledWith(video, 690, 0, 540, 1080, 0, 0, 540, 1080);
     expect(onCapture).toHaveBeenCalledWith('ZmFrZS1mcmFtZQ==');
   });
 });
@@ -314,17 +329,15 @@ describe('CoverCapture — narrating a lookup in flight', () => {
   let originalMediaDevices;
 
   beforeEach(() => {
-    latestProps = undefined;
+    __resetCameraStreamForTests();
+    __resetCameraStreamForTests();
     // Dimensions unchecked by this describe block (it asserts caption text, never crop geometry)
     // — kept at the shipped 358×240 frame's shape anyway so nothing here implies a box the app
     // does not render.
     fakeVideo = { videoWidth: 1920, videoHeight: 1080, clientWidth: 358, clientHeight: 240 };
     mockCanvas();
     originalMediaDevices = navigator.mediaDevices;
-    Object.defineProperty(navigator, 'mediaDevices', {
-      configurable: true,
-      value: { getUserMedia: vi.fn() },
-    });
+    stubCamera(vi.fn(async () => makeStream()));
   });
 
   afterEach(() => {
@@ -335,9 +348,8 @@ describe('CoverCapture — narrating a lookup in flight', () => {
     vi.restoreAllMocks();
   });
 
-  it('says nothing while no lookup is in flight, once the stream is ready', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy={false} />);
-    act(() => latestProps.onUserMedia());
+  it('says nothing while no lookup is in flight, once the stream is ready', async () => {
+    await renderCapture({ busy: false });
     expect(screen.queryByText(/looking up this cover/i)).not.toBeInTheDocument();
   });
 
@@ -345,15 +357,13 @@ describe('CoverCapture — narrating a lookup in flight', () => {
   // BY CONSTRUCTION (`state === 'requesting'`, `state === 'ready' && busy`,
   // `state === 'ready' && !busy` partition every reachable state). These three assertions pin
   // each one individually so a later edit widening any gate cannot make two overlap unnoticed.
-  it('shows "Frame the title" once ready and not busy — the idle caption', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy={false} />);
-    act(() => latestProps.onUserMedia());
+  it('shows "Frame the title" once ready and not busy — the idle caption', async () => {
+    await renderCapture({ busy: false });
     expect(screen.getByText(/frame the title/i)).toBeInTheDocument();
   });
 
-  it('hides "Frame the title" while a lookup is in flight', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy />);
-    act(() => latestProps.onUserMedia());
+  it('hides "Frame the title" while a lookup is in flight', async () => {
+    await renderCapture({ busy: true });
     expect(screen.queryByText(/frame the title/i)).not.toBeInTheDocument();
     expect(screen.getByText(/looking up this cover/i)).toBeInTheDocument();
   });
@@ -365,15 +375,13 @@ describe('CoverCapture — narrating a lookup in flight', () => {
     expect(screen.getByText(/requesting camera access/i)).toBeInTheDocument();
   });
 
-  it('narrates the lookup — and only the one fact — once ready and busy', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy />);
-    act(() => latestProps.onUserMedia());
+  it('narrates the lookup — and only the one fact — once ready and busy', async () => {
+    await renderCapture({ busy: true });
     expect(screen.getByText(/looking up this cover/i)).toBeInTheDocument();
   });
 
-  it('never says "code read" — that fact belongs to the automatic decoder, not a tapped shutter', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy />);
-    act(() => latestProps.onUserMedia());
+  it('never says "code read" — that fact belongs to the automatic decoder, not a tapped shutter', async () => {
+    await renderCapture({ busy: true });
     expect(screen.queryByText(/code read/i)).not.toBeInTheDocument();
   });
 
@@ -383,22 +391,19 @@ describe('CoverCapture — narrating a lookup in flight', () => {
     expect(screen.queryByText(/looking up this cover/i)).not.toBeInTheDocument();
   });
 
-  it('leaves the shutter tappable while busy — no disabled state (explicitly out of scope)', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} busy />);
-    act(() => latestProps.onUserMedia());
+  it('leaves the shutter tappable while busy — no disabled state (explicitly out of scope)', async () => {
+    await renderCapture({ busy: true });
     expect(screen.getByRole('button', { name: /look up this cover/i })).toBeEnabled();
   });
 
   // ---- The idle guidance is a FIRST-USE state ----
-  it('prints "Frame the title" while the frame is idle', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} />);
-    act(() => latestProps.onUserMedia());
+  it('prints "Frame the title" while the frame is idle', async () => {
+    await renderCapture();
     expect(screen.getByText(/frame the title/i)).toBeInTheDocument();
   });
 
-  it('drops it once the caller says the reader has done this before', () => {
-    render(<CoverCapture onCapture={() => {}} onError={() => {}} showGuidance={false} />);
-    act(() => latestProps.onUserMedia());
+  it('drops it once the caller says the reader has done this before', async () => {
+    await renderCapture({ showGuidance: false });
     // Asserts something that DOES render first, so this cannot pass merely because the component
     // is still in its `requesting` state — a bare `queryByText` there would be vacuously true.
     expect(screen.getByRole('button', { name: /look up this cover/i })).toBeInTheDocument();

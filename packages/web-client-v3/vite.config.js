@@ -84,9 +84,11 @@ export default defineConfig(({ command }) => {
             // cataloguing sessions, so the barcode decoder must not cost every reader who never
             // opens the camera a single byte of it.
             zxing: ['@zxing/browser', '@zxing/library'],
-            // Same reasoning, same isolation, for the cover-capture screen: react-webcam is only
-            // ever imported by the add-a-film route.
-            webcam: ['react-webcam'],
+            // There was a `webcam: ['react-webcam']` chunk here on the same reasoning. The
+            // dependency is gone: it owned its own MediaStream and could not be handed one,
+            // which was the only thing preventing the camera from surviving the cataloguing
+            // loop. The cover capture is now a plain <video> plus the shared lease, so there is
+            // no third-party weight left on that route to isolate.
           },
         },
       },
