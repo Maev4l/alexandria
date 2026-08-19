@@ -50,6 +50,16 @@ describe('recent searches', () => {
     expect(readRecents()).toEqual(['roman']);
   });
 
+  // THE OTHER DIRECTION, and it is what makes the prefix rule safe to have. Collapsing is
+  // deliberately ASYMMETRIC: a typing artefact is always a prefix of the term it was on the way
+  // to, so dropping prefixes removes artefacts — while a LATER, deliberate shorter search must
+  // survive, because `roman` is not a prefix of a subsequent `rom`. A symmetric rule would eat a
+  // real search the reader had just chosen to run.
+  it('keeps a deliberately shorter search made AFTER a longer one', () => {
+    addRecent('roman');
+    expect(addRecent('rom')).toEqual(['rom', 'roman']);
+  });
+
   it('ignores blank input', () => {
     addRecent('roman');
     addRecent('   ');

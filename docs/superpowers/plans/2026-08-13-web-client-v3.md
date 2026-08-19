@@ -7238,6 +7238,45 @@ Task 20 ships without windowing. This task establishes whether that was right.
 **Gate it the way `profile-stream.mjs` gates**: pin the baseline (fixture, viewport, page size,
 throttle) beside the number, because a percentile is only comparable against the same workload.
 
+**MEASURED, and the ruling is: windowing is NOT warranted.** `yarn profile:search`, fixture
+`TERM_LARGE` (400 results), 390x844 @2x, headless Chrome:
+
+```
+mounting 400 results in one commit
+  1x                rows 400  response -> rows 107-115ms  longest frame 106-116ms
+  4x throttled      rows 400  response -> rows 319ms      longest frame 327ms
+
+frame times flinging the result list
+  1x, with row-skip           p50 8.3ms  p95 10.3ms  max 10.3ms  over 50ms: 0
+  1x, without row-skip        p50 8.3ms  p95 10.2ms  max 10.4ms  over 50ms: 0
+  4x throttled, with row-skip p50 8.4ms  p95 10.1ms  max 10.6ms  over 50ms: 0
+  4x throttled, without       p50 8.3ms  p95 10.4ms  max 10.9ms  over 50ms: 0
+```
+
+Three reasons, in the order they matter:
+
+**Scrolling is already flawless — zero frames over budget, p95 10.3ms.** That is better than the
+browse stream's 24.2ms, because search fetches nothing while it scrolls. Windowing exists to fix
+scrolling, and there is nothing here to fix.
+
+**The whole cost is a single commit the reader is already waiting through.** 400 rows arrive as
+one ~110ms frame, ~327ms on the 4x model of a mid-range phone. It happens once, at the instant the
+response lands — not during interaction. Windowing would trade that one-off for per-scroll work
+that is currently free.
+
+**And containment is inert here too, on a completely different workload.** −1% unthrottled, −3%
+throttled. That is a second independent measurement of `profile-stream.mjs`'s finding, which
+matters because it was the mechanism the original requirement named. `row-skip` stays on these
+rows only because it arrives with `ItemRow`; it is not doing anything.
+
+**The residual, stated rather than discovered later:** the mount is roughly linear at ~0.27ms per
+row unthrottled and ~0.8ms at 4x, so a pathological term returning 1000 would cost ~270ms and
+~800ms. Still one-off, still while the reader waits on the network — but if a "too broad" state is
+ever wanted, that is the number it would be argued from, not scroll performance.
+
+Gates are set FROM the observed run at roughly 1.5x — 200ms mount, 16ms p95 — because a budget ten
+times the observation cannot fire, and a gate that cannot fire is a comment. Demonstrated firing.
+
 - [ ] **Step 1: Write the profiler, run it, record the number, commit**
 
 ```bash

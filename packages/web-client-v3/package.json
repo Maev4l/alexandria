@@ -16,7 +16,8 @@
     "icons": "node scripts/generate-icons.mjs",
     "check:browser": "node scripts/check-browser.mjs",
     "check:index-letter": "node scripts/check-index-letter.mjs",
-    "profile:stream": "node scripts/profile-stream.mjs"
+    "profile:stream": "node scripts/profile-stream.mjs",
+    "profile:search": "node scripts/profile-search.mjs"
   },
   "dependencies": {
     "@zxing/browser": "0.1.5",
