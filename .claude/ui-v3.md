@@ -1327,6 +1327,24 @@ mean**, because a commit blocks the main thread and appears as one long frame �
 the thing under test. And it marks the response at the moment the **JSON body is parsed**, not when headers
 arrive, so network time is never credited to the commit.
 
+**When a defect's whole class is small enough to close, make the wrong construction unavailable rather than
+building a checker to detect it.** The audit after the patch defect found **exactly one** merge-style patch of
+a server record in the app — the defect itself. Every other spread is a payload built from local form state,
+an array concatenation, or a config merge, and the stream's own patch always replaced. So an AST guard
+flagging a spread over an awaited `api.get` would have protected **a class of one**: narrow, mechanical, and
+with almost nothing to guard.
+
+The stronger form is one shared helper used by **both** patch sites, so the correct construction is the only
+one reachable. Its value is not deduplication — it is a one-line `map` — it is that the **name carries the
+rule** and the merge form is no longer available to reach for. A checker earns its place when a rule spans
+many sites written by many hands; where two sites exist, close the door instead of watching it.
+
+**And the coverage gap that actually existed was on the implementation that was RIGHT.** `Mark returned` is
+exercised on item detail and now on search; **the browse stream has no return test at all** — its patch is
+correct *by construction*, and nothing asserts it. That is the shape to look for after fixing one of two
+siblings: the broken one gets a probe because it broke, and the correct one keeps having none, so a later
+refactor can silently make it the broken one. **Correct-by-construction is not the same as covered.**
+
 **`omitempty` governs the WRITE path too, and a spread cannot delete an absent key.** §6 records in bold
 that optional fields arrive **absent, not null**, so any `=== null` test is wrong. That was applied to
 reading and never to patching. `Search.jsx` merged a re-read with `{ ...row, ...fresh }` — and because a
