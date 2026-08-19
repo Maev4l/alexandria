@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search } from '@/components/icons';
+import { Close, Search } from '@/components/icons';
 
 // A real input, not a link costumed as one. It was previously a <Link> with the box, the
 // placeholder grey and the magnifier, and it accepted no keystroke — which inverted the product's
@@ -51,8 +51,34 @@ const SearchField = ({ className, value, onQueryChange }) => {
         // what gave the input a ring of its own, so the comment claimed one thing while the code
         // did the opposite. The indicator lives on the whole control (`focus-control`) because
         // that is the thing a reader sees.
-        className="min-h-12 min-w-0 flex-1 bg-transparent text-[13px] font-normal text-ink placeholder:text-ink"
+        // `type="search"` gives WebKit a clear button of its own, and it is native chrome this
+        // world has no vocabulary for (DESIGN.md §9) — the same refusal `Field.jsx` already makes
+        // for the textarea's resize grabber and the number spinner. Worse than out of place: it
+        // renders BLUE, a colour that appears nowhere in the palette, on the loudest mark in the
+        // whole design. It has been here since this field was built and was invisible until now,
+        // because on the libraries root typing navigates away before the field ever holds text —
+        // the search surface is the first place it stays long enough to be seen.
+        className="min-h-12 min-w-0 flex-1 bg-transparent text-[13px] font-normal text-ink placeholder:text-ink [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
       />
+      {/* Suppressing the native control removes a real affordance rather than mere decoration —
+          clearing the field is genuinely useful on the one screen built for repeated lookups — so
+          it is REPLACED, not simply deleted. `Close` is already in the Marks set (DESIGN.md §5
+          names close among the universal affordances), so this authors nothing new; it draws the
+          same mark at the same 2px stroke in ink.
+          Controlled mode only: on the libraries root the field is a launcher whose text never
+          persists, so a clear control there would have nothing to clear. */}
+      {isControlled && terms.length > 0 && (
+        <button
+          type="button"
+          aria-label="Clear the search"
+          onClick={() => onQueryChange('')}
+          // Same 48px floor and negative margin as the submit mark beside it: a tap target that
+          // clears the field must not be smaller than the one that runs it.
+          className="-my-2 flex size-12 shrink-0 items-center justify-center text-ink"
+        >
+          <Close />
+        </button>
+      )}
       <button
         type="submit"
         aria-label="Search"

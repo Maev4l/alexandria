@@ -1039,6 +1039,70 @@ try {
     );
   }
 
+  // ---- The search field draws its own controls, and none of the browser's ----
+  // `type="search"` gives WebKit a clear button of its own, in BLUE — a colour that appears
+  // nowhere in the palette — on the loudest mark in the design. It had been there since the field
+  // was built and was invisible until the search surface became real, because on the libraries
+  // root typing navigates away before the field ever holds text.
+  //
+  // Asserted on the PSEUDO-ELEMENT, which is the only place this fact lives: no authored node
+  // exists to inspect, and a screenshot is how it was found rather than how it should be caught.
+  console.log('the search field suppresses the browser\'s own clear button and draws its own');
+  {
+    await page.goto(`${BASE}/search`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main input');
+    await page.type('main input', 'roman');
+    await page.waitForSelector('main li', { timeout: 10_000 });
+
+    const field = await page.evaluate(() => {
+      const input = document.querySelector('main input');
+      const clear = [...input.closest('form').querySelectorAll('button')].find(
+        (el) => /clear/i.test(el.getAttribute('aria-label') ?? ''),
+      );
+      const box = clear?.getBoundingClientRect();
+      return {
+        hasAuthoredClear: Boolean(clear),
+        clearColor: clear ? getComputedStyle(clear).color : null,
+        clearTarget: box ? { w: Math.round(box.width), h: Math.round(box.height) } : null,
+      };
+    });
+
+    // SAMPLED FROM THE RENDER, not from a computed style. The first version of this asserted
+    // `getComputedStyle(input, '::-webkit-search-cancel-button').appearance === 'none'` and read
+    // `auto` on correct code: Chrome does not reflect UA shadow pseudo-elements through
+    // getComputedStyle, so the probe was measuring a property the browser does not expose there
+    // — a true answer about the wrong substrate, in the check written to catch one.
+    //
+    // The field's whole palette is yellow, ink and paper; every one of those has b <= r. The
+    // native control is blue. So "any pixel where blue clearly leads" is exactly the condition,
+    // and it cannot be satisfied by anything the design itself draws.
+    const fieldShot = await (await page.$('form[role=search]')).screenshot();
+    const fieldPixels = await sharp(fieldShot).raw().toBuffer({ resolveWithObject: true });
+    let bluePixels = 0;
+    for (let i = 0; i < fieldPixels.data.length; i += fieldPixels.info.channels) {
+      const [r, g, b] = [fieldPixels.data[i], fieldPixels.data[i + 1], fieldPixels.data[i + 2]];
+      if (b > r + 30 && b > g + 30) bluePixels += 1;
+    }
+    record(
+      bluePixels === 0,
+      'no pixel in the field is blue — the browser\'s own clear button is suppressed',
+      `${bluePixels} blue pixels`,
+    );
+    // Suppressing it removes a real affordance, so the replacement is asserted too — otherwise
+    // this check would be satisfied by deleting the control and leaving nothing.
+    record(field.hasAuthoredClear, 'the field draws its own clear mark instead', 'no authored clear control');
+    record(
+      field.clearColor === 'rgb(11, 11, 11)',
+      'the clear mark is ink, not a colour from outside the palette',
+      String(field.clearColor),
+    );
+    record(
+      field.clearTarget?.w >= 48 && field.clearTarget?.h >= 48,
+      'the clear mark clears the 48px touch floor',
+      JSON.stringify(field.clearTarget),
+    );
+  }
+
   // ---- The accent marks the commit, and the flow's longest list is where that is tested ----
   // At rest no chrome-yellow plate existed anywhere in the add flow: every `Use this`, both
   // shutters, both manual escapes and the re-search were `secondary`, and the two `primary`
