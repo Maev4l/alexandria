@@ -366,6 +366,19 @@ number, because a viewfinder's subject is not an item.
   is a **title**; the poster comes from TMDB and never from our photograph, so cover art in the captured
   image is dead weight.
 
+  **The no-scroll property must hold in the NOTICE state too, and I ruled on one state only.** Measured
+  at 390×667: `/add/video` plain fits at 667, but reached **via the bare-results redirect** — which prints
+  a notice above the frame — the document is **739** and `Enter by hand` lands at y≈675, below the fold.
+  `/add/video/results` with three candidates measures **840**. The book path with the same three
+  candidates is exactly 667; both overflows are film-only, from the 240px frame against the book's 192px
+  plus an extra cast line per row.
+
+  I measured the plain state, found 240 fitted exactly, and generalised — which is measuring one state and
+  ruling for all of them, the error this document records repeatedly. **The constraint stands and the frame
+  yields: when a notice is present above it, the capture frame shrinks by the notice's height** rather than
+  pushing the escape off-screen. The alternative — accepting the scroll — would mean retracting the
+  no-scroll claim, and a half-true constraint is worse than either honest answer.
+
   Measured at 390×667 with a real feed: a full-width frame fits at **240px** with the document exactly
   667 and no scroll; **264 scrolls** (684). And the decisive number — at that same 240px ceiling a 2:3
   frame is only **160px wide**, 14% more than today's 140, so *keeping the portrait ratio cannot fix the
