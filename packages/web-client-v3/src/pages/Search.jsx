@@ -17,7 +17,7 @@ const MIN_CHARS = 3;
 
 const Search = () => {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const { byId, canAct } = useLibraries();
 
   // Seeded from `?q=`, which the pinned field carries so the reader never types it twice — and
@@ -33,6 +33,22 @@ const Search = () => {
   const [state, setState] = useState({ status: 'idle', results: [], error: null });
   const [recents, setRecents] = useState(readRecents);
   const [actionsFor, setActionsFor] = useState(null);
+
+  // `?q=` is WRITTEN as the query settles, not merely read at mount. Without this the URL froze
+  // at whatever the reader arrived with: refine `roman` to `nadja`, tap a result, press Back, and
+  // the field reads `roman` again with the eight old rows — plus a refetch and a scroll to zero.
+  // It fails plausibly, which is what makes it expensive: a normal results screen with a query in
+  // the field, just not theirs. It also contradicts this surface's own contract sentence,
+  // "returning the reader exactly where they were", and made the deep-linkable claim false for
+  // anything typed here rather than carried in.
+  //
+  // `replace`, so refining a query does not push a history entry per keystroke — Back must leave
+  // the surface, not walk the reader backwards through their own typing.
+  useEffect(() => {
+    if (!isReady) return;
+    if (params.get('q') === query) return;
+    setParams({ q: query }, { replace: true });
+  }, [query, isReady, params, setParams]);
 
   useEffect(() => {
     if (!isReady) {
@@ -69,7 +85,22 @@ const Search = () => {
       const fresh = await itemsApi.get(item.libraryId, item.id);
       setState((current) => ({
         ...current,
-        results: current.results.map((row) => (row.id === item.id ? { ...row, ...fresh } : row)),
+        // REPLACED, never merged, and this is the whole defect: `{ ...row, ...fresh }` cannot
+        // DELETE a key. `lentTo` is `omitempty`, so a returned item comes back with the key
+        // absent rather than null — and the stale `lentTo` survived the spread. Measured: both
+        // requests succeeded, the loan was genuinely over, and the row still printed OUT while
+        // the sheet still offered `Mark returned`. Tapping it again wrote a THIRD `RETURNED`
+        // event for one loan, into the append-only ledger this product is positioned on, which
+        // `loans.js` then mis-pairs for ever.
+        //
+        // Worst by reportability: the write succeeded and only the display lied, so there is
+        // nothing for the reader to report — and their natural response is what does the damage.
+        //
+        // The merge was guarding nothing. `GET /libraries/{id}/items/{itemId}` returns
+        // `LibraryId` and `LibraryName` (handlers/items.go:577-578), which are the only fields a
+        // search row needs beyond the listing shape. Same construction as
+        // `StreamContext.patchItem`, which has always replaced.
+        results: current.results.map((row) => (row.id === item.id ? fresh : row)),
       }));
     } catch {
       // The write succeeded — only the re-read failed. Leaving the row as it was is honest;

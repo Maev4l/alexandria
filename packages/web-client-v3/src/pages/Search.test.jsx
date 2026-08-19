@@ -1,12 +1,12 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Search from './Search.jsx';
 import { LibrariesProvider } from '@/state/LibrariesContext.jsx';
 import { ToastProvider } from '@/state/ToastContext.jsx';
 import { handleMockRequest, resetMockState } from '../../tools/mock-api.js';
-import { TERM_ERROR, TERM_MIXED, TERM_NONE } from '../../tools/mock-search.js';
+import { TERM_ERROR, TERM_MIXED, TERM_NONE, TERM_SINGLE } from '../../tools/mock-search.js';
 
 // The fixture terms are IMPORTED, never retyped: `TERM_MIXED` is 'roman', not the 'blake' an
 // earlier draft of this task's brief named. tools/mock-search.js is the authority on which
@@ -43,11 +43,28 @@ const stubFetch = () => {
 
 const searchCalls = () => calls.filter((c) => c.method === 'POST' && c.url.endsWith('/search'));
 
+// Reports the live URL and how many entries the surface has pushed. `useSearchParams` writes
+// through the router, so the only honest way to assert "?q= moved" is to read the router's own
+// location rather than the component's state.
+let locationSeen = '';
+let historySeen = 0;
+const LocationProbe = () => {
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  locationSeen = `${location.pathname}${location.search}`;
+  if (navigationType === 'PUSH') historySeen += 1;
+  return null;
+};
+
+const locationProbe = () => locationSeen;
+const historyLength = () => historySeen;
+
 const renderSearch = (from = '/libraries') =>
   render(
     <MemoryRouter initialEntries={[from, '/search']} initialIndex={1}>
       <LibrariesProvider>
         <ToastProvider>
+          <LocationProbe />
           <Routes>
             <Route path="/search" element={<Search />} />
             <Route path={from} element={<p>Back where the reader started</p>} />
@@ -67,6 +84,8 @@ const past = (ms = 450) => new Promise((resolve) => setTimeout(resolve, ms));
 const rowFor = (title) => screen.getByText(title).closest('.row-skip');
 
 beforeEach(() => {
+  locationSeen = '';
+  historySeen = 0;
   localStorage.clear();
   resetMockState();
   stubFetch();
@@ -217,6 +236,74 @@ describe('Search — a mutation patches the row without re-running the query', (
     // set that no longer holds the row just acted on — the reader would watch it vanish.
     await past();
     expect(searchCalls()).toHaveLength(1);
+  });
+
+  // THE DIRECTION THAT DISCRIMINATES, and the reason a P0 shipped under a green suite. The test
+  // above exercises a LEND, which ADDS `lentTo` — and a spread merge is perfect at adding. Only a
+  // RETURN removes a key, and `lentTo` is `omitempty`, so it comes back ABSENT rather than null;
+  // `{ ...row, ...fresh }` cannot delete it. The row went on printing OUT after a return that had
+  // genuinely succeeded, the sheet went on offering `Mark returned`, and a second tap wrote a
+  // third RETURNED event for one loan into an append-only ledger.
+  //
+  // So this asserts on ABSENCE. A probe written on the lend direction passes against the bug, and
+  // that is precisely what happened.
+  it('clears the stamp when a return removes lentTo — a key the response OMITS', async () => {
+    renderSearch();
+
+    await userEvent.type(field(), TERM_MIXED);
+    await screen.findByText('Le Grand Sommeil');
+    await waitFor(() => expect(searchCalls()).toHaveLength(1));
+
+    // The fixture's one lent item, which the row marks and the sheet offers to return.
+    expect(screen.getAllByLabelText('On loan')).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', { name: /actions for le grand sommeil/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /mark returned/i }));
+
+    // The stamp must go, on the row AND everywhere else on the surface.
+    await waitFor(() => expect(screen.queryAllByLabelText('On loan')).toHaveLength(0));
+    expect(within(rowFor('Le Grand Sommeil')).queryByLabelText('On loan')).toBeNull();
+
+    // And the sheet must stop offering an action that has already happened — the step whose
+    // repetition corrupted the ledger.
+    await userEvent.click(screen.getByRole('button', { name: /actions for le grand sommeil/i }));
+    expect(await screen.findByRole('button', { name: /^lend$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /mark returned/i })).toBeNull();
+  });
+});
+
+describe('Search — the query in the URL', () => {
+  // Read at mount and never written, so the URL froze at whatever the reader arrived with:
+  // refine, tap a result, press Back, and the field reads the OLD query with the OLD rows —
+  // plus a refetch and a scroll to zero. It contradicts this surface's own contract sentence,
+  // "returning the reader exactly where they were", and fails plausibly rather than visibly:
+  // a normal results screen with a query in the field, just not theirs.
+  it('writes the settled query to ?q= so Back restores what the reader last searched', async () => {
+    renderSearch();
+
+    await userEvent.type(field(), TERM_MIXED);
+    await screen.findByText('1984');
+    await waitFor(() => expect(locationProbe()).toContain(`q=${TERM_MIXED}`));
+
+    // Refining must move the URL with it — this is the exact step that used to leave `?q=` stale.
+    await userEvent.clear(field());
+    await userEvent.type(field(), TERM_SINGLE);
+    await screen.findByText('Nadja');
+    await waitFor(() => expect(locationProbe()).toContain(`q=${TERM_SINGLE}`));
+    expect(locationProbe()).not.toContain(TERM_MIXED);
+  });
+
+  it('replaces rather than pushes, so Back leaves the surface instead of retyping it', async () => {
+    renderSearch();
+    const before = historyLength();
+
+    await userEvent.type(field(), TERM_MIXED);
+    await screen.findByText('1984');
+    await waitFor(() => expect(locationProbe()).toContain(`q=${TERM_MIXED}`));
+
+    // One entry per keystroke would make Back walk the reader backwards through their own typing
+    // instead of leaving the screen — on the one surface whose exit is a `history.back()`.
+    expect(historyLength()).toBe(before);
   });
 });
 
