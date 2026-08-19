@@ -28,6 +28,10 @@ import { libraries as fixtureLibraries } from '../src/test/fixtures/libraries.js
 import { eventsByItem } from '../src/test/fixtures/events.js';
 import { pairLoanEvents } from '../src/lib/loans.js';
 import { indexLetterFor } from '../src/lib/sort.js';
+// The search fixture's own term constants, imported for the same reason: a literal 'roman' here
+// would fall through tools/mock-search.js's "any other term" branch the day that constant moves,
+// and this script would go on checking a state it no longer names.
+import { TERM_MIXED } from '../tools/mock-search.js';
 
 const PORT = Number(process.env.CHECK_PORT ?? 5199);
 const BASE = `http://localhost:${PORT}`;
@@ -1946,6 +1950,11 @@ try {
       // Task 19: a video candidate's runtime (and, via the reused PlateLine, its year) now set
       // `.num` on this route too. Same reason as the book results route above.
       '/libraries/lib-fiction/add/video/results',
+      // Task 20: the search surface reuses ItemRow, so a film result's year reaches this route
+      // through the same PlateLine. Listed even though the component was already covered
+      // elsewhere — this check is per (site, ROUTE), and the search row is the one place a
+      // library NAME sits beside those figures, which is exactly the collision worth watching.
+      '/search',
     ];
 
     // monoRouteCoverage.test.js extracts MONO_ROUTES as bare route PATHS and matches them
@@ -1959,6 +1968,9 @@ try {
       // carrying artwork, one without, so this route renders a real duration/year rather than
       // the true-miss shape.
       '/libraries/lib-fiction/add/video/results': '?title=Les%20Tontons%20flingueurs',
+      // TERM_MIXED from tools/mock-search.js — results spanning two owned libraries and one
+      // shared, including films, so the year figures this route is listed for actually render.
+      '/search': `?q=${TERM_MIXED}`,
     };
 
     const collectMonoTexts = async (route) => {
@@ -2141,6 +2153,18 @@ try {
         field: 'releaseYear (row)',
         sourceFile: 'src/components/imprint/PlateLine.jsx',
         route: '/libraries/lib-films',
+        expected: String(itemChinatown.releaseYear),
+      },
+      {
+        // The SAME source file as the row entry above, on a different route, and that is the
+        // point rather than a duplicate: this manifest's coverage is per (field, ROUTE) pair —
+        // its own blind-spot note says a field can be checked on one route and wrong on a
+        // second. The search surface is a second route rendering PlateLine, and the one where a
+        // library name sits inline beside the figures.
+        field: 'releaseYear (search row)',
+        sourceFile: 'src/components/imprint/PlateLine.jsx',
+        route: '/search',
+        query: `?q=${TERM_MIXED}`,
         expected: String(itemChinatown.releaseYear),
       },
       {
