@@ -976,8 +976,21 @@ Header on all three: **back plus its own name**, wordmark dropped, and **no pinn
 belongs to the root and nowhere else (§2). Five decisions the four lines above do not make:
 
 **The password section is ABSENT for a federated sign-in, not disabled.** A Google account has no
-password in this pool, so a form offering to change one is offering something impossible. Cognito
-gives federated users a username prefixed `google_` (`authn-scheme.md`), so the client can tell. This
+password in this pool, so a form offering to change one is offering something impossible.
+
+**Test the username prefix, never `identities` — and the reason is a case this pool creates on purpose.**
+`authn-scheme.md:116`: a native signup that later signs in with Google is **linked**, so that reader
+**has an `identities` entry and a password**, and the linking call sets `DestinationUser` to the
+*existing* username, so no prefix is added (`:130`). Gating on `identities` would hide the password form
+from someone who has a password — the readers most likely to want it — and hide it **silently**, since
+the screen's only control would simply not be there. Cognito mints `google_<sub>` only for a user
+**created by** the provider, which is exactly the user with no password. So **prefix present ⟺ no
+password**, which is the question actually being asked.
+
+**This is the one decision in the slice resting on a contract rather than a measurement**, flagged as
+such: what would falsify it is a federated user whose username carries no provider prefix. The prefix is
+load-bearing elsewhere — the onboarding Lambda's provider normalisation keys on it — so account linking
+would break if it were absent, which is the strongest evidence available short of a live token. This
 is the app's own established principle — *an action that does not apply is absent, not offered* — and
 it is the same reasoning that makes a shared library declare itself by having no Row Actions. A reader
 who signed in with Google should see an account screen that simply has no password on it, and a line
@@ -995,6 +1008,14 @@ typed their password since.
 **Copying `custom:Id` confirms with a toast**, which is exactly what toasts are for (§7: confirmations
 only). The id is there for support, so the screen should say so rather than printing a bare UUID —
 a 32-character hex string with no caption is the sort of thing a reader assumes is a mistake.
+
+**Never state what a password change does to other sessions unless the behaviour has been verified.** A
+draft of this task told the reader that changing their password signs other sessions out *"where Cognito
+does so"*. **It does not**: `changePassword` leaves refresh tokens intact, and revoking them is
+`GlobalSignOut`. That would tell a reader their other devices are secured when they are not — on a refresh
+token lasting a year — and it is a claim a reader **acts on**, by deciding *not* to go and sign out
+elsewhere. So it is worse than silence, and the hedge *"where Cognito does so"* is what makes it dangerous
+rather than merely wrong: it reads as though someone had checked.
 
 **Nothing implies account deletion.** The API has no endpoint for it; it exists only in the admin CLI.
 §9's rule against implying data the backend lacks applies to *actions* as well as fields.
@@ -1471,7 +1492,8 @@ retyping one forks it.
 
 **And a task-id scheme where one id is a prefix of another breaks any heading-matching extractor.**
 `task-brief 20` prefix-matched **Task 20a** and then ran to the end of the file, emitting 20a + 20 + 20b as
-one brief — which would have told an implementer to rebuild the fixture route and to build the profiler that
+one brief. Third instance, same extractor: **two sections sharing a heading title** collide the same way,
+so a repeated heading such as *"Measured before this slice was planned"* must be qualified per slice — which would have told an implementer to rebuild the fixture route and to build the profiler that
 must not exist yet. Same family as prose filed between two task headings: the extraction is mechanical and
 silent, and only reading the generated brief reveals it.
 
