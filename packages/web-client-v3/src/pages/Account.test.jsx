@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -158,3 +160,32 @@ describe('Account', () => {
     expect(document.body.textContent).not.toMatch(/delete/i);
   });
 });
+
+// The Settings row's note describes THIS screen, and `be19ecc` removed the id from here without
+// touching that file — so no diff-driven review could see the description go stale. Asserted
+// against both, in one test, so they cannot drift apart again: the note is read out of
+// Settings.jsx's source and every noun in it has to be true of the destination.
+describe('the Settings row describes what Account actually shows', () => {
+  const noteFromSettings = () => {
+    // A plain path from cwd: `import.meta.url` is not a file URL under this runner.
+    const source = fs.readFileSync(path.resolve(process.cwd(), 'src/pages/Settings.jsx'), 'utf8');
+    return /to="\/settings\/account"[^>]*note="([^"]+)"/.exec(source)?.[1];
+  };
+
+  it('promises nothing the screen does not offer, on either branch', () => {
+    const note = noteFromSettings();
+    expect(note).toBeTruthy();
+    // The id is gone from Account, and a Google reader has no password either — so neither word
+    // may appear in a note that has to be true of both branches.
+    expect(note.toLowerCase()).not.toContain('id');
+    expect(note.toLowerCase()).not.toContain('password');
+  });
+
+  it('names something the screen really shows', () => {
+    // The other direction: a note that promises nothing would also pass the test above.
+    expect(noteFromSettings().toLowerCase()).toContain('email');
+    renderPage();
+    expect(screen.getByText('jr@example.com')).toBeInTheDocument();
+  });
+});
+

@@ -125,12 +125,34 @@ describe('the inverted surface, which cannot borrow the paper palette', () => {
 });
 
 describe('the focus ring', () => {
-  it('is drawn with an outline, never a shadow', () => {
-    expect(css).toMatch(/:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--imprint\)/);
+  // THIS BLOCK USED TO PIN THE DEFECT. It asserted `outline: 3px solid var(--imprint)`, which was
+  // faithfully what DESIGN.md said — and what DESIGN.md said was forbidden two sections earlier
+  // by its own palette law: `--imprint` on `--paper` is ~1.55:1, and yellow cannot describe a
+  // form at that ratio. An assertion inherits the correctness of the rule it encodes and adds
+  // nothing to it, so this one defended a ring no reader could see.
+  //
+  // Focus is not the active state, which is what made yellow look right. `--imprint` marks what a
+  // reader has chosen; focus marks where the KEYBOARD is, which is structure.
+  it('is the structural tone, drawn as an outline and never a shadow', () => {
+    expect(css).toMatch(/:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--ink\)/);
+    expect(css).not.toMatch(/:focus-visible\s*\{[^}]*outline:\s*3px solid var\(--imprint\)/);
   });
 
-  it('flips to ink on a yellow ground, where a yellow ring would vanish', () => {
-    expect(css).toMatch(/outline-color:\s*var\(--ink\)/);
+  it('clears WCAG 2.2 SC 1.4.11 on paper, which the yellow ring missed by more than half', () => {
+    // 3:1 is the floor for a focus indicator, and the old ring measured ~1.55:1. Measured from the
+    // built stylesheet rather than asserted from the document, like every other figure here.
+    expect(contrastRatio(PALETTE.ink, PALETTE.paper)).toBeGreaterThanOrEqual(3);
+  });
+
+  it('clears the same floor on a yellow ground, where the ring sits on the accent', () => {
+    expect(contrastRatio(PALETTE.ink, PALETTE.imprint)).toBeGreaterThanOrEqual(3);
+  });
+
+  it('inverts on the black cover, where an ink ring would be invisible', () => {
+    // The surface the old rule never covered: a yellow ring was legible on both grounds, so no
+    // surface needed naming. An ink one is not, so the cover names itself.
+    expect(css).toMatch(/\.cover\s+:focus-visible\s*\{[^}]*outline-color:\s*var\(--paper\)/);
+    expect(contrastRatio(PALETTE.paper, PALETTE.ink)).toBeGreaterThanOrEqual(3);
   });
 });
 

@@ -80,9 +80,13 @@ export const Copy = (props) => (
   </Mark>
 );
 
+// SQUARE caps, not round. These are zero-length paths, so the linecap IS the dot — and with
+// `round` they rendered as circles where DESIGN.md §5 says "three 3px ink squares — not round
+// dots, not a text ellipsis: the world has no radii". A direct contradiction of a rule stated in
+// the negative, app-wide, that nobody had filed.
 export const More = (props) => (
   <Mark {...props}>
-    <path d="M4 10 H4.01 M10 10 H10.01 M16 10 H16.01" strokeWidth="3" strokeLinecap="round" />
+    <path d="M4 10 H4.01 M10 10 H10.01 M16 10 H16.01" strokeWidth="3" strokeLinecap="square" />
   </Mark>
 );
 

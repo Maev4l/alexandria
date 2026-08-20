@@ -279,7 +279,7 @@ const ItemDetail = () => {
 
   if (status === 'missing' || status === 'error') {
     return (
-      <div className="min-h-dvh bg-ink text-paper">
+      <div className="cover min-h-dvh bg-ink text-paper">
         <AppHeader inverted onBack={() => navigate(-1)} search={false} />
         <main className="p-4">
           {/* The header carries no title on this screen (DESIGN.md §3 table), so this state
@@ -297,7 +297,7 @@ const ItemDetail = () => {
   }
 
   return (
-    <div className="min-h-dvh bg-ink text-paper">
+    <div className="cover min-h-dvh bg-ink text-paper">
       <AppHeader
         inverted
         search={false}

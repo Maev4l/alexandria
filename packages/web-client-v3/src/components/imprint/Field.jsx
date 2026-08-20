@@ -13,7 +13,18 @@ import { ChevronDown, Eye, EyeOff } from '@/components/icons/index.jsx';
 // `reason` are its two instances. `noValidate` on every form using Field is what keeps `required`
 // from also raising the browser's own validation bubble, chrome this world has no vocabulary for
 // (§9) — verified against every `<form>` in the app before relying on it here.
-const Field = ({ label, error, hint, counter, className, as = 'input', type, required = false, ...props }) => {
+// `liveHint`: the hint CHANGES as the reader types and the change is the information — a password
+// rule list that goes from four unmet to none is silent otherwise, so the qualifying moment, the
+// one the reader is waiting for, is the one nothing announces.
+//
+// Opt-in rather than automatic, because most hints here are static: making every one a live region
+// would announce unchanging text on each render, which is the crying-wolf failure that gets a
+// mechanism switched off rather than fixed.
+//
+// Note the parity argument this shares with §6's disabled primary: both are cases where the visual
+// signal (a list shortening, an outline filling to a plate) has no non-visual equivalent, and both
+// belong in this shared primitive rather than on the screens that surface them.
+const Field = ({ label, error, hint, liveHint = false, counter, className, as = 'input', type, required = false, ...props }) => {
   const id = useId();
   const Tag = as;
   // Reveal state lives in plain component state and NOWHERE else — no localStorage, no
@@ -123,7 +134,7 @@ const Field = ({ label, error, hint, counter, className, as = 'input', type, req
         <div className="mt-1 flex justify-between gap-2">
           <span
             id={`${id}-note`}
-            role={error ? 'alert' : undefined}
+            role={error ? 'alert' : liveHint ? 'status' : undefined}
             className={cn('text-[13px]', error ? 'text-ink' : 'text-ink-soft')}
           >
             {error || hint}

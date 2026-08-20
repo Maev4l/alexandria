@@ -55,7 +55,14 @@ const Settings = () => {
             heading, not a second visible copy of it. */}
         <h1 className="sr-only">Settings</h1>
 
-        <SettingsRow to="/settings/account" label="Account" note="Your email, your id, your password" />
+        {/* The note must be true on BOTH branches of the destination. It said "Your email, your id,
+            your password": the id came off Account when that section was removed, and on a Google
+            sign-in there is no password either — so two of three promises were false and the third
+            was conditional. The removal commit touched Account, its test and two guard files, and
+            not this one, so no diff-driven review could have seen it.
+            `Account.test.jsx` asserts this string against the row AND against the destination, so
+            the two cannot drift apart again. */}
+        <SettingsRow to="/settings/account" label="Account" note="Your email and your sign-in" />
         <SettingsRow to="/settings/about" label="About" note="Which build you are running" />
 
         {/* Four divisions clear of the last row, because "set apart" has to be visible: at one
@@ -66,8 +73,14 @@ const Settings = () => {
               {error}
             </p>
           )}
-          <p className="mb-2 text-sm text-ink-soft">You will need to sign in again.</p>
-          <PlateButton variant="secondary" onClick={onSignOut}>
+          {/* Linked to the button. §6 rejected `aria-describedby` on a DISABLED primary because a
+              disabled button is not focusable, so the description was never announced on tab —
+              that objection does not apply here: this button is enabled, so a reader tabbing to it
+              hears the consequence with it rather than only if they happened to read past it. */}
+          <p id="sign-out-consequence" className="mb-2 text-sm text-ink-soft">
+            You will need to sign in again.
+          </p>
+          <PlateButton variant="secondary" aria-describedby="sign-out-consequence" onClick={onSignOut}>
             Sign out
           </PlateButton>
         </div>

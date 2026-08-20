@@ -75,7 +75,14 @@ const Account = () => {
       } else if (err?.name === 'LimitExceededException') {
         setError('Too many attempts. Wait a few minutes, then try again.');
       } else if (err?.name === 'InvalidPasswordException') {
-        setError('The pool rejected that new password. Try a longer one.');
+        // Names NO cause. "Try a longer one" points at the one rule the form already enforces,
+        // so it is the least likely explanation — and `password.js`'s `/[^A-Za-z0-9]/` counts an
+        // accented letter as a symbol, so `Abcdefgé1` reads "meets every requirement" here while
+        // Cognito's symbol set is ASCII. That is a real route to this error on a half-French
+        // catalogue. NOT asserted as the cause: neither this session nor the design session has
+        // tested that behaviour against the live pool, and naming an unverified reason is how the
+        // session-revocation sentence nearly shipped.
+        setError('The sign-in pool would not accept that password. Try a different one.');
       } else {
         setError('Your password could not be changed. Try again.');
       }
@@ -90,7 +97,11 @@ const Account = () => {
       <main className="p-4">
         <h1 className="sr-only">Account</h1>
 
-        <div className="flex items-center gap-4 border-b-2 border-ink pb-4">
+        {/* The rule closes the BLOCK, so everything belonging to the address lives above it.
+            The caption used to sit outside, which put the heaviest separator on the screen between
+            the email and the only sentence saying what it is for. */}
+        <div className="border-b-2 border-ink pb-4">
+          <div className="flex items-center gap-4">
           {/* The email sits beside it in the same block, so the plate states nothing a reader
               would otherwise miss — it is the imprint's mark, not information. */}
           <span
@@ -118,20 +129,21 @@ const Account = () => {
           >
             <Copy />
           </button>
-        </div>
+          </div>
 
-        {/* Sharing is by email — `POST /libraries/{libraryId}/share` takes an address — so this
-            is what the reader gives to someone who wants to share a library WITH them. It is the
-            only reason this screen has a copy control at all. */}
-        <p className="mt-2 text-sm text-ink-soft">
-          Give this to someone so they can share a library with you.
-        </p>
-
-        {copyError && (
-          <p role="alert" className="mt-2 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
-            {copyError}
+          {/* Sharing is by email — `POST /libraries/{libraryId}/share` takes an address — so this
+              is what the reader gives to someone who wants to share a library WITH them. It is the
+              only reason this screen has a copy control at all. */}
+          <p className="mt-2 text-sm text-ink-soft">
+            Give this to someone so they can share a library with you.
           </p>
-        )}
+
+          {copyError && (
+            <p role="alert" className="mt-2 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
+              {copyError}
+            </p>
+          )}
+        </div>
 
 
         {federated ? (
@@ -157,6 +169,24 @@ const Account = () => {
                 reader, and the browser's own validation bubble is chrome this world has no
                 vocabulary for. */}
             <form onSubmit={onSubmit} noValidate>
+              {/* A USERNAME FIELD A PASSWORD MANAGER CAN SEE. Chrome warns on every load without
+                  one, and the consequence is worse than the warning: a manager that cannot match
+                  the change often keeps the OLD value. The reader succeeds, the app confirms, and
+                  the stored credential is silently stale — surfacing at the next sign-in, which on
+                  a 365-day refresh token can be a year away, with nothing linking the two events.
+                  Off-screen rather than `display: none`, because managers commonly ignore hidden
+                  fields; `readOnly` and `tabIndex={-1}` keep it out of the reader's way while
+                  leaving it present to the manager. */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={user?.email ?? ''}
+                readOnly
+                tabIndex={-1}
+                aria-hidden="true"
+                className="sr-only"
+              />
               <Field
                 label="Current password"
                 type="password"
@@ -173,6 +203,10 @@ const Account = () => {
                 value={next}
                 onChange={(e) => setNext(e.target.value)}
                 // Name what is missing while they type, rather than rejecting on submit.
+                // The hint is the only signal that the rules are met, and it changes as the
+                // reader types — so the qualifying moment is announced rather than left to be
+                // discovered by re-reading. See Field's `liveHint` for why this is opt-in.
+                liveHint
                 hint={issues.length > 0 ? `Needs ${issues.join(', ')}` : 'Meets every requirement'}
               />
               <PlateButton

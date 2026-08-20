@@ -132,12 +132,28 @@
     border-radius: 0;
   }
 
-  /* --imprint owns the active/selected state, so it owns the focus ring. An outline, never a
-     shadow: the no-shadow law is mechanically checkable and a shadow-shaped ring defeats the
-     check. On a yellow ground the ring flips to ink, where yellow-on-yellow would vanish. */
+  /* THE RING IS THE STRUCTURAL TONE THAT CONTRASTS WITH ITS OWN GROUND — not the accent.
+     `--imprint` on `--paper` measures ~1.55:1, and §2 states in bold that yellow cannot describe
+     a form at that ratio: it can be a ground with ink on it, or a fill inside an ink outline,
+     never a shape by itself. A focus ring is a form described by nothing else, so it was the one
+     use the palette law already forbade. It also misses WCAG 2.2 SC 1.4.11's 3:1 floor by more
+     than half.
+     What made yellow look right is that focus was read as the active state. It is not: `--imprint`
+     marks what a reader has chosen or is acting on, and focus marks WHERE THE KEYBOARD IS, which
+     is structure — the same category as a rule or a frame.
+     An outline, never a shadow: the no-shadow law is mechanically checkable and a shadow-shaped
+     ring defeats the check. */
   :focus-visible {
-    outline: 3px solid var(--imprint);
+    outline: 3px solid var(--ink);
     outline-offset: 2px;
+  }
+
+  /* The inverted surface, which the old rule never covered because a yellow ring was legible on
+     both grounds and an ink one is not. On the black cover the structural tone is `--paper`.
+     `.cover` is a hook ItemDetail's root carries for exactly this: no surface needed naming while
+     the ring was the accent, so there was nothing to bind to. */
+  .cover :focus-visible {
+    outline-color: var(--paper);
   }
 
   /* RULING 1: where an element ALREADY carries an ink rule, focus THICKENS that rule rather
@@ -177,6 +193,10 @@
     outline: none;
   }
 
+  /* Kept as a no-op ANCHOR, deliberately: the ring is ink everywhere on paper now, so a yellow
+     ground needs no flip. The class stays because ~15 call sites name it and removing it would be
+     a rename across the app for no behavioural change — but it must not grow a new rule on the
+     assumption that it still does something. */
   .on-imprint:focus-visible {
     outline-color: var(--ink);
   }
@@ -208,13 +228,22 @@
 
 @layer utilities {
   /* Interface labels only — never a content title (DESIGN.md section 3).
-     Carries CASE and TRACKING, never weight: weight is stated at the point of use. When this
-     utility also set font-weight: 700, the instruction "this is content, stop uppercasing it"
-     silently removed the emphasis too, and the result still looked deliberate — so the next
-     person to follow that instruction would not notice what else they had changed. */
+     CASE, AND NOTHING ELSE. Weight and tracking are both stated at the point of use.
+     This utility used to set `letter-spacing: 0.08em`, and because it sits later in
+     `@layer utilities` at equal specificity it BEAT every `tracking-[Nem]` class in the app.
+     Measured: `caps tracking-[0.16em]` computed 1.28px where `tracking-[0.16em]` alone computes
+     2.56px. So not one of §3's five published tracking values had ever reached a screen — the
+     wordmark declared 0.20em and rendered 0.96px — across every button label, section header,
+     ribbon, ledger head and stamp. Twenty-six declared values, none of them in effect.
+     The code was a faithful implementation of a contradictory spec: the utility claimed
+     letter-spacing while §3's table assigned it per role, and both statements were in DESIGN.md
+     at once. It survived because nothing computed `letter-spacing` — the same gap that hid the
+     missing font cmap and the 9px plate.
+     This is the WEIGHT lesson applied to the property it stopped short of: an instruction to stop
+     uppercasing something must be a one-property change with no second-order effect, and while
+     this utility owned tracking it could never be. */
   .caps {
     text-transform: uppercase;
-    letter-spacing: 0.08em;
   }
 
   .num {

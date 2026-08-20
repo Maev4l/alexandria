@@ -1410,6 +1410,126 @@ try {
     `IN left: ${marks.in}, SHARED left: ${marks.shared}`,
   );
 
+  // ---- Signing out works, on a route this suite had never visited ----
+  // `grep -c "'/settings'"` in this file returned 0: the settings screens had no browser coverage
+  // at all, and `Settings.test.jsx` stubs `signOut` green — so the SUCCESS PATH had never been
+  // rendered. Meanwhile `signOut` called Cognito unconditionally while sign-IN guards on
+  // `config.isMock` in two places, so every review of this screen saw "Signing out did not go
+  // through."
+  //
+  // The second cost is the one that matters: a permanent failure message trains everyone to
+  // ignore a real one. Same shape as the federated branch — a state covered by a stub and by
+  // nothing that renders.
+  console.log('signing out lands on the sign-in screen');
+  {
+    await page.goto(`${BASE}/settings`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main h1');
+
+    const before = await page.evaluate(() => document.body.textContent);
+    record(!/did not go through/i.test(before), 'the screen does not open on a failure message', 'failure shown at rest');
+
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('main button')].find(
+        (el) => /sign out/i.test(el.textContent.trim()),
+      );
+      btn?.click();
+    });
+    await page.waitForFunction(() => window.location.pathname === '/login', { timeout: 10_000 }).catch(() => {});
+
+    const after = await page.evaluate(() => ({
+      path: window.location.pathname,
+      failed: /did not go through/i.test(document.body.textContent),
+    }));
+    record(after.path === '/login', 'sign out reaches the sign-in screen', `landed on ${after.path}`);
+    record(!after.failed, 'and reports no failure on the way', 'a failure message was shown');
+  }
+
+  // ---- Every caps role renders the tracking §3 publishes for it ----
+  // `.caps` used to set `letter-spacing: 0.08em`, and because it sits later in `@layer utilities`
+  // at equal specificity it BEAT every `tracking-[Nem]` class in the app. Measured:
+  // `caps tracking-[0.16em]` computed 1.28px where the class alone computes 2.56px. So not one of
+  // §3's five published values had ever reached a screen, across 26 call sites — the wordmark
+  // declared 0.20em and rendered 0.96px.
+  //
+  // It survived because NOTHING COMPUTED `letter-spacing`. The type-scale guard reads declared
+  // classes, the mono guards read font-family; a class can be present and beaten, and only the
+  // computed value can tell. Same gap that hid the missing font cmap and the 9px plate.
+  //
+  // So this reads the COMPUTED value, one element per role in §3's caps table, and it belongs in
+  // the browser suite for exactly that reason.
+  console.log('every caps role computes the tracking DESIGN.md §3 publishes for it');
+  {
+    // em -> px at the role's own font-size, since `letter-spacing` computes to px.
+    // Selectors verified against the live DOM rather than guessed: the first draft named an
+    // `h2` and a bare `button` that matched nothing, and a role that cannot be found is a role
+    // that is not checked.
+    //
+    // `em: null` means §3 assigns the role NO tracking, which is a real published value and the
+    // one the old utility was silently overriding — the account plate initials carried 0.08em
+    // they should never have had.
+    const CAPS_ROLES = [
+      { role: 'wordmark', route: '/libraries', text: 'ALEXANDRIA', em: 0.2 },
+      { role: 'plate button label', route: '/libraries', text: 'NEW LIBRARY', em: 0.12 },
+      { role: 'shared ribbon caps', route: '/libraries', text: 'SHARED', em: 0.16 },
+      { role: 'account plate initials', route: '/libraries', text: 'JR', em: null },
+      { role: 'ledger head', route: '/libraries/lib-fiction/items/item-lent', text: 'THE RECORD', em: 0.16 },
+      { role: 'detail marks label', route: '/libraries/lib-fiction/items/item-lent', text: 'IN', em: 0.16 },
+    ];
+
+    const trackingViolations = [];
+    for (const { role, route, text, em } of CAPS_ROLES) {
+      await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
+      await page.waitForSelector('main');
+      const measured = await page.evaluate((wanted) => {
+        const el = [...document.querySelectorAll('*')].find(
+          (n) =>
+            typeof n.className === 'string' &&
+            n.className.split(' ').includes('caps') &&
+            n.textContent.trim().toUpperCase().startsWith(wanted),
+        );
+        if (!el) return null;
+        const style = getComputedStyle(el);
+        return {
+          // Evaluated IN THE PAGE, because NaN does not survive the CDP boundary — it arrives as
+          // `null`, and a check comparing `Number.isNaN(null)` reports a violation against
+          // correct code. Exactly the substrate class this suite exists for, one layer down.
+          hasTracking: style.letterSpacing !== 'normal',
+          letterSpacing: style.letterSpacing === 'normal' ? 0 : Number.parseFloat(style.letterSpacing),
+          fontSize: Number.parseFloat(style.fontSize),
+        };
+      }, text);
+      if (!measured) {
+        trackingViolations.push(`${role}: no caps element starting "${text}" on ${route}`);
+        continue;
+      }
+      if (em === null) {
+        console.log(`    ${role.padEnd(24)} no tracking (want none)`);
+        // `normal` parses to NaN. `Number.isNaN` is the test; `!x` would also fire on a genuine
+        // 0px, which is a different (and also wrong) state.
+        if (measured.hasTracking) {
+          trackingViolations.push(`${role}: ${measured.letterSpacing}px, expected none`);
+        }
+        continue;
+      }
+      const expected = measured.fontSize * em;
+      console.log(
+        `    ${role.padEnd(24)} ${measured.letterSpacing.toFixed(2)}px at ${measured.fontSize}px (want ${expected.toFixed(2)}px, ${em}em)`,
+      );
+      // A tenth of a pixel of tolerance: the value is a float multiplication, and the defect this
+      // catches is 0.08em against 0.20em — less than half, not a rounding step.
+      if (Math.abs(measured.letterSpacing - expected) > 0.1) {
+        trackingViolations.push(
+          `${role}: ${measured.letterSpacing.toFixed(2)}px, expected ${expected.toFixed(2)}px (${em}em)`,
+        );
+      }
+    }
+    record(
+      trackingViolations.length === 0,
+      'each caps role computes its published tracking, not a utility default that beat it',
+      trackingViolations.join('; '),
+    );
+  }
+
   // ---- The copy Mark does not crowd a long address at the narrow floor ----
   // The design session flagged this as unmeasured: the email row is `break-all` at 17px, and a
   // 48px Mark beside it could squeeze a long address at 320px. Measured instead of assumed — the

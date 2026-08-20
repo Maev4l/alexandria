@@ -294,7 +294,12 @@ export const AuthProvider = ({ children }) => {
       signUp: (email, password, name) =>
         cognitoSignUp({ username: email, password, options: { userAttributes: { email, name } } }),
       signOut: async () => {
-        await cognitoSignOut();
+        // Mock mode has no Cognito to sign out of, and this call was unguarded while sign-IN
+        // guards on `config.isMock` in two places — so every review of this screen saw
+        // "Signing out did not go through." and the success path had never been rendered at all.
+        // Two costs, and the second is the worse one: a permanent failure message trains everyone
+        // to ignore a real one.
+        if (!config.isMock) await cognitoSignOut();
         setUser(null);
       },
       changePassword: (oldPassword, newPassword) => updatePassword({ oldPassword, newPassword }),

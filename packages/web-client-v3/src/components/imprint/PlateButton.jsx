@@ -62,7 +62,14 @@ const PlateButton = forwardRef(
           explain would just be noise appended to every accessible name. The leading space is a
           real text node, not styling — without it the accessible-name algorithm concatenates the
           two text runs with nothing between them ("Look upEnter an ISBN..."). */}
-      {disabled && reason && <span className="sr-only"> {reason}</span>}
+      {disabled && reason && (
+        // `normal-case`: this span sits inside a `caps` button, so it inherited
+        // `text-transform: uppercase` and the reason was UPPERCASE in the DOM. Chrome's
+        // accessibility tree still reports mixed case, so this is NOT a proven announcement
+        // defect and must not be described as one — it costs nothing, and a sentence meant to be
+        // read as prose should not be shouted in the markup either way.
+        <span className="sr-only normal-case"> {reason}</span>
+      )}
     </button>
   ),
 );
