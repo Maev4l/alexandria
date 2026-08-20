@@ -32,6 +32,10 @@ import { indexLetterFor } from '../src/lib/sort.js';
 // would fall through tools/mock-search.js's "any other term" branch the day that constant moves,
 // and this script would go on checking a state it no longer names.
 import { TERM_MIXED } from '../tools/mock-search.js';
+// The icon set's single source of truth (tools/pwa-icons.js), imported for the same reason as
+// the fixtures above: a list of files retyped here could pass while the manifest advertises a
+// different set entirely.
+import { RASTER_ICONS, FAVICON_ICO, ICON_SOURCES } from '../tools/pwa-icons.js';
 
 const PORT = Number(process.env.CHECK_PORT ?? 5199);
 const BASE = `http://localhost:${PORT}`;
@@ -2898,6 +2902,114 @@ try {
       fieldViolations.join('; '),
     );
   }
+  // ---- Every PWA icon rasterised, decoded and painted ----
+  // Measured as `naturalWidth` on a real decode, never as "the manifest lists it" or "the page
+  // shows an <img>". A malformed SVG serves HTTP 200 and renders nowhere, and the accessibility
+  // tree happily reports images that never painted a pixel - which is exactly how the first
+  // draft of `public/icon-source.svg` passed review while being invalid XML (a double hyphen
+  // inside its own comment; see the note in that file). A rasteriser handed that file emits a
+  // PNG-shaped nothing, and every listing-based check agrees it is present.
+  //
+  // So two questions per file, and the second is the one a listing can never answer: did it
+  // decode at the size the manifest promises, and does it contain both of the two colours the
+  // mark is made of? A flat black square decodes perfectly.
+  console.log('PWA icons decode at their declared size and carry the mark');
+  {
+    const INK = '#0B0B0B';
+    const IMPRINT = '#F2C200';
+    const targets = [
+      // Expected width is the manifest's own declared size, so an icon generated at the wrong
+      // scale fails here rather than being silently resampled by whatever consumes it.
+      ...RASTER_ICONS.map(({ file, size }) => ({ url: `/${file}`, expected: size, sample: true })),
+      // The .ico is a CONTAINER of frames and the browser chooses one, so its decoded width is a
+      // real number this list cannot predict. `expected: null` asserts only that a frame decoded
+      // — which is the whole failure mode for a hand-assembled ICO, whose directory offsets are
+      // easy to get wrong in a way that produces a file, not an error.
+      { url: `/${FAVICON_ICO.file}`, expected: null, sample: true },
+      // The committed sources themselves, because they ship to `dist/` and one of them is the
+      // tab's own `image/svg+xml` icon. Not sampled: the canvas questions above are about the
+      // rasteriser's output, and these are its input.
+      ...Object.values(ICON_SOURCES).map((file) => ({ url: `/${file}`, expected: 512, sample: false })),
+    ];
+
+    const measured = await page.evaluate(
+      async (items, ink, imprint) => {
+        const hex = (value) => [1, 3, 5].map((i) => parseInt(value.slice(i, i + 2), 16));
+        const near = (r, g, b, [tr, tg, tb], tolerance) =>
+          Math.abs(r - tr) <= tolerance && Math.abs(g - tg) <= tolerance && Math.abs(b - tb) <= tolerance;
+        const inkRgb = hex(ink);
+        const imprintRgb = hex(imprint);
+
+        const load = (url) =>
+          new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => resolve(null);
+            img.src = url;
+          });
+
+        const out = [];
+        for (const item of items) {
+          const img = await load(item.url);
+          const result = {
+            url: item.url,
+            width: img ? img.naturalWidth : 0,
+            height: img ? img.naturalHeight : 0,
+            inkShare: null,
+            imprintShare: null,
+          };
+          if (img && item.sample && result.width > 0) {
+            const canvas = document.createElement('canvas');
+            canvas.width = result.width;
+            canvas.height = result.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let inkPixels = 0;
+            let imprintPixels = 0;
+            // A generous tolerance, because every one of these pixels has been through a resize:
+            // the question is "is the mark here at all", not "is this hex exact".
+            for (let i = 0; i < data.length; i += 4) {
+              const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
+              if (near(r, g, b, inkRgb, 24)) inkPixels += 1;
+              else if (near(r, g, b, imprintRgb, 40)) imprintPixels += 1;
+            }
+            const total = data.length / 4;
+            result.inkShare = inkPixels / total;
+            result.imprintShare = imprintPixels / total;
+          }
+          out.push(result);
+        }
+        return out;
+      },
+      targets,
+      INK,
+      IMPRINT,
+    );
+
+    for (const target of targets) {
+      const found = measured.find((m) => m.url === target.url);
+      const sizeOk = target.expected === null ? found.width > 0 : found.width === target.expected;
+      record(
+        sizeOk && found.height > 0,
+        `${target.url} decodes${target.expected === null ? '' : ` at ${target.expected}px`}`,
+        `naturalWidth ${found.width}, naturalHeight ${found.height}` +
+          (found.width === 0 ? ' — the file is missing, or it is not a decodable image' : ''),
+      );
+      if (!target.sample || found.width === 0) continue;
+      // Both colours, both directions. Ink alone is a blank plate; imprint alone would mean the
+      // ground never painted. The floors are deliberately low — at 16px the letter is a handful
+      // of pixels and everything else is antialiasing — because this asserts "the mark is here",
+      // not a composition.
+      record(
+        found.imprintShare > 0.02 && found.inkShare > 0.2,
+        `${target.url} carries the mark (chrome yellow on ink)`,
+        `imprint ${(found.imprintShare * 100).toFixed(1)}%, ink ${(found.inkShare * 100).toFixed(1)}% ` +
+          '— a raster made of one flat colour decodes perfectly and shows nothing',
+      );
+    }
+  }
+
 } finally {
   await browser.close();
   // Only the child this script spawned — signalled as a group and AWAITED, so the port is

@@ -7,6 +7,10 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
 import { mockApi } from './tools/vite-plugin-mock-api.js';
+// The icon set is declared once in tools/pwa-icons.js and read here, by scripts/generate-icons.mjs
+// and by scripts/check-browser.mjs. A manifest holding its own hand-typed copy of the list is how
+// it comes to advertise a file nobody generates.
+import { MANIFEST_ICONS } from './tools/pwa-icons.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -76,7 +80,44 @@ export default defineConfig(({ command }) => {
     plugins: [
       react(),
       tailwindcss(),
-      VitePWA({ registerType: 'prompt' }),
+      VitePWA({
+        // 'prompt', not 'autoUpdate': a silent swap can replace the bundle under a reader who is
+        // mid-capture. src/pwa/UpdatePrompt.jsx is what turns the waiting worker into an offer —
+        // without it a new build installs and waits forever, which is the whole reason that
+        // component shipped ahead of this task.
+        registerType: 'prompt',
+        manifest: {
+          name: 'Alexandria',
+          // 'Alexandria' fits a home-screen label at 12 characters, so there is nothing to
+          // shorten; a different short_name would only give the same app two names.
+          short_name: 'Alexandria',
+          description: 'A circulation record for a physical collection',
+          lang: 'en',
+          // DESIGN.md §2: the ink ground the icon and the item-detail cover are built on, and the
+          // paper the app itself sits on. theme_color paints the platform's own chrome, so it
+          // matches the <meta name="theme-color"> in index.html; background_color is what a cold
+          // launch shows before the first paint, so it matches --paper rather than the icon.
+          theme_color: '#0B0B0B',
+          background_color: '#F6F6F3',
+          display: 'standalone',
+          // Phone-first, portrait, one-handed (PRODUCT.md). Nothing in the app has a landscape
+          // layout to rotate into.
+          orientation: 'portrait',
+          // '/' rather than '/libraries': routes.jsx sends an unknown path to /libraries anyway,
+          // and starting at the root keeps the launch going through the same auth resolution a
+          // cold browser load does.
+          start_url: '/',
+          scope: '/',
+          icons: MANIFEST_ICONS,
+        },
+        workbox: {
+          // Beyond the js/css/html default: the fonts and the icons. The fonts are the identity
+          // (DESIGN.md §3) and a missing woff2 falls back silently to system-ui, which is exactly
+          // the failure that hid for three slices; the icons are what an installed app is, and an
+          // icon fetched over a dead connection is a blank home-screen tile.
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        },
+      }),
       ...(isMock ? [mockApi()] : []),
     ],
     resolve: { alias: { '@': path.resolve(__dirname, './src') } },
