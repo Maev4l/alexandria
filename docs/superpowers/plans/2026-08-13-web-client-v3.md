@@ -7036,7 +7036,7 @@ git commit -m "feat(web-v3): add-film capture — cover OCR with an editable tit
 
 ---
 
-### Measured before this slice was planned
+### Measured before slice E was planned
 
 Three numbers, because the design session asked for the virtualisation question to be settled
 with a measurement rather than a prior. All three change the task.
@@ -7291,62 +7291,119 @@ git commit -m "perf(web-client-v3): measure the search mount at 400 results, and
 
 ---
 
+### Measured before slice F was planned
+
+**The federated detection is sound, and the claim it rests on is NOT the one to reach for.**
+The design session asked me to check what the token actually carries before building on the
+`google_` prefix.
+
+**Use the username prefix. Do NOT use `identities`.** The obvious claim is the wrong one, and it
+is wrong in exactly the case this pool creates on purpose:
+
+- `authn-scheme.md`'s linking matrix, line 116: *Native + Google (same email) → linked, native
+  user gains Google identity.* So a reader who signed up with a password and later signed in with
+  Google **has an `identities` entry and a password**. Gating the form on `identities` would hide
+  a password form from someone who has a password and may need to change it — a silent removal of
+  the only control on the screen.
+- The prefix means something different and stronger: Cognito mints `google_<sub>` only for a user
+  **created by** the external provider, which is precisely the user with no password in the pool.
+  A linked account keeps its original native username. So *prefix present ⟺ no password*, which is
+  the actual question.
+- The client already has it: `AuthContext` stores `username: current.username` from
+  `getCurrentUser()`. No new plumbing.
+
+**What would falsify this, stated so it is checkable rather than trusted:** a federated user whose
+`getCurrentUser().username` has no provider prefix. The prefix is not decoration — the
+user-onboarding Lambda's own provider normalisation is keyed on it (`authn-scheme.md` §Provider
+Name Normalization), so account linking would break if it were absent. It has not been observed
+against a live token in this session; the auth flow was verified end to end against the real pool
+earlier in the project, and this is the one claim in the slice resting on a contract rather than a
+measurement.
+
+**And one line in the previous draft of this task must not ship.** It told the reader that changing
+their password signs other sessions out "where Cognito does so". Cognito's `changePassword` does
+**not** revoke existing refresh tokens — that is `GlobalSignOut`. Copy asserting it would tell a
+reader their other devices are secured when they are not, which is worse than saying nothing.
+**Say nothing about other sessions unless the behaviour is verified.**
+
+---
+
 ### Task 21: Settings, Account, About
 
 **Files:**
 - Modify: `packages/web-client-v3/src/pages/Settings.jsx`, `Account.jsx`, `About.jsx`
-- Test: `packages/web-client-v3/src/pages/Account.test.jsx`
+- Test: `packages/web-client-v3/src/pages/Settings.test.jsx`, `Account.test.jsx`, `About.test.jsx`
 
-- [ ] **Step 1: Write the failing Account test**
+The spec is `.claude/ui-v3.md` § Settings / Account / About as extended at `056a501`. Its five
+decisions are binding and are restated in the criteria below, because a rule in a document does
+not travel into a brief.
 
-```jsx
-describe('Account', () => {
-  it('shows the email from the token, not the Cognito username', () => {
-    renderPage();
-    expect(screen.getByText('jr@example.com')).toBeInTheDocument();
-  });
+Header on all three: **back plus the screen's own name**, wordmark dropped, **no pinned field** —
+that belongs to the libraries root and nowhere else.
 
-  it('offers the owner id for copying, since support requests need it', async () => {
-    renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /copy/i }));
-    expect(await navigator.clipboard.readText()).toBe('OWNER1');
-  });
+**Settings** — two navigation rows (Account, About) and a sign-out.
 
-  it('names each unmet password rule while the reader types', async () => {
-    renderPage();
-    await userEvent.type(screen.getByLabelText(/new password/i), 'short');
-    expect(screen.getByText(/an uppercase letter/i)).toBeInTheDocument();
-  });
-});
-```
+**Sign out does not confirm.** It destroys nothing and §7 reserves confirmation for what is
+actually destructive. It is still **not a navigation row**: a ruled **secondary** Plate Button set
+apart from the rows, with a line stating the consequence — *you will need to sign in again.* Not
+`variant="danger"`, which the previous draft of this task specified: `--out` means on loan and
+nothing else under palette law, and signing out destroys nothing.
 
-- [ ] **Step 2: Run it, then write the pages**
+**Account** — the initials plate, the email from the JWT (never the Cognito username), the
+`custom:Id` with a copy affordance, and the password form.
 
-`Settings.jsx` — three 48px rows on the paper ground: Account, About, and Sign out. Sign out is
-a `PlateButton variant="danger"` set apart from the list, so it is not tapped in passing.
+- **The `custom:Id` is explained, not merely printed.** A bare 32-character hex string reads as a
+  mistake; the screen says what it is for (quoting it in a support request). Copying **confirms
+  with a toast**, which is exactly what toasts are for.
+- **The password section is ABSENT for a federated sign-in, not disabled** — a Google account has
+  no password in this pool, so a form offering to change one offers something impossible. Same
+  principle as a shared library declaring itself by having no Row Actions.
+- **But this absence needs a sentence, where read-only did not.** A missing action on a shared row
+  is explained by the `FROM` tag beside it; nothing on this screen would otherwise say why. So:
+  no form, plus a line saying the sign-in is managed by Google.
 
-`Account.jsx` — an initials plate (`useAuth().user.initials`) in `--imprint`, the email from the
-JWT, the `custom:Id` in mono with a copy affordance, and a password-change form using
-`passwordIssues` for live feedback and `changePassword` to submit. State plainly that changing
-the password signs other sessions out where Cognito does so.
+**About** — the version and build hash, and **what they are for**: telling an admin which build you
+are on when something looks wrong, the only reason a private app shows a hash. Without that
+sentence it is decoration.
 
-`About.jsx` — the name, `config.buildHash`, and one line of honesty the product record requires:
+- [ ] **Step 1: Write the failing tests**
 
-```jsx
-<p className="mt-4 text-sm text-ink-soft">
-  Alexandria needs a connection. Nothing is stored on this device, so what you see is always
-  what the server has.
-</p>
-```
+Cases, including the ones a screen like this ships without:
 
-- [ ] **Step 3: Run the tests, lint, commit**
+- the header carries the screen's name and **no** wordmark, on each of the three
+- a native reader sees the password form; a `google_`-prefixed reader sees **no form** and a line
+  naming Google
+- the disabled submit carries a `reason` (`disabledReason.test.js` enforces this; it must pass)
+- copying the id confirms with a toast
+- sign out does **not** open a confirmation, and does sign out
+- nothing anywhere offers account deletion
+
+- [ ] **Step 2: Build it**
+
+- [ ] **Step 3: Verify and commit**
 
 ```bash
 yarn --cwd packages/web-client-v3 test
 yarn --cwd packages/web-client-v3 lint
+CHECK_PORT=5262 yarn --cwd packages/web-client-v3 check:browser
 git add packages/web-client-v3
-git commit -m "feat(web-v3): settings, account and about"
+git commit -m "feat(web-client-v3): settings, account and about"
 ```
+
+**Acceptance criteria** — each restates a rule this task can breach:
+
+- **`<main>` and exactly one `<h1>` on each screen**, the `sr-only` heading kept even where the
+  header names the screen. `routeLandmarks.test.jsx` and `routeExits.test.jsx` already walk these
+  routes and their assertions predate the screens being real — **do not weaken either**.
+- **The account plate on the libraries root is the only route in**, so its target must not
+  dead-end. The reachability probe covers it and also predates these screens.
+- **Nothing implies account deletion.** The API has no endpoint; it exists only in the admin CLI,
+  and §9's rule against implying data the backend lacks covers **actions** as well as fields.
+- **No claim about other sessions** on the password form unless it is verified first. See above.
+- **Mono only for numerals** (§3). `custom:Id` is a hex identifier and takes the mono; it needs a
+  `MONO_FIELDS` entry, since this route is not yet in that manifest.
+- **Anything that sets a ground sets its foreground** (§2), and **the type scale** (§3) — both are
+  enforced, and both have caught this kind of screen before.
 
 ---
 
