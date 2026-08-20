@@ -972,6 +972,37 @@ Settings: Account, About, Sign out. Account: initials plate, email from the JWT,
 copyable (it is the owner id used for support), password change with the same complexity rules as
 signup. About: version and build hash.
 
+Header on all three: **back plus its own name**, wordmark dropped, and **no pinned field** — that
+belongs to the root and nowhere else (§2). Five decisions the four lines above do not make:
+
+**The password section is ABSENT for a federated sign-in, not disabled.** A Google account has no
+password in this pool, so a form offering to change one is offering something impossible. Cognito
+gives federated users a username prefixed `google_` (`authn-scheme.md`), so the client can tell. This
+is the app's own established principle — *an action that does not apply is absent, not offered* — and
+it is the same reasoning that makes a shared library declare itself by having no Row Actions. A reader
+who signed in with Google should see an account screen that simply has no password on it, and a line
+saying the sign-in is managed by Google, because the **absence needs one sentence of explanation
+here** where read-only did not: a missing action on a shared row is explained by the `FROM` tag beside
+it, and nothing on this screen would otherwise say why.
+
+**Sign out does not confirm.** It destroys nothing, and §7's confirmation is reserved for what is
+actually destructive; a redundant confirmation on a low-risk action is a named persona red flag. But
+it is not a navigation row either — it takes a **ruled secondary Plate Button set apart from the
+rows**, with a line stating the consequence: *you will need to sign in again.* That is the honest
+weight — recoverable, and not free, since a refresh token lasts a year and a reader may not have
+typed their password since.
+
+**Copying `custom:Id` confirms with a toast**, which is exactly what toasts are for (§7: confirmations
+only). The id is there for support, so the screen should say so rather than printing a bare UUID —
+a 32-character hex string with no caption is the sort of thing a reader assumes is a mistake.
+
+**Nothing implies account deletion.** The API has no endpoint for it; it exists only in the admin CLI.
+§9's rule against implying data the backend lacks applies to *actions* as well as fields.
+
+**About carries the version and the build hash, and says what they are for.** Both exist so a reader
+can tell an admin which build they are on when something looks wrong — which is the only reason a
+private app shows a hash at all. Without that sentence it is decoration.
+
 ---
 
 ## 5. Flows
