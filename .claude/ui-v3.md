@@ -1560,6 +1560,30 @@ told us nothing about a badge that should not have been there, and why the plate
 **resolved colour** rather than the class name. Anywhere a check confirms the presence of what should exist,
 ask separately what must be absent — the two are different questions and only one of them is usually asked.
 
+**Applied to a MANIFEST rather than a screen, that rule finds stale entries — and a coverage manifest
+asserted in one direction cannot ever report one.** `monoRouteCoverage` proved every `.num` file was
+reachable from *some* listed route. Nothing proved a listed route reaches any `.num` at all, so an entry
+whose subject had been removed stayed in the list for ever, contributing nothing and **looking exactly like
+an entry doing work** — the fifth shape of green-for-the-wrong-reason in this project.
+
+Removing `custom:Id` from the account screen created one. The remedy chosen was the stronger of the two
+available: **reject an entry with nothing to cover**, rather than merely dropping the route, on the same
+grounds as replacing a construction instead of writing a checker for it — dropping the entry fixes today's
+instance and leaves the mechanism able to produce the next one.
+
+**It produced the next one within seconds of existing.** On its first run it flagged
+`/libraries/lib-fiction/unshare`, which had carried `.num` until an earlier round correctly removed it — a
+recipient's name is not a numeral — and had been vacuous ever since, on code nobody had touched that day.
+So the argument for asserting both directions was made by the assertion itself, on a second instance nobody
+suspected, which is the strongest form that argument can take.
+
+Two details worth copying. The detector reads `className` **attribute values off the AST**, not the file's
+text, so a comment that spells out `` `.num` `` while explaining why a screen does *not* take it cannot
+false-positive — the trap that made a `BookDetectionResults` comment fire the design hook three times. And
+the removal itself is asserted **as an absence**: a probe that the email is offered would pass with a
+leftover id block still on the screen, so the direction that catches a partial removal is the one that looks
+for what should be gone.
+
 **A fixture written to test a judgement must not model the easy version of that judgement.** The
 five-candidate film fixture was first built as **five editions of one film** — which is the *book* side's
 shape, since an ISBN identifies one edition and Google may hold several volume records against it, whereas
