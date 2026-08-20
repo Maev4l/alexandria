@@ -302,10 +302,26 @@ the alarm rather than pass the check.
 | Wordmark | 12 | 800 | +0.20em |
 | Plate Button labels — every variant | 12 | 800 | +0.12em |
 | Section header (`MINE`, `SHARED WITH ME`) | 11 | 800 | +0.16em |
-| Account plate initials | 11 | 800 | — |
+| Account plate initials | 11 | 800 | +0.08em |
 | Ledger head, detail-marks label, shared ribbon caps, ledger date labels | 10 | 800 | +0.16em |
 | Overprint Stamp | 10 | 800 | +0.14em |
 | Field label, field counter | 11 | 700 | +0.12em |
+
+**The account plate's cell used to be blank, and that blank cost a round.** Read as intent it says
+*no tracking*, which is how I first read it — and the comp settles it the other way: `.acct` in
+`docs/ui-design/ui-v3-mockup.html:138-140` declares `letter-spacing: .08em` outright. So the blank
+was a transcription gap, the initials have always carried the baseline, and the value is now printed
+rather than inferred from the cascade happening to supply it.
+
+**This is the third time this table has disagreed with the comp** — after the six sizes taken from
+the specimen legend instead of the phone comps. Same cause each time: a summary of the design read
+in place of the design.
+
+**So a blank cell in a spec table is not a value.** It cannot distinguish *zero* from *unspecified*,
+both readings are actionable, and they point opposite ways — which is exactly the ambiguity that
+produced two contradictory rulings from me on one row. Every cell carries a number or the explicit
+word `none`; and where zero is genuinely wanted, it is **declared at the site** (`tracking-normal`)
+so the intent is visible in the code rather than deduced from an empty table cell.
 
 Any caps role **not** in this table takes the 0.08em baseline from `.caps`. The table is therefore
 a list of deliberate exceptions to a default, not an inventory of every caps site.
