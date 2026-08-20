@@ -226,26 +226,33 @@
   }
 }
 
-@layer utilities {
-  /* Interface labels only — never a content title (DESIGN.md section 3).
-     CASE, AND NOTHING ELSE. Weight and tracking are both stated at the point of use.
-     This utility used to set `letter-spacing: 0.08em`, and because it sits later in
-     `@layer utilities` at equal specificity it BEAT every `tracking-[Nem]` class in the app.
-     Measured: `caps tracking-[0.16em]` computed 1.28px where `tracking-[0.16em]` alone computes
-     2.56px. So not one of §3's five published tracking values had ever reached a screen — the
-     wordmark declared 0.20em and rendered 0.96px — across every button label, section header,
-     ribbon, ledger head and stamp. Twenty-six declared values, none of them in effect.
-     The code was a faithful implementation of a contradictory spec: the utility claimed
-     letter-spacing while §3's table assigned it per role, and both statements were in DESIGN.md
-     at once. It survived because nothing computed `letter-spacing` — the same gap that hid the
-     missing font cmap and the 9px plate.
-     This is the WEIGHT lesson applied to the property it stopped short of: an instruction to stop
-     uppercasing something must be a one-property change with no second-order effect, and while
-     this utility owned tracking it could never be. */
+/* `.caps` lives in `components`, NOT `utilities`, and the layer is the whole fix.
+   Verified in the PRODUCTION stylesheet rather than in dev: the emitted order is
+   `properties, theme, base, components, utilities`, so a `tracking-[Nem]` utility beats this rule
+   while this rule still applies wherever no utility is present. Both halves hold at once, which
+   is what neither of the two previous attempts managed.
+   THE FIRST FIX DELETED THIS DECLARATION, AND THAT WAS WRONG. The collision was real — sitting in
+   `utilities` at equal specificity and later in source, it beat all 25 sites that declare their
+   own tracking, so none of DESIGN.md §3's published values had ever rendered. But deleting it
+   took the baseline from the OTHER 26, every one of them uppercase at 11–12px with no tracking
+   class of their own: form labels, the field counter, index-letter counts, detection notes,
+   PullToRefresh's states, UnshareLibrary, ItemHistory. Uppercase at 11px with no tracking is
+   exactly what this 0.08em exists to prevent, so the deletion reintroduced the original problem
+   for the larger half of the sites.
+   The general shape, and it is why this comment is long: RESOLVING A CONFLICT BY DELETING ONE
+   SIDE CHANGES EVERY CASE THAT DEPENDED ON IT, and those cases are invisible in the diff. The
+   question asked was which sites the utility was OVERRIDING; the question that finds the 26 is
+   which sites it was SERVING.
+   Case and tracking only. Weight is still stated at the point of use — see the note above
+   `.num` for why that one stays out. */
+@layer components {
   .caps {
     text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
+}
 
+@layer utilities {
   .num {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;

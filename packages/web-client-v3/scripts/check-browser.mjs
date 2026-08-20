@@ -1471,7 +1471,16 @@ try {
       { role: 'wordmark', route: '/libraries', text: 'ALEXANDRIA', em: 0.2 },
       { role: 'plate button label', route: '/libraries', text: 'NEW LIBRARY', em: 0.12 },
       { role: 'shared ribbon caps', route: '/libraries', text: 'SHARED', em: 0.16 },
-      { role: 'account plate initials', route: '/libraries', text: 'JR', em: null },
+      // 0.08em, the BASELINE — not "none". §3's caps table leaves this row's tracking cell empty,
+      // and the two rulings read that blank differently: the first said the initials carry no
+      // tracking, the second restored a baseline for every site that declares none. A site that
+      // declares nothing is exactly what this is, so it takes the baseline.
+      // Recorded rather than silently chosen: if the initials are meant to sit at zero, that has
+      // to be DECLARED at the site (`tracking-normal`), because a blank cell cannot distinguish
+      // "no tracking wanted" from "nothing specified" — and the second is what every other
+      // undeclared caps label in the product means by it. Referred to the design session.
+      { role: 'account plate initials', route: '/libraries', text: 'JR', em: 0.08 },
+      { role: 'field label', route: '/settings/account', text: 'CURRENT PASSWORD', em: 0.12 },
       { role: 'ledger head', route: '/libraries/lib-fiction/items/item-lent', text: 'THE RECORD', em: 0.16 },
       { role: 'detail marks label', route: '/libraries/lib-fiction/items/item-lent', text: 'IN', em: 0.16 },
     ];
@@ -1527,6 +1536,50 @@ try {
       trackingViolations.length === 0,
       'each caps role computes its published tracking, not a utility default that beat it',
       trackingViolations.join('; '),
+    );
+
+    // THE OTHER DIRECTION, AND IT IS THE ONE THAT WOULD HAVE CAUGHT THE FIRST FIX. The roles above
+    // are the six §3 names, so an unlisted role is an unchecked role — and when `.caps` lost its
+    // `letter-spacing` entirely, 26 sites dropped to `normal` with nothing going red. Every one of
+    // them uppercase at 11-12px, which is precisely what the baseline exists to prevent.
+    //
+    // So: any caps element that declares NO tracking class of its own must compute the 0.08em
+    // baseline. Same both-directions shape as MONO_ROUTES — a manifest of named cases cannot see
+    // the unnamed ones, and the unnamed ones are the majority here (26 of 51).
+    const baselineViolations = [];
+    for (const route of ['/libraries', '/libraries/lib-fiction', '/settings/account', '/settings/about']) {
+      await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
+      await page.waitForSelector('main');
+      const offenders = await page.evaluate(() =>
+        [...document.querySelectorAll('*')]
+          .filter(
+            (n) =>
+              typeof n.className === 'string' &&
+              n.className.split(' ').includes('caps') &&
+              !/tracking-/.test(n.className),
+          )
+          .map((n) => {
+            const style = getComputedStyle(n);
+            return {
+              text: n.textContent.trim().slice(0, 20),
+              // Strings, never numbers: `letter-spacing: normal` parses to NaN, and NaN does not
+              // survive the CDP boundary — it arrives as `null` and a numeric check then reports a
+              // violation against correct code. This suite's own substrate class, one layer down.
+              letterSpacing: style.letterSpacing,
+              fontSize: style.fontSize,
+              expected: `${(Number.parseFloat(style.fontSize) * 0.08).toFixed(2)}px`,
+            };
+          })
+          .filter((n) => n.letterSpacing !== n.expected),
+      );
+      for (const o of offenders) {
+        baselineViolations.push(`${route} "${o.text}": ${o.letterSpacing}, expected ${o.expected}`);
+      }
+    }
+    record(
+      baselineViolations.length === 0,
+      'every caps site declaring no tracking of its own still computes the 0.08em baseline',
+      baselineViolations.slice(0, 4).join('; '),
     );
   }
 

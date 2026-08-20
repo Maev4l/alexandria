@@ -47,7 +47,11 @@ const Field = ({ label, error, hint, liveHint = false, counter, className, as = 
 
   return (
     <div className={cn('mb-6', className)}>
-      <label htmlFor={id} className="caps mb-1 block text-[11px] font-bold text-ink-soft">
+      {/* +0.12em, named in §3 against the section header's +0.16em. The difference is the point:
+          both were 11px caps in the same tone, so nothing marked where one section's heading ended
+          and its fields began — and the register carries that distinction without a new rule or a
+          new size. */}
+      <label htmlFor={id} className="caps mb-1 block text-[11px] font-bold tracking-[0.12em] text-ink-soft">
         {label}
       </label>
       {isPassword ? (
@@ -150,7 +154,7 @@ const Field = ({ label, error, hint, liveHint = false, counter, className, as = 
               favour of this. */}
           {counter != null && (
             <span className="num text-[11px] text-ink-soft">
-              {counter} <span className="caps font-sans font-bold">left</span>
+              {counter} <span className="caps font-sans font-bold tracking-[0.12em]">left</span>
             </span>
           )}
         </div>
