@@ -305,6 +305,16 @@ the alarm rather than pass the check.
 | Account plate initials | 11 | 800 | — |
 | Ledger head, detail-marks label, shared ribbon caps, ledger date labels | 10 | 800 | +0.16em |
 | Overprint Stamp | 10 | 800 | +0.14em |
+| Field label, field counter | 11 | 700 | +0.12em |
+
+Any caps role **not** in this table takes the 0.08em baseline from `.caps`. The table is therefore
+a list of deliberate exceptions to a default, not an inventory of every caps site.
+
+The field label is listed at **+0.12em against the section header's +0.16em**, and the difference is
+doing work: a critique measured the two at 11px/700 and 11px/800 in the same tone and found nothing
+marked where a section ended and its fields began. Separating them by tracking as well as weight
+uses the register itself rather than adding a rule or a size — and it is the reason a field label
+needs naming here at all, since without a row it would silently inherit the baseline.
 
 The steps in use are **10, 11, 12, 13, 14, 17, 20, 22, 32, 76**. Anything else is off the scale.
 
@@ -401,8 +411,33 @@ quieter than it was, for a reason nobody wrote down. That is exactly how a sheet
 from a readable label to 11px at weight 400 while the only stated intent was "stop shouting a
 French name".
 
-So `caps` sets **`text-transform` only**. Weight and tracking are always set alongside it,
-explicitly, at the point of use. Any rule of the form "this is content, stop uppercasing it" must
+So `caps` sets **`text-transform`, plus a baseline `letter-spacing: 0.08em` declared in
+`@layer components` so that any explicit `tracking-*` utility beats it.** Weight is always set
+alongside it, explicitly, at the point of use.
+
+**That precedence is the whole fix, and my first ruling deleted the default instead — which broke
+half the caps in the app in the opposite direction.** Counted after the change shipped: **25** caps
+sites declare a tracking value and **26 declare none**, every one of the 26 at 11–12px. Deleting
+the default gave the 25 their published values and silently took every unlisted small-caps label in
+the product — form labels, the field counter, index-letter counts, detection notes — from 0.08em to
+`letter-spacing: normal`. Uppercase at 11px with no tracking is exactly what the default existed to
+prevent, so the deletion reintroduced the original problem for the larger half of the sites.
+
+Verified rather than reasoned, because Tailwind 4's layer order is a fact about the build and not
+about this document: the page declares `theme, base, components, utilities`, and a probe of
+`letter-spacing: 0.08em` in `components` measures **0.88px** alone and **1.76px** when
+`tracking-[0.16em]` is added. Both halves hold at once.
+
+**The general rule: resolving a conflict by deleting one side changes every case that depended on
+it, and those cases are invisible in the diff.** The defect was *precedence* — a default beating an
+explicit declaration — so the fix is precedence. I asked which sites the utility was overriding and
+never asked which sites it was serving, and only the second question finds the 26. Neither the
+critique that found the collision nor the guard written to close it covered them: the guard checks
+the six roles named in §3's table, so **an unlisted role is an unchecked role**, the same shape as
+`MONO_FIELDS` needing its own drift alarm.
+
+That makes §3's caps table a manifest, and it must say what governs a role it does not list — the
+0.08em baseline — rather than leaving the answer to whichever way the cascade happens to fall. Any rule of the form "this is content, stop uppercasing it" must
 then be a one-property change with no second-order effect.
 
 **This rule was written for weight and stopped one property short, and the property it left behind
