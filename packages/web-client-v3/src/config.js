@@ -12,6 +12,9 @@ export const config = {
   // CloudFront routes /api/* to API Gateway; the dev server proxies the same path.
   apiBaseUrl: '/api',
   buildHash: __BUILD_HASH__,
+  // package.json's version. Printed on About beside the commit hash: between them they name
+  // the exact build a reader is running, which is the only reason a private app shows either.
+  appVersion: __APP_VERSION__,
   isMock: __MOCK__,
   oauth: {
     domain: 'alexandria-auth.isnan.eu',

@@ -2190,6 +2190,12 @@ try {
       // elsewhere — this check is per (site, ROUTE), and the search row is the one place a
       // library NAME sits beside those figures, which is exactly the collision worth watching.
       '/search',
+      // Task 21: Account prints the reader's `custom:Id` and About prints the app version, both
+      // in `.num`. Listed so monoRouteCoverage.test.js can reach those two files at all — and so
+      // the digit-dominance check below actually sees what they render, which is why the mock
+      // reader's id is now shaped like a real `custom:Id` instead of "OWNER1".
+      '/settings/account',
+      '/settings/about',
     ];
 
     // monoRouteCoverage.test.js extracts MONO_ROUTES as bare route PATHS and matches them
@@ -2325,6 +2331,11 @@ try {
       (loan) => loan.name === 'Paul' && !loan.open && !loan.unresolved,
     );
     const sharedWithMeCount = fixtureLibraries.filter((library) => library.sharedFrom).length;
+    // Same source vite.config.js injects into `config.appVersion`, so About's expected value is
+    // read rather than transcribed.
+    const appVersion = JSON.parse(
+      fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    ).version;
 
     // Each entry names the FILE that literally declares the `.num` class this field renders
     // through — not the page/component that merely calls it — because that is what
@@ -2484,6 +2495,28 @@ try {
         sourceFile: 'src/pages/Libraries.jsx',
         route: '/libraries',
         expected: String(sharedWithMeCount),
+      },
+      {
+        // The signed-in reader's `custom:Id`. A literal, for the same reason the two detection
+        // entries above are: it is not a fixture field — it comes from `MOCK_USER` in
+        // src/auth/AuthContext.jsx, a .jsx module this node script cannot import. If that value
+        // moves, this fails loudly as "the fixture and the route have drifted apart" rather
+        // than silently checking nothing.
+        field: 'custom:Id',
+        sourceFile: 'src/pages/Account.jsx',
+        route: '/settings/account',
+        expected: '4C1B7E902A5D6F3814B0E7C29D5A6034',
+      },
+      {
+        // READ from package.json, never retyped: the version About prints comes from the same
+        // file, so this expectation cannot hand-drift from it. The commit hash beside it is
+        // deliberately NOT here — a short hash is hexadecimal rather than a numeral, and setting
+        // it in the mono would make the digit-dominance check above depend on which commit is
+        // checked out (about one hash in six is under half digits).
+        field: 'app version',
+        sourceFile: 'src/pages/About.jsx',
+        route: '/settings/about',
+        expected: appVersion,
       },
     ];
 

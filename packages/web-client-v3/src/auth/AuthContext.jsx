@@ -34,8 +34,15 @@ const initialsOf = (displayName, email) => {
 };
 
 // Mock mode signs in a fixed, approved reader so every screen is reachable without Cognito.
+//
+// `id` is shaped like a REAL `custom:Id` — a UUID, uppercased, dashes stripped — because Account
+// prints it and scripts/check-browser.mjs reads what Account prints. A readable stand-in
+// ("OWNER1") made that screen a picture of something the product never renders, which is this
+// project's recurring defect: a true answer about the wrong substrate. The fixtures keep their
+// readable `ownerId` labels — nothing in the app reads that field (`canAct` keys on
+// `sharedFrom`), so they are annotations for whoever is reading a fixture, not values on screen.
 const MOCK_USER = {
-  id: 'OWNER1',
+  id: '4C1B7E902A5D6F3814B0E7C29D5A6034',
   email: 'jr@example.com',
   displayName: 'JR Sue',
   username: 'jr@example.com',

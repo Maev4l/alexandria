@@ -10,6 +10,11 @@ import { mockApi } from './tools/vite-plugin-mock-api.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// package.json's own version, read at build time. About prints it beside the commit hash so a
+// reader can tell an administrator which build they are on; nothing here invents a value.
+const appVersion = () =>
+  JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')).version;
+
 const gitCommitHash = () => {
   try {
     return execSync('git rev-parse --short HEAD').toString().trim();
@@ -53,6 +58,7 @@ export default defineConfig(({ command }) => {
         clientId: output.alexandriaClientId,
       }),
       __BUILD_HASH__: JSON.stringify(gitCommitHash()),
+      __APP_VERSION__: JSON.stringify(appVersion()),
       __MOCK__: JSON.stringify(isMock),
     },
     server: {
