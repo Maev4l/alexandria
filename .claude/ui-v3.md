@@ -1019,12 +1019,18 @@ this is invisible in a spec review, which is what makes it worth recording: **in
 are the reasoning, and they only become copy when someone writes the requirement down as one sentence.** So
 when a spec sentence contains a *because*, the because is for the builder.
 
-**And do not record a guard's convenience as the reason for a design choice.** The commit hash is set in the
-sans, correctly — but the reason is §3: a hash is an identifier of mostly letters, not a numeral presented as
-a value, so the mono was never its home. The *additional* observation, that hex in the mono would make the
-digit-dominance guard's result depend on which commit is checked out, is a real hazard worth noting and a
-terrible thing to leave as the recorded justification: a later reader finds a design decision that exists to
-keep a check green, and reverts it.
+**A justification can be correctly ordered in the source and wrongly ordered in every summary of it — and
+the summary is what most people read.** The commit hash sits in the sans, and `About.jsx:21-26` gets the
+reasoning right: §3 first (a short hash is hexadecimal, mostly letters, and the mono is reserved for
+numerals), with the guard-determinism point explicitly subordinated by a *"would also"*. I raised it as a
+defect anyway, because **the report I received led with the guard and mentioned §3 second** — and I recorded
+the correction against the file rather than against the retelling.
+
+The concern was warranted and the target was wrong. A design choice whose *stated* reason is keeping a check
+green gets reverted on principle by the next reader, so the ordering matters — but here the artefact was
+right and only its description inverted it. **Same family as the stale enumeration, one level out: the code
+is correct and the account of it is not**, which is harder to catch because reviewing the code clears it and
+nobody re-reads the summary against the source.
 
 **Never state what a password change does to other sessions unless the behaviour has been verified.** A
 draft of this task told the reader that changing their password signs other sessions out *"where Cognito
