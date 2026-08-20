@@ -1682,7 +1682,24 @@ fail loudly when the substrate moves.
       measurement**: scrolling 400 results is p95 10.3ms with zero frames over budget, so my §7
       requirement named a mechanism that does nothing, a stream that never implemented it, and a cost
       that does not exist. `yarn profile:search` measures the mount, which is the only thing search does
-      that the stream does not, and which nothing here had ever measured
+      that the stream does not, and which nothing here had ever measured.
+
+      **Critiqued at 22/40 and remediated in full** — two P0s, three P1s, the P2, four riders. The two
+      P0s were both of the unreportable kind. `Mark returned` from a search row left the item printing
+      `OUT`, because the patch merged a re-read with a spread and `lentTo` arrives **absent** rather than
+      null, so a spread could not delete it — the write succeeded, only the display lied, and tapping
+      again wrote **three `RETURNED` events for one loan** into the ledger the product is positioned on.
+      And `?q=` was write-once, so Back restored the *previous* query and its results, breaking a
+      contract sentence in this file. Both were invisible to the suite: the first passes any test written
+      on the lend direction, since a spread adds a key perfectly well.
+
+      Three of the six findings were corrections to my own work — the stale-query contract, a premise I
+      had accepted (the 400-row mount is one commit **per settled query**, not once per session), and a
+      measurement I commissioned that asked whether the list stutters and never whether the reader can
+      get anywhere. **And one dispatched finding was wrong**: three touch-target failures were element
+      boxes read as hit areas, on controls whose `::before` expansions make them compliant, one of them
+      re-filed after a previous critique had explicitly corrected it. `.impeccable/critique/ignore.md`
+      now exists so that cannot recur
 - [ ] Settings, Account, About
 - [x] PWA update prompt — pulled ahead of slice C because without it the app cannot be
       updated at all: `registerType: 'prompt'` installs a worker that waits for a
