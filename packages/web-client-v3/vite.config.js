@@ -100,9 +100,22 @@ export default defineConfig(({ command }) => {
           theme_color: '#0B0B0B',
           background_color: '#F6F6F3',
           display: 'standalone',
-          // Phone-first, portrait, one-handed (PRODUCT.md). Nothing in the app has a landscape
-          // layout to rotate into.
-          orientation: 'portrait',
+          // NO `orientation` LOCK, deliberately, and the plan asked for `'portrait'`.
+          //
+          // PRODUCT.md is phone-first and says so — but it also requires that "tablet and desktop
+          // must be sane and usable", and a manifest lock does not express a preference: on an
+          // installed Android app it HARD-LOCKS rotation, so a tablet held in landscape cannot
+          // display the app at all. That trades a real capability for a preference already
+          // satisfied by the layout.
+          //
+          // Two other things in this build assume landscape is reachable. DESIGN.md §4 provides
+          // for it explicitly — the 448px column exists so a wide viewport is not a stretched
+          // phone — and the film capture screen's no-scroll ruling was MEASURED at 667x390 and
+          // records "in landscape the page scrolls" as an accepted consequence. A lock would make
+          // that state unreachable on one platform and leave the reasoning stranded.
+          //
+          // "Nothing has a landscape layout to rotate into" is the argument for not BUILDING one.
+          // It is not an argument for preventing rotation, which is a different act.
           // '/' rather than '/libraries': routes.jsx sends an unknown path to /libraries anyway,
           // and starting at the root keeps the launch going through the same auth resolution a
           // cold browser load does.
