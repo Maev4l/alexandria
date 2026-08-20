@@ -146,9 +146,35 @@ in both directions**, because the inverted screen contains paper surfaces as wel
 
 ### Focus
 
-The focus ring is `--imprint`, which already owns the active and selected state — 3px, 2px offset.
-**On any element whose own ground is `--imprint`** (plate buttons, volume plates) the ring is
-`--ink` instead, since yellow on yellow would vanish. That single conditional is the whole rule.
+**The focus ring is the structural tone that contrasts with its own ground: `--ink` on `--paper`
+and on `--imprint`, `--paper` on the black cover.** 3px, 2px offset. One conditional, keyed on the
+ground, and it passes everywhere.
+
+**It used to be `--imprint`, and that was refuted by this section's own arithmetic.** Yellow on
+paper measures ~1.55:1, and §2 states in bold two paragraphs above that at that ratio yellow
+**cannot describe a form** — it can only be a ground with ink on top or a fill inside an ink
+outline. A focus ring is a form described by nothing else. So the rule that governs the whole
+palette condemned the indicator specified directly beneath it, and the contradiction sat in one
+section for five slices.
+
+It also fails WCAG 2.2 SC 1.4.11, whose floor for a focus indicator is 3:1 — the one contrast
+requirement in this document that is a legal floor rather than a preference, missed by more than
+half.
+
+**Focus is not the active state, which is what made yellow look correct.** `--imprint` owns
+*acting and finding*, and a filled plate or a yellow ground is legible precisely because ink sits
+on top of it. Focus describes **where the keyboard is**, which is structure — the same category as
+a rule or a frame — so it takes the structural tone. Nothing is lost from the palette's meaning,
+because the meaning was never readable.
+
+**Two constructions are refused.** A yellow fill inside an ink outline is the index letter's move
+and cannot be drawn here: the offset gap is ground, not a paintable band, so it would need a
+second concentric pseudo-element — which the misregistration rule below forbids. And `box-shadow`
+is forbidden outright (§4), which rules out faking a double ring.
+
+The reason to record all of this rather than just changing a colour: **a palette law and an
+indicator spec can contradict each other while both read as deliberate**, and the one that is
+arithmetically impossible is the one to move.
 
 `--out` must never be spent on a focus ring: it means on loan and nothing else, and a red ring makes
 every focused element momentarily read as lent. Do not fake a double ring with `box-shadow` either —
@@ -367,7 +393,7 @@ The treatment was withdrawn for one round on crops rendered in the wrong font, a
 rendered in the right one — see §4. **76px, wght 900 and wdth 62.5% are now verified against
 pixel-level crops in real Archivo**, not inherited from the comp and not derived.
 
-### The caps utility carries case, never weight
+### The caps utility carries case, and nothing else
 
 A `caps` utility that also sets `font-weight` cannot be removed safely: taking the uppercase off a
 string silently takes its emphasis with it, and the element lands at whatever the base weight is —
@@ -375,9 +401,38 @@ quieter than it was, for a reason nobody wrote down. That is exactly how a sheet
 from a readable label to 11px at weight 400 while the only stated intent was "stop shouting a
 French name".
 
-So `caps` sets **`text-transform` and `letter-spacing` only**. Weight is always set alongside it,
+So `caps` sets **`text-transform` only**. Weight and tracking are always set alongside it,
 explicitly, at the point of use. Any rule of the form "this is content, stop uppercasing it" must
 then be a one-property change with no second-order effect.
+
+**This rule was written for weight and stopped one property short, and the property it left behind
+had the same defect in a worse form.** The earlier draft of this paragraph read "`text-transform`
+and `letter-spacing` only" — so the utility owned tracking while §3's caps table assigned five
+distinct values per role. Both statements were in this document at once, and they cannot both hold.
+
+The build implemented both faithfully: `letter-spacing: 0.08em` in `.caps`, and
+`tracking-[0.20em]` / `[0.16em]` / `[0.14em]` / `[0.12em]` at 26 call sites. `.caps` sits later in
+`@layer utilities` at equal specificity, so **the utility silently won every one of them**.
+Measured: `caps tracking-[0.16em]` computes **1.28px** where `tracking-[0.16em]` alone computes
+**2.56px**. Live, every caps role in the app rendered 0.08em — the wordmark declares 0.20em and
+rendered 0.96px.
+
+So **not one of §3's five published tracking values had ever appeared on screen**, across every
+button label, the wordmark, every section header, ribbon, ledger head and stamp. The caps register
+is what §3 calls the difference between an imprint and a poster, and it had never been seen as
+designed.
+
+Three things make this worth the space. It is the **same failure mode the weight rule names** — a
+utility that also owns a per-role property cannot be overridden safely — so the fix was already
+written down and simply not applied to the second property. It was **invisible to every guard**:
+`typeScale` resolves sizes, `monoText` and `monoFieldCoverage` resolve faces, `fonts` reads the
+cmap, and nothing computes `letter-spacing`. And a later commit **reaffirmed the collision in
+prose** ("carries case and tracking") without measuring it, which is how a contradiction survives
+a review that was looking straight at it.
+
+A browser assertion now computes `letter-spacing` for one element per role in §3's table. The
+general form, and the question worth asking of this document repeatedly: **a spec that publishes
+N values for a property nothing computes is publishing a preference, not a rule.**
 
 Corollary for the type scale: there is no 15px step. When a role turns out to be content rather
 than a label, move it onto the nearest **existing** step — a sheet heading naming a library is the
