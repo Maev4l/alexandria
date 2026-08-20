@@ -1009,6 +1009,23 @@ typed their password since.
 only). The id is there for support, so the screen should say so rather than printing a bare UUID —
 a 32-character hex string with no caption is the sort of thing a reader assumes is a mistake.
 
+**A requirement of the form "state X, because otherwise it is decoration" has two halves, and only the first
+belongs on screen.** Both explanatory sentences this slice added arrived carrying my *argument for their own
+existence* as a trailing clause addressed to the reader — the id read *"…and a bare string of hex reads as a
+mistake until something says so"*, the build *"…which is the only reason a private app shows them at all."*
+
+I asked that the screen say what these things are **for**; I did not ask it to explain why it says so. And
+this is invisible in a spec review, which is what makes it worth recording: **in the document those clauses
+are the reasoning, and they only become copy when someone writes the requirement down as one sentence.** So
+when a spec sentence contains a *because*, the because is for the builder.
+
+**And do not record a guard's convenience as the reason for a design choice.** The commit hash is set in the
+sans, correctly — but the reason is §3: a hash is an identifier of mostly letters, not a numeral presented as
+a value, so the mono was never its home. The *additional* observation, that hex in the mono would make the
+digit-dominance guard's result depend on which commit is checked out, is a real hazard worth noting and a
+terrible thing to leave as the recorded justification: a later reader finds a design decision that exists to
+keep a check green, and reverts it.
+
 **Never state what a password change does to other sessions unless the behaviour has been verified.** A
 draft of this task told the reader that changing their password signs other sessions out *"where Cognito
 does so"*. **It does not**: `changePassword` leaves refresh tokens intact, and revoking them is
@@ -1753,7 +1770,17 @@ fail loudly when the substrate moves.
       boxes read as hit areas, on controls whose `::before` expansions make them compliant, one of them
       re-filed after a previous critique had explicitly corrected it. `.impeccable/critique/ignore.md`
       now exists so that cannot recur
-- [ ] Settings, Account, About
+- [x] Settings, Account, About — the password section **absent** for a federated sign-in, tested on the
+      `google_` username prefix rather than on `identities`, because a native signup that later used the
+      Google button is *linked* and has both. Sign out is a ruled secondary set apart, no confirmation, with
+      the consequence stated above it. `custom:Id` explained rather than printed bare, copy confirming by
+      toast. Nothing implies account deletion, which the API cannot do.
+
+      **The federated branch had never been rendered** — mock mode signs in a native reader, so every
+      screenshot and every browser check had seen only the password form. It was covered by a unit test and
+      by nothing that looks at a screen, which is worse here than usual: it is the **one decision in the
+      slice resting on a contract rather than a measurement**, so the least-verified state was also the
+      least looked at. `?as=google` now reaches it, guarded in both directions
 - [x] PWA update prompt — pulled ahead of slice C because without it the app cannot be
       updated at all: `registerType: 'prompt'` installs a worker that waits for a
       `SKIP_WAITING` message nothing was sending, and navigations answered from precache never
