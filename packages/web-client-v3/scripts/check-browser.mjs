@@ -1444,6 +1444,89 @@ try {
     record(!after.failed, 'and reports no failure on the way', 'a failure message was shown');
   }
 
+  // ---- The wdth axis actually engages, which is the claim the index letter rests on ----
+  // The letter is `--imprint` filled inside a 2px ink stroke at 76px / wght 900 / wdth 62.5%, and
+  // that treatment was WITHDRAWN FOR A ROUND on crops rendered in `system-ui`: the committed
+  // Archivo held a space and the letter `A`, and `font-stretch` is SILENTLY IGNORED by a face with
+  // no width axis. A condensed treatment was judged on glyphs that were never condensed.
+  //
+  // THIS IS THE ONLY LAYER THAT CATCHES THAT. `fonts.test.js` asserts the axis exists in the
+  // binary and the site assertion below asserts the declaration reaches the node — and BOTH CAN
+  // PASS while the render is unchanged, which is exactly what happened. A declaration and a
+  // computed value both looked right for two months.
+  //
+  // Threshold set FROM the measurement, not from the document: DESIGN.md said 27-44% and the
+  // measured range is 24-37%, so a guard written against the documented floor would have failed on
+  // correct code — and on `#` specifically, the glyph whose rendering was most doubted. That is
+  // the crying-wolf opening that gets a guard deleted rather than fixed. 15% is ~1.6x below the
+  // observed minimum and infinitely above the defect, which produces exactly 0%.
+  console.log('the wdth axis engages — the index letter is genuinely condensed');
+  {
+    await page.goto(`${BASE}/libraries/lib-fiction`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('[role=separator]');
+
+    // SITE: the declaration reaches the real node. A refactor dropping `[font-stretch:62.5%]`
+    // from IndexLetter.jsx fails here.
+    // The SPAN that carries the letter, not the separator wrapper around it. My first selector
+    // was `'[role=separator] span, [role=separator]'`, and a comma-separated `querySelector`
+    // returns the first match in DOCUMENT ORDER — which is the wrapper, whose font-stretch is
+    // 100% and always was. It reported a defect against correct code, and a fallback branch in a
+    // selector is how a guard ends up measuring whatever it happens to hit.
+    const declared = await page.evaluate(() => {
+      const letter = document.querySelector('[role=separator] span[aria-hidden="true"]');
+      if (!letter) return null;
+      const style = getComputedStyle(letter);
+      return { stretch: style.fontStretch, weight: style.fontWeight, text: letter.textContent.trim() };
+    });
+    record(declared !== null, 'the index letter span is on screen to measure', 'no letter span found');
+    record(
+      declared?.stretch === '62.5%',
+      'the index letter computes font-stretch: 62.5%',
+      String(declared?.stretch),
+    );
+    record(declared?.weight === '900', 'and wght 900, the other axis the treatment names', String(declared?.weight));
+
+    // RENDER: advance widths, measured in the loaded face. `Œ` is the fold's non-A-Z tail and `#`
+    // is both the widest-counter worst case and the glyph the retired carve-out was invented for.
+    const widths = await page.evaluate(async () => {
+      await document.fonts.ready;
+      const loaded = document.fonts.check('76px Archivo');
+      const measure = (glyph, stretch) => {
+        const el = document.createElement('span');
+        el.textContent = glyph;
+        el.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font-family:Archivo;font-size:76px;font-weight:900;font-stretch:${stretch}`;
+        document.body.append(el);
+        const w = el.getBoundingClientRect().width;
+        el.remove();
+        return w;
+      };
+      return {
+        loaded,
+        glyphs: ['M', 'N', 'P', 'Œ', '#'].map((g) => {
+          const wide = measure(g, '100%');
+          const narrow = measure(g, '62.5%');
+          return { g, wide, narrow, narrowed: wide > 0 ? (wide - narrow) / wide : 0 };
+        }),
+      };
+    });
+
+    // The face has to BE Archivo, or every number below is about a fallback — which is precisely
+    // how the original crops lied.
+    record(widths.loaded, 'Archivo is the face being measured, not a fallback', 'font not loaded');
+
+    const notCondensed = widths.glyphs.filter((g) => g.narrowed < 0.15);
+    for (const g of widths.glyphs) {
+      console.log(
+        `    ${g.g}  ${g.wide.toFixed(2)} -> ${g.narrow.toFixed(2)}  (${(g.narrowed * 100).toFixed(1)}% narrower)`,
+      );
+    }
+    record(
+      notCondensed.length === 0,
+      'every tested glyph is at least 15% narrower at wdth 62.5% than at 100%',
+      notCondensed.map((g) => `${g.g}: ${(g.narrowed * 100).toFixed(1)}%`).join(', '),
+    );
+  }
+
   // ---- Every caps role renders the tracking §3 publishes for it ----
   // `.caps` used to set `letter-spacing: 0.08em`, and because it sits later in `@layer utilities`
   // at equal specificity it BEAT every `tracking-[Nem]` class in the app. Measured:

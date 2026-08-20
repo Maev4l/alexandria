@@ -143,3 +143,34 @@ describe.each(Object.entries(FAMILIES))('%s — shipped woff2 glyph coverage', (
     expect(hasGlyph(RIGHTWARDS_ARROW)).toBe(false);
   });
 });
+
+// ---- LAYER 1 of the wdth guard: the axis exists in the shipped binary ----
+//
+// The index letter is `--imprint` filled inside a 2px ink stroke at 76px / wght 900 / wdth 62.5%,
+// and that treatment was WITHDRAWN FOR A ROUND on crops rendered in `system-ui` — because the
+// committed Archivo held a space and the letter `A`, and `font-stretch` is SILENTLY IGNORED by a
+// face with no width axis. So a condensed treatment was judged on glyphs that were never
+// condensed, and the crops were true about the screen and false about the product.
+//
+// This is the cheapest of the three layers and the earliest: it fails at build time, before any
+// browser runs, if a subsetting or instancing regression flattens the variable font to a static
+// instance. It cannot catch the original defect on its own — that needs the render — but it
+// catches the cause.
+describe('Archivo ships the variation axes the index letter depends on', () => {
+  // Both cuts, because Google serves latin and latin-ext as disjoint files and the fold's tail
+  // (`Œ`) lives in the second one. An axis present in only one of them would condense half the
+  // alphabet.
+  it.each(FAMILIES.Archivo)('%s declares a wdth axis covering 62.5 and a wght axis covering 900', (file) => {
+    const font = openSync(path.join(FONTS_DIR, file));
+    const axes = font.variationAxes;
+
+    expect(axes).toHaveProperty('wdth');
+    expect(axes.wdth.min).toBeLessThanOrEqual(62.5);
+    expect(axes.wdth.max).toBeGreaterThanOrEqual(62.5);
+
+    expect(axes).toHaveProperty('wght');
+    expect(axes.wght.min).toBeLessThanOrEqual(900);
+    expect(axes.wght.max).toBeGreaterThanOrEqual(900);
+  });
+});
+
