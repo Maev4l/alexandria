@@ -1005,9 +1005,26 @@ rows**, with a line stating the consequence: *you will need to sign in again.* T
 weight — recoverable, and not free, since a refresh token lasts a year and a reader may not have
 typed their password since.
 
-**Copying `custom:Id` confirms with a toast**, which is exactly what toasts are for (§7: confirmations
-only). The id is there for support, so the screen should say so rather than printing a bare UUID —
-a 32-character hex string with no caption is the sort of thing a reader assumes is a mistake.
+**The copy affordance is on the EMAIL, not on `custom:Id` — and `custom:Id` is not on the screen at all.**
+This spec said the opposite, and the correction came from the owner remembering v2, which has it right:
+`web-client-v2/src/pages/Account.jsx` shows the email with a copy control, captioned *"Share your email with
+others so they can share their libraries with you."*
+
+That caption is the whole argument. **Sharing is by email** — `POST /libraries/{libraryId}/share` takes an
+`email` — so copying your own address has a real job on a real flow: you send it to someone so they can
+share a library *to* you. Copying it confirms with a toast, which is what toasts are for (§7).
+
+`custom:Id` was specified here as *"the owner id used for support"*, and **that use was invented.** This
+product has no support channel; the admin is the owner, the CLI's `users list` prints ids, and the approval
+alert already carries the email. So the id answers no question a reader has, and printing it would spend the
+screen's most prominent line on a 32-character string whose only honest caption would be *this is not for
+you*.
+
+**The general fault is worse than the wrong field: I justified a control by inventing a use for it rather
+than by checking what the product does.** v2 was one file away and had both the field and the reason right.
+Same shape as the `Fetch cover` checkbox — a control nobody could use correctly, defended by a purpose
+nobody had asked for — and the tell is identical: the justification names an activity (*support*, *fetching
+from source*) that appears nowhere else in the product.
 
 **A requirement of the form "state X, because otherwise it is decoration" has two halves, and only the first
 belongs on screen.** Both explanatory sentences this slice added arrived carrying my *argument for their own
