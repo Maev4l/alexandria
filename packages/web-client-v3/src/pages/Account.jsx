@@ -112,7 +112,7 @@ const Account = () => {
           <p className="num break-all text-sm text-ink">{user?.id}</p>
           <p className="mt-2 text-sm text-ink-soft">
             Quote this if you ask an administrator for help — it is how your account is
-            identified, and a bare string of hex reads as a mistake until something says so.
+            identified.
           </p>
           {copyError && (
             <p role="alert" className="mt-2 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">

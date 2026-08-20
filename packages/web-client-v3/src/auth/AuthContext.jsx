@@ -51,7 +51,28 @@ const MOCK_USER = {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(config.isMock ? MOCK_USER : null);
+  // A SECOND MOCK READER, selectable by `?as=google`, and it exists because one whole branch of
+  // Account was otherwise unrenderable. Mock mode signs in a native reader, so `check:browser` and
+  // `shoot` only ever saw the password form — the no-form-plus-Google-line state was covered by a
+  // unit test and by nothing that looks at a screen.
+  //
+  // That matters more here than it usually would: the federated branch is the one decision in this
+  // slice resting on a contract (Cognito's `google_<sub>` username) rather than on a measurement,
+  // so leaving it invisible would have left the least-verified state also the least looked at.
+  //
+  // A query parameter rather than a second build flag: it costs nothing when absent, and any
+  // shot or check can reach the state by asking for it.
+  const [user, setUser] = useState(() => {
+    if (!config.isMock) return null;
+    const federated =
+      typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('as') === 'google';
+    // `google_<sub>` is exactly the shape Cognito mints for a user CREATED by the provider, which
+    // is the shape Account tests for. A linked native account would keep its email as its
+    // username, and is therefore the DEFAULT reader above, not this one.
+    return federated
+      ? { ...MOCK_USER, username: 'google_115582394710238857291' }
+      : MOCK_USER;
+  });
   const [isLoading, setIsLoading] = useState(!config.isMock);
   const [oauthMessage, setOauthMessage] = useState(null);
   // Non-zero while a sign-in is in progress. A session being established must not be reconciled

@@ -1410,6 +1410,42 @@ try {
     `IN left: ${marks.in}, SHARED left: ${marks.shared}`,
   );
 
+  // ---- The federated account state, which had never been rendered ----
+  // Account hides the password form for a Google sign-in, because a Google account has no
+  // password in this pool — an absence, not a disabled control, the same way a shared library
+  // declares itself by having no Row Actions.
+  //
+  // It was covered by a unit test and by nothing that looks at a screen: mock mode signs in a
+  // native reader, so every browser check and every screenshot saw only the password form. That
+  // matters more here than it usually would, because this is the ONE decision in the slice
+  // resting on a contract — Cognito's `google_<sub>` username — rather than on a measurement, so
+  // the least-verified state was also the least looked at. `?as=google` selects a federated mock
+  // reader; it costs nothing when absent.
+  //
+  // The detection is the PREFIX, never an `identities` claim: a native reader who later signed in
+  // with Google gains that identity AND keeps their password, so gating on `identities` would hide
+  // the form from someone who has one.
+  console.log('a federated account offers no password form, and says why');
+  {
+    await page.goto(`${BASE}/settings/account?as=google`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main h1');
+    const federated = await page.evaluate(() => ({
+      inputs: document.querySelectorAll('main input').length,
+      text: document.querySelector('main').textContent,
+    }));
+    record(federated.inputs === 0, 'no password fields are rendered', `${federated.inputs} inputs`);
+    // ABSENT is not enough on its own here. A shared row's missing actions are explained by the
+    // FROM tag beside them; nothing on this screen would otherwise say why the form is gone.
+    record(/managed by Google/i.test(federated.text), 'the absence is explained', 'no explanation found');
+
+    // And the default reader must still get the form — an over-broad prefix test would remove it
+    // for everyone, which is the failure this check exists to make visible.
+    await page.goto(`${BASE}/settings/account`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main h1');
+    const native = await page.evaluate(() => document.querySelectorAll('main input').length);
+    record(native >= 2, 'a native account still gets its password form', `${native} inputs`);
+  }
+
   // ---- The other two controls a critique measured as failing, which measure as passing ----
   // Slice E's critique reported `Full record` at 90.8x15.4 and four `/libraries` rows at
   // 44.7-47.5px against §4's 48px floor. Those are the ELEMENT BOXES, and both controls carry a

@@ -29,9 +29,8 @@ const About = () => {
             <span>{config.buildHash}</span>
           </p>
           <p className="mt-2 text-sm text-ink-soft">
-            Quote these two marks if you report something that looks wrong — together they name
-            exactly which build you were looking at, which is the only reason a private app shows
-            them at all.
+            Quote these two marks if you report something that looks wrong — together they
+          name exactly which build you were looking at.
           </p>
         </section>
       </main>
