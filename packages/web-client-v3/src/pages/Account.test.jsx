@@ -57,20 +57,32 @@ describe('Account', () => {
     expect(screen.queryByText('google_1099384')).not.toBeInTheDocument();
   });
 
-  it('explains what the id is for rather than printing a bare hex string', () => {
+  // Sharing is by email — `POST /libraries/{libraryId}/share` takes an address — so what the
+  // reader copies is the thing they give to someone who wants to share a library WITH them.
+  // The `custom:Id` this screen used to print answered no question a reader has: the admin is the
+  // owner, `users list` prints ids, and there is no support channel to quote one to.
+  it('offers the email for copying, and says what it is for', () => {
     renderPage();
-    expect(screen.getByText(NATIVE_USER.id)).toBeInTheDocument();
-    expect(screen.getByText(/support|administrator/i)).toBeInTheDocument();
+    expect(screen.getByText('jr@example.com')).toBeInTheDocument();
+    expect(screen.getByText(/share a library with you/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /copy your email address/i })).toBeInTheDocument();
   });
 
-  it('copies the id and confirms with a toast', async () => {
+  it('never shows the internal account id', () => {
     renderPage();
-    await userEvent.click(screen.getByRole('button', { name: /copy/i }));
+    // Asserted as an ABSENCE, because the positive case cannot detect a leftover: the screen
+    // would look correct with the id still on it.
+    expect(screen.queryByText(/4C1B7E90/i)).toBeNull();
+    expect(screen.queryByText(/user id/i)).toBeNull();
+  });
 
-    expect(writeText).toHaveBeenCalledWith(NATIVE_USER.id);
-    // A confirmation of something that already worked is exactly what a toast is for.
-    const toast = await screen.findByText(/copied/i);
-    expect(toast).toHaveAttribute('data-toast');
+  it('copies the email and confirms with a toast', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /copy your email address/i }));
+    expect(writeText).toHaveBeenCalledWith('jr@example.com');
+    expect(await screen.findByText(/email address is copied/i)).toBeInTheDocument();
   });
 
   it('reports a failed copy in place, never as a toast', async () => {

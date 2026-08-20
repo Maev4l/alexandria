@@ -1410,6 +1410,42 @@ try {
     `IN left: ${marks.in}, SHARED left: ${marks.shared}`,
   );
 
+  // ---- The copy Mark does not crowd a long address at the narrow floor ----
+  // The design session flagged this as unmeasured: the email row is `break-all` at 17px, and a
+  // 48px Mark beside it could squeeze a long address at 320px. Measured instead of assumed — the
+  // address WRAPS and the row grows taller, so the Mark keeps its full target and nothing
+  // overflows. Asserted here so a later change to the row's layout cannot quietly trade the
+  // target away for a tidier line.
+  console.log('the account email row holds a 48px copy Mark at 320px with a long address');
+  {
+    const previousViewport = page.viewport();
+    await page.setViewport({ width: 320, height: 844 });
+    await page.goto(`${BASE}/settings/account`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main button[aria-label^="Copy"]');
+    const row = await page.evaluate(() => {
+      // A long but realistic address, set on the rendered node so this measures the ROW rather
+      // than the auth fixture.
+      const email = [...document.querySelectorAll('main span')].find((n) => n.textContent.includes('@'));
+      email.textContent = 'jean-raymond.sue@a-rather-long-domain-name.example.com';
+      const mark = document.querySelector('main button[aria-label^="Copy"]');
+      const m = mark.getBoundingClientRect();
+      const e = email.getBoundingClientRect();
+      return {
+        mark: { w: Math.round(m.width), h: Math.round(m.height) },
+        overlaps: e.right > m.left + 1,
+        overflows: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      };
+    });
+    record(
+      row.mark.w >= 48 && row.mark.h >= 48,
+      'the copy Mark keeps its 48px target beside a wrapped address',
+      JSON.stringify(row.mark),
+    );
+    record(!row.overlaps, 'the address does not run under the Mark', 'they overlap');
+    record(!row.overflows, 'the row does not push the page sideways at 320px', 'horizontal overflow');
+    await page.setViewport(previousViewport);
+  }
+
   // ---- The federated account state, which had never been rendered ----
   // Account hides the password form for a Google sign-in, because a Google account has no
   // password in this pool — an absence, not a disabled control, the same way a shared library
@@ -2212,7 +2248,12 @@ try {
       '/libraries/lib-fiction/items/item-lent',
       '/libraries/lib-fiction/items/item-samourai',
       '/libraries/lib-fiction/items/item-lent/history',
-      '/libraries/lib-fiction/unshare',
+      // `/libraries/lib-fiction/unshare` was here and is NOT any more. It carried `.num` until an
+      // earlier round correctly removed it — a recipient's name is not a numeral — and the
+      // manifest entry stayed behind, contributing nothing and looking exactly like an entry that
+      // was doing work. Found on the first run of monoRouteCoverage's new no-vacuous-entries
+      // assertion, on code nobody had touched that day, which is the whole argument for asserting
+      // both directions of a coverage manifest rather than one.
       '/libraries/lib-fiction/items/new/book',
       '/libraries/lib-fiction/edit',
       // Task 18, fix round 1 finding 3: a candidate's ISBN now sets `.num`. Added here rather
@@ -2226,11 +2267,11 @@ try {
       // elsewhere — this check is per (site, ROUTE), and the search row is the one place a
       // library NAME sits beside those figures, which is exactly the collision worth watching.
       '/search',
-      // Task 21: Account prints the reader's `custom:Id` and About prints the app version, both
-      // in `.num`. Listed so monoRouteCoverage.test.js can reach those two files at all — and so
-      // the digit-dominance check below actually sees what they render, which is why the mock
-      // reader's id is now shaped like a real `custom:Id` instead of "OWNER1".
-      '/settings/account',
+      // About prints the app version in `.num`. Account is NOT here: it printed the reader's
+      // `custom:Id` until that section was removed — sharing is by email, so the screen offers
+      // the address instead and nothing on it is a numeral any more. A route listed with nothing
+      // to cover is a vacuous entry, and `monoRouteCoverage.test.js` now rejects one rather than
+      // passing it, so this had to go rather than merely stop mattering.
       '/settings/about',
     ];
 
@@ -2531,17 +2572,6 @@ try {
         sourceFile: 'src/pages/Libraries.jsx',
         route: '/libraries',
         expected: String(sharedWithMeCount),
-      },
-      {
-        // The signed-in reader's `custom:Id`. A literal, for the same reason the two detection
-        // entries above are: it is not a fixture field — it comes from `MOCK_USER` in
-        // src/auth/AuthContext.jsx, a .jsx module this node script cannot import. If that value
-        // moves, this fails loudly as "the fixture and the route have drifted apart" rather
-        // than silently checking nothing.
-        field: 'custom:Id',
-        sourceFile: 'src/pages/Account.jsx',
-        route: '/settings/account',
-        expected: '4C1B7E902A5D6F3814B0E7C29D5A6034',
       },
       {
         // READ from package.json, never retyped: the version About prints comes from the same

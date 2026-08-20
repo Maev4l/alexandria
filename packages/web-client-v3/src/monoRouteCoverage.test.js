@@ -294,6 +294,23 @@ describe('every file declaring the `.num` mono class is reachable from a MONO_RO
   const entryFiles = monoRoutes.map((route) => resolveRouteToFile(route, routeDefs, lazyImports));
   const reachable = transitiveClosureFrom(entryFiles);
 
+  // THE OTHER DIRECTION, and it was missing. The check below proves every `.num` file is
+  // reachable from SOME route; nothing proved a listed route reaches any `.num` at all. So an
+  // entry whose screen stops rendering numerals goes on passing, contributing nothing, and looks
+  // exactly like an entry that is doing work — the fourth shape of "green for the wrong reason"
+  // this project has found, and the one it has agreed to stop shipping.
+  //
+  // Live instance: `/settings/account` printed the reader's `custom:Id` until that section was
+  // removed. Without this assertion the route would have stayed in the manifest for ever, and a
+  // later reader would reasonably have concluded the account screen has mono content to protect.
+  it('every MONO_ROUTES entry reaches at least one `.num` file — no vacuous entries', () => {
+    const vacuous = monoRoutes.filter((route) => {
+      const files = transitiveClosureFrom([resolveRouteToFile(route, routeDefs, lazyImports)]);
+      return ![...files].some((file) => declaresNumClass(file));
+    });
+    expect(vacuous).toEqual([]);
+  });
+
   const numFiles = listJsxFiles(SRC_DIR).filter(declaresNumClass);
 
   it('found more than zero files declaring `.num` (guards against this scan silently finding nothing)', () => {

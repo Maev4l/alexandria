@@ -49,12 +49,12 @@ const Account = () => {
   const onCopy = async () => {
     setCopyError(null);
     try {
-      await navigator.clipboard.writeText(user.id);
-      confirm('Your user id is copied.');
+      await navigator.clipboard.writeText(user.email);
+      confirm('Your email address is copied.');
     } catch {
       // A toast carries confirmations only. A copy that did not happen is a failure, so it is
       // reported in place, beside the value the reader can still select by hand.
-      setCopyError('Copying is not available here. Select the id and copy it by hand.');
+      setCopyError('Copying is not available here. Select the address above and copy it by hand.');
     }
   };
 
@@ -100,30 +100,39 @@ const Account = () => {
             {user?.initials ?? '—'}
           </span>
           {/* The EMAIL from the JWT, never the Cognito username: for a Google sign-in that
-              username is `google_<sub>`, an internal string the reader has never seen. */}
+              username is `google_<sub>`, an internal string the reader has never seen.
+              NOT interactive as a row. Copying is a Mark beside it, so the address itself stays
+              selectable text — which is what the failure path below falls back to when the
+              clipboard is unavailable. */}
           <span className="min-w-0 break-all text-[17px] font-semibold">{user?.email}</span>
+          {/* A MARK, not a labelled button: copy belongs to DESIGN.md §5's universal-affordance
+              family beside back, add, search and close, and the caption below says what it is
+              for. Negative-margined to the 48px floor so it does not inflate the row — the same
+              construction Row Actions and the password reveal already use. The `aria-label` is
+              this control's only name (§8), so it names what it copies rather than the verb. */}
+          <button
+            type="button"
+            aria-label="Copy your email address"
+            onClick={onCopy}
+            className="-my-2 flex size-12 shrink-0 items-center justify-center text-ink"
+          >
+            <Copy />
+          </button>
         </div>
 
-        <section className="border-b-2 border-ink py-4">
-          <h2 className="caps mb-1 text-[11px] font-extrabold tracking-[0.16em] text-ink-soft">Your user id</h2>
-          {/* A hex identifier is a labelled datum on display, so it takes the mono (DESIGN.md
-              §3) — and it is registered in check-browser.mjs's MONO_FIELDS manifest, which
-              asserts the face it actually resolves to rather than the class it was given. */}
-          <p className="num break-all text-sm text-ink">{user?.id}</p>
-          <p className="mt-2 text-sm text-ink-soft">
-            Quote this if you ask an administrator for help — it is how your account is
-            identified.
+        {/* Sharing is by email — `POST /libraries/{libraryId}/share` takes an address — so this
+            is what the reader gives to someone who wants to share a library WITH them. It is the
+            only reason this screen has a copy control at all. */}
+        <p className="mt-2 text-sm text-ink-soft">
+          Give this to someone so they can share a library with you.
+        </p>
+
+        {copyError && (
+          <p role="alert" className="mt-2 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
+            {copyError}
           </p>
-          {copyError && (
-            <p role="alert" className="mt-2 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
-              {copyError}
-            </p>
-          )}
-          <PlateButton variant="secondary" className="mt-4 inline-flex items-center gap-2" onClick={onCopy}>
-            <Copy />
-            Copy the id
-          </PlateButton>
-        </section>
+        )}
+
 
         {federated ? (
           // ABSENT, not disabled: a Google account has no password in this pool, so a form
