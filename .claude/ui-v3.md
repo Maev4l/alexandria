@@ -968,9 +968,14 @@ that the reader cannot recreate by searching again, and §7 reserves confirmatio
 destructive. Below three characters nothing fires and the recents stay: the field is not yet a query.
 
 ### Settings / Account / About
-Settings: Account, About, Sign out. Account: initials plate, email from the JWT, `custom:Id`
-copyable (it is the owner id used for support), password change with the same complexity rules as
-signup. About: version and build hash.
+Settings: Account, About, Sign out. Account: initials plate, email from the JWT **with a copy Mark
+beside it**, captioned with what copying it is for, then the password change with the same complexity
+rules as signup. `custom:Id` is **not on this screen** — see below. About: version and build hash.
+
+The copy control is a **Mark**, not a labelled button: copy sits in §5's universal-affordance family
+alongside back, add, search and close, and the caption under the row already says what it is for.
+48px target, negative-margined so it does not inflate the row, `aria-label` naming the address it
+copies — an icon-only control's label is its only name.
 
 Header on all three: **back plus its own name**, wordmark dropped, and **no pinned field** — that
 belongs to the root and nowhere else (§2). Five decisions the four lines above do not make:
@@ -1796,8 +1801,9 @@ fail loudly when the substrate moves.
 - [x] Settings, Account, About — the password section **absent** for a federated sign-in, tested on the
       `google_` username prefix rather than on `identities`, because a native signup that later used the
       Google button is *linked* and has both. Sign out is a ruled secondary set apart, no confirmation, with
-      the consequence stated above it. `custom:Id` explained rather than printed bare, copy confirming by
-      toast. Nothing implies account deletion, which the API cannot do.
+      the consequence stated above it. The copy Mark is on the **email**, captioned with the sharing flow it
+      serves; `custom:Id` is not on the screen, and the invented "for support" use that put it there is
+      recorded above. Nothing implies account deletion, which the API cannot do.
 
       **The federated branch had never been rendered** — mock mode signs in a native reader, so every
       screenshot and every browser check had seen only the password form. It was covered by a unit test and
