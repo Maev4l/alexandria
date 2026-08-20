@@ -419,6 +419,16 @@ The treatment was withdrawn for one round on crops rendered in the wrong font, a
 rendered in the right one — see §4. **76px, wght 900 and wdth 62.5% are now verified against
 pixel-level crops in real Archivo**, not inherited from the comp and not derived.
 
+**The narrowing figure was 27–44% here and is measured at 24–37%.** Advance widths at 76px / wght
+900, `100%` against `62.5%`: `M` 73.88 → 53.86 (−27.1%), `N` 63.31 → 39.69 (−37.3%), `P` 54.88 →
+37.11 (−32.4%), `Œ` 91.73 → 58.22 (−36.5%), `#` 50.17 → 38.09 (−24.1%), `A` 59.14 → 40.53 (−31.5%).
+
+Worth correcting rather than rounding, because **a guard written against the old figure would have
+failed on correct code**: `#` narrows 24.1%, under the stated floor of 27%, so the first thing that
+range would have done is report a defect in the glyph the treatment was most doubted on. That is the
+crying-wolf opening that gets a guard deleted instead of fixed. A threshold belongs at a margin
+below the *measured* minimum, not at a remembered one.
+
 ### The caps utility carries case, and nothing else
 
 A `caps` utility that also sets `font-weight` cannot be removed safely: taking the uppercase off a
@@ -754,7 +764,7 @@ replaced with a solid-ink letter.
 **Every one of those crops was rendered in `system-ui`,** because the shipped Archivo contained a
 space and the letter `A` and nothing else (§3). And `font-stretch: 62.5%` is **silently ignored by a
 face with no width axis** — so a *condensed* treatment was judged on glyphs that were never
-condensed. In real Archivo the `wdth` axis engages, narrowing glyphs by 27–44%, and the counters
+condensed. In real Archivo the `wdth` axis engages, narrowing glyphs by 24–37%, and the counters
 stay open. The one glyph in that test set judged clean, `A`, was the only one Archivo actually drew.
 
 So the withdrawal was correct on the evidence available and wrong about the world. Restoring it cost
