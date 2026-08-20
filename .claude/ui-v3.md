@@ -1314,6 +1314,15 @@ until the flake is identified. Not worth hunting from cold — a failure that wi
 attempts is likelier to be diagnosable at its next sighting than by a search now — but not to be
 forgotten either.
 
+**When a check and a comment collide, tighten whichever one is imprecise — neither is the default.**
+A manifest test's first draft matched `'any maskable'` anywhere in the icon module, so it fired on the
+comment explaining why that value is *not* used. The earlier ruling below reworded a comment instead,
+and both are right, because the deciding question is **which side is the loose one**. There, the
+comment spelled out markup as decoration and lost nothing by being reworded. Here the comment carries
+a reason — why a value was rejected — so it is load-bearing content, and the detector matching a bare
+substring anywhere in a file was the imprecise half. Rewording it would have deleted the record of a
+decision to satisfy a checker's sloppiness.
+
 **Prefer removing a false trigger to suppressing a true check — and notice which of those needs
 permission.** The design hook fired three times on `BookDetectionResults.jsx`, at three line numbers as
 the file moved, always on a JSX comment that spells out `<img src="">` while explaining why the code
@@ -1840,6 +1849,36 @@ fail loudly when the substrate moves.
       reach CloudFront. Surfaced as a printed "NEW EDITION" notice (`--paper-deep`, 3px ink top
       rule, Plate Button), not a toast: it must survive being ignored. Startup, hourly and
       `visibilitychange` checks
-- [ ] PWA: icons and manifest (CloudFront cache headers already satisfied by the
-      existing `cloudfront.tf` — no Terraform needed)
+- [x] PWA: icons and manifest — three distinct SVG sources (favicon, standard, maskable), because
+      16px measurement demanded it, rasterised from the committed files with **no `<text>` element**:
+      a `<text>` rasterises through fontconfig and falls back silently, which is the defect that hid
+      a total font failure for three slices. Verified as rasters rather than as files — each decodes
+      at its declared size **and carries the mark**, a check written first and shown to catch the real
+      defect, since a flat-ink 192×192 passes "decodes at 192px" and fails "carries yellow against
+      ink". CloudFront headers were already satisfied by the existing `cloudfront.tf`; no Terraform
+      was written.
+
+      **The manifest had no coverage at all**, and the reason is structural: it is declared in
+      `vite.config.js` and only becomes a file in a build, so `check:browser` cannot see it and "the
+      built manifest parses" had been a manual check. Its colours, the maskable purpose and the
+      orientation absence are now read out of source.
+
+      **`orientation: 'portrait'` was dropped rather than shipped, and the distinction is the
+      durable part.** A portrait lock on an installed Android app means a tablet held in landscape
+      **cannot display the app at all**. The justification for it — *nothing has a landscape layout
+      to rotate into* — is an argument for not **building** one; it is not an argument for
+      **preventing** rotation. Two decisions already assume landscape is reachable: `DESIGN.md` §4's
+      448px centred column, which exists precisely so a wide viewport is not a stretched phone, and
+      the film capture screen's no-scroll ruling, measured at 667×390 with landscape scrolling
+      accepted on the record. A lock would make that state unreachable on one platform and strand
+      its reasoning.
+
+      And it is a floor rather than a preference, which is what settles it: **WCAG 2.1 SC 1.3.4
+      (Orientation, AA)** requires content not to restrict itself to a single display orientation
+      unless that orientation is essential. A catalogue is not essential-single-orientation, and the
+      readers the criterion exists for are the ones who cannot rotate the device — someone whose
+      phone is mounted to a chair in fixed landscape would simply be locked out. Same shape as the
+      focus-ring ruling: where a stylistic argument meets an accessibility floor, the floor decides.
+      `PRODUCT.md`'s "phone-first (portrait, thumb reach)" describes a **posture**, not a constraint
+      to enforce.
 - [x] `frontend-v3-build|serve|preview` Make targets; `frontend-v3-cutover` deferred to the end
