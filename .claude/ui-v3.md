@@ -1701,7 +1701,9 @@ volume — including a maskable variant. Manifest `theme_color` `#0B0B0B`, `back
 
 ## 8. Progress
 
-Nothing is built. No application code exists in `packages/web-client-v3`.
+**Built and in production at `alexandria.isnan.eu`** since the cutover. There is one bucket and
+one distribution, so the deploy that shipped v3 replaced v2; v2's source stays in the repo as a
+reference and nothing builds or deploys it.
 
 **Documentation**
 - [x] Product record (`/PRODUCT.md`)
@@ -1881,4 +1883,9 @@ fail loudly when the substrate moves.
       focus-ring ruling: where a stylistic argument meets an accessibility floor, the floor decides.
       `PRODUCT.md`'s "phone-first (portrait, thumb reach)" describes a **posture**, not a constraint
       to enforce.
-- [x] `frontend-v3-build|serve|preview` Make targets; `frontend-v3-cutover` deferred to the end
+- [x] Deploy: the existing `frontend-build|sync|invalidate|deploy|serve` targets now point at v3,
+      plus `frontend-preview` for a fixture build with no AWS. No `frontend-v3-*` targets remain —
+      after the cutover a `frontend-deploy` aimed at v2 still read as "deploy the app" while
+      silently rolling production back, with `--delete` removing v3 as it went. `frontend-invalidate`
+      widened to `/*`: v3 adds `/icons/*` and `/fonts/*`, and the app-shell-only rule it was
+      narrowed for stops holding once a release can change any path

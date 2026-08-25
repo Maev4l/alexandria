@@ -13,8 +13,7 @@ TF           := terraform -chdir=packages/infrastructure
 .DEFAULT_GOAL := help
 .PHONY: help cli-build infra-apply infra-output backend-build backend-deploy \
         frontend-build frontend-sync frontend-invalidate frontend-deploy \
-        frontend-serve resync-index \
-        frontend-v3-build frontend-v3-serve frontend-v3-preview
+        frontend-serve frontend-preview resync-index
 
 help: ## List available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -77,38 +76,41 @@ backend-deploy: ## Package, push image to ECR, then apply infra (was backend:dep
 	docker push $(ECR_REGISTRY)/$(IMAGE)
 	$(MAKE) infra-apply
 
-frontend-build: ## Sync configs then build the web client (was frontend:build)
+# THE FRONTEND IS v3. These targets pointed at web-client-v2 until the cutover; v2's source stays
+# in the repo as a reference, but nothing here builds or deploys it any more.
+#
+# Leaving them aimed at v2 would have been the more dangerous option: after the cutover
+# `frontend-deploy` still read as "deploy the app" while silently rolling production BACK to v2,
+# with `--delete` removing v3 as it went. A target whose name no longer matches what it does is
+# worse than one that does not exist.
+#
+# To build or serve v2 deliberately, use `yarn --cwd packages/web-client-v2 build|dev` — explicit,
+# and nothing anyone reaches for by habit.
+frontend-build: ## Sync configs then build the web client
 	$(MAKE) infra-output
-	yarn --cwd packages/web-client-v2 build
+	yarn --cwd packages/web-client-v3 build
 
-frontend-sync: ## Sync built web client to S3 (was frontend:sync)
-	aws s3 sync packages/web-client-v2/dist s3://$$($(TF) output -raw webclient_bucket) --delete
+frontend-sync: ## Sync built web client to S3
+	aws s3 sync packages/web-client-v3/dist s3://$$($(TF) output -raw webclient_bucket) --delete
 
-frontend-invalidate: ## Invalidate CloudFront app shell (was frontend:invalidate)
-	aws cloudfront create-invalidation --paths '/index.html' '/sw.js' '/manifest.webmanifest' '/workbox-*' --distribution-id $$($(TF) output -raw cloudfront_distribution_id)
+# `/*`, not the four app-shell paths v2 listed. v3 adds /icons/* and /fonts/*, and the shell rule
+# it was narrowed for — invalidate only what CloudFront must revalidate — does not hold once a
+# release can change any path. The cost is one invalidation per deploy against a private app.
+frontend-invalidate: ## Invalidate the CloudFront distribution
+	aws cloudfront create-invalidation --paths '/*' --distribution-id $$($(TF) output -raw cloudfront_distribution_id)
 
-frontend-deploy: ## Build, sync and invalidate the web client (was frontend:deploy)
+frontend-deploy: ## Build, sync and invalidate the web client
 	$(MAKE) frontend-build
 	$(MAKE) frontend-sync
 	$(MAKE) frontend-invalidate
 
-frontend-serve: ## Run the Vite dev server (was frontend:serve)
-	yarn --cwd packages/web-client-v2 dev
-
-# v3 targets are build/preview only on purpose. There is exactly one web-client bucket and one
-# distribution, so any S3 sync IS the cutover — see frontend-v3-cutover, added deliberately last.
-# v3 shares port 5173 with v2 (the port Cognito registers as an OAuth callback), so only one
-# dev server runs at a time.
-frontend-v3-build: ## Sync configs then build the v3 web client
-	$(MAKE) infra-output
-	yarn --cwd packages/web-client-v3 build
-
-frontend-v3-serve: ## Run the v3 Vite dev server (port 5173)
+frontend-serve: ## Run the Vite dev server (port 5173)
 	yarn --cwd packages/web-client-v3 dev
 
-frontend-v3-preview: ## Build and serve v3 locally against fixtures, no AWS required
+frontend-preview: ## Build and serve locally against fixtures, no AWS required
 	VITE_MOCK=1 yarn --cwd packages/web-client-v3 build
 	VITE_MOCK=1 yarn --cwd packages/web-client-v3 preview
+
 
 resync-index: ## Trigger a full search-index resync (was resync-index)
 	aws lambda invoke --function-name alexandria-index-items --payload '{"action":"fullResync"}' --cli-binary-format raw-in-base64-out /dev/stdout

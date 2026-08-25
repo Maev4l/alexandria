@@ -18,10 +18,14 @@ Architecture diagram, see: @../documentation/architecture.jpg (or @../documentat
 ## Design
 
 - The UI is a React based application.
-  - **v2 — in production**, see: @ui-v2.md (source: @../packages/web-client-v2)
-  - **v3 — specified, not yet built**, see: @ui-v3.md (source: @../packages/web-client-v3).
-    A from-scratch replacement. Its visual system is @../packages/web-client-v3/DESIGN.md
-    ("The Noir Imprint"). v2 is an explicit anti-reference for v3, not a starting point.
+  - **v3 — in production**, see: @ui-v3.md (source: @../packages/web-client-v3).
+    Its visual system is @../packages/web-client-v3/DESIGN.md ("The Noir Imprint").
+    Every `frontend-*` Make target builds, serves and deploys v3.
+  - **v2 — retired, source retained**, see: @ui-v2.md (source: @../packages/web-client-v2).
+    v3 replaced it at `alexandria.isnan.eu`; there is one bucket and one distribution, so the
+    deploy that shipped v3 removed v2. Nothing builds or deploys v2 any more — use
+    `yarn --cwd packages/web-client-v2 build|dev` deliberately if you need it. It remains an
+    explicit ANTI-reference for v3's identity, and a working reference for what the API returns.
 - Durable product truth (users, purpose, constraints, API limits) lives in @../PRODUCT.md
 - The backend is AWS Lamdba written in Golang, see @backend.md file
 - Everything is deployed on AWS.
