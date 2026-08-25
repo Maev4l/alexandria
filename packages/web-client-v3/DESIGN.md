@@ -70,10 +70,25 @@ Each colour has exactly one job. A colour used for anything else is a bug.
 | `--paper` | `#F6F6F3` | The ground. Cool off-white. **Not cream** — warm paper is the category default and v2's actual ground. |
 | `--paper-deep` | `#ECECE7` | A recessed field: search surface, sheets, form wells. |
 | `--ink` | `#0B0B0B` | Content and structure: text, rules, frames. |
-| `--ink-soft` | `#5A5A57` | Secondary content only (metadata lines, counts). Never structure. |
+| `--ink-soft` | `#5A5A57` | **The quiet register**: secondary content (metadata lines, counts) and the quiet marks that serve it — the back Mark on paper, the select chevron, a field's caps label. Structural rules stay `--ink`. |
 | `--imprint` | `#F2C200` | **The apparatus of finding and acting**: the search field, index letters, the active/selected state, primary actions. Never the inventory itself. |
 | `--out` | `#D8412F` | On loan. Nothing else, ever. |
 | `--shared` | `#0F6B4F` | Shared — outbound or inbound. Nothing else, ever. |
+
+**`--ink-soft` is the quiet register, and the wording it replaces — *secondary content only, never
+structure* — was false against the app on the day it was written.** The back Mark on paper, the select
+chevron in `Field`, and every quiet caps label in the product are `--ink-soft`, and not one of them is
+a metadata line or a count. §6 breaches the old wording on its own account one section later, spending
+`--ink-soft` caps on the reason that stands in a control's position. A rule that the document's own
+next section cannot keep is not being disobeyed; it is describing something other than the system.
+
+What the token still refuses is the thing that wording was protecting. **Structural rules stay
+`--ink`, at full strength.** A volume frame, a hairline separator, a field's bottom rule, a block's top
+edge — anything drawing the 1–4px lines of §4 — takes the structural tone, because rule weight is how
+this system expresses hierarchy, and a softened 2px rule reads as a lighter weight rather than as a
+quieter one. So the register is for marks and words that *accompany* content; it is never for the
+lines that build the page, and a frame set in `--ink-soft` is as much a bug under the new wording as
+under the old.
 
 ### Contrast
 
@@ -92,13 +107,29 @@ were out by up to 0.7.
 | `--cover-soft` on `--ink` | plate line, durations on the cover | 9.99:1 |
 | `--shared` on `--ink` | **never text on the cover** | 3.033:1 — green reads on paper at 5.99 and fails on the cover. So on the inverted surface the sharing mark puts the green on a 4px edge and sets its caps in `--cover-body`, exactly as the stamp puts `--out` on its outline. |
 | `--out` on `--ink` | stamp outline on the cover | 4.421:1 — **better than red-on-paper's 4.11**, so the cover is the *less* constrained surface for red, not the more. The stamp still sets its caps in a legible tone rather than in red; that is deliberate conservatism, not a contrast requirement, and it keeps one stamp construction across both surfaces. Recorded so a later pass does not "optimise" the caps to red on the strength of this number. |
+| `--imprint` on `--ink` | marks and headings on the black cover | 11.71:1 — **the same figure this table already prints for `--ink` on `--imprint`**, contrast being symmetric. Its absence is why the yellow law below reads as palette-wide: with no row for the cover case, the only measured yellow in the table was the paper one, and a law derived from it silently inherited a scope nobody had checked. |
 | `--imprint` on `--paper` | **never text, never a shape** | ~1.55:1 — yellow on paper is invisible on its own |
 
-**Yellow never carries a shape by itself.** At ~1.55:1 against paper, `--imprint` cannot describe a
-form; it can only be a *ground* with ink on top of it, or a *fill* inside an ink outline. That single
-fact explains the whole system: the plate works because ink figures sit on yellow (11.71:1), and a
-primary action works because its caps are ink. Any future use of yellow that has no ink doing the
-describing is unreadable, not subtle.
+**Yellow never carries a shape by itself — on paper.** At ~1.55:1 against `--paper`, `--imprint`
+cannot describe a form there; it can only be a *ground* with ink on top of it, or a *fill* inside an
+ink outline. That single fact explains most of the system: the plate works because ink figures sit on
+yellow (11.71:1), and a primary action works because its caps are ink. Any use of yellow **on paper**
+that has no ink doing the describing is unreadable, not subtle.
+
+**The bound is the ground, and it went unwritten because the row above went unwritten.** The
+measurement behind the law is `--imprint` on `--paper`. The cover is a different surface, where the
+same yellow on `--ink` clears 11.71:1 and describes a form perfectly well. Stated palette-wide, the
+law condemned three sites the build gets right, and a later pass reading only the rule would have
+stripped them: **the back Mark when the header is inverted** (`AppHeader`), **the `The record` ledger
+heading** on item detail, and **the 4px title rules** the cover is specified to carry (see *The black
+cover* below). None of the three has ink doing the describing, and on `--ink` none of them needs it.
+
+**One paper site did rely on the unscoped reading, and it is fixed rather than exempted.** `Login`'s
+notice drew a yellow top rule on `--paper-deep` — ~1.42:1, and that rule was the notice's only mark,
+so the yellow described nothing at all. It now takes the ink rule the other printed notices use. The
+distinction worth keeping: the law was over-broad *and* right about the one site it caught, so
+narrowing it is not a licence to keep the case it was right about. Scoping a rule and honouring it are
+separate acts, and doing only the first is how an exemption gets written as a correction.
 
 **The second construction carries a condition.** `-webkit-text-stroke` traces each stroke of a
 glyph independently, so the outline collides with itself wherever a counter is narrower than twice
@@ -129,10 +160,23 @@ cover alone, and using any of them on paper is a bug:
 They are named for the surface they belong to, not their brightness: a `soft`/`dim` pair invites
 exactly the wrong guess, since the body tone is the *brighter* of the two.
 
-**Anything that sets a ground sets its foreground, in the same rule.** A sheet, a toast, an error
-block — any surface that paints its own background must paint its text colour too, never inherit
-it. Inheriting is safe on every paper screen and catastrophic on the one inverted screen, which is
-precisely why it survives review: it is correct everywhere the author looked.
+**A ground's text is coloured at or below it, and never inherited across a surface boundary.** A
+sheet, a toast, an error block — any surface that paints its own background answers for the colour of
+every string it holds, either on its own class or on each text-bearing element within it. Inheriting
+*across* the boundary is safe on every paper screen and catastrophic on the one inverted screen, which
+is precisely why it survives review: it is correct everywhere the author looked.
+
+**This used to demand that a ground and its foreground be declared together on one class, which is
+stricter than the guard enforcing it and stricter than it needs to be.** `groundForeground.test.js`
+passes any surface whose text-bearing descendants each declare their own foreground — and that is the
+correct pass, not a hole in it. `UpdateNotice` paints `--paper-deep` and sets no text colour on the
+notice itself, then sets `--ink-soft` on its caps label and `--ink` on its line, so no string in it can
+inherit from anything outside. It shipped correct and in breach of the written rule at the same time,
+which means the document was asking for something nobody could apply and nothing could report.
+
+What actually prevents the bug below is not same-class declaration; it is that **no string crosses a
+surface boundary carrying a colour from the other side.** That is the weaker rule, and it is the one
+doing the work.
 
 This shipped. The `Sheet` panel set `bg-paper-deep` and no text colour, and item detail's root sets
 `text-paper` on its whole subtree — so a sheet opened from the black cover rendered `--paper` text
@@ -143,6 +187,24 @@ Note which direction the guard missed. The check written for the cover asserts t
 leaks *onto* the cover. Nothing asserted the reverse — a cover token leaking onto a paper surface
 rendered *inside* the cover — and the reverse is the one that shipped. **A surface check must run
 in both directions**, because the inverted screen contains paper surfaces as well as being one.
+
+**And there is a third direction this section has never stated: a foreground over a ground the design
+does not own.** Both rules above assume a surface painting its own background. `CaptureCaption` found
+the other case — every caption in both capture viewports set `--ink-soft` caps, transparent,
+`absolute inset-0`, over a live camera feed. Measured against a real feed, one unchanged string ran
+between **1.45:1 and 5.1:1** depending on where the camera happened to be pointing: legible and
+illegible within one render, at a contrast the design cannot predict because it does not own the
+pixels underneath. In the component's own words, *"here nothing set a ground at all, which is the same
+defect arriving from the other side"*.
+
+It is invisible to every mechanism this section has. The injected contrast detector reported nothing,
+because transparency over a `<video>` gives it no ground to compute against, and
+`groundForeground.test.js` scans for a ground with no foreground rather than a foreground with no
+ground. Only measurement finds this class of failure. **The remedy is that the caption paints its own
+ground** — a printed plate, ink on paper, pinned to the frame's bottom edge as a full-width strip — so
+it reads at 18.18:1 whatever the camera sees, and cannot occlude the region the reader is aiming at.
+Borrowing a ground is not owning one, and a surface the app cannot measure is a surface it must not
+write on.
 
 ### Focus
 
@@ -200,6 +262,20 @@ This is the one case where
 suppressing an input's own outline is correct rather than the defect it was in slice A, and the
 distinction is not a matter of judgement: it holds only while the parent demonstrably shows an
 indicator, so a browser check must assert that focusing the input makes the control visibly focused.
+
+**One class in the token layer is now a deliberate no-op, and nothing here had ever said so.**
+`.on-imprint` existed to flip the focus ring to ink on a yellow ground. Since the ruling above made
+the ring ink everywhere on paper, a yellow ground needs no flip, and the rule sets the colour the ring
+already has. It is kept as an **anchor** rather than as behaviour: `index.css` flags it as such at the
+site, roughly fifteen call sites name it, and deleting it would be a rename across the app for no
+change on screen.
+
+Recorded because an unrecorded no-op is the shape this document has already been caught by twice —
+`--press-route` declared, themed and motion-gated with no consumer (§7), and §3's tracking values
+declared and silently beaten. **A declaration standing in for a behaviour reads as more finished than
+an unused constant does**, and the only difference here is that this one is labelled at its site and,
+now, in the palette that owns it. It must not grow a new rule on the assumption that it still does
+something.
 
 ---
 
