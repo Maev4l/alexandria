@@ -148,6 +148,19 @@ describe('the focus ring', () => {
     expect(contrastRatio(PALETTE.ink, PALETTE.imprint)).toBeGreaterThanOrEqual(3);
   });
 
+  // EVERY focus rule, not just the base one. When §2's ruling moved the ring from the accent to
+  // the structural tone, `.field-control` kept `--imprint` — the fix touched the rule under
+  // review and the sibling survived, and this file asserted only `:focus-visible`, so nothing
+  // reported it. Found by reconciling the document against the build, months later.
+  //
+  // It was the worse of the two: `.field-control` is the SEARCH FIELD, whose ground IS the
+  // accent, so a yellow ring described nothing at all — and it is every form field in the app.
+  it('spends no accent on any focus outline, anywhere in the stylesheet', () => {
+    const focusRules = css.match(/[^{}]*focus[^{}]*\{[^}]*\}/g) ?? [];
+    const onAccent = focusRules.filter((rule) => /outline:[^;]*var\(--imprint\)/.test(rule));
+    expect(onAccent).toEqual([]);
+  });
+
   it('inverts on the black cover, where an ink ring would be invisible', () => {
     // The surface the old rule never covered: a yellow ring was legible on both grounds, so no
     // surface needed naming. An ink one is not, so the cover names itself.

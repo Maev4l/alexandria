@@ -216,8 +216,17 @@
      separate ring when IT has focus. One control, one indicator, whichever the reader is
      actually on. scripts/check-browser.mjs proves this by reverting the selector to
      :focus-within and asserting the check then fails. */
+  /* INK, like every other focus ring. This rule kept `--imprint` when §2's focus ruling changed
+     the base `:focus-visible` — the fix touched the rule under review and the sibling survived,
+     and `tokens.test.js` asserted only the base one, so nothing reported it.
+     It is the worse half of the two, not a leftover: `.field-control` is the SEARCH FIELD, whose
+     ground is `--imprint`, so a yellow ring sat on yellow and described nothing at all; and it is
+     every `Field` in the app, where yellow on paper measures ~1.55:1 against WCAG 2.2 SC 1.4.11's
+     3:1 floor. Ink is 11.71:1 on the accent and 18.18:1 on paper.
+     `outline-offset: 0` is unchanged and is a different rule (§2 RULING 1): where an element
+     already carries an ink rule, focus THICKENS it rather than drawing a concentric second one. */
   .field-control:has(input:focus-visible) {
-    outline: 3px solid var(--imprint);
+    outline: 3px solid var(--ink);
     outline-offset: 0;
   }
 
