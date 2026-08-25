@@ -125,6 +125,27 @@ wordmark gains its two missing routes:
 { role: 'wordmark', route: '/signup',    text: 'ALEXANDRIA', px: 12, em: 0.2 },
 ```
 
+**Adding `px` immediately surfaces a second role, and the ruling is recorded here rather than
+left to the implementer.** `SharedRibbon`'s caps render at **two sizes across four sites**, split
+by surface: 11px/700 on `LibraryRow` and on `LibraryBrowse`'s shared-library header; 10px/800 on
+`DetailMarks` and `SearchRowMarks`. §3's caps table publishes one row at 10/800, and the manifest's
+`shared ribbon caps` entry is routed to `/libraries` — so it measures the **11/700** instance
+against the row describing the **10/800** one, and has always been green only because the two
+surfaces coincide at +0.16em.
+
+That is this project's signature defect inside the guard itself: a true measurement of the wrong
+substrate, passing for a reason unrelated to what it claims. It also makes finding 2.3a larger than
+the audit stated — §3 describes the library row's sub-line **twice**, once in the mono table (as
+mono/400) and once in the caps table (as 10/800), and neither matches what renders.
+
+**Ruling (owner, at plan time): two roles, both documented.** §3's caps table gains
+`shared ribbon caps (detail marks, search row)` at 10/800 and `library row sub-line` at 11/700; the
+mono table's "library row sub" row becomes a pointer to the second of those rather than a fourth
+description of the same element. `CAPS_ROLES` gains a second entry so both surfaces are measured,
+each against the row that describes it. The 11/700 sub-line under a 22px name is left as it renders:
+harmonising it to 10/800 would be a redesign arriving inside a reconciliation pass, on no
+measurement.
+
 **Weight is deliberately handled differently.** Adding it would close the row completely for one
 more line — and it would assert six roles nobody has measured, inside a pass whose scope is
 *apply the reconciliation*. A divergence found that way is a new finding arriving through the back
@@ -224,7 +245,8 @@ for, sitting inside a guard file.
 | Change | Finding |
 |---|---|
 | The **search field input** row says 13px; the build sets 16px and is right — Mobile Safari zooms the page below 16px, reported from the deployed app. Correct the row, and **widen the exception paragraph** from `Field`'s three controls to *any input*. `typeScale.test.js:121-131` already enforces the wider rule, so the document is the last holdout. | 2.1 |
-| The **library row sub** row says mono / 400 / tabular. `LibraryRow.jsx:57,62` sets a caps tag in the sans at 11px/700/+0.16em, correctly — the sub-line carries sharing, not a datum. Correct the row. §3's "a library's item count" stays a mono datum: that is the **plate**, and `VolumePlate` sets it in `.num`. | 2.3a |
+| The **library row sub** row says mono / 400 / tabular. `LibraryRow` sets a caps tag in the sans at 11px/700/+0.16em, correctly — the sub-line carries sharing, not a datum. §3's "a library's item count" stays a mono datum: that is the **plate**, and `VolumePlate` sets it in `.num`. | 2.3a |
+| **The caps table gains a second shared-ribbon role**, per the ruling in §2.4: `shared ribbon caps (detail marks, search row)` at 10/800, and `library row sub-line` at 11/700. One component, two surfaces, two published rows — and the mono table's "library row sub" row becomes a pointer to the caps row rather than a fourth description of one element. | 2.3a / found at plan time |
 | Record that **section heads carry counts** — `Libraries.jsx:19-24` sets `MINE` / `SHARED WITH ME` with a `.num tracking-normal text-ink-soft` figure at the right. §3 gives the section header a size and tracking and no figure. | List 3 #14 |
 
 ### 3.3 §4 — Division scale
