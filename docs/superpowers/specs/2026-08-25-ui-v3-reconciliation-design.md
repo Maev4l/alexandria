@@ -107,9 +107,30 @@ printing it at another tracking were never in scope. Add `/login` and `/signup` 
 **The size needs an assertion of its own, and this is why.** `typeScale.test.js` resolves every
 size class to pixels and fails anything off §3's scale — and **11px is on the scale**, as the
 section-header step. So the size divergence is invisible to the one guard that reads sizes, by
-construction, and no amount of widening it would help. The browser assertion must read the computed
-`font-size` alongside the tracking. A guard that cannot see the defect it is being widened for is
-the no-op this project has already paid for twice.
+construction, and no amount of widening it would help. A guard that cannot see the defect it is
+being widened for is the no-op this project has already paid for twice.
+
+**The fix is not a new guard; it is finishing this one.** `CAPS_ROLES`' own header comment states
+the principle exactly — *"nothing computed `letter-spacing`… a class can be present and beaten, and
+only the computed value can tell"* — and that reasoning is indifferent to which property is
+declared. §3's caps table publishes a **size, a weight and a tracking** for every role. The manifest
+computes one of the three.
+
+So each entry gains `px`, the assertion reads computed `fontSize` alongside `letterSpacing`, and the
+wordmark gains its two missing routes:
+
+```js
+{ role: 'wordmark', route: '/libraries', text: 'ALEXANDRIA', px: 12, em: 0.2 },
+{ role: 'wordmark', route: '/login',     text: 'ALEXANDRIA', px: 12, em: 0.2 },
+{ role: 'wordmark', route: '/signup',    text: 'ALEXANDRIA', px: 12, em: 0.2 },
+```
+
+**Weight is deliberately handled differently.** Adding it would close the row completely for one
+more line — and it would assert six roles nobody has measured, inside a pass whose scope is
+*apply the reconciliation*. A divergence found that way is a new finding arriving through the back
+door, which is how §3's caps table grew the problem this section repairs. So weight runs as a
+**read-only probe** during implementation: clean, and the assertion lands for free; divergent, and
+the divergences go on a list rather than into this pass.
 
 ### 2.5 The browse skeleton's frame loses its fill *(finding 1.8)*
 
@@ -259,7 +280,7 @@ confirmation and a persistent offer wearing one printed form. Record what distin
 | Change | Finding |
 |---|---|
 | **On loan** widens past "item rows only" to include the boxed Ledger Row's open loan. | 1.11 |
-| **Error** gains its full set: on paper `border-t-2 border-out bg-paper-deep` (~30 sites, exactly as written); **inside a Sheet** the same rule on `bg-paper`, because the sheet's own ground is already `--paper-deep` (5 sites); **on the black cover** a full `border-2 border-out` box with no ground, text inherited from the cover root, argued at `ItemDetail.jsx:502-505` (4 sites); and the **inline field error** (§3.4 above). One state, four treatments, one documented. | 1.14 / List 3 #12 |
+| **Error** gains its full set: on paper `border-t-2 border-out bg-paper-deep` (30 sites, counted, exactly as written); **inside a Sheet** the same rule on `bg-paper`, because the sheet's own ground is already `--paper-deep` (5 sites); **on the black cover** a full `border-2 border-out` box with no ground, text inherited from the cover root, argued at `ItemDetail.jsx:502-505` (4 sites); and the **inline field error** (§3.4 above). One state, four treatments, one documented. Counted against the tree rather than taken from the audit: 45 `border-out` sites, not 44 — one has landed since — splitting 30 / 5 / 4, with the remainder being the stamp, the destructive button, the field-error class, the two in-place confirmations and `PendingApproval`'s badge. | 1.14 / List 3 #12 |
 | The **unshare bar has four states**, not three: nothing-to-unshare → `null`; nothing selected → hint; over the API's 10-per-request limit → reason; **confirming** → a named `Remove for good` / `Keep access` pair; otherwise → action. The confirmation is required by §7 and the document counted before it existed. `min-h-20` reserves the height correctly and no control is ever greyed. | 1.10 |
 | Four new rows: **End of list** (`LibraryBrowse.jsx:195`); **Appending** (`:188`, `role="status"`, distinct from the cold skeleton); **In-flight capture lookup** (`CaptureCaption`'s busy strings — §6 has no row for a viewport narrating a request); **Route-chunk pending** (`routes.jsx:44-51`, a `RouteFallback` rendering the full paper ground plus a working back control — §6's *Loading* covers content, not code-splitting). | List 3 #6–9 |
 | Permit a **tint of a structure token as a skeleton ground**: `ItemDetail.jsx:334-343` uses `bg-cover-rule/25` for line bars, argued at `:325-327` as "the same token `OverprintStamp`'s row variant already tunes with opacity, not a new one". §2 declares `--cover-rule` structure-only and never rules on a tint. | 2.11 |
@@ -335,6 +356,19 @@ a file and the file is grepped, never the pipe: a suite has been seen red once f
 and grepping at the moment of observation is what discarded the evidence.
 
 `yarn test`, `yarn check:browser`, `yarn lint` — all three, after each code commit.
+
+**Every site is reached by an anchor string, never by a line number, and the anchor is asserted to
+resolve to exactly one match before the edit.** Zero means the site moved; more than one means it
+spread; both are stop conditions rather than things to guess through. The audit's line numbers are
+pinned to `7bc45f7` and have already drifted — `CollectionBoard`'s member render is at `:50`, not
+the `:33` the audit cites, and the caps manifest moved from `:1596` to `:1659`. All 13 anchors in
+this spec were resolved against the working tree and each matches exactly one site.
+
+Two details, both learned by running it. Match **fixed strings** (`grep -F`): a Tailwind arbitrary
+value like `text-[11px]` is a character class to a regex engine, and the first run of this check
+reported three false zeros for that reason — a checker failing on its own substrate, which is the
+defect this project keeps finding. And pick an anchor that is unique *as written*: `board.items`
+matches twice (the map and a length test), `(board.items ?? []).map` matches once.
 
 **Both widened guards must be seen to fail.** Break the wordmark size on `/login`, confirm with
 `git diff` that the mutation actually landed — a no-op `sed` and a robust guard produce identical
