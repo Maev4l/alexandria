@@ -1139,7 +1139,11 @@ stopped needing it, flagged in `index.css` and invisible here until now.
 cd /Users/jrsue/dev/repos/alexandria/packages/web-client-v3 && pwd
 grep -cF -- '11.71:1' DESIGN.md            # expect 3 or more: the two existing uses plus the new row
 grep -cF -- 'in the same rule' DESIGN.md   # expect 0
-grep -cF -- 'Never structure' DESIGN.md    # expect 1 — --cover-rule keeps its own, which is real
+# Expect 0, NOT 1. `--cover-rule`'s row reads "Structure only, never text" — a different string —
+# so this counter goes 1 -> 0. Expecting 1 would fail on correct work, which is the crying-wolf
+# opening that gets a check deleted rather than fixed.
+grep -cF -- 'Never structure' DESIGN.md    # expect 0
+grep -cF -- 'Structure only, never text' DESIGN.md  # expect 1 — --cover-rule keeps its own, unchanged
 grep -cF -- 'CaptureCaption' DESIGN.md     # expect 1 or more
 grep -cF -- 'on-imprint' DESIGN.md         # expect 1 or more
 ```
@@ -1261,7 +1265,9 @@ grep -cF -- 'shared ribbon caps (detail marks' DESIGN.md   # expect 1
 grep -cF -- 'library row sub-line' DESIGN.md     # expect 1 or more
 grep -cF -- '104px' DESIGN.md                    # expect 2 or more
 grep -cF -- 'row-skip' DESIGN.md                 # expect 1 or more
-grep -cF -- '| Search field input | 13 |' DESIGN.md        # expect 0
+# The real row text. `| Search field input | 13 |` was checked and is 0 BEFORE the change too —
+# a grep that reads the same on both sides of an edit cannot report anything.
+grep -cF -- 'Search field input, ledger name row' DESIGN.md   # expect 0 (it is 1 today)
 ```
 
 Then cross-check the caps table against the guard, which is the point of the task:
@@ -1553,7 +1559,7 @@ where an ink rule already exists so focus thickens it rather than drawing a conc
 cd /Users/jrsue/dev/repos/alexandria/packages/web-client-v3 && pwd
 grep -cF -- 'Collection expand' DESIGN.md        # expect 0
 grep -cF -- 'Item rows only' DESIGN.md           # expect 0
-grep -cF -- "3px \`--imprint\` at 2px offset" DESIGN.md   # expect 0
+grep -cF -- 'at 2px offset, switching to' DESIGN.md   # expect 0 (it is 1 today)
 grep -cF -- 'End of the shelf' DESIGN.md         # expect 1 or more
 grep -cF -- 'RouteFallback' DESIGN.md            # expect 1 or more
 grep -cF -- 'exactly three states' DESIGN.md     # expect 0
