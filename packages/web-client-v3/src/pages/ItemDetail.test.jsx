@@ -8,17 +8,7 @@ import ItemDetail from './ItemDetail.jsx';
 import { LibrariesProvider } from '@/state/LibrariesContext.jsx';
 import { ToastProvider } from '@/state/ToastContext.jsx';
 import { libraries } from '@/test/fixtures';
-
-// SharedRibbon now puts the count in its own mono span (DESIGN.md §3), so "Shared · 2" is split
-// across two text nodes and a plain string/regex getByText can no longer find it as one node.
-// Match the innermost element whose full rendered text satisfies the pattern, so a wrapping
-// element that merely contains the match is not returned as well (which getByText treats as
-// an ambiguous multi-match failure).
-const matchesOwnText = (pattern) => (_, element) => {
-  const text = element.textContent ?? '';
-  if (!pattern.test(text)) return false;
-  return Array.from(element.children).every((child) => !pattern.test(child.textContent ?? ''));
-};
+import { matchesOwnText } from '@/test/matchesOwnText.js';
 
 const renderPage = (itemId) =>
   render(
