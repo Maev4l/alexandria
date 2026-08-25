@@ -89,7 +89,6 @@
   /* Every transition is declared through these, so prefers-reduced-motion retires all
      motion in one place. */
   --press-fast: 80ms;
-  --press-route: 160ms;
   --press-sheet: 200ms;
 }
 
@@ -301,7 +300,6 @@
 @media (prefers-reduced-motion: reduce) {
   :root {
     --press-fast: 0ms;
-    --press-route: 0ms;
     --press-sheet: 0ms;
   }
 

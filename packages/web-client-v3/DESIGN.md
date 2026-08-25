@@ -974,13 +974,29 @@ Print does not ease. Motion is **the press**: short, mechanical, un-sprung.
 | Event | Motion |
 |---|---|
 | State swap | 80ms, linear |
-| Route transition | 160ms single horizontal shift — the next volume slid onto the table |
 | Sheet | 200ms rise from the bottom edge |
 | Stamp appearing | No animation. It is printed. |
 | Collection expand | 160ms height change, no bounce |
 
 No springs, no parallax, no hover flourishes. Under `prefers-reduced-motion` every transition
 becomes an instant swap. This austerity is also cheap, which suits a PWA on a phone.
+
+**There is no route transition, and this table used to claim one** — *160ms single horizontal
+shift, the next volume slid onto the table.* It was never built. Navigating between screens is an
+instant swap, which is the more consistent answer anyway: a horizontal slide was the most
+animation-like row in a table whose thesis is that print does not ease, and it was the only one
+describing something the reader would have watched rather than simply found done.
+
+**What hid it is worth more than the row.** `--press-route: 160ms` was declared beside the two
+tokens that are real, AND given a `prefers-reduced-motion` override setting it to `0ms` — so
+someone had written a rule retiring an animation that did not exist. A token that is declared,
+themed and motion-gated reads as evidence of a working mechanism being handled responsibly; it
+looks *more* finished than an unused constant would. It had zero consumers app-wide and was found
+only by reconciling this document against the build.
+
+That is the same shape as `font-stretch` being declared and silently ignored, and §3's tracking
+values being declared and silently beaten: **a declaration standing in for a behaviour**, correct
+in the source and absent from the screen, with nothing computing the thing that would say so.
 
 ---
 
