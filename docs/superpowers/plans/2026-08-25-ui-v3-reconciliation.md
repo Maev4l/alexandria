@@ -1581,6 +1581,23 @@ an eleventh one.
 **Record that a line skeleton is not a frame skeleton**: bars may carry a fill, frames may not. This
 is the distinction Task 04 applied.
 
+- [ ] **Step 1b: Take the delete-confirmation construction, whole, from the component vocabulary**
+
+An earlier task had to put this somewhere and chose the plate button's entry, because the
+`forwardRef` there exists for that caller and nothing else. That was a sound interim and it is the
+wrong final home: **a confirmation is a state, not a component**, and nobody scanning a vocabulary of
+components for *how does a delete confirm* will look under a button. It is also roughly half that
+entry's length, and the part describing the four sheet-based confirmations is a sheet construction
+rather than a button one.
+
+Move the text here as its own state, under a name that says what it is — the state a destructive
+action enters when asked to confirm. **Move it, do not rewrite it**: every sentence in it was
+verified against source under review, including the two families (one authoring its own dialog
+semantics inline, four inheriting role, trap and inert background from the sheet that contains
+them), the four distinct labels, and the honest statement that those four inherit **no
+announcement** — a gap written as a gap rather than dressed as a reason. Leave a single sentence in
+the button's entry pointing at the state by name, since the `forwardRef` genuinely does exist for it.
+
 - [ ] **Step 2: Add §6's four new rows**
 
 **End of list** — `End of the shelf`, a caps line above a top rule in `--ink-soft`.
