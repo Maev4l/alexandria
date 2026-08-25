@@ -8,7 +8,6 @@ import ItemActionsSheet from '@/components/ItemActionsSheet.jsx';
 import PlateButton from '@/components/imprint/PlateButton.jsx';
 import { itemsApi, searchApi } from '@/api';
 import { useLibraries } from '@/state/LibrariesContext.jsx';
-import useDebounced from '@/lib/useDebounced.js';
 import { addRecent, clearRecents, readRecents } from '@/lib/recentSearches.js';
 import { replaceById } from '@/lib/replaceById.js';
 
@@ -21,11 +20,22 @@ const Search = () => {
   const [params, setParams] = useSearchParams();
   const { byId, canAct } = useLibraries();
 
-  // Seeded from `?q=`, which the pinned field carries so the reader never types it twice — and
-  // which makes this surface deep-linkable and refresh-safe, like every other real route here.
-  const [terms, setTerms] = useState(() => params.get('q') ?? '');
-  const settled = useDebounced(terms);
-  const query = settled.trim();
+  // TWO VALUES, NOT ONE, and the split is the whole change. `terms` is what is in the field;
+  // `query` is what was last SUBMITTED, and it lives in `?q=` rather than in state.
+  //
+  // The surface used to search as the reader typed, on a 300ms debounce. That fires a request per
+  // pause rather than per intent — `roman` typed at an ordinary speed spends three round trips to
+  // answer the one the reader meant — and PRODUCT.md's dominant scene is a bookshop on poor
+  // signal, where those are the expensive kind. It was defensible only while the field had no
+  // other way to act; it has two now, an action key on the phone keyboard and the magnifier
+  // beside the text, both added for a reader who was already reaching for them.
+  //
+  // Deriving `query` from the URL rather than from a second piece of state is what keeps this
+  // surface deep-linkable and refresh-safe: the address bar and the results cannot disagree,
+  // because there is only one of them.
+  const submitted = params.get('q') ?? '';
+  const [terms, setTerms] = useState(submitted);
+  const query = submitted.trim();
   const isReady = query.length >= MIN_CHARS;
 
   // Bumped by `Try again`, which must re-run a query the reader has not changed — so the effect
@@ -35,21 +45,58 @@ const Search = () => {
   const [recents, setRecents] = useState(readRecents);
   const [actionsFor, setActionsFor] = useState(null);
 
-  // `?q=` is WRITTEN as the query settles, not merely read at mount. Without this the URL froze
-  // at whatever the reader arrived with: refine `roman` to `nadja`, tap a result, press Back, and
-  // the field reads `roman` again with the eight old rows — plus a refetch and a scroll to zero.
-  // It fails plausibly, which is what makes it expensive: a normal results screen with a query in
-  // the field, just not theirs. It also contradicts this surface's own contract sentence,
-  // "returning the reader exactly where they were", and made the deep-linkable claim false for
-  // anything typed here rather than carried in.
+  // A SUBMIT THAT IS TOO SHORT MUST SAY SO. Under the debounce this state was invisible: nothing
+  // had been asked, so nothing answering was not a failure. An explicit submit is a question, and
+  // silence in reply to a question is the reader wondering whether search is broken.
   //
-  // `replace`, so refining a query does not push a history entry per keystroke — Back must leave
-  // the surface, not walk the reader backwards through their own typing.
-  useEffect(() => {
-    if (!isReady) return;
-    if (params.get('q') === query) return;
-    setParams({ q: query }, { replace: true });
-  }, [query, isReady, params, setParams]);
+  // Set on the attempt rather than while typing, so a reader on their way to three characters is
+  // not nagged at one and two. Cleared by any edit, because the next keystroke may resolve it.
+  const [tooShort, setTooShort] = useState(false);
+
+  // SUBMIT IS WHERE `?q=` IS WRITTEN, which is also where the search runs — one act, one record.
+  // It used to be written as the debounced value settled, for a reason that still holds and is
+  // now served for free: without it the URL froze at whatever the reader arrived with, so
+  // refining `roman` to `nadja`, tapping a result and pressing Back gave them a normal-looking
+  // results screen that was not theirs.
+  //
+  // `replace`, so a refinement does not push a history entry — Back must leave the surface, not
+  // walk the reader backwards through their own attempts.
+  //
+  // `attempt` is bumped on EVERY submit, not only on a changed query, so re-submitting the same
+  // text is a retry rather than a no-op. `setParams` with an unchanged value produces no state
+  // change and would otherwise leave the action key dead on the one screen where pressing it
+  // again is exactly what a reader does when an answer looked wrong.
+  const onSubmit = useCallback(
+    (text) => {
+      const next = text.trim();
+      if (next.length < MIN_CHARS) {
+        setTooShort(true);
+        return;
+      }
+      setTooShort(false);
+      setAttempt((n) => n + 1);
+      if (params.get('q') !== next) setParams({ q: next }, { replace: true });
+    },
+    [params, setParams],
+  );
+
+  // Typing changes the field and nothing else — no request, no URL write. The previous results
+  // stay exactly as they are until the reader asks again.
+  //
+  // EMPTYING IT IS THE EXCEPTION, and it is not typing: the mark beside the text is labelled
+  // `Clear the search`, not "clear the text", so it clears the search. Leaving eight rows under
+  // an empty field would state that they are results for nothing, and it would strand the reader
+  // on an answer they have just said they are done with — the recents and the invitation, which
+  // are the launchpad for the next lookup, only exist below an empty query. Deleting the last
+  // character by hand is the same act and takes the same branch.
+  const onQueryChange = useCallback(
+    (text) => {
+      setTerms(text);
+      setTooShort(false);
+      if (text === '' && params.get('q')) setParams({}, { replace: true });
+    },
+    [params, setParams],
+  );
 
   useEffect(() => {
     if (!isReady) {
@@ -137,6 +184,11 @@ const Search = () => {
   // Written as a value rather than inline so the region's text is a single expression with no
   // state that can silently produce an empty string.
   const announcement = (() => {
+    // FIRST, because it is the answer to the most recent act. A reader who submits two characters
+    // gets no request and therefore no change of `state` at all — the region would go on
+    // announcing whatever the previous query returned, which for the reader who cannot see the
+    // line above reads as "your search ran and this is the result".
+    if (tooShort) return `Search needs at least ${MIN_CHARS} characters.`;
     if (state.status === 'loading') return 'Searching';
     if (state.status === 'error') return `Search failed. ${state.error}`;
     if (state.status !== 'done') return '';
@@ -194,7 +246,23 @@ const Search = () => {
             rather than as a block that happens to be stuck. The header is not sticky, so `top-0`
             is the viewport edge and nothing overlaps. */}
         <div className="sticky top-0 z-10 -mx-4 border-b-2 border-ink bg-paper px-4 pb-3">
-          <SearchField value={terms} onQueryChange={setTerms} />
+          <SearchField value={terms} onQueryChange={onQueryChange} onSubmit={onSubmit} />
+          {/* Inside the sticky block, so it travels with the field it is about — a reason that
+              scrolls away from its cause explains nothing. Not the Error construction (§6's
+              `--paper-deep` and `--out` top rule): nothing failed, and dressing a rule the reader
+              simply has not met yet as a failure is the same misreport as the no-input notice on
+              the capture screens. It takes `Field`'s hint treatment instead, which is this
+              system's existing line-under-a-field.
+              THE FIGURE IS SANS, and the guard is why this comment exists. I set it in the mono
+              on the reflex that a numeral takes the mono, and `monoFieldCoverage` went red — §3
+              splits on what the numeral IS, not on whether it is a digit: mono is for a labelled
+              datum, sans for a numeral inside a sentence the app authored. This is a sentence,
+              the same case as "Delete Fiction and its 412 items?". */}
+          {tooShort && (
+            <p className="mt-1 text-[13px] text-ink-soft">
+              Search needs at least {MIN_CHARS} characters.
+            </p>
+          )}
         </div>
 
         {/* ONE PERSISTENT role="status", carrying the outcome for EVERY state.
@@ -319,7 +387,15 @@ const Search = () => {
                       the reader typed, which is content (§3). */}
                   <button
                     type="button"
-                    onClick={() => setTerms(term)}
+                    // FILLS AND RUNS. Under the debounce, filling the field was enough — the
+                    // query fired on its own a moment later. Now nothing runs without a submit,
+                    // so a recent that only filled the box would leave the reader looking at
+                    // their old results with the new term sitting above them, having to press
+                    // again a shortcut they tapped to avoid pressing.
+                    onClick={() => {
+                      setTerms(term);
+                      onSubmit(term);
+                    }}
                     className="flex min-h-12 w-full items-center border-b border-ink text-left text-[17px] font-semibold"
                   >
                     {term}

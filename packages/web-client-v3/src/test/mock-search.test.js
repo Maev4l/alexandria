@@ -12,7 +12,7 @@ import {
 // importing handleSearch directly - the point of this suite is that `POST /search` with these
 // exact, documented term arrays reaches these exact states, which is what the search screen will
 // actually send. `terms` is joined with a single space to form the lookup key, matching however
-// many words a debounced query happens to have been split into.
+// many words the submitted query splits into.
 const search = (terms) => handleMockRequest('POST', '/api/v1/search', { terms });
 
 describe('handleMockRequest - POST /search', () => {

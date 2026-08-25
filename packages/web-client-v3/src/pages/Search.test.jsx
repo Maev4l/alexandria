@@ -76,8 +76,17 @@ const renderSearch = (from = '/libraries') =>
 
 const field = () => screen.getByRole('searchbox', { name: /search every library/i });
 
-// Longer than the 300ms debounce, so "nothing fired" is a settled fact rather than a race.
+// Nothing is debounced any more, so "nothing fired" needs only a turn of the event loop to be a
+// settled fact rather than a race. Kept deliberately generous: a shorter wait would pass against
+// a reinstated debounce for the first 300ms and prove nothing.
 const past = (ms = 450) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// TYPING IS NOT SEARCHING. Every test that wants results must submit, exactly as a reader does —
+// with the phone keyboard's action key, which `{Enter}` is. Written as a helper rather than
+// appended to each `type` call so that a future change to how a search is triggered has one site.
+const runSearch = async (text) => {
+  await userEvent.type(field(), `${text}{Enter}`);
+};
 
 // The row is a <div> wrapping the item's Link; walking up from the title reaches it regardless
 // of how the inner markup is arranged.
@@ -114,26 +123,80 @@ describe('Search — the screen keeps its name and its exit', () => {
 });
 
 describe('Search — the query', () => {
-  it('fires nothing below three characters, and leaves the recents on screen', async () => {
-    localStorage.setItem('alexandria.v3.recent-searches', JSON.stringify(['melville']));
+  it('fires NOTHING while the reader types — a request costs a round trip, and typing is not asking', async () => {
     renderSearch();
 
-    await userEvent.type(field(), 'ro');
+    // The whole term, at a reader's pace, with no submit. Under the debounce this alone fired a
+    // request; the assertion is that it now fires none, which is the entire point of the change.
+    await userEvent.type(field(), TERM_MIXED);
     await past();
 
     expect(searchCalls()).toHaveLength(0);
+    // And the previous surface is untouched: nothing loading, nothing cleared.
+    expect(screen.queryByText(/searching/i)).not.toBeInTheDocument();
+  });
+
+  it('fires nothing below three characters, and says why rather than going silent', async () => {
+    localStorage.setItem('alexandria.v3.recent-searches', JSON.stringify(['melville']));
+    renderSearch();
+
+    await runSearch('ro');
+    await past();
+
+    expect(searchCalls()).toHaveLength(0);
+    // Silence in reply to an explicit act is indistinguishable from a broken search. Under the
+    // debounce there was no act, so there was nothing to answer.
+    // BOTH readers, asserted separately: the printed line under the field, and the live region —
+    // a reader who cannot see the line gets no `state` change either, so without the region they
+    // would go on hearing whatever the previous query returned.
+    expect(screen.getByText(/needs at least/i, { selector: 'p:not(.sr-only)' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/needs at least 3 characters/i);
     expect(screen.getByRole('button', { name: 'melville' })).toBeInTheDocument();
   });
 
-  it('fires exactly one request per settled value, not one per keystroke', async () => {
+  it('clears the too-short line on the next keystroke, not on a timer', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch('ro');
+    expect(screen.getAllByText(/needs at least/i).length).toBeGreaterThan(0);
+
+    await userEvent.type(field(), 'm');
+    expect(screen.queryAllByText(/needs at least/i)).toHaveLength(0);
+    expect(searchCalls()).toHaveLength(0);
+  });
+
+  it('fires exactly one request per submit', async () => {
+    renderSearch();
+
+    await runSearch(TERM_MIXED);
     await waitFor(() => expect(searchCalls()).toHaveLength(1));
     await past();
 
     expect(searchCalls()).toHaveLength(1);
     expect(searchCalls()[0].body).toEqual({ terms: [TERM_MIXED] });
+  });
+
+  it('re-runs on a second submit of the SAME text — pressing again is a retry, never a no-op', async () => {
+    renderSearch();
+
+    await runSearch(TERM_MIXED);
+    await waitFor(() => expect(searchCalls()).toHaveLength(1));
+
+    // `?q=` is already this value, so `setParams` produces no state change. Without the attempt
+    // counter the action key would be dead on the one screen where pressing it again is exactly
+    // what a reader does when an answer looked wrong.
+    await userEvent.type(field(), '{Enter}');
+    await waitFor(() => expect(searchCalls()).toHaveLength(2));
+  });
+
+  it('runs from the magnifier as well as the action key — a pointer has no Enter', async () => {
+    renderSearch();
+
+    await userEvent.type(field(), TERM_MIXED);
+    expect(searchCalls()).toHaveLength(0);
+
+    await userEvent.click(screen.getByRole('button', { name: /^search$/i }));
+    await waitFor(() => expect(searchCalls()).toHaveLength(1));
   });
 
   it('sends the reader\'s own spelling — it never folds accents or case', async () => {
@@ -142,7 +205,7 @@ describe('Search — the query', () => {
     // backend built, which is the same reason the stream's letters never use localeCompare.
     renderSearch();
 
-    await userEvent.type(field(), 'Élan Noir');
+    await runSearch('Élan Noir');
     await waitFor(() => expect(searchCalls()).toHaveLength(1));
 
     expect(searchCalls()[0].body).toEqual({ terms: ['Élan', 'Noir'] });
@@ -151,7 +214,7 @@ describe('Search — the query', () => {
   it('offers no sort and no filter controls — the API has neither', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
 
     expect(screen.queryAllByRole('combobox')).toHaveLength(0);
@@ -163,7 +226,7 @@ describe('Search — the result row', () => {
   it('names its library, because here the library IS new information', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
 
     expect(within(rowFor('1984')).getByText('Fiction')).toBeInTheDocument();
@@ -174,7 +237,7 @@ describe('Search — the result row', () => {
   it('marks a shared library with an INLINE tag and never a left edge', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     const shared = await screen.findByText('Le Grand Meaulnes');
     const row = shared.closest('.row-skip');
 
@@ -191,7 +254,7 @@ describe('Search — the result row', () => {
   it('stamps a lent result', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('Le Grand Sommeil');
 
     const row = rowFor('Le Grand Sommeil');
@@ -202,7 +265,7 @@ describe('Search — the result row', () => {
   it('opens the actions sheet on an owned result and offers nothing on a shared one', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
 
     // Read-only declares itself by ABSENCE, not by a disabled control.
@@ -217,7 +280,7 @@ describe('Search — a mutation patches the row without re-running the query', (
   it('lends in place and never issues a second /search', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
     await waitFor(() => expect(searchCalls()).toHaveLength(1));
 
@@ -250,7 +313,7 @@ describe('Search — a mutation patches the row without re-running the query', (
   it('clears the stamp when a return removes lentTo — a key the response OMITS', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('Le Grand Sommeil');
     await waitFor(() => expect(searchCalls()).toHaveLength(1));
 
@@ -281,13 +344,13 @@ describe('Search — the query in the URL', () => {
   it('writes the settled query to ?q= so Back restores what the reader last searched', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
     await waitFor(() => expect(locationProbe()).toContain(`q=${TERM_MIXED}`));
 
     // Refining must move the URL with it — this is the exact step that used to leave `?q=` stale.
     await userEvent.clear(field());
-    await userEvent.type(field(), TERM_SINGLE);
+    await runSearch(TERM_SINGLE);
     await screen.findByText('Nadja');
     await waitFor(() => expect(locationProbe()).toContain(`q=${TERM_SINGLE}`));
     expect(locationProbe()).not.toContain(TERM_MIXED);
@@ -297,7 +360,7 @@ describe('Search — the query in the URL', () => {
     renderSearch();
     const before = historyLength();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
     await waitFor(() => expect(locationProbe()).toContain(`q=${TERM_MIXED}`));
 
@@ -311,7 +374,7 @@ describe('Search — the honest limits', () => {
   it('prints the match scope AND the accent note when nothing matched', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_NONE);
+    await runSearch(TERM_NONE);
 
     expect(
       await screen.findByText(/titles, authors, directors, cast and collections/i),
@@ -322,7 +385,7 @@ describe('Search — the honest limits', () => {
   it('prints NEITHER when there are results — a positive assertion cannot detect surplus', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
 
     expect(screen.queryByText(/titles, authors, directors, cast and collections/i)).toBeNull();
@@ -342,7 +405,7 @@ describe('Search — a failed search', () => {
   it('reports inline with a Try again control, and never as a toast', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_ERROR);
+    await runSearch(TERM_ERROR);
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(/could not|went wrong/i);
@@ -353,7 +416,7 @@ describe('Search — a failed search', () => {
   it('Try again re-runs the same query', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_ERROR);
+    await runSearch(TERM_ERROR);
     await screen.findByRole('alert');
     await waitFor(() => expect(searchCalls()).toHaveLength(1));
 
@@ -368,7 +431,7 @@ describe('Search — recents', () => {
   it('records a query that found something, and re-runs it on tap', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
 
     await userEvent.clear(field());
@@ -376,6 +439,22 @@ describe('Search — recents', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: TERM_MIXED }));
     expect(field()).toHaveValue(TERM_MIXED);
+  });
+
+  it('emptying the field clears the search, and the recents come back', async () => {
+    renderSearch();
+
+    await runSearch(TERM_MIXED);
+    await screen.findByText('1984');
+
+    // The mark is labelled `Clear the search`, not "clear the text". Leaving the rows up under an
+    // empty field would state that they are results for nothing — and the recents, which are the
+    // launchpad for the next lookup, only exist below an empty query.
+    await userEvent.click(screen.getByRole('button', { name: /clear the search/i }));
+
+    expect(screen.queryByText('1984')).toBeNull();
+    expect(await screen.findByRole('button', { name: TERM_MIXED })).toBeInTheDocument();
+    expect(locationSeen).not.toContain('q=');
   });
 
   it('Clear empties them with no confirmation step', async () => {
@@ -401,7 +480,7 @@ describe('Search — the list survives a refinement', () => {
   it('keeps the previous results mounted while the next query is in flight', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
 
     // The mock answers synchronously, so the `loading` window closes inside a tick and racing it
@@ -415,8 +494,11 @@ describe('Search — the list survives a refinement', () => {
       return immediate(url, init);
     }));
 
-    await userEvent.clear(field());
-    await userEvent.type(field(), TERM_SINGLE);
+    // SELECT-ALL AND RETYPE, never `clear()`: emptying the field is now an explicit reset that
+    // drops `?q=` and returns the surface to its recents, so clearing here would unmount the rows
+    // for a reason that has nothing to do with the window under test. A reader refining a query
+    // edits it; they do not pass through empty.
+    await userEvent.type(field(), `{selectall}${TERM_SINGLE}{Enter}`);
 
     // The old rows must still be on screen while the new search runs.
     // Two nodes say "Searching": the visible caps mark and the sr-only status region. Scoped to
@@ -449,7 +531,7 @@ describe('Search — what a reader who cannot see it hears', () => {
     // that creates it.
     expect(status()).toBeInTheDocument();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
     expect(status()).toBeInTheDocument();
   });
@@ -457,12 +539,12 @@ describe('Search — what a reader who cannot see it hears', () => {
   it('states the outcome for a hit, a miss and a failure', async () => {
     renderSearch();
 
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
     await waitFor(() => expect(status()).toHaveTextContent(/\d+ results/));
 
     await userEvent.clear(field());
-    await userEvent.type(field(), TERM_NONE);
+    await runSearch(TERM_NONE);
     // The head AND a pointer to the explanation. `role="status"` fires without moving the reading
     // cursor, so a reader who hears only "Nothing matched" is left with the wrong conclusion this
     // screen exists to prevent, delivered faster.
@@ -470,13 +552,13 @@ describe('Search — what a reader who cannot see it hears', () => {
     expect(status()).toHaveTextContent(/what search covers/i);
 
     await userEvent.clear(field());
-    await userEvent.type(field(), TERM_ERROR);
+    await runSearch(TERM_ERROR);
     await waitFor(() => expect(status()).toHaveTextContent(/search failed/i));
   });
 
   it('says "1 result", not "1 results"', async () => {
     renderSearch();
-    await userEvent.type(field(), TERM_SINGLE);
+    await runSearch(TERM_SINGLE);
     await screen.findByText('Nadja');
     await waitFor(() => expect(status()).toHaveTextContent('1 result'));
     expect(status()).not.toHaveTextContent('1 results');
@@ -504,7 +586,7 @@ describe('Search — the surface before a query exists', () => {
 
   it('gives way to recents once there are any', async () => {
     renderSearch();
-    await userEvent.type(field(), TERM_MIXED);
+    await runSearch(TERM_MIXED);
     await screen.findByText('1984');
     await userEvent.clear(field());
 

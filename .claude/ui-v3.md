@@ -841,7 +841,19 @@ is stamped. Clearing the history confirms in a sheet and states that it removes 
 
 ### Search — `/search`
 The full-screen surface the header field opens, returning the reader exactly where they were.
-Debounced at 3+ characters. Results are on-paper rows spanning every visible library, each
+**The query runs on submit, never as it is typed.** It was debounced at 300ms, which spends a
+request per pause rather than per intent — `roman` at an ordinary pace costs three of them to
+answer the one lookup the reader meant, on the poor signal `PRODUCT.md` names as the dominant
+scene. Two routes trigger it, both already on the field: the phone keyboard's action key
+(`enterKeyHint="search"`) and the magnifier, which returns to this surface now that it has
+something to do — it was dropped when it was inert, and §6 forbids only the inert one.
+
+A submit below 3 characters prints why. Under the debounce that state was invisible, because
+nothing had been asked; an explicit act answered with silence is a reader wondering whether search
+is broken. Emptying the field is an explicit reset — the mark reads `Clear the search`, not "clear
+the text" — so it drops `?q=` and returns the surface to its recents.
+
+Results are on-paper rows spanning every visible library, each
 naming its library, since here the library **is** new information. Recent searches persist in
 `localStorage`.
 Owned results long-press to the ItemActionsSheet and update in place; shared results do not.

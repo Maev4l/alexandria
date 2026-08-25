@@ -42,8 +42,9 @@ describe('recent searches', () => {
   });
 
   it('collapses a prefix the reader typed through on the way to a longer query', () => {
-    // Search runs on a debounced value, so a pause mid-word records a prefix. Keeping both would
-    // spend two of five slots on one intent.
+    // Both are now deliberate submits rather than a debounce artefact, and the collapse holds on
+    // the argument that outlived that one: a refinement supersedes what it was refined from, and
+    // keeping both would spend two of five slots on one intent.
     addRecent('rom');
     addRecent('roman');
 

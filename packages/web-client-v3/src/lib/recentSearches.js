@@ -39,9 +39,15 @@ export const readRecents = () => readAll().slice(0, RECENTS_MAX);
 // first find the second — so collapsing them here would keep one entry that cannot reproduce the
 // other's results.
 //
-// A PREFIX of the new term is dropped too: search runs on a debounced value, so a reader who
-// pauses mid-word records `rom` on the way to `roman`. Both are the same intent, and the longer
-// one is the one they meant.
+// A PREFIX of the new term is dropped too. THE ORIGINAL REASON HAS EXPIRED and the behaviour has
+// not: search used to run on a debounced value, so a reader pausing mid-word recorded `rom` on the
+// way to `roman` — a prefix nobody asked for. Nothing is recorded now without a deliberate submit,
+// so every entry here is a query the reader chose.
+//
+// It stays because the argument that survives is enough on its own: a refinement supersedes the
+// query it was refined from, and these are five slots. Recorded rather than quietly re-justified,
+// because a rule whose stated reason has gone is one this project has repeatedly found still
+// asserting.
 export const addRecent = (term) => {
   const value = term.trim();
   if (!value) return readRecents();

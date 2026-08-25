@@ -1050,21 +1050,34 @@ try {
   // ring was suppressed. Pixel-diffed by the critique: `Clear the search` and `Search` were
   // IDENTICAL when focused, 0 pixels differing, with one of the two destroying the query.
   //
-  // It has two now: the submit mark is gone from this surface, because on a field that searches as
-  // it is typed submitting does nothing, and §6 forbids an inert control in the action slot. TWO is
-  // still more than one, so the rule and this check both stand — but the pair being compared is
-  // the input against the clear mark rather than the two marks against each other. Recorded
-  // because a reader finding "three tab stops" in the history and two on the screen would
-  // otherwise wonder which is stale.
+  // It went to two when the submit mark was dropped — on a field that searched as it was typed,
+  // submitting did nothing, and §6 forbids an inert control in the action slot — and it is THREE
+  // again now that the field only searches on submit. So the exact adjacency the critique found is
+  // back on the screen, and what makes it safe is the selector rather than the removal.
+  //
+  // That is worth asserting rather than assuming: all three focused states are diffed against each
+  // other, including the `Search`/`Clear the search` pair that was once 0 bytes apart. A guard
+  // narrowed to the pair that happened to survive would have gone on passing while the original
+  // defect returned.
   //
   // Diffed rather than read from a computed style, because what failed was not a property — every
   // rule was correct in isolation — it was which ELEMENT the indicator landed on.
   console.log('the search field distinguishes its tab stops when focused');
   {
-    await page.goto(`${BASE}/search`, { waitUntil: 'networkidle0' });
+    // `?q=` rather than typing: the surface no longer searches as it is typed, so typing alone
+    // would wait for rows that are never coming.
+    await page.goto(`${BASE}/search?q=roman`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('main input');
-    await page.type('main input', 'roman');
     await page.waitForSelector('main li', { timeout: 10_000 });
+
+    // ONE KEYBOARD EVENT, and without it this whole section measures nothing. Every indicator here
+    // is `:focus-visible`, which Chrome grants to a PROGRAMMATICALLY focused element only when the
+    // reader's last interaction was via the keyboard — so `el.focus()` from `page.evaluate` draws
+    // no ring at all on a page that has only been navigated to. The probe used to satisfy this by
+    // accident, because it typed the query in; seeding the query through `?q=` removed the typing
+    // and every one of the three diffs went to 0 bytes — three passes turning into three failures
+    // that were about the harness rather than the app.
+    await page.keyboard.press('Tab');
 
     const shootFocused = async (label) => {
       await page.evaluate((name) => {
@@ -1086,25 +1099,27 @@ try {
 
     const onInput = await shootFocused('input');
     const onClear = await shootFocused('clear');
+    const onSubmit = await shootFocused('^search$');
 
-    const inputVsClear = await diff(onInput, onClear);
-    console.log(`    input vs clear: ${inputVsClear} bytes differ`);
+    for (const [label, a, b] of [
+      ['input vs clear', onInput, onClear],
+      ['input vs submit', onInput, onSubmit],
+      // THE ORIGINAL DEFECT. These two were pixel-identical when focused, and one of them wipes
+      // the query while the other runs it.
+      ['clear vs submit', onClear, onSubmit],
+    ]) {
+      const differing = await diff(a, b);
+      console.log(`    ${label}: ${differing} bytes differ`);
+      record(differing > 0, `focus is distinguishable: ${label}`, `${differing} bytes differ`);
+    }
 
-    // The caret being in the field and the caret being on the control that WIPES the field must
-    // not look the same. Under `:focus-within` they did.
-    record(
-      inputVsClear > 0,
-      'focusing the input looks different from focusing the clear mark',
-      `${inputVsClear} bytes differ`,
-    );
-
-    // And the inert control is gone rather than merely quiet: a submit that returns immediately is
-    // §6's action slot holding something that does nothing, 56px from the control that destroys
-    // the query.
+    // And the submit mark is PRESENT, because on this surface it is now the control that runs the
+    // lookup — the visible duplicate of the phone keyboard's action key, and the only route for a
+    // reader with a pointer and no Enter.
     const submitMarks = await page.evaluate(() =>
       [...document.querySelectorAll('form[role=search] button')].filter((b) => b.type === 'submit').length,
     );
-    record(submitMarks === 0, 'the surface carries no inert submit control', `${submitMarks} found`);
+    record(submitMarks === 1, 'the surface carries its submit control', `${submitMarks} found`);
   }
 
   // ---- The surface focuses the field it IS ----
@@ -1167,6 +1182,44 @@ try {
     }
   }
 
+  // ---- Typing is not asking: a request costs a round trip, and only a submit spends one ----
+  // The surface used to query on a 300ms debounce, so a term typed at a reader's pace spent a
+  // request per pause to answer the one lookup they meant — on the poor signal PRODUCT.md names as
+  // the dominant scene. Counted here rather than in the unit suite because what is being asserted
+  // is real network traffic from real keystrokes, and the unit suite's `fetch` is a stub.
+  console.log('the search surface fires no request until the reader submits');
+  {
+    await page.goto(`${BASE}/search`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main input');
+
+    const searchRequests = [];
+    const onRequest = (req) => {
+      if (req.url().endsWith('/search')) searchRequests.push(req.url());
+    };
+    page.on('request', onRequest);
+
+    // A whole term, one character at a time, with a pause between each that is longer than the
+    // debounce that used to be here. Anything shorter would pass against a reinstated debounce.
+    await page.type('main input', 'roman', { delay: 120 });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    record(searchRequests.length === 0, 'typing five characters fires no search', `${searchRequests.length} requests`);
+
+    // And then the action key spends exactly one.
+    await page.keyboard.press('Enter');
+    await page.waitForSelector('main li', { timeout: 10_000 });
+    record(searchRequests.length === 1, 'submitting fires exactly one', `${searchRequests.length} requests`);
+
+    // The submitted query reaches the URL, which is what makes this surface refresh-safe: the
+    // address bar and the results cannot disagree, because there is only one of them.
+    record(
+      new URL(page.url()).searchParams.get('q') === 'roman',
+      'the submitted query is written to ?q=',
+      page.url(),
+    );
+
+    page.off('request', onRequest);
+  }
+
   // ---- The search field draws its own controls, and none of the browser's ----
   // `type="search"` gives WebKit a clear button of its own, in BLUE — a colour that appears
   // nowhere in the palette — on the loudest mark in the design. It had been there since the field
@@ -1177,10 +1230,20 @@ try {
   // exists to inspect, and a screenshot is how it was found rather than how it should be caught.
   console.log('the search field suppresses the browser\'s own clear button and draws its own');
   {
-    await page.goto(`${BASE}/search`, { waitUntil: 'networkidle0' });
+    // `?q=` rather than typing: the surface no longer searches as it is typed, so typing alone
+    // would wait for rows that are never coming.
+    await page.goto(`${BASE}/search?q=roman`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('main input');
-    await page.type('main input', 'roman');
     await page.waitForSelector('main li', { timeout: 10_000 });
+
+    // ONE KEYBOARD EVENT, and without it this whole section measures nothing. Every indicator here
+    // is `:focus-visible`, which Chrome grants to a PROGRAMMATICALLY focused element only when the
+    // reader's last interaction was via the keyboard — so `el.focus()` from `page.evaluate` draws
+    // no ring at all on a page that has only been navigated to. The probe used to satisfy this by
+    // accident, because it typed the query in; seeding the query through `?q=` removed the typing
+    // and every one of the three diffs went to 0 bytes — three passes turning into three failures
+    // that were about the harness rather than the app.
+    await page.keyboard.press('Tab');
 
     const field = await page.evaluate(() => {
       const input = document.querySelector('main input');
