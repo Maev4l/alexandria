@@ -107,7 +107,7 @@ were out by up to 0.7.
 | `--cover-soft` on `--ink` | plate line, durations on the cover | 9.99:1 |
 | `--shared` on `--ink` | **never text on the cover** | 3.033:1 — green reads on paper at 5.99 and fails on the cover. So on the inverted surface the sharing mark puts the green on a 4px edge and sets its caps in `--cover-body`, exactly as the stamp puts `--out` on its outline. |
 | `--out` on `--ink` | stamp outline on the cover | 4.421:1 — **better than red-on-paper's 4.11**, so the cover is the *less* constrained surface for red, not the more. The stamp still sets its caps in a legible tone rather than in red; that is deliberate conservatism, not a contrast requirement, and it keeps one stamp construction across both surfaces. Recorded so a later pass does not "optimise" the caps to red on the strength of this number. |
-| `--imprint` on `--ink` | marks and headings on the black cover | 11.71:1 — **the same figure this table already prints for `--ink` on `--imprint`**, contrast being symmetric. Its absence is why the yellow law below reads as palette-wide: with no row for the cover case, the only measured yellow in the table was the paper one, and a law derived from it silently inherited a scope nobody had checked. |
+| `--imprint` on `--ink` | marks, headings and rules on the black cover | 11.71:1 — **the same figure this table already prints for `--ink` on `--imprint`**, contrast being symmetric. Its absence is why the yellow law below reads as palette-wide: with no row for the cover case, the only measured yellow in the table was the paper one, and a law derived from it silently inherited a scope nobody had checked. |
 | `--imprint` on `--paper` | **never text, never a shape** | ~1.55:1 — yellow on paper is invisible on its own |
 
 **Yellow never carries a shape by itself — on paper.** At ~1.55:1 against `--paper`, `--imprint`
@@ -197,14 +197,25 @@ illegible within one render, at a contrast the design cannot predict because it 
 pixels underneath. In the component's own words, *"here nothing set a ground at all, which is the same
 defect arriving from the other side"*.
 
-It is invisible to every mechanism this section has. The injected contrast detector reported nothing,
-because transparency over a `<video>` gives it no ground to compute against, and
+It was invisible to the mechanisms that existed when it shipped. The injected contrast detector
+reported nothing, because transparency over a `<video>` gives it no ground to compute against, and
 `groundForeground.test.js` scans for a ground with no foreground rather than a foreground with no
-ground. Only measurement finds this class of failure. **The remedy is that the caption paints its own
-ground** — a printed plate, ink on paper, pinned to the frame's bottom edge as a full-width strip — so
-it reads at 18.18:1 whatever the camera sees, and cannot occlude the region the reader is aiming at.
-Borrowing a ground is not owning one, and a surface the app cannot measure is a surface it must not
-write on.
+ground. **The remedy is that the caption paints its own ground** — a printed plate, ink on paper,
+pinned to the frame's bottom edge as a full-width strip — so it reads at 18.18:1 whatever the camera
+sees, and cannot occlude the region the reader is aiming at.
+
+**But this direction is enforced, not merely discovered, and the guard states the rule better than the
+defect does.** `check-browser.mjs` drives a fake camera to a real feed and asserts, in order, that the
+caption's computed background is **not** `rgba(0, 0, 0, 0)`, that it then clears AA against that
+ground, that it sits below the frame's midpoint, and that it spans the frame as a strip. The first of
+those carries the generalisation: **a transparent background is the defect, not merely a low ratio** —
+with nothing painted there is no ratio to compute, so the opacity check must come before the contrast
+check rather than instead of it. It measures the film screen's idle caption, all five captions having
+been routed through one component precisely so that measuring one measures the construction.
+
+So the rule a later capture surface inherits is assertable rather than advisory: **a surface over a
+ground the design does not own must paint an opaque ground of its own.** Borrowing a ground is not
+owning one, and a surface whose contrast the app cannot compute is a surface it must not write on.
 
 ### Focus
 
@@ -267,8 +278,10 @@ indicator, so a browser check must assert that focusing the input makes the cont
 `.on-imprint` existed to flip the focus ring to ink on a yellow ground. Since the ruling above made
 the ring ink everywhere on paper, a yellow ground needs no flip, and the rule sets the colour the ring
 already has. It is kept as an **anchor** rather than as behaviour: `index.css` flags it as such at the
-site, roughly fifteen call sites name it, and deleting it would be a rename across the app for no
-change on screen.
+site, **ten class strings** across ten components and pages name it, and deleting it would be a
+rename across the app for no change on screen. (`index.css`'s own comment says `~15`, which counts its
+definition, a test assertion and two comment mentions alongside the ten real uses; the argument is
+unchanged either way, but this section opens by calling its numbers facts.)
 
 Recorded because an unrecorded no-op is the shape this document has already been caught by twice —
 `--press-route` declared, themed and motion-gated with no consumer (§7), and §3's tracking values
