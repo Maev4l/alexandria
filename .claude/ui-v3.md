@@ -850,8 +850,11 @@ something to do — it was dropped when it was inert, and §6 forbids only the i
 
 A submit below 3 characters prints why. Under the debounce that state was invisible, because
 nothing had been asked; an explicit act answered with silence is a reader wondering whether search
-is broken. Emptying the field is an explicit reset — the mark reads `Clear the search`, not "clear
-the text" — so it drops `?q=` and returns the surface to its recents.
+is broken. Emptying the field is an explicit reset that drops `?q=` and returns the surface to its
+recents — **because the recents are otherwise unreachable**: they render only in the idle state, so
+results surviving an empty field would cost a reader their shortcut list for the rest of the visit.
+It is also what the debounced surface already did, since the query was the field's text. The mark
+itself is named `Clear the text`, after the act the reader sees; the behaviour does not rest on it.
 
 Results are on-paper rows spanning every visible library, each
 naming its library, since here the library **is** new information. Recent searches persist in

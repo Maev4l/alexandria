@@ -83,12 +83,21 @@ const Search = () => {
   // Typing changes the field and nothing else — no request, no URL write. The previous results
   // stay exactly as they are until the reader asks again.
   //
-  // EMPTYING IT IS THE EXCEPTION, and it is not typing: the mark beside the text is labelled
-  // `Clear the search`, not "clear the text", so it clears the search. Leaving eight rows under
-  // an empty field would state that they are results for nothing, and it would strand the reader
-  // on an answer they have just said they are done with — the recents and the invitation, which
-  // are the launchpad for the next lookup, only exist below an empty query. Deleting the last
-  // character by hand is the same act and takes the same branch.
+  // EMPTYING IT IS THE EXCEPTION, and it is not typing. THE REASON IS THE RECENTS: `showRecents`
+  // and `showEmptyInvitation` both require `status === 'idle'`, so if results survived an empty
+  // field the reader could never get back to their recent searches without leaving the screen —
+  // one search would cost them the shortcut list for the rest of the visit.
+  //
+  // Two lesser arguments agree: eight rows under an empty field state that they are results for
+  // nothing, and this is what the surface already did — under the debounce the query WAS the
+  // field text, so clearing it emptied the query and the effect's `!isReady` branch wiped the
+  // results. Deriving the query from `?q=` would have silently dropped that, so this line keeps
+  // a behaviour rather than inventing one.
+  //
+  // It does NOT rest on the mark's name. That argument was available — the label read `Clear the
+  // search` — and it was the weakest of the three, which is why the mark could be renamed to
+  // `Clear the text` without touching what it does. Deleting the last character by hand is the
+  // same act and takes the same branch.
   const onQueryChange = useCallback(
     (text) => {
       setTerms(text);

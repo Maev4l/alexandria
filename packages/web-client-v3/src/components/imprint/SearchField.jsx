@@ -130,8 +130,14 @@ const SearchField = ({ className, value, onQueryChange, onSubmit }) => {
       {isControlled && terms.length > 0 && (
         <button
           type="button"
-          aria-label="Clear the search"
+          aria-label="Clear the text"
           onClick={() => onQueryChange('')}
+          // NAMES THE VISIBLE ACT, and it is deliberately the narrower of the two names. Emptying
+          // the field does also drop the query, so `Clear the search` was defensible — but the
+          // mark is an unlabelled cross beside the text it wipes, and a reader meets it as the
+          // control that empties the box. The behaviour does not rest on this string; see
+          // `Search.jsx`, where the reason is that the recents are otherwise unreachable.
+          //
           // Same 48px floor and negative margin as the submit mark beside it: a tap target that
           // clears the field must not be smaller than the one that runs it.
           className="-my-2 flex size-12 shrink-0 items-center justify-center text-ink"

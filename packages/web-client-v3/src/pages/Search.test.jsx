@@ -447,10 +447,10 @@ describe('Search — recents', () => {
     await runSearch(TERM_MIXED);
     await screen.findByText('1984');
 
-    // The mark is labelled `Clear the search`, not "clear the text". Leaving the rows up under an
-    // empty field would state that they are results for nothing — and the recents, which are the
-    // launchpad for the next lookup, only exist below an empty query.
-    await userEvent.click(screen.getByRole('button', { name: /clear the search/i }));
+    // The recents and the invitation both require `status === 'idle'`, so results surviving an
+    // empty field would cost the reader their shortcut list for the rest of the visit. The mark's
+    // own name does not decide this — it is `Clear the text`, the narrower of the two readings.
+    await userEvent.click(screen.getByRole('button', { name: /clear the text/i }));
 
     expect(screen.queryByText('1984')).toBeNull();
     expect(await screen.findByRole('button', { name: TERM_MIXED })).toBeInTheDocument();
