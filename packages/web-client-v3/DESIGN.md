@@ -383,7 +383,7 @@ the alarm rather than pass the check.
 | Plate Line figures, detail plate line | 12 | 400 | `--cover-soft` on the cover |
 | Index letter count, ledger dates, ledger duration | 11 | 400 | tabular |
 | Section-header count (the figure beside `MINE` and `SHARED WITH ME`) | 11 | 800 | tabular; the weight is inherited from the caps label beside it rather than set here, and its tracking is cancelled outright rather than left blank — explained below |
-| **Collection member order plate** | **10** | 400 | tabular, in a **1px** rule — the row height and the component vocabulary for it are elsewhere in this document |
+| **Collection member order plate** | **10** | 400 | tabular, in a **1px** rule — one step lighter than the ordinary plate's 2px, because this plate sits inside a Volume Frame whose own 2px rule it must not out-weigh |
 
 **The library row's own sub-line used to sit in this table, and it never should have.** An earlier
 draft listed it here as a mono numeral at 11px, weight 400, alongside ledger dates and durations. It
@@ -407,20 +407,28 @@ caps roles below, not a datum on display; it is now named there as its own row i
 | Overprint Stamp | 10 | 800 | +0.14em |
 | Field label, field counter | 11 | 700 | +0.12em |
 
-**Shared ribbon caps is two roles, not one, because the same tag renders inside two different
-wrappers that each set its own size and weight — the tag itself sets neither.** A library row wraps
-it at 11px, weight 700, on the row's own sub-line. The mark column beside an item's cover and the
-inline tag on a search result both wrap the identical tag at 10px, weight 800. Two surfaces, two
-published sizes, and the tracking is the one value they happen to share.
+**Shared ribbon caps is two published value pairs, not one, because the same tag renders inside
+four different wrappers that each set their own size and weight — the tag itself sets neither.** A
+library row wraps it at 11px, weight 700, on the row's own sub-line, and the library-browse
+screen's own provenance line — shown once, when the whole library being browsed is shared — wraps
+the identical tag at that same 11px, weight 700. The mark column beside an item's cover, and the
+inline tag on a search result, both wrap the tag at 10px, weight 800. Four rendered instances, two
+value pairs, and +0.16em tracking is the one value all four happen to share.
 
-That shared tracking value is exactly what let one published row stand in for both, unnoticed, for
-a long time. A browser check measuring only the library row's own tracking passed cleanly against a
-row published at the mark column's size and weight, because both surfaces sit at the same +0.16em
-and tracking was the only property being measured — a correct reading of the wrong instance,
-sitting inside the very guard meant to catch this kind of drift. Both surfaces are now published above by
-name — `shared ribbon caps (detail marks, search row)` and `library row sub-line (shared ribbon on
-a row)` — and measured on all three properties together, size, weight and tracking, not on
-tracking alone.
+That shared tracking value is exactly what let one published row stand in for both pairs,
+unnoticed, for a long time. A browser check measuring only the library row's own tracking passed
+cleanly against a row published at the mark column's size and weight, because both pairs sit at the
+same +0.16em and tracking was the only property being measured — a correct reading of the wrong
+instance, sitting inside the very guard meant to catch this kind of drift.
+
+Both value pairs are now published above by name — `shared ribbon caps (detail marks, search row)`
+and `library row sub-line (shared ribbon on a row)`. **What is actually measured is narrower than
+either name suggests.** It checks one instance of each pair — the mark column beside an item's
+cover, and the library row's own sub-line — on all three properties: size, weight and tracking. The
+other two rendered instances, the inline tag on a search result and the library-browse screen's own
+provenance line, are not measured by anything; they are asserted here to share their pair's
+published value because they were checked against source for this reconciliation, not because a
+check runs against them.
 
 **The account plate's cell used to be blank, and that blank cost a round.** Read as intent it says
 *no tracking*, which is how I first read it — and the comp settles it the other way: `.acct` in
@@ -672,7 +680,7 @@ which is where drift is visible and compounding.
 | Minimum touch target | 6 divisions (48px) — applies to the search field and the account plate too; both are taps, not labels |
 | Row height, with a sub-line | 10 divisions (80px) |
 | Row height, without | 8 divisions (64px) — **not 60**, which is 7.5 divisions and off the scale |
-| Stream row (the item list's own row) | 13 divisions (104px) — 32px of padding around the row-scale artwork frame's 72px; the containment rule that lets the browser skip painting rows outside the viewport reserves this same 104px as each row's placeholder height, so nothing jumps as rows scroll into view. Neither of the two rows above describes it: this is the app's densest, most repeated element, and it had never had its own line |
+| Stream row (the item list's own row) | 13 divisions (104px), **derived and reserved, not set** — 32px of padding around the row-scale artwork frame's 72px, the sum the row's containment rule reserves as its pre-first-render estimate via `auto 104px`. The row itself sets no explicit height, and a long, wrapping title can render taller than this. Neither of the two rows above describes it: this is the app's densest, most repeated element, and it had never had its own line |
 
 ### Rule weights
 
@@ -681,18 +689,19 @@ has none — and **no rounded corners**: every radius is 0.
 
 | Weight | Separates |
 |---|---|
-| 1px | one row from the next inside the densest, most repeated surface in the app — the item stream's own row divider |
-| 2px | a whole block from what sits below it — a library row's own edge, a collection board's head, the app header's bottom edge — plus every artwork frame and field underline |
-| 3px | one structural block from the page around it — block frames, a collection board's own outer frame, a bottom sheet's top edge |
+| 1px | one row from the next inside any list in the app — the item stream, the ledger, item history, the unshare recipient list, search results — and a section header from what follows it |
+| 2px | a whole block from what sits below it — a library row's own edge, a collection board's head, the app header's bottom edge, the browse screen's own provenance edge — plus every artwork frame and field underline |
+| 3px | one structural block from the page around it — block frames, a collection board's own outer frame, and every bottom-anchored panel's top edge: a sheet, the toast, the update notice, the capture screens' notice panels |
 | 4px | the sticky index letter from the stream beneath it, and the item-detail hero's title from its summary |
 
-Restated by what each rule separates rather than by a single example, because the lightest
-weight's original one-line description — a hairline "inside a block" — covered only one of its
-real uses and left three separators at the next weight up undocumented: a library row's own edge,
-a collection board's head, and the app header's bottom edge are none of them "inside" anything,
-each is a whole block meeting whatever comes after it. Naming what a rule does, rather than where
-it happens to sit, is the description that survives the next component that reaches for the same
-weight.
+Restated by what each rule separates rather than by a single example each. The lightest weight's
+old description — a hairline "inside a block" — undersold its own range: 1px is the rule between
+every row in every list in the product, not only inside one. The 2px row's old description —
+"volume frames, field underlines" — had a gap of its own at that same weight: a library row's own
+edge, a collection board's head and the app header's bottom edge are all 2px too, and none of them
+is "inside" anything — each is a whole block meeting whatever comes after it. Naming what a rule
+does, rather than reciting examples of where it happens to sit, is the description that survives
+the next component that reaches for either weight.
 
 ### `.row-skip`, and the one thing it must never wrap
 
@@ -704,7 +713,7 @@ it has ever painted and the page does not jump as rows scroll into view.
 
 `.row-skip` carries one hard constraint, worth stating here even though it is also stated at the
 point of use: it must never wrap anything that also contains a sticky index letter. Containment
-breaks fixed positioning on everything inside it, and the letters are load-bearing wayfinding
+breaks sticky positioning on everything inside it, and the letters are load-bearing wayfinding
 rather than decoration, so `.row-skip` sits on the row itself and never on a container that also
 holds the letter above it.
 
@@ -936,13 +945,16 @@ Folding `Œuvres complètes` to a display "O" would be a lie: it sits after Z, n
 reader sent to the Os would not find it. Rendered, the honest `Œ` also turned out to be the best
 piece of lettering in the set.
 
-**A title can fold to nothing even when it is not empty, and that case needs its own fallback.**
-Stripping combining marks only removes marks that combine with a preceding letter, so a title whose
-very first character is itself a bare combining mark loses that character outright — the fold
-produces nothing to letter with. The client falls back to the title's own raw, un-folded first
-character in exactly that case: a monumental letter showing nothing would be worse than an odd
-glyph, and the reader is still shown the character the server actually sorted the title on. Only a
-genuinely empty title — which the catalogue's own rules forbid — produces no label at all.
+**A title can fold to nothing, and that needs its own fallback — though not for the reason a
+leading accent alone would suggest.** Stripping combining marks removes any mark that combines with
+a preceding letter; a title whose first character is a combining mark but is followed by ordinary
+letters still folds down to those letters; the strip removes the accent, not what comes after it.
+The fallback fires only when the **whole** fold comes out empty, which happens when a title is
+composed entirely of combining marks and nothing is left once they are stripped. In that one case
+the client falls back to the title's raw, un-folded first character: a monumental letter showing
+nothing would be worse than an odd glyph, even though it means showing a character the server's own
+fold did **not** sort the title on. Only a genuinely empty title — which the catalogue's own rules
+forbid — produces no label at all.
 
 ### The stroke, and the two months it was wrongly withdrawn
 
