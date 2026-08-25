@@ -218,9 +218,8 @@ const classNameValues = (code) => {
       values.push({
         source: code.slice(attr.value.start, attr.value.end),
         line: attr.value.loc.start.line,
-        // The owning element's tag, so the input-zoom exception can be about inputs rather than
-        // about whichever file happened to need it first.
-        element: nodePath.parent?.name?.name ?? null,
+        // Whether the owning element takes keyboard input, so the input-zoom exception can be
+        // about inputs rather than about whichever file happened to need it first.
         isFormControl:
           ZOOMABLE_ELEMENTS.has(nodePath.parent?.name?.name) ||
           tagVariables.has(nodePath.parent?.name?.name),
@@ -235,7 +234,7 @@ const findViolations = (file) => {
   const relative = path.relative(SRC_DIR, file);
   const violations = [];
 
-  for (const { source, line, element, isFormControl } of classNameValues(code)) {
+  for (const { source, line, isFormControl } of classNameValues(code)) {
     for (const match of source.matchAll(TEXT_UTILITY)) {
       const token = match[1];
       if (COLOUR_TOKENS.has(token) || NON_SIZE_UTILITIES.has(token)) continue;
