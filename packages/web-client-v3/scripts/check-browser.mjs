@@ -1668,8 +1668,11 @@ try {
       // TWO shared-ribbon roles, not one. The same component renders at 11/700 on a library row
       // and at 10/800 in a mark column, and this entry measured the first against §3's row for the
       // second — green only because the two surfaces coincide at +0.16em. A true measurement of the
-      // wrong substrate, inside the guard.
+      // wrong substrate, inside the guard. Both surfaces are now measured: the library row's own
+      // instance, and the item-detail DetailMarks instance — lib-fiction carries sharedTo in the
+      // fixtures, so its SharedRibbon renders there at the mark-column size.
       { role: 'shared ribbon caps (library row)', route: '/libraries', text: 'SHARED', px: 11, em: 0.16 },
+      { role: 'shared ribbon caps (detail marks)', route: '/libraries/lib-fiction/items/item-lent', text: 'SHARED', px: 10, em: 0.16 },
       // 0.08em, the BASELINE — not "none". §3's caps table leaves this row's tracking cell empty,
       // and the two rulings read that blank differently: the first said the initials carry no
       // tracking, the second restored a baseline for every site that declares none. A site that
