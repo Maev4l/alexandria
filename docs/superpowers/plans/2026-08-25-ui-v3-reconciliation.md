@@ -68,6 +68,27 @@ yarn check:browser 2>&1 | tee /tmp/v3-browser.log; grep 'FAIL' /tmp/v3-browser.l
 therefore cannot break the build, which is also precisely why these divergences accumulated. Each
 document task below carries its own grep verification instead.
 
+## Self-review notes
+
+**Spec coverage.** Every section of the spec maps to a task: §2.1→01, §2.2→01, §2.3→01, §2.4→02+03,
+§2.5→04, §2.6→05, §2.7→06, §2.8→07, §2.9→07, §3.1→08, §3.2→09, §3.3→09, §3.4→10+11, §3.5→12,
+§3.6→12, §3.7→12, §3.8→13, §3.9→14. §4's non-goals (no shared confirmation primitive, no `--out`
+guard) are stated as acceptance criteria in Tasks 10 and 01 respectively, where they could otherwise
+be violated by a well-meaning implementer.
+
+**Three unknowns were resolved while reviewing rather than left to the implementer**, because each
+would have produced a test that fails for the wrong reason. `PlateButton` is always a `<button>` and
+takes no `to`, so Task 05 navigates on click — and because the bottom bar already carries the name
+`New library`, that test must scope with `within(frame)` or it fails on an ambiguous match rather
+than on the frame. Nothing configures a `testIdAttribute`, so Task 04 queries `[data-skeleton]`
+directly, matching the `data-edge` / `data-mark` convention the codebase already uses.
+`SearchField.test.jsx`'s helper is `renderLauncher`, not `renderField`.
+
+**Two steps still carry a genuine decision**, and both say so: Task 03 branches on a measurement
+nobody has taken, and Task 05's unshare test needs the file's module-level mock converted to a
+mutable binding, whose shape depends on that file. Neither is a placeholder standing in for work
+nobody thought about.
+
 ---
 
 ### Task 01: Three legislated colours spent on what they do not mean
@@ -1732,25 +1753,3 @@ re-resolved.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ```
 
----
-
-## Self-review notes
-
-**Spec coverage.** Every section of the spec maps to a task: §2.1→01, §2.2→01, §2.3→01, §2.4→02+03,
-§2.5→04, §2.6→05, §2.7→06, §2.8→07, §2.9→07, §3.1→08, §3.2→09, §3.3→09, §3.4→10+11, §3.5→12,
-§3.6→12, §3.7→12, §3.8→13, §3.9→14. §4's non-goals (no shared confirmation primitive, no `--out`
-guard) are stated as acceptance criteria in Tasks 10 and 01 respectively, where they could otherwise
-be violated by a well-meaning implementer.
-
-**Three unknowns were resolved while reviewing rather than left to the implementer**, because each
-would have produced a test that fails for the wrong reason. `PlateButton` is always a `<button>` and
-takes no `to`, so Task 05 navigates on click — and because the bottom bar already carries the name
-`New library`, that test must scope with `within(frame)` or it fails on an ambiguous match rather
-than on the frame. Nothing configures a `testIdAttribute`, so Task 04 queries `[data-skeleton]`
-directly, matching the `data-edge` / `data-mark` convention the codebase already uses.
-`SearchField.test.jsx`'s helper is `renderLauncher`, not `renderField`.
-
-**Two steps still carry a genuine decision**, and both say so: Task 03 branches on a measurement
-nobody has taken, and Task 05's unshare test needs the file's module-level mock converted to a
-mutable binding, whose shape depends on that file. Neither is a placeholder standing in for work
-nobody thought about.
