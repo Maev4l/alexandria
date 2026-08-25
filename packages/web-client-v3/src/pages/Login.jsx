@@ -41,7 +41,11 @@ const Login = () => {
 
   return (
     <div className="pad-top-safe min-h-dvh bg-paper px-4 pb-8">
-      <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-[11px] font-extrabold tracking-[0.16em] text-ink">
+      {/* §3's published wordmark: 12/800/+0.20em, the same values AppHeader carries. These two
+          screens printed it at the SECTION HEADER step, and no guard could see it — 11px is on the
+          scale, so the size guard is blind to it by construction. check-browser's caps manifest now
+          asserts the computed size here as well as on /libraries. */}
+      <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-xs font-extrabold tracking-[0.2em] text-ink">
         Alexandria
       </span>
       {/* This screen carries no separate header component, so <main> wraps everything below

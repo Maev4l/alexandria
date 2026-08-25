@@ -46,7 +46,7 @@ const SignUp = () => {
 
   return (
     <div className="pad-top-safe min-h-dvh bg-paper px-4 pb-8">
-      <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-[11px] font-extrabold tracking-[0.16em] text-ink">
+      <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-xs font-extrabold tracking-[0.2em] text-ink">
         Alexandria
       </span>
       {/* This screen carries no separate header component, so <main> wraps everything below

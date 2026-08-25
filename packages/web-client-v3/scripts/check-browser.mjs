@@ -1656,9 +1656,20 @@ try {
     // one the old utility was silently overriding — the account plate initials carried 0.08em
     // they should never have had.
     const CAPS_ROLES = [
-      { role: 'wordmark', route: '/libraries', text: 'ALEXANDRIA', em: 0.2 },
-      { role: 'plate button label', route: '/libraries', text: 'NEW LIBRARY', em: 0.12 },
-      { role: 'shared ribbon caps', route: '/libraries', text: 'SHARED', em: 0.16 },
+      { role: 'wordmark', route: '/libraries', text: 'ALEXANDRIA', px: 12, em: 0.2 },
+      // §3 publishes ONE wordmark. Two auth screens printed it at the section-header step (11px)
+      // and nothing could see it: `typeScale.test.js` resolves sizes and 11 is ON the scale, so
+      // the only guard that reads sizes is blind to this defect by construction. Hence the routes,
+      // and hence `px` — the loop below already computes fontSize as the em divisor and threw it
+      // away, so the number that catches this was being measured and discarded.
+      { role: 'wordmark (login)', route: '/login', text: 'ALEXANDRIA', px: 12, em: 0.2 },
+      { role: 'wordmark (signup)', route: '/signup', text: 'ALEXANDRIA', px: 12, em: 0.2 },
+      { role: 'plate button label', route: '/libraries', text: 'NEW LIBRARY', px: 12, em: 0.12 },
+      // TWO shared-ribbon roles, not one. The same component renders at 11/700 on a library row
+      // and at 10/800 in a mark column, and this entry measured the first against §3's row for the
+      // second — green only because the two surfaces coincide at +0.16em. A true measurement of the
+      // wrong substrate, inside the guard.
+      { role: 'shared ribbon caps (library row)', route: '/libraries', text: 'SHARED', px: 11, em: 0.16 },
       // 0.08em, the BASELINE — not "none". §3's caps table leaves this row's tracking cell empty,
       // and the two rulings read that blank differently: the first said the initials carry no
       // tracking, the second restored a baseline for every site that declares none. A site that
@@ -1667,14 +1678,14 @@ try {
       // to be DECLARED at the site (`tracking-normal`), because a blank cell cannot distinguish
       // "no tracking wanted" from "nothing specified" — and the second is what every other
       // undeclared caps label in the product means by it. Referred to the design session.
-      { role: 'account plate initials', route: '/libraries', text: 'JR', em: 0.08 },
-      { role: 'field label', route: '/settings/account', text: 'CURRENT PASSWORD', em: 0.12 },
-      { role: 'ledger head', route: '/libraries/lib-fiction/items/item-lent', text: 'THE RECORD', em: 0.16 },
-      { role: 'detail marks label', route: '/libraries/lib-fiction/items/item-lent', text: 'IN', em: 0.16 },
+      { role: 'account plate initials', route: '/libraries', text: 'JR', px: 11, em: 0.08 },
+      { role: 'field label', route: '/settings/account', text: 'CURRENT PASSWORD', px: 11, em: 0.12 },
+      { role: 'ledger head', route: '/libraries/lib-fiction/items/item-lent', text: 'THE RECORD', px: 10, em: 0.16 },
+      { role: 'detail marks label', route: '/libraries/lib-fiction/items/item-lent', text: 'IN', px: 10, em: 0.16 },
     ];
 
     const trackingViolations = [];
-    for (const { role, route, text, em } of CAPS_ROLES) {
+    for (const { role, route, text, px, em } of CAPS_ROLES) {
       await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
       await page.waitForSelector('main');
       const measured = await page.evaluate((wanted) => {
@@ -1698,6 +1709,12 @@ try {
       if (!measured) {
         trackingViolations.push(`${role}: no caps element starting "${text}" on ${route}`);
         continue;
+      }
+      // The size, asserted separately from the tracking, because a role can carry its published
+      // tracking at the wrong size — which is exactly what two wordmarks did. Exact equality: these
+      // are declared px values, not a float multiplication.
+      if (measured.fontSize !== px) {
+        trackingViolations.push(`${role}: ${measured.fontSize}px, expected ${px}px`);
       }
       if (em === null) {
         console.log(`    ${role.padEnd(24)} no tracking (want none)`);
