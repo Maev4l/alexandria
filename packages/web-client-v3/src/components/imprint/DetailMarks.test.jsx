@@ -3,6 +3,17 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import DetailMarks from './DetailMarks.jsx';
 
+// SharedRibbon now puts the count in its own mono span (DESIGN.md §3), so "Shared · 2" is split
+// across two text nodes and a plain string/regex getByText can no longer find it as one node.
+// Match the innermost element whose full rendered text satisfies the pattern, so a wrapping
+// element that merely contains the match is not returned as well (which getByText treats as
+// an ambiguous multi-match failure).
+const matchesOwnText = (pattern) => (_, element) => {
+  const text = element.textContent ?? '';
+  if (!pattern.test(text)) return false;
+  return Array.from(element.children).every((child) => !pattern.test(child.textContent ?? ''));
+};
+
 const item = { id: 'x', libraryId: 'lib-fiction', title: 'Le Grand Sommeil' };
 
 const renderMarks = (props) =>
@@ -24,7 +35,7 @@ describe('DetailMarks', () => {
     const { container } = renderMarks({
       library: { name: 'Fiction', sharedTo: ['marie@example.com', 'paul@example.com'] },
     });
-    expect(screen.getByText(/shared · 2/i)).toBeInTheDocument();
+    expect(screen.getByText(matchesOwnText(/shared · 2/i))).toBeInTheDocument();
     expect(container.querySelector('.bg-shared')).not.toBeNull();
   });
 

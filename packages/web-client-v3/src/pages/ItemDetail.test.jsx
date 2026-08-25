@@ -9,6 +9,17 @@ import { LibrariesProvider } from '@/state/LibrariesContext.jsx';
 import { ToastProvider } from '@/state/ToastContext.jsx';
 import { libraries } from '@/test/fixtures';
 
+// SharedRibbon now puts the count in its own mono span (DESIGN.md §3), so "Shared · 2" is split
+// across two text nodes and a plain string/regex getByText can no longer find it as one node.
+// Match the innermost element whose full rendered text satisfies the pattern, so a wrapping
+// element that merely contains the match is not returned as well (which getByText treats as
+// an ambiguous multi-match failure).
+const matchesOwnText = (pattern) => (_, element) => {
+  const text = element.textContent ?? '';
+  if (!pattern.test(text)) return false;
+  return Array.from(element.children).every((child) => !pattern.test(child.textContent ?? ''));
+};
+
 const renderPage = (itemId) =>
   render(
     <MemoryRouter initialEntries={[`/libraries/lib-fiction/items/${itemId}`]}>
@@ -330,7 +341,7 @@ describe('ItemDetail', () => {
 
   it('shows the sharing mark beside the hero, matching the library sharedTo count', async () => {
     renderPage('item-lent');
-    expect(await screen.findByText(/shared · 2/i)).toBeInTheDocument();
+    expect(await screen.findByText(matchesOwnText(/shared · 2/i))).toBeInTheDocument();
   });
 
   it('keeps the library out of the plate line — the line is the work, not the copy', async () => {

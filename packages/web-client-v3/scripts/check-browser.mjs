@@ -2964,6 +2964,19 @@ try {
         route: '/libraries',
         expected: String(sharedWithMeCount),
       },
+      // The outbound share count. Read from the fixture, never retyped: a literal here forks the
+      // substrate the day the fixture moves. The anchor is a SINGLE DIGIT, which is the shortest
+      // possible one — safe today because every other own-text match for it on /libraries is
+      // itself a count in the mono (the section-head tallies), so a collision cannot produce a
+      // false failure. Recorded because that is a property of the route, not of the entry.
+      {
+        field: 'shared-out count',
+        sourceFile: 'src/components/imprint/SharedRibbon.jsx',
+        route: '/libraries',
+        expected: String(
+          fixtureLibraries.find((library) => library.name === 'Fiction').sharedTo.length,
+        ),
+      },
       {
         // READ from package.json, never retyped: the version About prints comes from the same
         // file, so this expectation cannot hand-drift from it. The commit hash beside it is
