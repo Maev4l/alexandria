@@ -50,3 +50,28 @@ describe('LibraryBrowse empty state', () => {
 // That is the shape worth naming: after fixing one of two siblings, the BROKEN one gains a probe
 // because it broke, and the correct one keeps having none — so a later refactor can silently make
 // it the broken one. Correct-by-construction is not covered.
+
+describe('LibraryBrowse loading skeleton', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  // The fetch is held PENDING for the whole test rather than resolved: the skeleton is a
+  // transient state, and a probe that races the resolution asserts scheduling rather than
+  // behaviour. The window is the whole subject.
+  it('rules the skeleton frame and does not fill it', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+    renderApp('/libraries/lib-fiction');
+
+    // `data-skeleton`, queried directly, rather than `data-testid`: this codebase marks nodes for
+    // machines with `data-edge` / `data-mark`, and nothing configures a testIdAttribute
+    // (verified — the default `data-testid` is in force but unused here). Follow the convention.
+    let frame;
+    await waitFor(() => {
+      frame = document.querySelector('[data-skeleton="frame"]');
+      expect(frame).not.toBeNull();
+    });
+    // DESIGN.md §5: "'Ruled' means the rule and nothing else — the empty frame carries no fill."
+    // The bars beside it keep theirs; a bar is not a frame.
+    expect(frame.className).toContain('border-2');
+    expect(frame.className).not.toContain('bg-paper-deep');
+  });
+});
