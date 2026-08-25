@@ -76,3 +76,24 @@ describe('removing a reader\'s access', () => {
     expect(screen.getByRole('button', { name: /^remove 1$/i })).toBeInTheDocument();
   });
 });
+
+it('frames the not-shared state, and offers no action, because this screen cannot share', async () => {
+  // The mocked library above carries two recipients for the tests that need them. `library` is
+  // a plain object captured by the mock factory's closure, so mutating its property (rather than
+  // rebinding a second `vi.mock`) is enough to exercise the empty case — restored in `finally` so
+  // this test's mutation cannot leak into another test's expectations regardless of run order.
+  library.sharedTo = [];
+  try {
+    renderPage();
+
+    const notice = await screen.findByText(/not shared with anyone/i);
+    const frame = notice.closest('div');
+    expect(frame.className).toContain('border-2');
+    expect(frame.className).toContain('border-ink');
+    // Nothing on this screen can share a library, so no action is offered here — only the
+    // absence proves the frame was not padded out with an invented control.
+    expect(screen.queryByRole('button', { name: /share/i })).toBeNull();
+  } finally {
+    library.sharedTo = ['marie@example.com', 'paul@example.com'];
+  }
+});

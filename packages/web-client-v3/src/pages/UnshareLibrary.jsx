@@ -69,7 +69,16 @@ const UnshareLibrary = () => {
         )}
 
         {recipients.length === 0 && (
-          <p className="caps p-4 text-xs font-bold text-ink-soft">This library is not shared with anyone</p>
+          // The same §6 frame as the home screen's empty state, deliberately with no action:
+          // nothing on this screen can share a library, so a control here would navigate away
+          // from the task rather than advance it — an affordance invented to fill a frame. §6
+          // asks for an invitation at full weight, not that one exists where there is nothing to
+          // invite.
+          <div className="m-4 border-2 border-ink p-8 text-center">
+            <p className="caps text-xs font-bold text-ink-soft">
+              This library is not shared with anyone
+            </p>
+          </div>
         )}
 
         {recipients.map((email) => {
