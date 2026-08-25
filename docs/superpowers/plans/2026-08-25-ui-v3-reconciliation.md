@@ -974,7 +974,16 @@ yarn check:browser 2>&1 | tee /tmp/t06d.log; grep -F 'FAIL' /tmp/t06d.log || ech
 
 Expected: both green.
 
-- [ ] **Step 8: Prove the manifest entry is not a no-op**
+- [ ] **Step 8: Run the full verification chain, then COMMIT — before demonstrating the guard**
+
+The order matters and it is not the obvious one. The demonstration below restores with
+`git checkout --`, which reverts to the last **committed** state. Run it while the fix is still
+uncommitted and the checkout discards the fix along with the deliberate break. Task 02's
+implementer hit exactly that and caught it only because a later verification run went red.
+
+So: chain green, commit, and only then break something that is safely in git.
+
+- [ ] **Step 9: Prove the manifest entry is not a no-op**
 
 ```bash
 cd /Users/jrsue/dev/repos/alexandria/packages/web-client-v3
@@ -982,11 +991,11 @@ sed -i '' 's|Shared · <span className="num">{count}</span>|Shared · {count}|' 
 git diff --stat src/components/imprint/SharedRibbon.jsx
 ```
 
-Expected: the file shows as modified. Then `yarn check:browser` must FAIL naming `shared-out
-count … not Chivo Mono`. Restore with `git checkout -- src/components/imprint/SharedRibbon.jsx` and
-confirm `git diff --stat` is empty.
-
-- [ ] **Step 9: Run the full verification chain, then commit**
+Expected: the file shows as modified. **Confirm this before continuing** — a no-op `sed` and a
+robust guard produce identical evidence. Then `yarn check:browser` must FAIL naming `shared-out
+count … not Chivo Mono`. Restore with `git checkout -- src/components/imprint/SharedRibbon.jsx`,
+confirm `git diff --stat` is empty, and re-run `yarn check:browser` once to confirm the restore
+put the fix back rather than merely removing the break.
 
 ```
 fix(web-client-v3): the shared count in the sans, past a manifest that never listed it
