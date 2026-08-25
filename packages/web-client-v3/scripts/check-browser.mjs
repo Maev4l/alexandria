@@ -1645,7 +1645,7 @@ try {
   //
   // So this reads the COMPUTED value, one element per role in §3's caps table, and it belongs in
   // the browser suite for exactly that reason.
-  console.log('every caps role computes the tracking DESIGN.md §3 publishes for it');
+  console.log('every caps role computes the size, weight and tracking DESIGN.md §3 publishes for it');
   {
     // em -> px at the role's own font-size, since `letter-spacing` computes to px.
     // Selectors verified against the live DOM rather than guessed: the first draft named an

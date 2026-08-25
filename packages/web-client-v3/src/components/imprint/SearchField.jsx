@@ -80,7 +80,9 @@ const SearchField = ({ className, value, onQueryChange, onSubmit }) => {
       // pixel-diffed. It is safe because of this selector and not because one of the two marks was
       // removed, and `check-browser.mjs` proves that by diffing all three focused states against
       // each other rather than only the pair that happened to remain.
-      className={`field-control mt-3 flex min-h-12 items-center gap-2 border-2 border-ink bg-imprint px-2 ${className ?? ''}`}
+      // A whole division (§4). This sat at `mt-3` — 12px, 1.5 divisions — the only layout-scale
+      // gap in the app off the scale, on the one mark the product's first principle is about.
+      className={`field-control mt-4 flex min-h-12 items-center gap-2 border-2 border-ink bg-imprint px-2 ${className ?? ''}`}
     >
       <input
         ref={inputRef}

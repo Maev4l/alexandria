@@ -105,11 +105,6 @@ const NON_SIZE_UTILITIES = new Set([
 // phone-first PWA jerks the viewport on every tap into a field. `Field.jsx` sets `text-base` on
 // its input, select and textarea for that reason and must keep doing so.
 //
-// Scoped to that one file rather than to a count. Pinning "three occurrences" would break the
-// moment a fourth legitimate control is added, and pinning nothing would let 16px spread quietly
-// through the app; the file is the real boundary, because Field.jsx is where form controls are
-// built. 16px anywhere else is a violation.
-//
 // Recorded because the honest version of this is worth more than a tidy one: the reason above was
 // NOT found in a comment. Field.jsx documents almost every other decision it makes — the reveal's
 // component-only state, `type="button"` on the reveal so it cannot submit the form, the number
