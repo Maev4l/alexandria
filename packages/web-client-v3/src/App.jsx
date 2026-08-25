@@ -4,6 +4,7 @@ import { LibrariesProvider } from '@/state/LibrariesContext.jsx';
 import { ToastProvider } from '@/state/ToastContext.jsx';
 import PendingApproval from '@/pages/PendingApproval.jsx';
 import UpdatePrompt from '@/pwa/UpdatePrompt.jsx';
+import { PWAProvider } from '@/pwa/PWAContext.jsx';
 import AppRoutes from './routes.jsx';
 
 // The whole desktop provision, deliberately: constrain the column to 56 divisions (448px) and
@@ -53,10 +54,12 @@ const Gate = () => {
 const App = () => (
   <BrowserRouter>
     <AuthProvider>
+      <PWAProvider>
       <Gate />
       {/* Outside the Gate: a waiting build must be offered whether or not anyone is signed in,
           and it is the one notice that must appear even on the sign-in screen. */}
       <UpdatePrompt />
+      </PWAProvider>
     </AuthProvider>
   </BrowserRouter>
 );

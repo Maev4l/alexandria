@@ -1,8 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
+import PlateButton from '@/components/imprint/PlateButton.jsx';
+import { usePWA } from '@/pwa/PWAContext.jsx';
 import { config } from '@/config.js';
 
 const About = () => {
+  const { needRefresh, checkForUpdate, checkState } = usePWA();
   const navigate = useNavigate();
   return (
     <div className="min-h-dvh bg-paper">
@@ -32,6 +35,39 @@ const About = () => {
             Quote these two marks if you report something that looks wrong — together they
           name exactly which build you were looking at.
           </p>
+
+        {/* A MANUAL CHECK, because an automatic prompt that has nothing to announce and a broken
+            one look identical from outside. Reported from the deployed app as the prompt being
+            "missing" — it was not: there was no newer build to offer, and nothing said so. A
+            reader cannot tell "you are current" from "the update mechanism is dead" without a
+            control that answers, which is why v2 has one and why this is not merely a
+            convenience.
+            The app also checks hourly and whenever the reader returns to it (PWAContext), so this
+            is a way to ASK rather than the only way to find out. */}
+        <PlateButton
+          variant="secondary"
+          className="mt-6"
+          disabled={checkState === 'checking'}
+          reason="A check is already running."
+          onClick={checkForUpdate}
+        >
+          {checkState === 'checking' ? 'Checking' : 'Check for a new edition'}
+        </PlateButton>
+
+        {/* The outcome, in words. `current` is the ordinary answer and the one that most needs
+            saying: silence after a check is what made the mechanism look broken. A new build
+            needs nothing here — the notice appears on its own, which is the whole point of it. */}
+        {checkState === 'current' && !needRefresh && (
+          <p role="status" className="mt-2 text-sm text-ink-soft">
+            You are on the newest edition.
+          </p>
+        )}
+        {checkState === 'failed' && (
+          <p role="status" className="mt-2 text-sm text-ink-soft">
+            The check could not run. It needs a connection, and it does not work on a page opened
+            from a local build.
+          </p>
+        )}
         </section>
       </main>
     </div>

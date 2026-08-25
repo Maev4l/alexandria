@@ -14,7 +14,9 @@ vi.mock('virtual:pwa-register/react', () => ({
 }));
 
 const UpdatePrompt = (await import('./UpdatePrompt.jsx')).default;
-const { UPDATE_CHECK_INTERVAL_MS } = await import('./UpdatePrompt.jsx');
+// Registration, the hourly check and the manual one moved into the provider: `useRegisterSW` must
+// be called once, and the registration it returns is the only thing that can be asked to check.
+const { PWAProvider, UPDATE_CHECK_INTERVAL_MS } = await import('./PWAContext.jsx');
 
 beforeEach(() => {
   state.needRefresh = false;
@@ -23,13 +25,21 @@ beforeEach(() => {
 
 describe('the update prompt', () => {
   it('shows nothing when no build is waiting', () => {
-    render(<UpdatePrompt />);
+    render(
+      <PWAProvider>
+        <UpdatePrompt />
+      </PWAProvider>,
+    );
     expect(screen.queryByRole('status')).toBeNull();
   });
 
   it('offers the new edition when a build is waiting', () => {
     state.needRefresh = true;
-    render(<UpdatePrompt />);
+    render(
+      <PWAProvider>
+        <UpdatePrompt />
+      </PWAProvider>,
+    );
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByText(/new edition/i)).toBeInTheDocument();
   });
@@ -40,7 +50,11 @@ describe('the update prompt', () => {
   it('posts SKIP_WAITING and reloads, rather than only showing a banner', async () => {
     const { default: userEvent } = await import('@testing-library/user-event');
     state.needRefresh = true;
-    render(<UpdatePrompt />);
+    render(
+      <PWAProvider>
+        <UpdatePrompt />
+      </PWAProvider>,
+    );
 
     await userEvent.click(screen.getByRole('button', { name: /reload/i }));
 
@@ -57,7 +71,11 @@ describe('the update prompt', () => {
   it('re-checks when the reader returns to the app', () => {
     const update = vi.fn();
     const addEventListener = vi.spyOn(document, 'addEventListener');
-    render(<UpdatePrompt />);
+    render(
+      <PWAProvider>
+        <UpdatePrompt />
+      </PWAProvider>,
+    );
     state.registered('/sw.js', { update });
 
     const [, handler] = addEventListener.mock.calls.find(([type]) => type === 'visibilitychange');
