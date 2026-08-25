@@ -67,6 +67,24 @@ const SearchField = ({ className, value, onQueryChange }) => {
       <input
         ref={inputRef}
         type="search"
+        // 16px, NOT §3's 13px display step, and this is platform behaviour rather than
+        // typography. Mobile Safari ZOOMS THE PAGE when a focused input's font-size is under
+        // 16px — reported from the deployed app as "when I click on search there is somehow a
+        // zoom", on the most-tapped control in the product.
+        //
+        // `Field.jsx` has set 16px for exactly this reason since it was written, with a paragraph
+        // in DESIGN.md §3 explaining it. The reason never reached here, and the type-scale guard
+        // could not help: its exception was recorded as a property of a FILE
+        // (`components/imprint/Field.jsx`), so 13px on a different input was on the scale and
+        // passed. The exception now describes what it always meant — an input, select or textarea
+        // — so a third one cannot inherit the same defect.
+        //
+        // `enterKeyHint="search"` gives the virtual keyboard an ACTION key instead of "Done"
+        // (French: "Rechercher"). Reported alongside the zoom: the reader typed, pressed Done to
+        // dismiss the keyboard, then had to reach for the magnifier — three steps for one
+        // intent. The label itself comes from the OS in the reader's own language, which is why
+        // this is a hint rather than a string we write.
+        enterKeyHint="search"
         value={terms}
         onChange={(event) => (isControlled ? onQueryChange(event.target.value) : setTyped(event.target.value))}
         aria-label="Search every library"
@@ -82,7 +100,7 @@ const SearchField = ({ className, value, onQueryChange }) => {
         // whole design. It has been here since this field was built and was invisible until now,
         // because on the libraries root typing navigates away before the field ever holds text —
         // the search surface is the first place it stays long enough to be seen.
-        className="min-h-12 min-w-0 flex-1 bg-transparent text-[13px] font-normal text-ink placeholder:text-ink [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+        className="min-h-12 min-w-0 flex-1 bg-transparent text-base font-normal text-ink placeholder:text-ink [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
       />
       {/* Suppressing the native control removes a real affordance rather than mere decoration —
           clearing the field is genuinely useful on the one screen built for repeated lookups — so

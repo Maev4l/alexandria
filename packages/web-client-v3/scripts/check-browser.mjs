@@ -1129,6 +1129,44 @@ try {
     record(rootFocus !== 'input', 'the pinned launcher does not steal focus on the root', String(rootFocus));
   }
 
+  // ---- The search field does not make Mobile Safari zoom, and its keyboard can act ----
+  // Both reported from the deployed app by the owner, on the most-tapped control in the product:
+  // "when I click on search there is somehow a zoom", and having to type, press Done to dismiss
+  // the keyboard, then reach for the magnifier — three steps for one intent.
+  //
+  // The zoom is the 16px rule. `Field.jsx` has set `text-base` for exactly this reason since it
+  // was written, and the type-scale guard's exception was recorded as a property of that FILE —
+  // so 13px on a different input was on the scale and passed. Nothing here could have caught it
+  // either, which is why this check exists now rather than the guard alone.
+  console.log('the search field is 16px, so Mobile Safari does not zoom on focus');
+  {
+    for (const [label, route] of [['pinned launcher', '/libraries'], ['search surface', '/search']]) {
+      await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
+      await page.waitForSelector('input[type=search]');
+      const field = await page.evaluate(() => {
+        const input = document.querySelector('input[type=search]');
+        return {
+          fontSize: Number.parseFloat(getComputedStyle(input).fontSize),
+          enterKeyHint: input.getAttribute('enterkeyhint'),
+        };
+      });
+      // 16 is the floor, not the value: anything below it zooms, anything at or above does not.
+      record(
+        field.fontSize >= 16,
+        `${label}: the input is at least 16px, the size below which iOS zooms`,
+        `${field.fontSize}px`,
+      );
+      // Without this the virtual keyboard offers "Done", which only dismisses — so the reader has
+      // to find another control to act. The LABEL comes from the OS in the reader's own language,
+      // which is why this is a hint and not a string we write.
+      record(
+        field.enterKeyHint === 'search',
+        `${label}: the keyboard offers a search action rather than "Done"`,
+        String(field.enterKeyHint),
+      );
+    }
+  }
+
   // ---- The search field draws its own controls, and none of the browser's ----
   // `type="search"` gives WebKit a clear button of its own, in BLUE — a colour that appears
   // nowhere in the palette — on the loudest mark in the design. It had been there since the field

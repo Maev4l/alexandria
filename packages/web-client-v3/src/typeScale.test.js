@@ -118,7 +118,60 @@ const NON_SIZE_UTILITIES = new Set([
 // knowledge since it was typed, which is a worse condition than a badly-filed exception, not a
 // better one. It is written down here and in DESIGN.md section 3 so the next reader who finds 16
 // off the scale does not "fix" it.
-const INPUT_ZOOM_EXCEPTION = { file: 'components/imprint/Field.jsx', px: 16 };
+// AN INPUT, not a file. This was `{ file: 'components/imprint/Field.jsx', px: 16 }`, and scoping
+// it to a file is what let the defect through: `SearchField`'s input sat at 13px — on the scale,
+// so the guard passed it — while being the one control in the app that actually zooms, and the
+// most-tapped one in the product. Reported from the deployed app, not by any check.
+//
+// The exception was always about INPUTS. Recording it as a location meant the second input could
+// not inherit the reason, only the first could keep it. Matched on the JSX element now, so a
+// third input is covered without registration and 16px on a paragraph is still a violation.
+const INPUT_ZOOM_PX = 16;
+const ZOOMABLE_ELEMENTS = new Set(['input', 'select', 'textarea']);
+
+// A form control reached through a VARIABLE tag still takes keyboard input. `Field` renders
+// `<Tag>` where `Tag` resolves from its `as` prop to input, select or textarea — so a rule
+// matching only lowercase literals would have excluded the very component the exception was
+// written for, which is how the first attempt at this fix failed.
+//
+// Collected per file: any identifier assigned one of those tag names somewhere in the module.
+// Deliberately loose in one direction and tight in the other — it admits a variable that could be
+// a form control, and still rejects 16px on a paragraph, which is the thing being guarded.
+const formControlIdentifiers = (ast) => {
+  const names = new Set();
+
+  // Pass 1: any name given a form-control tag directly. `Field`'s is a DEFAULT PARAMETER —
+  // `({ as = 'input' })` — not an assignment, which is what the first two attempts at this
+  // detector missed: they looked where the value is used rather than where it is introduced.
+  traverse(ast, {
+    AssignmentPattern(nodePath) {
+      const { left, right } = nodePath.node;
+      if (left.type === 'Identifier' && right.type === 'StringLiteral' && ZOOMABLE_ELEMENTS.has(right.value)) {
+        names.add(left.name);
+      }
+    },
+    VariableDeclarator(nodePath) {
+      const { id, init } = nodePath.node;
+      if (id.type === 'Identifier' && init?.type === 'StringLiteral' && ZOOMABLE_ELEMENTS.has(init.value)) {
+        names.add(id.name);
+      }
+    },
+  });
+
+  // Pass 2: one level of aliasing, which is exactly `const Tag = as`. Deliberately ONE level —
+  // an unbounded resolver would start admitting anything, and the point of this exception is to
+  // stay narrow enough that 16px on a paragraph is still a violation.
+  traverse(ast, {
+    VariableDeclarator(nodePath) {
+      const { id, init } = nodePath.node;
+      if (id.type === 'Identifier' && init?.type === 'Identifier' && names.has(init.name)) {
+        names.add(id.name);
+      }
+    },
+  });
+
+  return names;
+};
 
 const SRC_DIR = path.resolve(process.cwd(), 'src');
 const INDEX_CSS = path.resolve(process.cwd(), 'src/index.css');
@@ -156,6 +209,7 @@ const listSourceFiles = (dir) => {
 // treats them.
 const classNameValues = (code) => {
   const ast = parse(code, { sourceType: 'module', plugins: ['jsx'] });
+  const tagVariables = formControlIdentifiers(ast);
   const values = [];
   traverse(ast, {
     JSXAttribute(nodePath) {
@@ -164,6 +218,12 @@ const classNameValues = (code) => {
       values.push({
         source: code.slice(attr.value.start, attr.value.end),
         line: attr.value.loc.start.line,
+        // The owning element's tag, so the input-zoom exception can be about inputs rather than
+        // about whichever file happened to need it first.
+        element: nodePath.parent?.name?.name ?? null,
+        isFormControl:
+          ZOOMABLE_ELEMENTS.has(nodePath.parent?.name?.name) ||
+          tagVariables.has(nodePath.parent?.name?.name),
       });
     },
   });
@@ -175,7 +235,7 @@ const findViolations = (file) => {
   const relative = path.relative(SRC_DIR, file);
   const violations = [];
 
-  for (const { source, line } of classNameValues(code)) {
+  for (const { source, line, element, isFormControl } of classNameValues(code)) {
     for (const match of source.matchAll(TEXT_UTILITY)) {
       const token = match[1];
       if (COLOUR_TOKENS.has(token) || NON_SIZE_UTILITIES.has(token)) continue;
@@ -196,7 +256,7 @@ const findViolations = (file) => {
       }
 
       if (SCALE.includes(px)) continue;
-      if (px === INPUT_ZOOM_EXCEPTION.px && relative === INPUT_ZOOM_EXCEPTION.file) continue;
+      if (px === INPUT_ZOOM_PX && isFormControl) continue;
 
       violations.push(
         `${relative}:${line} — \`${match[0]}\` resolves to ${px}px, which is off DESIGN.md ` +
@@ -239,6 +299,34 @@ describe('type scale (DESIGN.md section 3)', () => {
       const violations = findViolations(probe);
       expect(violations).toHaveLength(1);
       expect(violations[0]).toMatch(/text-lg.*18px/);
+    } finally {
+      fs.unlinkSync(probe);
+    }
+  });
+
+  it('still rejects 16px on something that is not a form control', () => {
+    // The exception widened from a file to a concept, and a widened exception has to be shown to
+    // still exclude. 16px is the input-zoom floor, not a licence — a paragraph at `text-base` is
+    // off the scale and must say so.
+    const probe = path.join(os.tmpdir(), 'alexandria-zoom-probe.jsx');
+    fs.writeFileSync(probe, 'const X = () => <p className="text-base">not an input</p>;\nexport default X;\n');
+    try {
+      const violations = findViolations(probe);
+      expect(violations).toHaveLength(1);
+      expect(violations[0]).toMatch(/text-base.*16px/);
+    } finally {
+      fs.unlinkSync(probe);
+    }
+  });
+
+  it('accepts 16px on an input reached through a variable tag, as Field renders one', () => {
+    const probe = path.join(os.tmpdir(), 'alexandria-zoom-tag-probe.jsx');
+    fs.writeFileSync(
+      probe,
+      "const F = ({ as = 'input' }) => { const Tag = as; return <Tag className=\"text-base\" />; };\nexport default F;\n",
+    );
+    try {
+      expect(findViolations(probe)).toEqual([]);
     } finally {
       fs.unlinkSync(probe);
     }
