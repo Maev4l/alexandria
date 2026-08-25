@@ -1045,6 +1045,7 @@ review gate.
 cd /Users/jrsue/dev/repos/alexandria/packages/web-client-v3 && pwd
 grep -cF -- 'field-control mt-3' src/components/imprint/SearchField.jsx
 grep -cF -- '16px anywhere else is a violation' src/typeScale.test.js
+grep -cF -- 'computes the tracking DESIGN.md' scripts/check-browser.mjs
 grep -rnE '\b(m|p|gap)(t|b|l|r|x|y)?-(3|5|7|9|11)\b' --include='*.jsx' src | grep -v '\.test\.'
 ```
 
@@ -1086,6 +1087,17 @@ In `src/components/imprint/SearchField.jsx`, `mt-3` → `mt-4`, with:
 In `src/typeScale.test.js`, delete the superseded paragraph ending *"16px anywhere else is a
 violation"*, leaving the block beneath it that begins *"AN INPUT, not a file"*. A stale comment
 sitting above the live one is the hazard `index.css` records paying for, and it was inside a guard.
+
+**And one more of the same class, added after Task 03's review found it.** In
+`scripts/check-browser.mjs`, the caps check announces itself as *"every caps role computes the
+tracking DESIGN.md §3 publishes for it"*. It now computes the **size, the weight and the tracking**
+— all three of §3's published properties — so the line a reader sees at runtime describes a third
+of what the check does. Reword it to name all three.
+
+The anchor is `computes the tracking DESIGN.md`; confirm it resolves to exactly one site. This is
+the same defect as the paragraph above it in this step: a guard whose own account of itself has
+gone stale, which is worse than a stale comment elsewhere because the log line is what a reader
+consults when deciding whether a check covers their case.
 
 - [ ] **Step 5: Run the full verification chain, then commit**
 
