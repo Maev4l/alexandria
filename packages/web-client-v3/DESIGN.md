@@ -346,7 +346,7 @@ it covers.
 | Collection board name | 17 | 700 | sans | the heavier of the two 17s |
 | Plate Line | 14 | 400 | sans | `--ink-soft`; its figures take mono 12 |
 | Detail summary, `IN <library>` value | 14 | 400 | sans | `--cover-body` |
-| Search field input, ledger name row, ribbon owner | 13 | 400 | sans | ribbon owner sets `text-transform: none` |
+| Ledger name row, ribbon owner | 13 | 400 | sans | ribbon owner sets `text-transform: none` |
 
 **Which numerals, precisely — because the rule was only half enforceable without this.** §3 states the
 split in both directions: nothing but numerals may be mono, *and* catalogue numerals must be mono. Only
@@ -381,8 +381,17 @@ the alarm rather than pass the check.
 |---|---|---|---|
 | Count plate | 12 | 700 | tabular, in a 2px ruled plate |
 | Plate Line figures, detail plate line | 12 | 400 | `--cover-soft` on the cover |
-| Index letter count, ledger dates, ledger duration, library row sub | 11 | 400 | tabular |
-| **Collection member order plate** | **10** | 400 | tabular, in a **1px** rule — see §5 |
+| Index letter count, ledger dates, ledger duration | 11 | 400 | tabular |
+| Section-header count (the figure beside `MINE` and `SHARED WITH ME`) | 11 | 800 | tabular; the weight is inherited from the caps label beside it rather than set here, and its tracking is cancelled outright rather than left blank — explained below |
+| **Collection member order plate** | **10** | 400 | tabular, in a **1px** rule — the row height and the component vocabulary for it are elsewhere in this document |
+
+**The library row's own sub-line used to sit in this table, and it never should have.** An earlier
+draft listed it here as a mono numeral at 11px, weight 400, alongside ledger dates and durations. It
+never was one: the sub-line under a shared library's name is a caps tag reading `Shared · N` or
+`From <owner>`, and only the `N` inside it is a numeral — already accounted for at the count plate's
+own size, not here. The tag itself is an interface label, sized and tracked like the rest of the
+caps roles below, not a datum on display; it is now named there as its own row instead — see
+`library row sub-line (shared ribbon on a row)`.
 
 **Caps — interface labels. Tracking is per-role and is not one value.**
 
@@ -392,9 +401,26 @@ the alarm rather than pass the check.
 | Plate Button labels — every variant | 12 | 800 | +0.12em |
 | Section header (`MINE`, `SHARED WITH ME`) | 11 | 800 | +0.16em |
 | Account plate initials | 11 | 800 | +0.08em |
-| Ledger head, detail-marks label, shared ribbon caps, ledger date labels | 10 | 800 | +0.16em |
+| Ledger head, detail-marks label, ledger date labels | 10 | 800 | +0.16em |
+| `shared ribbon caps (detail marks, search row)` | 10 | 800 | +0.16em |
+| `library row sub-line (shared ribbon on a row)` | 11 | 700 | +0.16em |
 | Overprint Stamp | 10 | 800 | +0.14em |
 | Field label, field counter | 11 | 700 | +0.12em |
+
+**Shared ribbon caps is two roles, not one, because the same tag renders inside two different
+wrappers that each set its own size and weight — the tag itself sets neither.** A library row wraps
+it at 11px, weight 700, on the row's own sub-line. The mark column beside an item's cover and the
+inline tag on a search result both wrap the identical tag at 10px, weight 800. Two surfaces, two
+published sizes, and the tracking is the one value they happen to share.
+
+That shared tracking value is exactly what let one published row stand in for both, unnoticed, for
+a long time. A browser check measuring only the library row's own tracking passed cleanly against a
+row published at the mark column's size and weight, because both surfaces sit at the same +0.16em
+and tracking was the only property being measured — a correct reading of the wrong instance,
+sitting inside the very guard meant to catch this kind of drift. Both surfaces are now published above by
+name — `shared ribbon caps (detail marks, search row)` and `library row sub-line (shared ribbon on
+a row)` — and measured on all three properties together, size, weight and tracking, not on
+tracking alone.
 
 **The account plate's cell used to be blank, and that blank cost a round.** Read as intent it says
 *no tracking*, which is how I first read it — and the comp settles it the other way: `.acct` in
@@ -412,6 +438,14 @@ produced two contradictory rulings from me on one row. Every cell carries a numb
 word `none`; and where zero is genuinely wanted, it is **declared at the site** (`tracking-normal`)
 so the intent is visible in the code rather than deduced from an empty table cell.
 
+**The section-header count is the concrete case that rule was written for.** The label — `MINE`,
+`SHARED WITH ME` — sits in the caps row above; the figure beside it is a mono, non-tracked span
+that inherits the label's own extra-bold weight (a numeral changes only the family and the digit
+shapes, never the weight) but explicitly cancels the label's own tracking with a normal-tracking
+utility set right at that span. That is the declared zero the previous paragraph asks for — a value
+written into the code, not an absent cell — and it is why the mono table lists that count with its
+tracking already accounted for, rather than leaving the question for someone to guess at.
+
 Any caps role **not** in this table takes the 0.08em baseline from `.caps`. The table is therefore
 a list of deliberate exceptions to a default, not an inventory of every caps site.
 
@@ -423,12 +457,21 @@ needs naming here at all, since without a row it would silently inherit the base
 
 The steps in use are **10, 11, 12, 13, 14, 17, 20, 22, 32, 76**. Anything else is off the scale.
 
-**One exception, and it is not a display size: form inputs set 16px.** `Field`'s input, select and
-textarea all take `text-base`. Mobile Safari **zooms the page** when a focused input's font-size is
-below 16px, which on a phone-first PWA would jerk the viewport on every tap into a field — so 16px is
-load-bearing platform behaviour, not a typographic choice, and it sits outside the display scale
-deliberately. **Any guard over the scale must know this exception, or its first act is to fail on
-correct code.**
+**One exception, and it is not a display size: every input sets 16px, not only `Field`'s three.**
+`Field`'s own input, select and textarea take `text-base`, and so does the Search Field's `<input>`
+— the same platform reason, not a fourth carve-out. The content table above used to list the search
+field input at 13px, grouped with the ledger name row and the ribbon owner's address, whose rendered
+text really is that size; the search field's own `<input>` was the one row in that group describing
+a text box rather than rendered text, and it was wrong. The size guard had the matching gap in the
+opposite direction and has since closed it: its exception used to be keyed to one file, and the
+search field's input sat at 13px — on the allowed scale, so the check passed it — while being the
+one control in the product that actually triggers the zoom, and the most-tapped one in it. The check
+is now keyed to the input element itself, so a third input is covered without anyone having to add
+it by name; this document was the last place still describing the narrower version. Mobile Safari
+**zooms the page** when a focused input's font-size is below 16px, which on a phone-first PWA would
+jerk the viewport on every tap into a field — so 16px is load-bearing platform behaviour, not a
+typographic choice, and it sits outside the display scale deliberately. **Any guard over the scale
+must know this exception, or its first act is to fail on correct code.**
 
 **Ratified on those merits, and the reason was never written down — which was checked, not assumed.**
 `Field.jsx` carries no comment at any of the three sites. That absence means something in *this* file,
@@ -580,9 +623,17 @@ cmap, and nothing computes `letter-spacing`. And a later commit **reaffirmed the
 prose** ("carries case and tracking") without measuring it, which is how a contradiction survives
 a review that was looking straight at it.
 
-A browser assertion now computes `letter-spacing` for one element per role in §3's table. The
-general form, and the question worth asking of this document repeatedly: **a spec that publishes
-N values for a property nothing computes is publishing a preference, not a rule.**
+A browser assertion now computes `letter-spacing` for one element per published caps role — and,
+since the shared-ribbon roles above were reconciled against their two real instances, it computes
+**size and weight alongside it**, not tracking alone. A check run against every role it already
+tested came back clean on both added properties, so the widening shipped as an extension of what
+the existing entries check rather than a fix to them: the roles it tests were correctly sized and
+weighted the whole time, only their tracking had ever been measured. Roles the check does not yet
+reach at all — the section header's own label text, the Overprint Stamp, ledger date labels, the
+field counter — remain published rules with nobody computing them, the same shape of gap a role
+missing from the check leaves open. The general form, and the question worth asking of this
+document repeatedly: **a spec that publishes N values for a property nothing computes is
+publishing a preference, not a rule.**
 
 Corollary for the type scale: there is no 15px step. When a role turns out to be content rather
 than a label, move it onto the nearest **existing** step — a sheet heading naming a library is the
@@ -621,18 +672,69 @@ which is where drift is visible and compounding.
 | Minimum touch target | 6 divisions (48px) — applies to the search field and the account plate too; both are taps, not labels |
 | Row height, with a sub-line | 10 divisions (80px) |
 | Row height, without | 8 divisions (64px) — **not 60**, which is 7.5 divisions and off the scale |
+| Stream row (the item list's own row) | 13 divisions (104px) — 32px of padding around the row-scale artwork frame's 72px; the containment rule that lets the browser skip painting rows outside the viewport reserves this same 104px as each row's placeholder height, so nothing jumps as rows scroll into view. Neither of the two rows above describes it: this is the app's densest, most repeated element, and it had never had its own line |
 
 ### Rule weights
 
 Elevation is expressed by rule weight and ground shift. **There are no shadows anywhere** — print
 has none — and **no rounded corners**: every radius is 0.
 
-| Weight | Use |
+| Weight | Separates |
 |---|---|
-| 1px | hairline separators inside a block |
-| 2px | volume frames, field underlines |
-| 3px | block frames, sheet top edge, collection boards |
-| 4px | index rules, the detail hero's title rule |
+| 1px | one row from the next inside the densest, most repeated surface in the app — the item stream's own row divider |
+| 2px | a whole block from what sits below it — a library row's own edge, a collection board's head, the app header's bottom edge — plus every artwork frame and field underline |
+| 3px | one structural block from the page around it — block frames, a collection board's own outer frame, a bottom sheet's top edge |
+| 4px | the sticky index letter from the stream beneath it, and the item-detail hero's title from its summary |
+
+Restated by what each rule separates rather than by a single example, because the lightest
+weight's original one-line description — a hairline "inside a block" — covered only one of its
+real uses and left three separators at the next weight up undocumented: a library row's own edge,
+a collection board's head, and the app header's bottom edge are none of them "inside" anything,
+each is a whole block meeting whatever comes after it. Naming what a rule does, rather than where
+it happens to sit, is the description that survives the next component that reaches for the same
+weight.
+
+### `.row-skip`, and the one thing it must never wrap
+
+The item stream's row carries `.row-skip`, a containment rule that skips layout and paint for
+whatever the browser has not scrolled to yet, which is what keeps a thousand-item list responsive.
+Its reserved placeholder height is not a guess — it is the same 104px the row-height table above
+derives from the padding around the row-scale artwork frame, so a row claims its real height before
+it has ever painted and the page does not jump as rows scroll into view.
+
+`.row-skip` carries one hard constraint, worth stating here even though it is also stated at the
+point of use: it must never wrap anything that also contains a sticky index letter. Containment
+breaks fixed positioning on everything inside it, and the letters are load-bearing wayfinding
+rather than decoration, so `.row-skip` sits on the row itself and never on a container that also
+holds the letter above it.
+
+Collection boards are deliberately given no `.row-skip` at all. A board's height varies with its
+member count, and reserving a fixed placeholder height for a variable-height element drifts the
+reader's scroll position the moment a continuation board on a later page merges into the one
+already on screen — the same merge that is supposed to leave the reader looking at one board
+rather than two. Reserving a wrong guess would fight the very thing this rule exists to hold still.
+
+### The two capture viewports are not the item frame's ratio, and that is deliberate
+
+Every item frame described below is a plain upright rectangle in a 2:3 ratio — book covers and
+film posters both arrive in that shape, so one frame serves both kinds of artwork. A camera
+viewfinder is not an item, and stating its own shape has been missing from this document until now.
+
+The two viewports are not even the same shape as each other, on purpose. The barcode scanner's
+viewfinder spans the full column width at 192px, landscape, because an EAN-13 barcode is itself
+landscape — a tall, narrow window would make the reader back away until the whole code fit inside
+it, shrinking the barcode within the camera's own sensor frame by the exact mechanism the window
+was meant to help. The cover-capture viewfinder spans the full column width at 240px, also
+landscape, aimed at a disc case's printed title rather than its whole cover, because the artwork
+the reader eventually sees comes from a lookup service and never from this photograph.
+
+Neither takes the item frame's upright ratio, and neither should. Matching a frame to its subject
+is the same principle behind the single item ratio below — one shape, because book covers and
+posters share it — applied honestly a second time: a viewfinder's subject is a barcode or a title,
+not a cover, so the same principle produces two different, non-upright numbers instead of one. This
+asymmetry — two viewfinders, two different landscape heights, chosen for two different subjects —
+must not be smoothed into a single viewfinder shape, or reconciled with the item frame's ratio; it
+was never describing the same thing.
 
 ### The frame, and how books and films differ
 
@@ -833,6 +935,14 @@ and cheap.
 Folding `Œuvres complètes` to a display "O" would be a lie: it sits after Z, not among the Os, and a
 reader sent to the Os would not find it. Rendered, the honest `Œ` also turned out to be the best
 piece of lettering in the set.
+
+**A title can fold to nothing even when it is not empty, and that case needs its own fallback.**
+Stripping combining marks only removes marks that combine with a preceding letter, so a title whose
+very first character is itself a bare combining mark loses that character outright — the fold
+produces nothing to letter with. The client falls back to the title's own raw, un-folded first
+character in exactly that case: a monumental letter showing nothing would be worse than an odd
+glyph, and the reader is still shown the character the server actually sorted the title on. Only a
+genuinely empty title — which the catalogue's own rules forbid — produces no label at all.
 
 ### The stroke, and the two months it was wrongly withdrawn
 
