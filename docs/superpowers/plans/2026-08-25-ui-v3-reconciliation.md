@@ -39,6 +39,13 @@ a rule this project has already paid for breaking.
 - JavaScript only, no TypeScript. `.jsx` for components, PascalCase filenames. Double quotes in JSX
   attributes, single quotes everywhere else.
 - Comments say **why**, not how.
+- **Never cite a chapter or section number of a specification or plan — state the rule instead.**
+  No `§2`, no "DESIGN.md §5", no "per section 4", no "the brief's Step 2". Write what the rule *is*,
+  so the reader learns it from the sentence in front of them rather than being sent to find it:
+  not *"the figures take the mono (§3)"* but *"the figures take Chivo Mono, which is reserved for
+  numerals"*; not *"per §4's division rule"* but *"because layout gaps between blocks are whole
+  divisions, and the division is 8px"*. Where a pointer is genuinely needed, name the thing by its
+  subject — *the palette law*, *the index alphabet's fold* — never by a number.
 - Every authenticated screen keeps its `<main>` and its `<h1>`. Do not remove either while editing a
   screen for something else.
 - **Anything that sets a ground sets its foreground.** Any block you touch that paints a background
@@ -1774,3 +1781,71 @@ re-resolved.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ```
 
+---
+
+### Task 15: State the rules the comments point at
+
+This pass added **26 comment lines that cite section numbers** instead of stating their rule. The
+constraint arrived after those commits landed; this task brings them into line.
+
+**Files:** the sites listed by the sweep in Step 1 — across `src/pages`, `src/components` and
+`scripts/check-browser.mjs`.
+
+**Interfaces:**
+- Consumes: every code commit this plan has landed.
+- Produces: nothing later tasks depend on.
+
+**Acceptance criteria:**
+- **No comment added by this pass cites a section number.** Each states its rule explicitly.
+- **The rule stated must be the rule that actually applies.** This is not a find-and-replace: a
+  citation is being traded for a claim, and a wrong claim in a comment is worse than a pointer,
+  because it reads as authoritative and nobody re-checks it. Where you are unsure what a cited
+  section says, read it before writing the replacement.
+- **No behaviour changes.** Comments only. The suite must be untouched by the diff except where a
+  comment sits inside a test file.
+- Do **not** touch the ~298 pre-existing citations this pass did not introduce. They are a separate
+  decision, recorded for the owner, and sweeping them here would bury this pass's own diff in an
+  unrelated 100-file reformat — which this project's own history names as the thing that camouflages
+  substance in a large diff.
+
+- [ ] **Step 1: Find exactly the lines this pass introduced**
+
+```bash
+pwd
+git diff c939882..HEAD -- packages/web-client-v3/src packages/web-client-v3/scripts \
+  | grep -E '^\+' | grep -E '§[0-9]|DESIGN\.md|ui-v3\.md|[Ss]ection [0-9]'
+```
+
+Expect 26 lines. Resolve each to its file and line with a follow-up grep for the line's own text —
+line numbers from a diff are not positions in the file.
+
+- [ ] **Step 2: Rewrite each, stating the rule**
+
+For every one, replace the citation with the substance. The commonest cases in this set:
+
+- `--out` — *marks a lent item and nothing else.*
+- The mono/sans split — *Chivo Mono is reserved for numerals; a count beside its own label is a
+  datum and takes it, a numeral inside an authored sentence does not.*
+- The empty state — *a ruled frame carrying a caps invitation at the same weight as a full block.*
+- Recovery — *a control, never an instruction to perform a gesture elsewhere.*
+- The division scale — *layout gaps between blocks are whole divisions; the division is 8px.*
+- The ruled frame — *the rule and nothing else; the empty frame carries no fill.*
+- Navigation — *underlined, never accented.*
+- Yellow on paper — *cannot describe a form at ~1.55:1; it can only be a ground with ink on top,
+  or a fill inside an ink outline.*
+
+- [ ] **Step 3: Confirm the sweep is clean and nothing else moved**
+
+```bash
+cd /Users/jrsue/dev/repos/alexandria && pwd
+git diff c939882..HEAD -- packages/web-client-v3/src packages/web-client-v3/scripts \
+  | grep -E '^\+' | grep -cE '§[0-9]|DESIGN\.md|ui-v3\.md|[Ss]ection [0-9]'
+git diff HEAD~1 --stat
+```
+
+Expect **0**, and a stat showing comment-only changes.
+
+- [ ] **Step 4: Run the chain and commit**
+
+`yarn test`, `yarn lint`, `yarn check:browser`, each `tee`'d, absolute paths. A comment-only change
+must leave every count exactly as it was.
