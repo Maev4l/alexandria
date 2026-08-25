@@ -474,7 +474,11 @@ const ItemDetail = () => {
                 // -inset-y-4 (-16px) measured 47.4px in real Chrome — 0.6px under the floor,
                 // since 15.4px of text plus 32px doesn't quite clear it; -5 (-20px) does, with
                 // room to spare, and the action buttons below still sit ~9px clear of it.
-                className="relative caps mt-4 inline-block text-[11px] font-extrabold text-imprint underline before:absolute before:inset-x-0 before:-inset-y-5 before:content-['']"
+                // `--cover-body`, matching DetailMarks' `IN <library>`: navigation is underlined
+                // and never accented (§5), because yellow beside the title rule reads as a primary
+                // action. NOT a contrast fix — yellow on the cover measures 11.71:1, which is why
+                // the ledger heading above keeps its own.
+                className="relative caps mt-4 inline-block text-[11px] font-extrabold text-cover-body underline before:absolute before:inset-x-0 before:-inset-y-5 before:content-['']"
               >
                 Full record
               </Link>

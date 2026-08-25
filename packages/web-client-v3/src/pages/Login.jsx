@@ -50,7 +50,10 @@ const Login = () => {
         <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Sign in</h1>
 
         {(oauthMessage?.type === 'success' || notice) && (
-          <p role="status" className="mb-6 border-t-2 border-imprint bg-paper-deep p-4 text-sm text-ink">
+          // An ink rule: the same printed-notice construction Toast and UpdateNotice use.
+          // `--imprint` on `--paper-deep` is ~1.42:1 and this rule is the notice's only mark, so
+          // the yellow described nothing at all — yellow cannot carry a shape on paper (§2).
+          <p role="status" className="mb-6 border-t-2 border-ink bg-paper-deep p-4 text-sm text-ink">
             {oauthMessage?.type === 'success' ? oauthMessage.text : notice}
           </p>
         )}

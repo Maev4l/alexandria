@@ -338,6 +338,16 @@ describe('ItemDetail', () => {
     const plateLine = await screen.findByText(/9782070404209/);
     expect(plateLine.closest('p')).not.toHaveTextContent('Fiction');
   });
+
+  // Navigation is underlined, never accented (section 5, Detail Marks) — and DetailMarks'
+  // own `IN <library>` link, sixty lines above on this same screen, already obeys it.
+  // Not a contrast fix: yellow on the cover measures 11.71:1.
+  it('sets the full-record link in the cover body tone, like every other link on the cover', async () => {
+    renderPage('item-lent');
+    const link = await screen.findByRole('link', { name: /full record/i });
+    expect(link.className).toContain('text-cover-body');
+    expect(link.className).not.toContain('text-imprint');
+  });
 });
 
 // DEFECT 2: `Mark returned` used to open ItemActionsSheet — a menu of Edit/Lend/Delete — when

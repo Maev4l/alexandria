@@ -66,4 +66,15 @@ describe('Login', () => {
     renderPage();
     expect(screen.getByRole('link', { name: /create one/i })).toHaveAttribute('href', '/signup');
   });
+
+  // --imprint on --paper-deep computes to ~1.42:1, and that rule was the notice's only
+  // distinguishing mark — the exact failure section 2 predicts in bold, in the one place
+  // nobody had scoped the rule out of.
+  it('prints the OAuth success notice with an ink rule, not an invisible yellow one', () => {
+    auth.oauthMessage = { type: 'success', text: 'Your Google account has been linked.' };
+    renderPage();
+    const notice = screen.getByRole('status');
+    expect(notice.className).toContain('border-ink');
+    expect(notice.className).not.toContain('border-imprint');
+  });
 });
