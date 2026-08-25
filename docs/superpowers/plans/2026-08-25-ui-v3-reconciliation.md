@@ -1834,6 +1834,19 @@ For every one, replace the citation with the substance. The commonest cases in t
 - Yellow on paper — *cannot describe a form at ~1.55:1; it can only be a ground with ink on top,
   or a fill inside an ink outline.*
 
+- [ ] **Step 2b: Correct one false claim in a source comment**
+
+`src/lib/sort.js` (around lines 24–26) states that the index fallback shows the character the server
+sorted the title on. **That is false**: the server strips it too, so the fallback deliberately shows
+a character the server did *not* sort on. Its trigger is also described loosely — the fallback fires
+only when the **whole** fold comes out empty; a first character that is a combining mark followed by
+letters still folds to those letters.
+
+This is not a citation, and it is in this task because of how it was found: the claim travelled out
+of this comment and into the design document, where it was corrected under review. Fixing the
+document left the source still asserting it, which is how it would travel again. Correct it here, in
+the same words the document now uses.
+
 - [ ] **Step 3: Confirm the sweep is clean and nothing else moved**
 
 ```bash
