@@ -1849,3 +1849,83 @@ Expect **0**, and a stat showing comment-only changes.
 
 `yarn test`, `yarn lint`, `yarn check:browser`, each `tee`'d, absolute paths. A comment-only change
 must leave every count exactly as it was.
+
+---
+
+### Task 16: The pre-existing citations, swept last and alone
+
+~298 citations of specification sections across ~106 files predate this pass. The owner has
+scheduled this sweep to run **after** everything else, and that ordering is the point: a
+mechanical change across 106 files, landed alongside substance, is how a reviewer stops being able
+to see the substance. Every other task must be complete and reviewed before this one starts.
+
+**Files:** every `.jsx`, `.js` and `.mjs` under `packages/web-client-v3/src` and
+`packages/web-client-v3/scripts` carrying a citation.
+
+**Interfaces:**
+- Consumes: a clean, reviewed tree with all other tasks landed.
+- Produces: nothing. No behaviour changes anywhere.
+
+**Acceptance criteria:**
+- **No behaviour change. Comments only.** Every test count, lint result and browser check identical
+  before and after. If any number moves, something other than a comment was edited.
+- **A citation is being traded for a claim, and the claim must be true.** This is the whole risk of
+  the task and it does not scale down with volume: a wrong rule stated in a comment is worse than a
+  pointer, because it reads as authoritative and nobody re-checks it. Where the rule behind a
+  citation is not obvious, read the source document before writing the replacement.
+- **Never invent a rule to fill a citation.** If a citation points at something you cannot resolve,
+  leave that site alone and list it in the report. An unresolved pointer is better than a fabricated
+  rule, and this project has paid for the fabricated-justification pattern twice already.
+- Lands as its own commits, touching nothing but comments.
+
+- [ ] **Step 1: Classify before rewriting — the classification decides the risk**
+
+Not every citation is the same job, and treating them alike is what turns this into a
+find-and-replace.
+
+```bash
+pwd
+grep -rEn '§[0-9]|DESIGN\.md|ui-v3\.md|[Ss]ection [0-9]' \
+  --include='*.jsx' --include='*.js' --include='*.mjs' \
+  packages/web-client-v3/src packages/web-client-v3/scripts > /tmp/citations.txt
+wc -l /tmp/citations.txt
+```
+
+Read the file and sort every line into one of three classes, recording the counts:
+
+- **A — a citation appended to a rule the comment already states.** `…the empty frame carries no
+  fill (§5).` Drop the citation; the sentence already does the work. Lowest risk.
+- **B — a citation standing in place of the rule.** `// See §4 for why.` The rule must be read and
+  written out. This is where the risk lives.
+- **C — a citation inside prose that is explaining a past decision**, where the section reference is
+  part of the historical record rather than a pointer. Rewrite to name the subject rather than the
+  number — *the palette law*, *the index alphabet's fold* — without losing the history.
+
+- [ ] **Step 2: Sweep in batches, by directory, committing each**
+
+Batch as `src/components/imprint`, `src/components`, `src/pages`, `src/lib` and `src/state`,
+`scripts` and the top-level guards. One commit per batch, so a reviewer reads 10–20 files at a time
+rather than 106. State the batch's class-A/B/C counts in each commit message.
+
+- [ ] **Step 3: Confirm the sweep is complete and comment-only**
+
+```bash
+cd /Users/jrsue/dev/repos/alexandria && pwd
+grep -rEc '§[0-9]|DESIGN\.md|ui-v3\.md|[Ss]ection [0-9]' \
+  --include='*.jsx' --include='*.js' --include='*.mjs' \
+  packages/web-client-v3/src packages/web-client-v3/scripts | grep -v ':0$' || echo 'none remain'
+```
+
+Anything remaining must be on the report's unresolved list, with a reason.
+
+- [ ] **Step 4: Prove nothing but comments moved**
+
+Run the chain and compare every number against the run before the sweep began — record both, not
+just the after. A comment-only change that alters a test count has edited something else.
+
+```bash
+cd /Users/jrsue/dev/repos/alexandria/packages/web-client-v3 && pwd
+yarn test 2>&1 | tee /tmp/v3-test-after.log; tail -5 /tmp/v3-test-after.log
+yarn lint 2>&1 | tee /tmp/v3-lint-after.log; tail -5 /tmp/v3-lint-after.log
+yarn check:browser 2>&1 | tee /tmp/v3-browser-after.log; grep 'FAIL' /tmp/v3-browser-after.log || echo 'no browser failures'
+```
