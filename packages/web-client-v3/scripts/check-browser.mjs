@@ -1656,23 +1656,26 @@ try {
     // one the old utility was silently overriding — the account plate initials carried 0.08em
     // they should never have had.
     const CAPS_ROLES = [
-      { role: 'wordmark', route: '/libraries', text: 'ALEXANDRIA', px: 12, em: 0.2 },
+      { role: 'wordmark', route: '/libraries', text: 'ALEXANDRIA', px: 12, em: 0.2, weight: 800 },
       // §3 publishes ONE wordmark. Two auth screens printed it at the section-header step (11px)
       // and nothing could see it: `typeScale.test.js` resolves sizes and 11 is ON the scale, so
       // the only guard that reads sizes is blind to this defect by construction. Hence the routes,
       // and hence `px` — the loop below already computes fontSize as the em divisor and threw it
       // away, so the number that catches this was being measured and discarded.
-      { role: 'wordmark (login)', route: '/login', text: 'ALEXANDRIA', px: 12, em: 0.2 },
-      { role: 'wordmark (signup)', route: '/signup', text: 'ALEXANDRIA', px: 12, em: 0.2 },
-      { role: 'plate button label', route: '/libraries', text: 'NEW LIBRARY', px: 12, em: 0.12 },
+      { role: 'wordmark (login)', route: '/login', text: 'ALEXANDRIA', px: 12, em: 0.2, weight: 800 },
+      { role: 'wordmark (signup)', route: '/signup', text: 'ALEXANDRIA', px: 12, em: 0.2, weight: 800 },
+      { role: 'plate button label', route: '/libraries', text: 'NEW LIBRARY', px: 12, em: 0.12, weight: 800 },
       // TWO shared-ribbon roles, not one. The same component renders at 11/700 on a library row
       // and at 10/800 in a mark column, and this entry measured the first against §3's row for the
       // second — green only because the two surfaces coincide at +0.16em. A true measurement of the
       // wrong substrate, inside the guard. Both surfaces are now measured: the library row's own
       // instance, and the item-detail DetailMarks instance — lib-fiction carries sharedTo in the
       // fixtures, so its SharedRibbon renders there at the mark-column size.
-      { role: 'shared ribbon caps (library row)', route: '/libraries', text: 'SHARED', px: 11, em: 0.16 },
-      { role: 'shared ribbon caps (detail marks)', route: '/libraries/lib-fiction/items/item-lent', text: 'SHARED', px: 10, em: 0.16 },
+      // Weight 700 here, not 800: this is the "library row sub-line" role the owner ruled into
+      // §3 at 11px/700, distinct from the mark-column instance below which keeps the caps table's
+      // published 800.
+      { role: 'shared ribbon caps (library row)', route: '/libraries', text: 'SHARED', px: 11, em: 0.16, weight: 700 },
+      { role: 'shared ribbon caps (detail marks)', route: '/libraries/lib-fiction/items/item-lent', text: 'SHARED', px: 10, em: 0.16, weight: 800 },
       // 0.08em, the BASELINE — not "none". §3's caps table leaves this row's tracking cell empty,
       // and the two rulings read that blank differently: the first said the initials carry no
       // tracking, the second restored a baseline for every site that declares none. A site that
@@ -1681,14 +1684,14 @@ try {
       // to be DECLARED at the site (`tracking-normal`), because a blank cell cannot distinguish
       // "no tracking wanted" from "nothing specified" — and the second is what every other
       // undeclared caps label in the product means by it. Referred to the design session.
-      { role: 'account plate initials', route: '/libraries', text: 'JR', px: 11, em: 0.08 },
-      { role: 'field label', route: '/settings/account', text: 'CURRENT PASSWORD', px: 11, em: 0.12 },
-      { role: 'ledger head', route: '/libraries/lib-fiction/items/item-lent', text: 'THE RECORD', px: 10, em: 0.16 },
-      { role: 'detail marks label', route: '/libraries/lib-fiction/items/item-lent', text: 'IN', px: 10, em: 0.16 },
+      { role: 'account plate initials', route: '/libraries', text: 'JR', px: 11, em: 0.08, weight: 800 },
+      { role: 'field label', route: '/settings/account', text: 'CURRENT PASSWORD', px: 11, em: 0.12, weight: 700 },
+      { role: 'ledger head', route: '/libraries/lib-fiction/items/item-lent', text: 'THE RECORD', px: 10, em: 0.16, weight: 800 },
+      { role: 'detail marks label', route: '/libraries/lib-fiction/items/item-lent', text: 'IN', px: 10, em: 0.16, weight: 800 },
     ];
 
     const trackingViolations = [];
-    for (const { role, route, text, px, em } of CAPS_ROLES) {
+    for (const { role, route, text, px, em, weight } of CAPS_ROLES) {
       await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
       await page.waitForSelector('main');
       const measured = await page.evaluate((wanted) => {
@@ -1707,6 +1710,7 @@ try {
           hasTracking: style.letterSpacing !== 'normal',
           letterSpacing: style.letterSpacing === 'normal' ? 0 : Number.parseFloat(style.letterSpacing),
           fontSize: Number.parseFloat(style.fontSize),
+          fontWeight: Number.parseInt(style.fontWeight, 10),
         };
       }, text);
       if (!measured) {
@@ -1718,6 +1722,12 @@ try {
       // are declared px values, not a float multiplication.
       if (measured.fontSize !== px) {
         trackingViolations.push(`${role}: ${measured.fontSize}px, expected ${px}px`);
+      }
+      // Probed rather than assumed: §3 publishes a weight per role and nothing has ever computed
+      // one. If this is clean it stays; if it is not, the divergences are findings for their own
+      // pass, and this assertion comes back out.
+      if (measured.fontWeight !== weight) {
+        trackingViolations.push(`${role}: weight ${measured.fontWeight}, expected ${weight}`);
       }
       if (em === null) {
         console.log(`    ${role.padEnd(24)} no tracking (want none)`);
