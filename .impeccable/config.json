@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "docs/ui-design/ui-v3-mockup.html"
+        ],
+        "createdAt": "2026-08-17T16:44:32.075Z",
+        "reason": "User confirmed false positive: this design system expresses all elevation as rules (1/2/3/4px), so every row has a border its children meet by design. DESIGN.md sect.4."
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          "docs/ui-design/ui-v3-mockup.html"
+        ],
+        "createdAt": "2026-08-17T16:44:32.101Z",
+        "reason": "User confirmed false positive: 10px/800 caps and 11px mono are declared steps of the DESIGN.md sect.3 scale, measured from this comp."
+      },
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          "docs/ui-design/ui-v3-mockup.html"
+        ],
+        "createdAt": "2026-08-17T16:44:32.127Z",
+        "reason": "User confirmed false positive: same declared sect.3 steps; interface labels at weight 800, not body copy."
+      }
+    ]
+  }
+}

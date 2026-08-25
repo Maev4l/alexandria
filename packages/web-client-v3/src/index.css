@@ -1,0 +1,307 @@
+@import "tailwindcss";
+
+/* Self-hosted variable faces, Latin + Latin Extended-A. Archivo covers condensed plate
+   lettering and normal-width body from one file; Chivo Mono gives tabular figures. The
+   Latin Extended-A cut is not optional: the index alphabet depends on OE and AE rendering.
+   Google never ships one file that covers both: "latin" (plain ASCII + Latin-1) and
+   "latin-ext" (Latin Extended-A, the French-diacritic and OE/AE range) are separate woff2
+   files, so each face needs two @font-face blocks here, each carrying the unicode-range
+   Google emitted for that file, verbatim (scripts/fetch-fonts.mjs). A file with no
+   unicode-range is exactly the bug this replaces: the browser then believes that one file
+   covers every character, and silently falls back to system-ui per glyph when it does not —
+   which is how this shipped with only a space and the letter 'A' actually in Archivo. */
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 400 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url("/fonts/archivo-var-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 400 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url("/fonts/archivo-var-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Chivo Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/chivo-mono-var-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Chivo Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/chivo-mono-var-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Palette law: each colour means exactly one thing. No hex literal belongs anywhere else in
+   the codebase — a colour spent decoratively is a bug, not a style choice. */
+:root {
+  --paper: #f6f6f3;
+  --paper-deep: #ecece7;
+  --ink: #0b0b0b;
+  --ink-soft: #5a5a57;
+  --imprint: #f2c200;
+  --out: #d8412f;
+  --shared: #0f6b4f;
+
+  /* The black cover, and only the black cover. --ink-soft on --ink measures ~1.9:1, so the
+     inverted surface genuinely cannot borrow the paper set. Any of these three used on paper
+     is a bug. */
+  --cover-body: #deded9;
+  --cover-soft: #b9b9b4;
+  --cover-rule: #3a3a38;
+
+  /* The division governs layout — block padding, gaps, insets, row heights, margins between
+     blocks. Typographic interiors use the base unit and may take optical 1-3px adjustments:
+     a plate padded to a full 8px vertically stops reading as a plate and starts reading as a
+     button. What the rule forbids is spacing by eye at layout scale, where drift compounds. */
+  --u: 4px;
+  --d: 8px;
+
+  /* Elevation is rule weight and ground shift. There is no shadow token because there are
+     no shadows, and no radius token because every radius is 0. */
+  --rule-hair: 1px;
+  --rule-frame: 2px;
+  --rule-block: 3px;
+  --rule-index: 4px;
+
+  /* Every transition is declared through these, so prefers-reduced-motion retires all
+     motion in one place. */
+  --press-fast: 80ms;
+  --press-route: 160ms;
+  --press-sheet: 200ms;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-imprint: var(--imprint);
+  --color-out: var(--out);
+  --color-shared: var(--shared);
+  --color-cover-body: var(--cover-body);
+  --color-cover-soft: var(--cover-soft);
+  --color-cover-rule: var(--cover-rule);
+
+  --font-sans: "Archivo", system-ui, sans-serif;
+  --font-mono: "Chivo Mono", ui-monospace, monospace;
+
+  --spacing: var(--u);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.4;
+    /* The imprint has no soft edges; disable the platform's tap tint too. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Print does not ease, and it does not bounce. */
+  * {
+    border-radius: 0;
+  }
+
+  /* THE RING IS THE STRUCTURAL TONE THAT CONTRASTS WITH ITS OWN GROUND — not the accent.
+     `--imprint` on `--paper` measures ~1.55:1, and §2 states in bold that yellow cannot describe
+     a form at that ratio: it can be a ground with ink on it, or a fill inside an ink outline,
+     never a shape by itself. A focus ring is a form described by nothing else, so it was the one
+     use the palette law already forbade. It also misses WCAG 2.2 SC 1.4.11's 3:1 floor by more
+     than half.
+     What made yellow look right is that focus was read as the active state. It is not: `--imprint`
+     marks what a reader has chosen or is acting on, and focus marks WHERE THE KEYBOARD IS, which
+     is structure — the same category as a rule or a frame.
+     An outline, never a shadow: the no-shadow law is mechanically checkable and a shadow-shaped
+     ring defeats the check. */
+  :focus-visible {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  /* The inverted surface, which the old rule never covered because a yellow ring was legible on
+     both grounds and an ink one is not. On the black cover the structural tone is `--paper`.
+     `.cover` is a hook ItemDetail's root carries for exactly this: no surface needed naming while
+     the ring was the accent, so there was nothing to bind to. */
+  .cover :focus-visible {
+    outline-color: var(--paper);
+  }
+
+  /* RULING 1: where an element ALREADY carries an ink rule, focus THICKENS that rule rather
+     than drawing a concentric second one. At the default 2px offset the outline lands just
+     outside the border with ground showing between them, which reads as misregistered print —
+     two parallel ink lines with a strip of yellow between. At offset 0 they merge into one
+     heavier edge, and state expressed by rule weight is already this system's language. */
+  .focus-control:focus-within {
+    outline: 3px solid var(--ink);
+    outline-offset: 0;
+  }
+
+  /* RULING 2: focus belongs to the CONTROL a reader sees, not the node that takes the caret.
+     The search field is one thing — ground, rule, input and mark — so the indicator renders on
+     the whole box and the inner node carries none.
+
+     THE ENUMERATION THIS COMMENT USED TO CARRY IS WHY THE RULE BROKE. It justified
+     `:focus-within` by naming the field's two focusable descendants — the input and its submit —
+     and DESIGN.md §2 states the condition plainly: "that construction holds only while the
+     control has exactly one focusable descendant". A third arrived when the search surface gained
+     a clear mark, and the comment still described two, so nobody noticed the premise had gone.
+     Measured after it did: `Clear the search` and `Search` were pixel-identical when focused —
+     0 pixels differing — because the whole box lit for both and neither showed a ring of its own.
+     Three tab stops, two of them indistinguishable, one of which DESTROYS the query.
+
+     A stale enumeration is worse than no comment: it reads as a checked condition.
+
+     So the search field uses `.field-control`, the same `:has(input:focus-visible)` construction
+     §2 prescribes and `Field` already uses for its password reveal. This rule stays for controls
+     that genuinely have one focusable descendant, and the browser suite proves the difference by
+     reverting the selector and asserting the check fails.
+
+     SUPPRESSING AN INNER OUTLINE IS WHAT KILLED THE FOCUS RING IN SLICE A, so this is scoped to
+     descendants of a control that is ITSELF showing an indicator at that moment, and never
+     applied by analogy elsewhere. */
+  .focus-control:focus-within :focus-visible {
+    outline: none;
+  }
+
+  /* Kept as a no-op ANCHOR, deliberately: the ring is ink everywhere on paper now, so a yellow
+     ground needs no flip. The class stays because ~15 call sites name it and removing it would be
+     a rename across the app for no behavioural change — but it must not grow a new rule on the
+     assumption that it still does something. */
+  .on-imprint:focus-visible {
+    outline-color: var(--ink);
+  }
+
+  /* RULING 3: a field with a reveal control (password + eye mark) has TWO focusable
+     descendants that mean DIFFERENT things — caret in the field vs. attention on the reveal
+     toggle. .focus-control is the wrong tool here: it was built for a control where ANY
+     descendant focus means the same thing (the search field's input and its own submit
+     button both say "I am using this field"), so it suppresses every descendant's own ring
+     and lights the whole box on :focus-within regardless of which descendant has focus. Doing
+     that here would suppress the reveal mark's own ring the instant it is tabbed to, then light
+     the whole field as though the caret were in the password input — a reader tabbing past the
+     input would see the field indicate for a control they are not on, which is the doubled/
+     misattributed indicator RULING 2 already exists to prevent, reintroduced in a new place.
+     `:has()` lets the field distinguish the two: the field's own rule only thickens when the
+     INPUT SPECIFICALLY is the focus-visible target, and the mark is left alone to show its own
+     separate ring when IT has focus. One control, one indicator, whichever the reader is
+     actually on. scripts/check-browser.mjs proves this by reverting the selector to
+     :focus-within and asserting the check then fails. */
+  .field-control:has(input:focus-visible) {
+    outline: 3px solid var(--imprint);
+    outline-offset: 0;
+  }
+
+  .field-control:has(input:focus-visible) input {
+    outline: none;
+  }
+}
+
+/* `.caps` lives in `components`, NOT `utilities`, and the layer is the whole fix.
+   Verified in the PRODUCTION stylesheet rather than in dev: the emitted order is
+   `properties, theme, base, components, utilities`, so a `tracking-[Nem]` utility beats this rule
+   while this rule still applies wherever no utility is present. Both halves hold at once, which
+   is what neither of the two previous attempts managed.
+   THE FIRST FIX DELETED THIS DECLARATION, AND THAT WAS WRONG. The collision was real — sitting in
+   `utilities` at equal specificity and later in source, it beat all 25 sites that declare their
+   own tracking, so none of DESIGN.md §3's published values had ever rendered. But deleting it
+   took the baseline from the OTHER 26, every one of them uppercase at 11–12px with no tracking
+   class of their own: form labels, the field counter, index-letter counts, detection notes,
+   PullToRefresh's states, UnshareLibrary, ItemHistory. Uppercase at 11px with no tracking is
+   exactly what this 0.08em exists to prevent, so the deletion reintroduced the original problem
+   for the larger half of the sites.
+   The general shape, and it is why this comment is long: RESOLVING A CONFLICT BY DELETING ONE
+   SIDE CHANGES EVERY CASE THAT DEPENDED ON IT, and those cases are invisible in the diff. The
+   question asked was which sites the utility was OVERRIDING; the question that finds the 26 is
+   which sites it was SERVING.
+   Case and tracking only. Weight is still stated at the point of use — see the note above
+   `.num` for why that one stays out. */
+@layer components {
+  .caps {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+}
+
+@layer utilities {
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Safe-area padding for the notch, required by the PWA guidelines. */
+  .pad-top-safe {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+
+  .pad-bottom-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  /* Skips layout and paint for rows outside the viewport, which is what keeps a 1000-item
+     stream responsive. Applied to ROWS ONLY, never to an ancestor of a sticky index letter:
+     containment on the wrong element kills position: sticky, and the letters are load-bearing
+     wayfinding rather than decoration. Collection boards are deliberately left uncontained —
+     they are variable-height and a wrong contain-intrinsic-size on them drifts the scroll
+     position when a continuation page merges into one. */
+  .row-skip {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 104px;
+  }
+
+  @keyframes sheet-rise {
+    from {
+      transform: translateY(100%);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --press-fast: 0ms;
+    --press-route: 0ms;
+    --press-sheet: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}

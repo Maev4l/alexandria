@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>IndexLetter harness (dev only)</title>
+  </head>
+  <body>
+    <!-- Dev-only harness for scripts/check-index-letter.mjs — renders the real IndexLetter.jsx
+         component, unmodified, through the project's own font/CSS pipeline, so the P1 stroke-
+         collision guard measures production rendering rather than a hand-rolled recreation.
+         Not part of the app's router; nothing links here. -->
+    <div id="root"></div>
+    <script type="module" src="/src/dev/index-letter-main.jsx"></script>
+  </body>
+</html>

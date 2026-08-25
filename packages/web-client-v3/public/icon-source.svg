@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"
+     role="img" aria-label="Alexandria">
+  <title>Alexandria</title>
+  <!--
+    THE NOIR IMPRINT app icon. Chrome yellow on black, no radius, no gradient, no shadow.
+
+    NOTE ON THIS COMMENT: token names are written without their leading double hyphen (imprint, ink)
+    because a double hyphen is illegal inside an XML comment. The first draft of this file wrote them
+    in full and was therefore malformed XML: it served 200, and every browser refused to render it.
+    Caught only by measuring naturalWidth; the accessibility tree still listed all seven test figures,
+    so "the elements are there" looked exactly like "the image loaded".
+
+    THE MARK IS THE INDEX LETTER OVER ITS RULE. That is the loudest, most distinctive device in the
+    product (DESIGN.md sections 4 and 5): the monumental sticky letter a reader scans a thousand
+    volumes by, standing on a heavy rule. It reduces better than any alternative, because at 16px it
+    is a letter and a bar, two shapes, which is all a favicon can hold. A framed 2:3 volume with a
+    plate and a figure was drawn first and rejected: three elements inside 256 pixels, and at that
+    size an outlined rectangle reads as a generic document icon.
+
+    ON BLACK THE LETTER IS SOLID. Section 3 sets the index letter as an imprint fill inside a 2px ink
+    text-stroke, which is what gives it printed weight on paper. An ink stroke on an ink ground is
+    invisible, so here the letter is solid imprint. Same move section 2 makes for the Shared Ribbon,
+    whose green goes to an edge on the cover because it fails as text there. Recorded so that nobody
+    "restores" a stroke that would erase the glyph.
+
+    NO text ELEMENT, DELIBERATELY. The letterform is hand-authored geometry. An SVG carrying a text
+    element in Archivo renders through whatever fontconfig hands the rasteriser, so the icon would
+    silently fall back to a system face on any machine without Archivo installed: exactly the defect
+    that hid a total font failure for three slices (section 3). Geometry has no such dependency and is
+    identical at every size. It also matches section 5's Marks rule, hand-authored SVG over an
+    imported set.
+
+    Proportions stand in for the real letter: condensed (width axis 62.5%) at weight 900, so the legs
+    are steep and the stem heavy. The rule's weight is scaled for the medium, 24 against a 304-tall
+    letter where the screen uses 4 against 76px, because an icon needs heft a stream does not.
+  -->
+  <rect width="512" height="512" fill="#0B0B0B"/>
+
+  <!-- The A: outer silhouette with its counter, fill-rule evenodd. Apex 256,104; baseline y=408. -->
+  <path fill="#F2C200" fill-rule="evenodd"
+        d="M256 104 L396 408 L316 408 L256 180 L196 408 L116 408 Z"/>
+
+  <!-- The crossbar, over the counter's lower half. Same fill, so the two unite. -->
+  <rect x="156" y="316" width="200" height="56" fill="#F2C200"/>
+
+  <!-- The index rule the letter stands on. -->
+  <rect x="88" y="440" width="336" height="24" fill="#F2C200"/>
+</svg>

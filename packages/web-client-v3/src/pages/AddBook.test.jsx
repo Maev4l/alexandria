@@ -1,0 +1,351 @@
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { collectionsApi, detectionApi } from '@/api';
+import { NO_INPUT_MESSAGE } from '@/lib/addFlowState.js';
+
+// The camera is mocked: jsdom has no getUserMedia, and the behaviour under test here is the
+// escape hatch and the lookup flow, not the decoder itself (that lives in
+// BarcodeScanner.test.jsx, layer 1 of the three the task brief names). A second button lets a
+// couple of tests below drive a successful decode the same way a manual submit is driven.
+// `scanner-busy:<bool>` exposes the `busy` prop AddBook passes down, so a test below can assert
+// it is raised only for a lookup a DECODE started — never for the manual field's own submit,
+// even though both share the same `lookup()` call underneath (viewport-narration task).
+vi.mock('@/components/BarcodeScanner.jsx', () => ({
+  default: ({ onCode, onError, busy }) => (
+    <div>
+      <p>scanner-busy:{String(busy)}</p>
+      <button type="button" onClick={() => onError(new Error('NotAllowedError'))}>
+        simulate denial
+      </button>
+      <button type="button" onClick={() => onCode('9782070408504')}>
+        simulate decode
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('@/api', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    detectionApi: { ...actual.detectionApi, book: vi.fn() },
+    collectionsApi: { ...actual.collectionsApi, get: vi.fn() },
+  };
+});
+
+const AddBook = (await import('./AddBook.jsx')).default;
+
+// Prints the route it landed on and its full query, so a test can assert the ISBN (and, when
+// present, the collection) actually travelled in the URL rather than merely that SOME
+// navigation happened.
+const LocationProbe = () => {
+  const location = useLocation();
+  return (
+    <p>
+      landed:{location.pathname}
+      {location.search} state:{location.state === null ? 'none' : JSON.stringify(location.state)}
+    </p>
+  );
+};
+
+const renderPage = (initialPath = '/libraries/lib-1/add/book', initialState) =>
+  render(
+    <MemoryRouter
+      initialEntries={[
+        initialState ? { pathname: initialPath, state: initialState } : initialPath,
+      ]}
+    >
+      <Routes>
+        <Route path="/libraries/:libraryId/add/book" element={<AddBook />} />
+        <Route path="/libraries/:libraryId/add/book/results" element={<LocationProbe />} />
+        <Route path="/libraries/:libraryId/items/new/book" element={<LocationProbe />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+beforeEach(() => {
+  vi.mocked(detectionApi.book).mockReset().mockResolvedValue({ detectedBooks: [] });
+  vi.mocked(collectionsApi.get).mockReset().mockResolvedValue(null);
+});
+
+describe('AddBook', () => {
+  it('always shows the manual entry escape, before anything goes wrong', () => {
+    renderPage();
+    expect(screen.getByLabelText(/isbn/i)).toBeInTheDocument();
+  });
+
+  // Fix round 3 (design-session finding 1): a cataloguing session SITS on this screen for the
+  // whole session and only passes THROUGH the candidate list once per scan, so FILING INTO
+  // belongs here at least as much as there — it must survive being ignored across many scans,
+  // which is exactly the property a mark shown only on the screen that flashes past does not
+  // have. Its absence is what says "standalone", so both directions are asserted.
+  it('prints FILING INTO with the collection name when the session carries one', async () => {
+    vi.mocked(collectionsApi.get).mockResolvedValue({ id: 'c1', name: 'Blake et Mortimer', itemCount: 4 });
+    renderPage('/libraries/lib-1/add/book?collectionId=c1');
+    expect(await screen.findByText(/^filing into$/i)).toBeInTheDocument();
+    const name = screen.getByText('Blake et Mortimer', { selector: '[data-mark="filing-into-name"]' });
+    expect(name.className).toContain('normal-case');
+    expect(collectionsApi.get).toHaveBeenCalledWith('lib-1', 'c1');
+  });
+
+  it('prints no FILING INTO mark at all when the session is standalone', () => {
+    renderPage();
+    expect(screen.queryByText(/filing into/i)).not.toBeInTheDocument();
+    expect(collectionsApi.get).not.toHaveBeenCalled();
+  });
+
+  // Round 2 tried a caps reason ("An ISBN") standing in for the disabled button, to distinguish
+  // it at rest from the always-enabled "Enter by hand" secondary beside it — same 2px ink
+  // outline, same transparent ground. The user looked at the running app and found the reason
+  // itself the defect: the field is already labelled ISBN and hinted, and a bare caps noun phrase
+  // reads as a heading for the control beneath it, not an explanation of an absent one. The real
+  // fix moves "Enter by hand" off the outline treatment entirely (see the link test below), which
+  // dissolves the collision at its source: the disabled "Look it up" becomes the only ruled
+  // outline in its row, so DESIGN.md §6's FIRST form — a plain disabled outline, no words —
+  // applies correctly, and the button itself, not a caps stand-in, is what proves the state.
+  it('disables Look it up while the code is empty, and calls nothing on Enter', async () => {
+    renderPage();
+    expect(screen.getByRole('button', { name: /look it up/i })).toBeDisabled();
+    expect(screen.queryByText(/an isbn/i)).not.toBeInTheDocument();
+    screen.getByLabelText(/isbn/i).focus();
+    await userEvent.keyboard('{Enter}');
+    expect(detectionApi.book).not.toHaveBeenCalled();
+  });
+
+  // The matchers below are start-anchored rather than exact: a DISABLED primary carries an
+  // `sr-only` reason inside the button (DESIGN.md §6), so its accessible name is the label plus
+  // that sentence. That is the mechanism working — the outline-fills-to-plate affordance is
+  // purely visual, and this is the half a screen reader gets — not a name to assert around.
+  it('enables Look it up once the code is a valid ISBN', async () => {
+    renderPage();
+    const field = screen.getByLabelText(/isbn/i);
+    expect(screen.getByRole('button', { name: /^look it up/i })).toBeDisabled();
+
+    await userEvent.type(field, '9782070404209');
+    expect(screen.getByRole('button', { name: /^look it up/i })).toBeEnabled();
+  });
+
+  it('says what to do when the camera is refused, rather than only that it failed', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /simulate denial/i }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/type the isbn/i);
+  });
+
+  it('accepts a 13-digit ISBN and an ISBN-10', async () => {
+    renderPage();
+    await userEvent.type(screen.getByLabelText(/isbn/i), '9782070404209');
+    expect(screen.getByRole('button', { name: /look it up/i })).toBeEnabled();
+  });
+
+  it('refuses a code that is not an ISBN, naming the reason', async () => {
+    renderPage();
+    await userEvent.type(screen.getByLabelText(/isbn/i), '12345');
+    expect(screen.getByText(/10 or 13 digits/i)).toBeInTheDocument();
+  });
+
+  // The brief's own test above types only a 13-digit code despite its title naming an ISBN-10
+  // too — this is the ISBN-10 case that title actually promises, with the ISO 2108 checksum
+  // letter, so the "10 or 13" branch of the validator is exercised on both real lengths.
+  it('also accepts a 10-digit ISBN carrying the X checksum character', async () => {
+    renderPage();
+    await userEvent.type(screen.getByLabelText(/isbn/i), '080442957X');
+    expect(screen.getByRole('button', { name: /look it up/i })).toBeEnabled();
+  });
+
+  it('looks up a manually typed code and hands it to the results screen in the query', async () => {
+    vi.mocked(detectionApi.book).mockResolvedValueOnce({
+      detectedBooks: [{ id: 'g1', title: 'Le Petit Prince', source: 'Google' }],
+    });
+    renderPage();
+    await userEvent.type(screen.getByLabelText(/isbn/i), '9782070404209');
+    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
+    expect(detectionApi.book).toHaveBeenCalledWith('9782070404209');
+    // The state is asserted EXACTLY, not as `state:none` and not as "contains candidates". The
+    // code this screen looked up must travel in the query — ruling H — and the candidates it
+    // already paid for travel alongside as a tagged fast path, so the results screen need not
+    // repeat the whole resolver fan-out. An exact match is what still catches the regression the
+    // old `state:none` assertion was written for: a wholesale `location.state` forward riding on
+    // top of a correct query fails here, because it would carry keys this shape does not have.
+    expect(
+      await screen.findByText(
+        'landed:/libraries/lib-1/add/book/results?isbn=9782070404209 ' +
+          'state:{"candidates":[{"id":"g1","title":"Le Petit Prince","source":"Google"}],' +
+          '"forIsbn":"9782070404209"}',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('carries the collection through into the results query, never as location.state', async () => {
+    renderPage('/libraries/lib-1/add/book?collectionId=c1');
+    await userEvent.type(screen.getByLabelText(/isbn/i), '9782070404209');
+    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
+    expect(
+      await screen.findByText(
+        'landed:/libraries/lib-1/add/book/results?isbn=9782070404209&collectionId=c1 ' +
+          'state:{"candidates":[],"forIsbn":"9782070404209"}',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('does not navigate away when detection itself fails, and explains why in place', async () => {
+    vi.mocked(detectionApi.book).mockRejectedValueOnce(
+      new Error('Could not reach the server. Check your connection and try again.'),
+    );
+    renderPage();
+    await userEvent.type(screen.getByLabelText(/isbn/i), '9782070404209');
+    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not reach the server/i);
+    expect(screen.queryByText(/^landed:/)).not.toBeInTheDocument();
+  });
+
+  it('a decoded barcode is looked up exactly like a manual submit, with no length check first', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /simulate decode/i }));
+    expect(detectionApi.book).toHaveBeenCalledWith('9782070408504');
+    expect(
+      await screen.findByText(
+        'landed:/libraries/lib-1/add/book/results?isbn=9782070408504 ' +
+          'state:{"candidates":[],"forIsbn":"9782070408504"}',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  // Viewport-narration task: the scanner narrates "CODE READ · LOOKING IT UP" only while a lookup
+  // ITSELF started by a decode is running — so the page must tell the two origins apart even
+  // though `lookup()` underneath is the same function either way.
+  it('marks the scanner busy only while a lookup started by a decode is in flight', async () => {
+    let resolveLookup;
+    vi.mocked(detectionApi.book).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveLookup = resolve;
+      }),
+    );
+    renderPage();
+    expect(screen.getByText('scanner-busy:false')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /simulate decode/i }));
+    expect(screen.getByText('scanner-busy:true')).toBeInTheDocument();
+    resolveLookup({ detectedBooks: [] });
+    await screen.findByText(/^landed:/);
+  });
+
+  it('never marks the scanner busy for a manual-field lookup, even though it shares the same request', async () => {
+    let resolveLookup;
+    vi.mocked(detectionApi.book).mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveLookup = resolve;
+      }),
+    );
+    renderPage();
+    await userEvent.type(screen.getByLabelText(/isbn/i), '9782070404209');
+    await userEvent.click(screen.getByRole('button', { name: /look it up/i }));
+    // The lookup IS in flight here (the submit button itself already narrates "Looking it up"),
+    // but nothing was ever decoded, so the scanner must not claim otherwise.
+    expect(screen.getByText('scanner-busy:false')).toBeInTheDocument();
+    resolveLookup({ detectedBooks: [] });
+    await screen.findByText(/^landed:/);
+  });
+
+  it('still offers Enter by hand, unrelated to any ISBN lookup state, and carries the collection through its own query', async () => {
+    renderPage('/libraries/lib-1/add/book?collectionId=c1');
+    await userEvent.click(screen.getByRole('link', { name: /^enter by hand$/i }));
+    expect(
+      await screen.findByText('landed:/libraries/lib-1/items/new/book?collectionId=c1 state:none'),
+    ).toBeInTheDocument();
+  });
+
+  // Kept from the stub this replaces: with no collection on this screen's own URL, the manual
+  // escape must add no query at all — not an empty `?collectionId=`, and never `location.state`.
+  it('sends no query at all into Enter by hand with no collection on its own URL', async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole('link', { name: /^enter by hand$/i }));
+    expect(
+      await screen.findByText('landed:/libraries/lib-1/items/new/book state:none'),
+    ).toBeInTheDocument();
+  });
+
+  // ui-v3.md task 18, Step 6: the stub row (back + wordmark) is correct only while a screen has
+  // nothing to call itself. `getByText` cannot be used verbatim here as a plain page-wide query
+  // — the header's own visible title and the sr-only <h1> both carry the exact string "Add a
+  // book" as their own direct text, which `getByText` treats as two independent matches (dom-
+  // testing-library's getNodeText looks only at each element's own text-node children, not its
+  // descendants' — verified against a two-sibling probe before writing this).
+  //
+  // Fix round 1: `getAllByText(...).length > 0` (the first fix) only re-asserted half the
+  // criterion — it catches the wordmark RETURNING, but not the header title VANISHING, because
+  // the sr-only <h1> is permanent and independent of `<AppHeader>`'s own `title` prop: dropping
+  // `title` entirely would leave that query still finding one match (the h1 alone) and green.
+  // Scoping to the header specifically closes that gap in both directions at once — the query
+  // can only be satisfied by AppHeader's own title span, and the second assertion below still
+  // covers the wordmark's absence from the whole page (it can only ever render in the header,
+  // but scoping it too costs nothing and keeps both assertions parallel).
+  it("takes its own name rather than the stub row's wordmark", () => {
+    renderPage();
+    const header = within(document.querySelector('header'));
+    expect(header.getByText('Add a book')).toBeInTheDocument();
+    expect(header.queryByText(/alexandria/i)).not.toBeInTheDocument();
+  });
+
+  // Fix round 1: this shared message and the redirect that feeds it belong to
+  // BookDetectionResults (a bare `/add/book/results` with no `?isbn=`), but the printed line
+  // itself is asserted here, on the screen that renders it — mirroring AddVideo.test.jsx's
+  // identical case. Asserted against the exact shared string (`NO_INPUT_MESSAGE`), not a
+  // substring, so the two screens cannot silently drift apart.
+  it('prints the shared no-input message when redirected back here with nothing to resolve', () => {
+    renderPage('/libraries/lib-1/add/book', { noInput: true });
+    expect(screen.getByText(NO_INPUT_MESSAGE)).toBeInTheDocument();
+  });
+
+  // The symptom this fixes: `navigate(-1)` is a step relative to whatever the reader's LAST
+  // screen happened to be, and this screen has two genuinely different ones — the library
+  // (a fresh add) and the just-saved results page (the post-save loop, one flow up). A relative
+  // step is right for exactly one of those and wrong for the other, so back must name its
+  // destination outright rather than ask history to guess it. Both predecessors are exercised
+  // here, deliberately not via the shared `renderPage` (its single-entry history stack cannot
+  // represent a "reached via the loop" scenario at all).
+  it('back always lands on the library, from both predecessors — a direct add, and the post-save loop', async () => {
+    const LocationProbe = () => {
+      const location = useLocation();
+      return <p>landed:{location.pathname}</p>;
+    };
+
+    // Predecessor 1: entered straight from the library. The history stack holds exactly this one
+    // entry, so `navigate(-1)` would have nowhere valid to go at all — a bare explicit
+    // destination is the only construction that can pass this case.
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/libraries/lib-1/add/book']}>
+        <Routes>
+          <Route path="/libraries/:libraryId" element={<LocationProbe />} />
+          <Route path="/libraries/:libraryId/add/book" element={<AddBook />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /back/i }));
+    expect(await screen.findByText('landed:/libraries/lib-1')).toBeInTheDocument();
+    unmount();
+
+    // Predecessor 2: reached via the post-save loop, with the spent results page still sitting
+    // in history right behind this screen. `navigate(-1)` lands there — the exact symptom
+    // reported — regardless of how many entries deep the cataloguing session has gone.
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/libraries/lib-1',
+          '/libraries/lib-1/add/book',
+          '/libraries/lib-1/add/book/results?isbn=9780000000000',
+          '/libraries/lib-1/add/book',
+        ]}
+        initialIndex={3}
+      >
+        <Routes>
+          <Route path="/libraries/:libraryId" element={<LocationProbe />} />
+          <Route path="/libraries/:libraryId/add/book" element={<AddBook />} />
+          <Route path="/libraries/:libraryId/add/book/results" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /back/i }));
+    expect(await screen.findByText('landed:/libraries/lib-1')).toBeInTheDocument();
+  });
+});
