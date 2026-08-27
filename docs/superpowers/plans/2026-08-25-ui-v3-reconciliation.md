@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Apply the 44 live findings of `docs/ui-design/reconciliation-2026-08-25.md` — 8 as code
-changes, 34 as corrections to `DESIGN.md` and `.claude/ui-v3.md` — so the specification and the
+changes, 36 as corrections to `DESIGN.md` and `.claude/ui-v3.md` — so the specification and the
 build stop disagreeing.
 
 **Architecture:** Seven code tasks, each a site where a rule that stays is broken, each with a
