@@ -2,7 +2,8 @@
 // state — state is a stamp, a ribbon or a rule — so only universal affordances remain, and
 // their stroke weights belong on the division scale like every other rule in the interface.
 //
-// 2px stroke, square caps, no fill. Geometry matches the reference marks in the comp.
+// 2px stroke, butt caps (the SVG default — left unset), no fill. Geometry matches the
+// reference marks in the comp.
 const Mark = ({ children, size = 20, viewBox = '0 0 20 20', ...props }) => (
   <svg
     width={size}
@@ -60,13 +61,6 @@ export const Close = (props) => (
   </Mark>
 );
 
-export const Camera = (props) => (
-  <Mark {...props}>
-    <path d="M2 6 H6 L7 4 H13 L14 6 H18 V16 H2 Z" />
-    <circle cx="10" cy="11" r="3" />
-  </Mark>
-);
-
 export const Check = (props) => (
   <Mark {...props}>
     <path d="M4 10 L8 14 L16 5" />
@@ -77,16 +71,6 @@ export const Copy = (props) => (
   <Mark {...props}>
     <path d="M7 7 H16 V16 H7 Z" />
     <path d="M4 13 V4 H13" />
-  </Mark>
-);
-
-// SQUARE caps, not round. These are zero-length paths, so the linecap IS the dot — and with
-// `round` they rendered as circles where the Row Actions rule reads "three 3px ink squares —
-// not round dots, not a text ellipsis: the world has no radii". A direct contradiction of a
-// rule stated in the negative, app-wide, that nobody had filed.
-export const More = (props) => (
-  <Mark {...props}>
-    <path d="M4 10 H4.01 M10 10 H10.01 M16 10 H16.01" strokeWidth="3" strokeLinecap="square" />
   </Mark>
 );
 
