@@ -187,7 +187,7 @@ resolved size against the scale instead of skipping the element. Then re-run aga
 not just this row, since the same gap would apply to any other inherited-size numeral nobody has
 gone looking for yet.
 
-## 6. Three catalogue numerals render at sizes the mono table publishes for nobody
+## 6. Three catalogue numerals render at sizes the mono table publishes for nobody — RESOLVED
 
 `packages/web-client-v3/scripts/check-browser.mjs`, the catalogue-field manifest. Found by giving
 that manifest the published size of each role and measuring the computed size alongside the face it
@@ -218,6 +218,29 @@ a forgotten field, because a missing property and a deliberate one cannot otherw
 and the wrong way to make it is to read what the component happens to render and write that number
 into the table — which would make the guard agree with the code by construction and assert nothing,
 the exact failure the ledger duration's 11-against-13 was found by avoiding.
+
+**Decided since, by the owner, and the three went three different ways — which is the part worth
+keeping.** The instinct on finding three unpublished sizes is to publish three rows, and that would
+have been wrong twice over: it would have grown the table by three roles to describe one genuine
+design decision, and it would have written the rendered number into the document for each, which is
+the by-construction agreement this finding warned against. Each was asked the same question — *is
+this a role, or is it an instance of one?* — and only one of the three answered yes.
+
+| Field | Decided | Why this one, and not the others |
+|---|---|---|
+| The filed-this-session tally | **Folded into the published 11px row.** Document only; nothing on screen changed. | It already renders at 11, which is exactly where the index-letter count and the ledger dates sit. It was never a role — it was an unnamed member of an existing one, and all that was missing was the naming. Its weight is the one thing it does not share: it inherits 700 from the caps label it sits inside, which the row now says, the same way the section-header count row already accounts for its inherited 800. |
+| The scanned code at the head of a detection results screen | **Published at 13px, with its reason, as its own row.** | This is the one real role of the three, and the giveaway is that its size *disagrees* with a published neighbour: the detail ISBN is 13's neighbour at 12, and the two are different jobs. The head code is an echo of what the reader just typed or scanned, sized to be read at a glance and confirmed; the detail ISBN is an identifier inside a dense metadata line. A published size without its reason is exactly what gets "corrected" to match its neighbour by the next reader who notices they differ — which is how this table acquired the contradictions this pass has been removing — so the row carries the reason, not just the number. |
+| The app version | **Moved to the published 12px step. A code change, not a documentation one.** | "The version number on the About screen" is not a role a design system should carry a row for. So rather than publish a fourth role to describe what the component happened to render at 14, the component moved onto a step the table already publishes. It sets 12 in the mono inside a 14px sans line, which is this system's ordinary construction rather than a new mix — the Plate Line is precisely that pairing, and it was the check that 12 does not read wrong beside the sans hash next to it. |
+
+**The guard now asserts all three**, and the three measured what the table publishes on the first
+run: 13, 11 and 12. With no field left unpublished, the manifest's `px: null` convention is gone
+along with the branch that skipped it — an entry with no size is now a forgotten key that fails,
+where before it was indistinguishable from a declared absence.
+
+**The general shape: an unpublished value is not automatically a missing row.** Two of these three
+were closed without the table growing at all, and the table is better for it — a system that
+publishes a row per rendered instance stops being a system. The question to ask of each is whether
+the value would still be true if the component moved, and only the head code's 13 was.
 
 **And a fourth thing came out of the same run, which is a property of the check rather than of the
 app.** The Melville board's member count and the `M` index letter's run count both render `4` on the

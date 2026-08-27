@@ -2832,9 +2832,11 @@ try {
         route: '/libraries/lib-fiction/add/book/results',
         query: '?isbn=9782070408504&collectionId=coll-melville',
         expected: '9782070408504',
-        // No published size: the mono table names no role for the scanned code echoed at the head
-        // of a results screen. Measured and reported rather than asserted — see `px: null` below.
-        px: null,
+        // The head code is published one step above the detail ISBN's 12, deliberately: it echoes
+        // what the reader just typed or scanned and is sized to be confirmed at a glance, where the
+        // detail ISBN is an identifier inside a dense metadata line. Asserting it is what stops the
+        // two being tidied onto one number by whoever next notices they differ.
+        px: 13,
       },
       // The video-side twin of the ISBN entry above. Not the searched title (that mark deliberately renders in the
       // SANS — a film title is content, not a numeral, and the mono is reserved for numerals; the
@@ -2869,8 +2871,9 @@ try {
           await page.waitForSelector('[data-mark="session-tally"]', { timeout: 10_000 });
         },
         expected: '1',
-        // No published size: the mono table names no role for a session tally.
-        px: null,
+        // The tally shares the published 11px step with the index-letter count and the ledger
+        // dates; only its weight differs, inherited from the caps label it sits inside.
+        px: 11,
       },
       {
         field: 'releaseYear (row)',
@@ -3017,8 +3020,10 @@ try {
         sourceFile: 'src/pages/About.jsx',
         route: '/settings/about',
         expected: appVersion,
-        // No published size: the mono table names no role for the app version.
-        px: null,
+        // Moved onto the published 12px catalogue-numeral step rather than given a row of its own:
+        // "the version number on the About screen" is not a role a design system should carry. It
+        // sets 12 inside a 14px sans line, which is the same construction as the Plate Line.
+        px: 12,
       },
     ];
 
@@ -3083,19 +3088,18 @@ try {
       }
       const sizes = [...new Set(matches.map((match) => match.fontSize))];
       console.log(
-        `    ${field.padEnd(28)} ${sizes.join('/')}px (want ${px === null ? 'unpublished' : `${px}px`})`,
+        `    ${field.padEnd(28)} ${sizes.join('/')}px (want ${px}px)`,
       );
-      // `px: null` is a DECLARED absence, not a forgotten key: the mono table publishes no size
-      // for that role, so there is nothing to assert and the measurement is reported instead. An
-      // entry that simply omitted the property could not be told apart from one nobody filled in.
-      if (px !== null) {
-        const wrongSize = sizes.find((size) => size !== px);
-        if (wrongSize !== undefined) {
-          sizeViolations.push(
-            `${field}: ${JSON.stringify(expected)} on ${route}${query ?? ''} rendered at ` +
-              `${wrongSize}px, expected ${px}px`,
-          );
-        }
+      // Every field now has a published size, so every field is asserted. There is no "measured but
+      // not asserted" state any more: the three roles the mono table used to name nobody for have
+      // each been given a step, so an entry with no size is a forgotten key rather than a declared
+      // absence, and it should fail here rather than be quietly skipped.
+      const wrongSize = sizes.find((size) => size !== px);
+      if (wrongSize !== undefined) {
+        sizeViolations.push(
+          `${field}: ${JSON.stringify(expected)} on ${route}${query ?? ''} rendered at ` +
+            `${wrongSize}px, expected ${px}px`,
+        );
       }
     }
 

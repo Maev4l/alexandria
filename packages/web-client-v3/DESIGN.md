@@ -408,7 +408,8 @@ the alarm rather than pass the check.
 |---|---|---|---|
 | Count plate | 12 | 700 | tabular, in a 2px ruled plate |
 | Plate Line figures, detail plate line | 12 | 400 | `--cover-soft` on the cover |
-| Index letter count, ledger dates | 11 | 400 | tabular |
+| Index letter count, ledger dates, the capture flow's session tally | 11 | 400 | tabular; the tally (`FILED THIS SESSION · N`) takes the size from this row, and its **weight is the exception**: it sits inside its own caps label and inherits that label's 700, the same construction as the section-header count below. It was rendering at this size all along and simply had no row saying so |
+| Scanned code at the head of a detection results screen | 13 | 400 | tabular; **one step above the detail ISBN's 12, and the difference is the point.** The head code is an echo of what the reader just typed or scanned, sized to be read at a glance and confirmed; the detail ISBN is an identifier inside a dense line of metadata. Different jobs, different sizes — do not tidy one onto the other |
 | Ledger duration | 13 | 400 | tabular; it sits **inside** the ledger's name line, which the content table above publishes at 13, and takes that line's size rather than the row's own 11 — published at 11 here until somebody read the component |
 | Section-header count (the figure beside `MINE` and `SHARED WITH ME`) | 11 | 800 | tabular; the weight is inherited from the caps label beside it rather than set here, and its tracking is cancelled outright rather than left blank — explained below |
 | **Collection member order plate** | **10** | 400 | tabular, in a **1px** rule — one step lighter than the ordinary plate's 2px, because this plate sits inside a Volume Frame whose own 2px rule it must not out-weigh |

@@ -26,8 +26,13 @@ const About = () => {
                 and the mono is reserved for numerals. Setting it in the mono would also make
                 scripts/check-browser.mjs's digit-dominance check depend on which commit is
                 checked out: roughly one hash in six is under half digits, so the guard would go
-                red for a reason that has nothing to do with the app. */}
-            <span className="num">{config.appVersion}</span>
+                red for a reason that has nothing to do with the app.
+                It takes the published catalogue-numeral step of 12 rather than the 14 of the line
+                around it: a version number is not a role a design system should carry a row for, so
+                it joins an existing one instead of publishing a fourth. A mono figure at 12 inside a
+                14px sans line is this system's ordinary construction — the Plate Line is exactly
+                that — so the pairing here is the established one, not a new mix. */}
+            <span className="num text-[12px]">{config.appVersion}</span>
             <span className="text-ink-soft"> · </span>
             <span>{config.buildHash}</span>
           </p>
