@@ -478,13 +478,19 @@ frame law reads *one ratio for every item, because book covers and TMDB posters 
 reasoning is **match the subject**, and applying that same reasoning to a viewfinder gives a different
 number, because a viewfinder's subject is not an item.
 
-- **Book — full column width, fixed height of 52 divisions (416px).** An EAN-13 is landscape; a portrait
+- **Book — full column width, fixed height of 24 divisions (192px).** An EAN-13 is landscape; a portrait
   2:3 window forces the reader to hold the phone so a wide barcode occupies a small fraction of the
   frame, which is a frame fighting its subject. The height is a fixed division-scale value rather than an
   aspect ratio, so the frame does not drift with the viewport; its proportions therefore vary by device
-  *by design*, which is acceptable for a targeting window and would not be for an artwork frame. **At the
-  448px desktop column it becomes 416×416 — square — where the wide-for-a-wide-subject argument does not
-  apply.** Accepted: the phone is the posture this is for.
+  *by design*, which is acceptable for a targeting window and would not be for an artwork frame. At the
+  448px desktop column it becomes 448×192, still landscape; the phone is the posture this is for either
+  way.
+
+  **Superseded, kept for the reasoning:** this bullet published **52 divisions (416px)** for four
+  commits after the frame stopped rendering it. At 416 the desktop column made the frame **square** —
+  the one width at which the wide-for-a-wide-subject argument does not apply — and on a 667px phone it
+  pushed the manual escape below the fold. See *Before accepting a cost* below for the measurement that
+  replaced it.
 
   **I first justified this as "free, because the CSS box cannot affect the read". That is right about the
   mechanism and wrong about the effect, and the correction strengthens the case.** `@zxing` decodes the
@@ -528,7 +534,9 @@ number, because a viewfinder's subject is not an item.
   the person holding the phone, and the capture is still exactly the previewed region.
 
   The frame carries one line of guidance in the caps state position that already exists for
-  `REQUESTING CAMERA ACCESS`: **`FRAME THE TITLE`** while idle. No new device. The shutter keeps
+  `REQUESTING CAMERA ACCESS`: **`FRAME THE TITLE`** while idle, **and on first use only** — an
+  instruction that has been read is furniture, so the caller drops it once the session has filed
+  anything. No new device. The shutter keeps
   `LOOK UP THIS COVER` — the reader is still pointing at a cover, and it stays distinct from the field's
   `LOOK UP THIS TITLE`.
 
@@ -573,8 +581,10 @@ bottom, at the top, and occasionally vertically on a spine. **The failure mode i
 Trading a correctable failure for an uncorrectable one to save upload bytes is the wrong direction, and
 the resolution fix above addresses the actual complaint.
 
-Because there is no band, there is no landscape region, so the capture frame stays **2:3** and the
-structural ruling that the feed sits inside a Volume Frame stands unchanged.
+Because there is no band, there is no *automatic* crop of one — which is the whole of what that
+refusal settles. **It does not settle the frame's shape, and this paragraph claimed it did for four
+commits:** the film frame is full column width × 240px, landscape, and it is not a Volume Frame. The
+reader aims at the title, so the frame defines the region read — see *Film* above.
 
 **A test whose fixture supplies the property under test can never disagree with a change to it.** Every
 geometry case for the cover capture mocked `clientWidth: 140, clientHeight: 210` — an exact 2:3 box the
@@ -1177,7 +1187,7 @@ These are facts about the backend, not preferences. Nothing in the UI may contra
 | No genre, tags, ratings or watched state | No genre browse, no filter chips, no shelves-by-mood. |
 | Collection endpoint returns a header but not its members | A cold link to a collection cannot load its contents; collections stay inline in the listing rather than becoming destinations. |
 | Mutations return empty bodies | Re-read the single item after a write instead of assuming. |
-| `picture` is a CloudFront URL produced asynchronously; often absent. It is also **synthesised from a template whenever `pictureUrl` exists, without checking S3**, so a present URL may still 404 | The empty Volume Frame is a designed state, not a placeholder. Degrade to it on image load failure — never a broken-image glyph — and re-poll once. Cache-bust with `?v={updatedAt}`. |
+| `picture` is a CloudFront URL produced asynchronously; often absent. It is also **synthesised from a template whenever `pictureUrl` exists, without checking S3**, so a present URL may still 404 | The empty Volume Frame is a designed state, not a placeholder. Degrade to it on image load failure — never a broken-image glyph — and retry the image on a 4s delay. That retry **repeats**: nothing counts attempts, so a permanently missing thumbnail re-requests every 4s for as long as the row is mounted. Cache-bust with `?v={updatedAt}`. |
 | **Optional fields are `omitempty`** (`handlers/models.go`), so `lentTo`, `picture`, `order`, `collectionId` and `updatedAt` arrive **absent, not null** | Any `=== null` test is wrong. Check presence, or use `== null` so `undefined` is covered. **Except `pictureUrl` on a detection candidate, where presence is the wrong test** — see below. **And this rule governs WRITES as well as reads: a spread cannot delete an absent key.** |
 | **A detected candidate's `pictureUrl` can be PRESENT AND EMPTY** | `services/resolvers/google.go:99` takes the address of the thumbnail field unconditionally, so an item with no thumbnail yields a non-nil pointer to `""`. `goodreads.go:91-94` and `tmdb.go:267-270` set the pointer only inside guards, so they yield absence. Three resolvers, two shapes, one field. This is the single field rendered straight into an `<img src>`, and `src=""` produces the broken-image glyph `DESIGN.md` §6 forbids outright — so here the row above's advice is actively wrong: **test truthiness, not presence.** |
 | Renames and index updates propagate via streams (~100ms, not guaranteed) | Tolerate a just-written value not yet reflected everywhere. |
@@ -1981,8 +1991,12 @@ fail loudly when the substrate moves.
 
 The design system asks in its own preamble that a document authored ahead of code be reconciled
 against what shipped rather than defended. This pass did that for both documents, and the ratio is
-the finding behind the findings: of **44 live findings, 8 needed a code change** — across ten source
-files and two guard widenings — and **36 were the document being the stale half**. The 44 is the
+the finding behind the findings: of **44 live findings, 8 needed a code change** — across **nine**
+source files and two guard widenings — and **36 were the document being the stale half**. The nine,
+printed because every count taken by eye in this project has been off: `PendingApproval`, `Login`,
+`SignUp`, `ItemDetail`, `LibraryBrowse`, `Libraries`, `UnshareLibrary`, `SharedRibbon`,
+`SearchField`. `check-browser.mjs` is the two guard widenings, counted separately; `typeScale.test.js`
+and `src/test/matchesOwnText.js` are tests, and counting one of them was how this figure reached ten. The 44 is the
 audit's own counts line — 14, 11 and 21 across its three lists — less the two already closed before
 the pass began; every retelling that subtracted those two a second time and said 42 was reading a
 summary rather than the artefact, which is this corpus's own recurring fault. Every one of the

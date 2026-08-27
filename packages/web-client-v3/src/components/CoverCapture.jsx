@@ -76,10 +76,13 @@ const captureFramedRegion = (video) => {
 };
 
 // The MECHANISM only — permission request and a manual shutter — same boundary BarcodeScanner
-// draws: the viewport's APPEARANCE belongs to the design session working
-// against a live device. No reticle, no framing guide, no capture animation, no mark
-// distinguishing requesting from ready. A plain <video> inside an ink-ruled 2:3 box, nothing
-// drawn over it.
+// draws: most of the viewport's APPEARANCE belongs to the design session working
+// against a live device. No reticle, no framing guide, no capture animation, no wash, no spinner.
+// WHAT IS DRAWN OVER THE FEED is `CaptureCaption`, three times over: `requesting`, the in-flight
+// lookup, and the first-use `Frame the title` guidance. The three are mutually exclusive by
+// construction (see their gates below). This comment claimed no mark distinguished requesting from
+// ready, and claimed a 2:3 box; the box is full column width by 240px, landscape, aimed at the
+// title rather than at the whole cover. Apart from the caption the <video> is plain.
 //
 // No auto-capture: a reader holding a DVD case chooses the moment (PRODUCT.md, task brief). The
 // shutter is a real button, not a tap-the-viewport gesture, so it survives being duplicated by a

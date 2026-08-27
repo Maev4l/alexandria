@@ -153,7 +153,7 @@ const Sheet = ({ open, title, onClose, children }) => {
         // correct wherever it opens on a normal paper screen (ambient text is already ink) and
         // was unreadable on the one screen that inverts it (item detail's black cover sets
         // `text-paper` on an ancestor, which a plain paragraph or a `text-current` secondary
-        // button then inherited straight through the sheet's own background, ~1.08:1).
+        // button then inherited straight through the sheet's own background, 1.09:1).
         className="pad-bottom-safe mx-auto max-h-[80dvh] w-full max-w-md overflow-y-auto border-t-[3px] border-ink bg-paper-deep p-4 text-ink motion-safe:animate-[sheet-rise_var(--press-sheet)_linear]"
       >
         {/* No `caps` here. A sheet's title is usually a content name — the library or item

@@ -1,18 +1,24 @@
 # Four behaviour findings, found while reconciling the documents — not fixed there
 
 Found during `docs/superpowers/plans/2026-08-25-ui-v3-reconciliation.md`, which is a documentation
-pass over the design system. None is one of the 44 audited findings that pass applies, and
-neither was fixed there: a code change smuggled into a documentation commit is how a reviewer stops
-being able to see either one.
+pass over the design system. None is one of the 44 audited findings that pass applies, and none was
+fixed there: a code change smuggled into a documentation commit is how a reviewer stops being able
+to see any of them.
 
 The first is a real product defect. The second is housekeeping. The third is a product question
 rather than a bug, and it is the one that blocked a sentence in the design system from being
-written the obvious way.
+written the obvious way. The fourth is a guard blind to two of the rules it claims to cover.
 
 ## 1. A cover that never loads retries every four seconds, for ever, on every visible row
 
 `src/components/imprint/VolumeFrame.jsx`. The frame's own comment, the state grammar and the screen
-specification all describe this as **one delayed re-poll**. It is not bounded at all.
+specification all described this as **one delayed re-poll**. It is not bounded at all.
+
+**The document half is now fixed; the code is not.** The final review ruled that deferring the code
+change was right and deferring the prose was not, so every description of this behaviour — the
+frame's comment, the design system's Volume Frame entry and its state grammar, the screen
+specification's API-constraints table and the product record — now says what the component does. The
+bound below is still unbuilt.
 
 The cycle, verified by reading the component:
 
@@ -35,16 +41,18 @@ as the reader stays on the screen.
 
 **What the fix is not.** Lengthening the interval only makes it slower. The missing thing is a
 bound: retry once, record that the retry happened, and then hold the ruled empty frame — which is
-what all three documents already claim happens, and what the empty frame exists to be.
+what all of those documents used to claim happens, and what the empty frame exists to be.
 
 **Why it was not fixed in that pass.** It is outside the 44 findings, it is a behaviour change to a
 component rendered on every row of the densest screen in the app, and it deserves its own
 measurement — how many frames in a real library actually reach the permanent case — rather than
 riding along inside a documentation commit.
 
-**One inherited-claim note worth keeping.** All three descriptions of this behaviour say "re-polls
-once on a delay". That phrase was written once and copied into the other two, and none of the three
-was checked against the effect. This is the pattern the reconciliation kept finding: a claim
+**One inherited-claim note worth keeping.** All three descriptions of this behaviour said "re-polls
+once on a delay" — five, once the product record and the screen specification were counted. That
+phrase was written once and copied into the rest, and not one copy was checked against the effect.
+The design system corrected its own Volume Frame entry and left the other two rows of itself
+asserting the opposite, which is the same defect one level in. This is the pattern the reconciliation kept finding: a claim
 travelling between documents faster than anyone re-reads the code under it.
 
 ## 2. Two icon exports are imported by nothing

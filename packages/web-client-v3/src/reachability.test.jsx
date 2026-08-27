@@ -21,9 +21,10 @@ import { renderApp, stubFetch } from '@/test/appHarness.jsx';
 // This paragraph used to add that the screens once named above "equally lack a back control".
 // That stopped being true when they shipped, and it stayed unnoticed for the same reason a stale
 // claim always does here: the FILE needed no change when the exits landed, so nothing in that
-// diff opened it. The two entry points this file actually presses — the libraries root and item
-// detail — each exercise a working back control directly, below, by clicking it; that is proven
-// by the test, not asserted by this comment. This is the whole failure mode the paragraph exists
+// diff opened it. Its replacement was wrong too, and in the same way — it said each entry point
+// "exercises a working back control directly, below". Neither does. What both tests click is
+// SEARCH's back control, twice, because the return journey is what they assert; the libraries
+// root renders no `onBack` at all and correctly should not, being the root of the stack. This is the whole failure mode the paragraph exists
 // to record — the search after moving a control is not "what breaks" but "what now says
 // something false", and only the second one finds a comment.
 vi.mock('@/auth/AuthContext.jsx', () => ({

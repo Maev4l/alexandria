@@ -150,9 +150,9 @@ const AddBook = () => {
         <FlowMarks collectionName={collectionName} filedCount={filedCount} />
 
         {/* Nothing failed here — the reader arrived at a route with no input, usually a typed or
-            shared bare URL. `--out` means on loan and nothing else, and
-            the state grammar's Error construction (a 2px OUT rule) tells a reader they did something wrong when
-            they did not. Borrowed from `src/pwa/UpdateNotice.jsx`'s own recessed-notice
+            shared bare URL. `--out` is the alarm register — on loan, and the warning treatments
+            the state grammar sanctions — so its Error construction (a 2px OUT rule) tells a
+            reader they did something wrong when they did not. Borrowed from `src/pwa/UpdateNotice.jsx`'s own recessed-notice
             construction instead — 3px ink, not 2px out — the shape this app already uses for "a
             fact worth a printed line" that is not a failure. */}
         {noInput && (

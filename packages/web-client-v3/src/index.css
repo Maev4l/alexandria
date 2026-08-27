@@ -132,7 +132,8 @@
   }
 
   /* THE RING IS THE STRUCTURAL TONE THAT CONTRASTS WITH ITS OWN GROUND — not the accent.
-     `--imprint` on `--paper` measures ~1.55:1, and §2 states in bold that yellow cannot describe
+     `--imprint` on `--paper` measures ~1.55:1, and the palette law states in bold that yellow
+     cannot describe
      a form at that ratio: it can be a ground with ink on it, or a fill inside an ink outline,
      never a shape by itself. A focus ring is a form described by nothing else, so it was the one
      use the palette law already forbade. It also misses WCAG 2.2 SC 1.4.11's 3:1 floor by more
@@ -171,7 +172,7 @@
 
      THE ENUMERATION THIS COMMENT USED TO CARRY IS WHY THE RULE BROKE. It justified
      `:focus-within` by naming the field's two focusable descendants — the input and its submit —
-     and DESIGN.md §2 states the condition plainly: "that construction holds only while the
+     and the focus rules state the condition plainly: "that construction holds only while the
      control has exactly one focusable descendant". A third arrived when the search surface gained
      a clear mark, and the comment still described two, so nobody noticed the premise had gone.
      Measured after it did: `Clear the search` and `Search` were pixel-identical when focused —
@@ -181,7 +182,7 @@
      A stale enumeration is worse than no comment: it reads as a checked condition.
 
      So the search field uses `.field-control`, the same `:has(input:focus-visible)` construction
-     §2 prescribes and `Field` already uses for its password reveal. This rule stays for controls
+     the focus rules prescribe and `Field` already uses for its password reveal. This rule stays for controls
      that genuinely have one focusable descendant, and the browser suite proves the difference by
      reverting the selector and asserting the check fails.
 
@@ -215,14 +216,14 @@
      separate ring when IT has focus. One control, one indicator, whichever the reader is
      actually on. scripts/check-browser.mjs proves this by reverting the selector to
      :focus-within and asserting the check then fails. */
-  /* INK, like every other focus ring. This rule kept `--imprint` when §2's focus ruling changed
+  /* INK, like every other focus ring. This rule kept `--imprint` when the focus ruling changed
      the base `:focus-visible` — the fix touched the rule under review and the sibling survived,
      and `tokens.test.js` asserted only the base one, so nothing reported it.
      It is the worse half of the two, not a leftover: `.field-control` is the SEARCH FIELD, whose
      ground is `--imprint`, so a yellow ring sat on yellow and described nothing at all; and it is
      every `Field` in the app, where yellow on paper measures ~1.55:1 against WCAG 2.2 SC 1.4.11's
      3:1 floor. Ink is 11.71:1 on the accent and 18.18:1 on paper.
-     `outline-offset: 0` is unchanged and is a different rule (§2 RULING 1): where an element
+     `outline-offset: 0` is unchanged and is a different rule (RULING 1 above): where an element
      already carries an ink rule, focus THICKENS it rather than drawing a concentric second one. */
   .field-control:has(input:focus-visible) {
     outline: 3px solid var(--ink);
@@ -241,7 +242,7 @@
    is what neither of the two previous attempts managed.
    THE FIRST FIX DELETED THIS DECLARATION, AND THAT WAS WRONG. The collision was real — sitting in
    `utilities` at equal specificity and later in source, it beat all 25 sites that declare their
-   own tracking, so none of DESIGN.md §3's published values had ever rendered. But deleting it
+   own tracking, so none of the typography rules' published tracking values had ever rendered. But deleting it
    took the baseline from the OTHER 26, every one of them uppercase at 11–12px with no tracking
    class of their own: form labels, the field counter, index-letter counts, detection notes,
    PullToRefresh's states, UnshareLibrary, ItemHistory. Uppercase at 11px with no tracking is

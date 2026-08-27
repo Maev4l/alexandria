@@ -3,8 +3,13 @@ import { cn } from '@/lib/cn';
 import { pictureSrc } from '@/lib/picture';
 import VolumePlate from './VolumePlate.jsx';
 
-// Thumbnails are produced asynchronously; one delayed retry catches the common case without
-// turning the stream into a polling loop.
+// Thumbnails are produced asynchronously, so a frame that failed 4s ago may well succeed now.
+// NOT a single retry, whatever the documents used to say: nothing counts attempts. The timer is
+// armed whenever `failed` is set, clearing the flag remounts the <img>, and that image's next
+// failure sets the flag again. A merely-late thumbnail resolves on the second attempt, which is the
+// case this was written for; a permanently missing one re-requests every 4s for as long as the row
+// is mounted, on every such row on screen. Recorded as it behaves rather than as it was meant to —
+// bounding it is a change to this component, not to this comment.
 const RETRY_MS = 4000;
 
 const SIZES = {
@@ -59,8 +64,10 @@ const VolumeFrame = ({ item, size = 'row', className, onFailedChange }) => {
         // absent for most items, that slab was the DEFAULT appearance of the peak screen: a
         // filled rectangle where artwork belongs reads as a failed image, which the state grammar
         // forbids outright. It
-        // also spent a token declared "hairline separators, structure only" as a ground. The
-        // non-hero frame's `bg-paper-deep` read as harmless (~1.05:1, near-invisible against
+        // also spent the cover's hairline tone at FULL strength as a large ground — which is a
+        // different thing from the quarter-strength fill the state grammar gives a skeleton bar,
+        // where what stands in is a line of text and not artwork. The
+        // non-hero frame's `bg-paper-deep` read as harmless (1.09:1, near-invisible against
         // `--paper`) but was still a fill where the rule alone was already doing the job — so
         // both are unfilled here, not just the one that looked wrong.
         SIZES[size],

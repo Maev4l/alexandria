@@ -16,8 +16,8 @@ constructions the document never named — plus a per-screen pass over `ui-v3.md
 heading assumes the build is the defendant.
 
 Read against the artefact it is the other way round. Of 44 live findings (1.1 and 2.10 closed
-before this pass began), **8 need a code change** — across 10 source files plus two guard
-widenings — and **36 are the document being the stale half**. Every one of List 3's 21 entries is a construction the build needed and the document
+before this pass began), **8 need a code change** — across 9 source files plus two guard
+widenings (corrected after the fact; see §2) — and **36 are the document being the stale half**. Every one of List 3's 21 entries is a construction the build needed and the document
 has no category for; none is a defect.
 
 That ratio is the finding behind the findings, and it is what the reconciliation was for: a
@@ -44,18 +44,29 @@ to the owner:
 
 ---
 
-## 2. Build changes — 8 findings, 10 source files, 2 guard widenings
+## 2. Build changes — 8 findings, 9 source files, 2 guard widenings
 
 Each is a site where the rule is right as written and the build breaks it. §2.9 is not one of the
 44: it is one of the audit's two closing notes, and it lands here because it is a stale comment
 inside a guard file.
 
+**Corrected after the fact — this heading said ten.** The nine are `PendingApproval`, `Login`,
+`SignUp`, `ItemDetail`, `LibraryBrowse`, `Libraries`, `UnshareLibrary`, `SharedRibbon` and
+`SearchField`. Ten was only reachable by counting `typeScale.test.js`, which is a test, alongside
+`check-browser.mjs`, which is the two guard widenings and is counted separately.
+
 ### 2.1 `PendingApproval`'s badge stops wearing the lent stamp *(finding 1.4)*
 
 `src/pages/PendingApproval.jsx:10` renders the screen's identifying badge as
 `border-2 border-out … text-ink` — the Overprint Stamp's construction minus the rotation, on an
-approval notice. §2 gives `--out` exactly one job: **on loan, nothing else, ever**. No comment
+approval notice. §2 gave `--out` exactly one job: **on loan, nothing else, ever**. No comment
 justifies the site; it is the only `--out` use in the app that neither §2 nor §6 sanctions.
+
+**That palette row has since been rescoped**, on the same grounds as `--imprint`'s in §1.5/1.6: red
+is the alarm register, and §6 sanctions it on Error blocks, the destructive button, a failing field
+and delete confirmations. The change below stands on the surviving half of the argument — an
+approval notice is none of those, so it was wearing the lent stamp's construction for no state it
+has.
 
 **Change:** `border-out` → `border-ink`. Structural, palette-safe, and it stops a screen with no
 items reading as a lent one.

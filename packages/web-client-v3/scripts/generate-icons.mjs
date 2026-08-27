@@ -35,7 +35,9 @@ const PUBLIC_DIR = path.resolve(__dirname, '../public');
 const SOURCE_SIZE = 512;
 const BASE_DENSITY = 72;
 
-// Ink and chrome yellow, the imprint's two structural colours. Asserted below on every emitted file, not assumed: these two are the whole mark.
+// Ink and chrome yellow — content and structure in one, the apparatus of finding and acting in the
+// other, and the imprint's only two colours. Asserted below on every emitted file, not assumed:
+// these two are the whole mark.
 const INK = { r: 0x0b, g: 0x0b, b: 0x0b };
 const IMPRINT = { r: 0xf2, g: 0xc2, b: 0x00 };
 

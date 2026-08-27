@@ -129,10 +129,13 @@ describe('Sheet', () => {
 
   // DEFECT 1: the panel declared `bg-paper-deep` with no foreground of its own, so it inherited
   // whatever text colour its ambient context happened to set — `text-ink` on every ordinary
-  // paper screen, but `text-paper` on item detail's inverted cover, ~1.08:1, "grey on white,
+  // paper screen, but `text-paper` on item detail's inverted cover, 1.09:1, "grey on white,
   // hardly readable". jsdom cannot compute the resulting colour (that is scripts/check-browser.mjs's
-  // job, proven both ways there); this only asserts the DECLARATION survives — that a ground's
-  // text is coloured at or below it, never inherited across a surface boundary.
+  // job, proven both ways there); this only asserts the DECLARATION survives. Note it is the
+  // STRICT, same-element form: ground and foreground on one class. The general rule is weaker —
+  // a ground may also be answered by its text-bearing descendants each declaring their own — and
+  // this component is held to the strict one deliberately, because a sheet's body is
+  // caller-supplied and there is no descendant it could rely on.
   it('declares its own foreground alongside its own ground, so it never inherits an ambient colour', () => {
     render(
       <Sheet open title="Actions">

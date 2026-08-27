@@ -16,11 +16,16 @@ const hasCamera = () =>
   typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
 
 // The MECHANISM only — permission request, continuous decode, stopping the stream on unmount
-// (an abandoned camera is a battery and privacy problem, not just a leak). The viewport's
-// APPEARANCE belongs to the design session working against a live device: no reticle, no scan
-// line, no corner brackets, no overlay distinguishing scanning from decoding from found. A plain
-// <video> inside the caller's Volume Frame, nothing drawn over it — deliberately undesigned, left
-// to a later pass with a live feed on a device.
+// (an abandoned camera is a battery and privacy problem, not just a leak). Most of the viewport's
+// APPEARANCE still belongs to the design session working against a live device: no reticle, no
+// scan line, no corner brackets, no wash, no spinner.
+// ONE THING IS DRAWN OVER THE FEED, and this comment denied it for as long as it existed:
+// `CaptureCaption`, a printed caps plate pinned to the frame's bottom edge, naming `requesting`
+// and the caller's in-flight lookup. It is there because a viewport that has fired the slowest
+// call in the product must say so — a decode is automatic, so without it the reader gets no sign
+// the code was even read. Nothing else is drawn over the feed. The <video> is plain, and it sits
+// in this component's OWN ruled box (see the box comment below for its shape), not in the caller's
+// Volume Frame.
 //
 // States: `requesting` (permission not yet resolved), `scanning` (stream live, decoding every
 // frame), and the two conditions that end the attempt — `unsupported` (no camera API at all,

@@ -29,10 +29,9 @@ beforeEach(() => {
 
 // Prints both `location.state` and the query string, so a test can assert on whichever
 // mechanism actually carried the collection rather than on the route path alone. Every branch
-// now travels via the query: Book/Film land on AddBook/AddVideo, which are still stubs but,
-// once the manual escape is added to them (Enter by hand's new home), need the collection to
-// build their own link — so `location.state`, lost on a cold load, is no longer safe for them
-// either.
+// now travels via the query: Book/Film land on AddBook/AddVideo, which are built and shipped and
+// which carry the manual escape (Enter by hand's home), so they need the collection to build
+// their own link — and `location.state`, lost on a cold load, is not safe for that.
 const LocationProbe = () => {
   const location = useLocation();
   return (

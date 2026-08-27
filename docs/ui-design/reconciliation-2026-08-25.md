@@ -31,8 +31,9 @@ screens.
 
 Applied by the reconciliation pass planned in
 `docs/superpowers/plans/2026-08-25-ui-v3-reconciliation.md`, run 2026-08-25 to 2026-08-27 on `main`,
-commits `794122b..81cbde2`. **Every finding below has been ruled on.** The findings are unchanged;
-this section is the only thing that was added.
+commits `794122b..81cbde2` — the audit's own application. The comment sweeps, the reviews and the
+fixes that followed them run past that range to the end of the branch. **Every finding below has
+been ruled on.** The findings are unchanged; this section is the only thing that was added.
 
 **The outcome: 44 live findings — 8 needed a code change, 36 were the document being the stale
 half — plus 2 already closed before the pass began.**
@@ -170,21 +171,29 @@ one in `db8e4aa`.
 
 ### What this pass produced and did not fix
 
-Three records hold the findings that arrived out of this work — about six between them, one of
-them titled for holding three. All sit outside the 44 and were deliberately left as evidence rather
-than folded into a documentation commit:
+Three records hold the findings that arrived out of this work — seven between them, one of
+them titled for holding four. All sit outside the 44 and were deliberately left as evidence rather
+than folded into a documentation commit. **This section was written by the task that closed the
+audit and was then overtaken by the tasks after it**, so its counts are restated here rather than
+left at the figures that were true when it was first typed:
 
-- `docs/ui-design/behaviour-findings-2026-08-25.md` — **one real product defect**: a cover that
-  never loads retries every four seconds for ever, on every visible row, where all three documents
-  claimed a single delayed re-poll. Plus one piece of housekeeping (two icon exports imported by
-  nothing, one of them the sole declarer of a linecap its file advertises), and one product question
+- `docs/ui-design/behaviour-findings-2026-08-25.md` — **four**, of which one is a real product
+  defect: a cover that never loads retries every four seconds for ever, on every visible row, where
+  every document describing it claimed a single delayed re-poll. Those documents have since been
+  corrected; the code has not. Plus one piece of housekeeping (two icon exports imported by
+  nothing, one of them the sole declarer of a linecap its file advertises); one product question
   that is not a bug — pull-to-refresh paints skeletons *above* the rows already on screen, and
-  nobody has decided whether a refresh should replace the stream, append to it, or draw above it.
+  nobody has decided whether a refresh should replace the stream, append to it, or draw above it;
+  and one guard blind spot, found by the review of the final comment sweep — the focus check matches
+  the `outline:` shorthand only, so the two rules written as `outline-color` longhand are invisible
+  to it.
 - `docs/ui-design/division-scale-findings-2026-08-25.md` — two off-division layout gaps, and the
   fact that the sweep which found them matches only Tailwind's named odd steps and is blind to
   bracket-notation gaps, so two is a lower bound rather than the set.
-- The plan itself, for the two comment sweeps still to run: this pass's own citation comments, and
-  the pre-existing citations across the wider source.
+- The plan itself, for the two comment sweeps: this pass's own citation comments, and the
+  pre-existing citations across the wider source. **Both have since run.** Their file set was
+  `.jsx`, `.js` and `.mjs`, so `src/index.css` was excluded by construction and was swept separately
+  afterwards.
 
 Both findings files were written carrying the wrong count — the double-subtraction described above —
 and both have since been corrected to 44, the figure derived at the top of this section.
@@ -302,7 +311,8 @@ guard should be tightened; today they differ and only one of them is load-bearin
 
 `DESIGN.md:840` — "Loading | **Ruled** skeleton frames at correct ratio."
 `DESIGN.md:810` — "**'Ruled' means the rule and nothing else — the empty frame carries no fill.**
-… The non-hero frame's `bg-paper-deep` read as harmless (~1.05:1) but was still a fill where the
+… The non-hero frame's `bg-paper-deep` read as harmless (1.09:1, recomputed — the estimate filed
+here was ~1.05) but was still a fill where the
 rule alone was already doing the job."
 
 `LibraryBrowse.jsx:21` — `<span className="h-[72px] w-12 border-2 border-ink bg-paper-deep" />`.

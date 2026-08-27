@@ -42,8 +42,8 @@ const AppHeader = ({
         {wordmark && (onBack ? (
           // A screen that already has a back control is not depending on the wordmark as its
           // only exit, so it stays inert text here — matching the pre-existing look on the one
-          // screen type where the two are expected to coexist (the still-unbuilt stubs this fix
-          // also touches).
+          // screen type where the two are expected to coexist (the stubs this fix also touched,
+          // all of which have since been built).
           <span className="caps truncate text-xs font-extrabold tracking-[0.2em]">Alexandria</span>
         ) : (
           // With no `onBack`, the wordmark is the ONLY thing in this corner of the header — on

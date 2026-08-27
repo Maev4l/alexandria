@@ -8,9 +8,10 @@ import { fillRouteParams, getRoutePaths, renderApp, stubFetch } from '@/test/app
 // layout or focus (those live in scripts/check-browser.mjs, the browser-driven suite).
 //
 // ROUTE LIST: derived from the REAL route table (`@/routes.jsx`) via `getRoutePaths()|`, not
-// retyped here — a hardcoded list would silently stop covering a screen the moment it moves from
-// stub to built, which is exactly the failure this guard exists to close ("Slice C added
-// landmarks to the files slice C touched and nowhere else"). Every path returned by
+// retyped here — a hardcoded list would silently stop covering the app the moment a NEW screen
+// lands, since a new screen brings a new route the list does not have, which is exactly the
+// failure this guard exists to close ("Slice C added landmarks to the files slice C touched and
+// nowhere else"). A stub becoming built changes nothing here: the path was already covered. Every path returned by
 // getRoutePaths() is asserted on below; a route added to
 // routes.jsx with no corresponding params entry fails LOUDLY (via the param-substitution check)
 // rather than being silently skipped.

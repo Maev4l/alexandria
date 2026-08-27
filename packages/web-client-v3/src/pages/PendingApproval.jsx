@@ -8,10 +8,11 @@ const PendingApproval = () => {
   return (
     <div className="pad-top-safe flex min-h-dvh flex-col bg-paper px-4 pb-8">
       {/* Ink, not `--out`. This badge used to wear the Overprint Stamp's own construction — a
-          2px `--out` outline — on a screen that holds no items at all, so the one colour the
-          palette reserves for circulation was marking an account state: `--out` marks a lent
-          item and nothing else, ever. It is not the yellow wordmark plate either: that plate
-          carries the wordmark, and `--imprint` means finding and acting. */}
+          2px `--out` outline — on a screen that holds no items at all. `--out` is the alarm
+          register: a lent item, an error block, the destructive button, a failing field, a delete
+          confirmation. An approval notice is none of those, so the badge was wearing the lent
+          stamp for a state it does not have. It is not the yellow wordmark plate either: that
+          plate carries the wordmark, and `--imprint` means finding and acting. */}
       <span className="caps mt-8 inline-block self-start border-2 border-ink px-2 py-1 text-[11px] font-extrabold tracking-[0.14em] text-ink">
         Pending approval
       </span>
