@@ -93,10 +93,11 @@ export default defineConfig(({ command }) => {
           short_name: 'Alexandria',
           description: 'A circulation record for a physical collection',
           lang: 'en',
-          // DESIGN.md §2: the ink ground the icon and the item-detail cover are built on, and the
-          // paper the app itself sits on. theme_color paints the platform's own chrome, so it
-          // matches the <meta name="theme-color"> in index.html; background_color is what a cold
-          // launch shows before the first paint, so it matches --paper rather than the icon.
+          // The palette law: --ink is the ground the icon and the item-detail cover are built
+          // on, and --paper is the ground the app itself sits on. theme_color paints the
+          // platform's own chrome, so it matches the <meta name="theme-color"> in index.html;
+          // background_color is what a cold launch shows before the first paint, so it matches
+          // --paper rather than the icon.
           theme_color: '#0B0B0B',
           background_color: '#F6F6F3',
           display: 'standalone',
@@ -108,9 +109,9 @@ export default defineConfig(({ command }) => {
           // display the app at all. That trades a real capability for a preference already
           // satisfied by the layout.
           //
-          // Two other things in this build assume landscape is reachable. DESIGN.md §4 provides
-          // for it explicitly — the 448px column exists so a wide viewport is not a stretched
-          // phone — and the film capture screen's no-scroll ruling was MEASURED at 667x390 and
+          // Two other things in this build assume landscape is reachable. The division scale
+          // provides for it explicitly — the 448px column exists so a wide viewport is not a
+          // stretched phone — and the film capture screen's no-scroll ruling was MEASURED at 667x390 and
           // records "in landscape the page scrolls" as an accepted consequence. A lock would make
           // that state unreachable on one platform and leave the reasoning stranded.
           //
@@ -124,10 +125,11 @@ export default defineConfig(({ command }) => {
           icons: MANIFEST_ICONS,
         },
         workbox: {
-          // Beyond the js/css/html default: the fonts and the icons. The fonts are the identity
-          // (DESIGN.md §3) and a missing woff2 falls back silently to system-ui, which is exactly
-          // the failure that hid for three slices; the icons are what an installed app is, and an
-          // icon fetched over a dead connection is a blank home-screen tile.
+          // Beyond the js/css/html default: the fonts and the icons. The fonts are the identity —
+          // the two self-hosted type families — and a missing woff2 falls back silently to
+          // system-ui, which is exactly the failure that hid for three slices; the icons are
+          // what an installed app is, and an icon fetched over a dead connection is a blank
+          // home-screen tile.
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         },
       }),

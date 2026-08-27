@@ -63,7 +63,8 @@ content; four colours carry meaning and nothing else.
 
 ### Palette law
 
-Each colour has exactly one job. A colour used for anything else is a bug.
+Each colour has exactly one job — a single named register of related uses, not necessarily one
+literal use. A colour spent outside its register is a bug.
 
 | Token | Value | Means, and only means |
 |---|---|---|

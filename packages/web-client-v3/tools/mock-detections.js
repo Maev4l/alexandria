@@ -24,8 +24,9 @@
 //     serializes with `"authors":null`, not `"authors":[]`. `ReleaseYear`/`Duration`/`TmdbId` on
 //     `DetectedVideoResponse` are plain non-pointer, non-omitempty fields, so a zero-value error
 //     candidate still carries `"releaseYear":0,"duration":0,"tmdbId":""` rather than omitting them.
-// The client must read absence, never an empty-array check, exactly the discipline ui-v3.md §6
-// already requires for `lentTo`/`picture`/`order`.
+// The client must read absence, never an empty-array check — the same discipline the API
+// constraints already require for `lentTo`/`picture`/`order`: `omitempty` fields arrive
+// absent on the wire, not null, so a presence check is the only correct test.
 //
 // FIX-ROUND-2 CORRECTION: `PictureUrl *string` and `Error *string` both carry `omitempty` on
 // BOTH response structs (handlers/models.go:21,24,32,39). A nil pointer with `omitempty` is
@@ -113,9 +114,10 @@ export const ISBN_MULTI_VOLUME = '9782070368228';
 // the pointer nil, i.e. absent, when there is no cover. Google is the outlier by construction.
 // Matters concretely: `BookDetectionResults` renders `pictureUrl` straight into an `<img src>`,
 // and an empty `src` resolves against the page's own URL and fails to load - the broken-image
-// state `DESIGN.md` §6 forbids outright - which an `if (!pictureUrl)` check alone would not catch
-// the way it does for the genuinely-absent Goodreads/TMDB cases, because `''` is also falsy but
-// arrives on a DIFFERENT key state (present) than a missing key (absent). A screen built only
+// glyph the design system forbids outright as a rendering fallback - which an
+// `if (!pictureUrl)` check alone would not catch the way it does for the genuinely-absent
+// Goodreads/TMDB cases, because `''` is also falsy but arrives on a DIFFERENT key state
+// (present) than a missing key (absent). A screen built only
 // against the two absent-artwork fixtures above would never be exercised against this one.
 export const ISBN_GOOGLE_BLANK_PICTURE = '9782000000000';
 

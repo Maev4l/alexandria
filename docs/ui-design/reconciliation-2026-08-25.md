@@ -257,6 +257,13 @@ Also worth recording: `Login.jsx:44` and `SignUp.jsx:49` give the *same* structu
 screen-identifying badge above the `<h1>` — an `--imprint` plate. Two legislated colours, one
 element, three screens.
 
+**That palette row has since been rescoped**, on the same grounds as `--imprint`'s in §1.5/1.6: red
+is the alarm register, and §6 sanctions it on Error blocks, the destructive button, a failing field
+and delete confirmations. This finding's argument stands on the surviving half — an approval
+notice is none of those, so `PendingApproval` was wearing the lent stamp's construction for no
+state it has. `DESIGN.md:75`'s quote above is this finding's record of the row **as it stood at
+audit time**, not a claim that the row still reads that way.
+
 ### 1.5 §2's "yellow never carries a shape by itself" is broken on the cover, and once invisibly on paper *(one deliberate, one defect)*
 
 `DESIGN.md:97-101` — "**Yellow never carries a shape by itself.** At ~1.55:1 against paper,

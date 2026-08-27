@@ -1,4 +1,4 @@
-# Four behaviour findings, found while reconciling the documents — not fixed there
+# Five behaviour findings, found while reconciling the documents — not fixed there
 
 Found during `docs/superpowers/plans/2026-08-25-ui-v3-reconciliation.md`, which is a documentation
 pass over the design system. None is one of the 44 audited findings that pass applies, and none was
@@ -7,7 +7,9 @@ to see any of them.
 
 The first is a real product defect. The second is housekeeping. The third is a product question
 rather than a bug, and it is the one that blocked a sentence in the design system from being
-written the obvious way. The fourth is a guard blind to two of the rules it claims to cover.
+written the obvious way. The fourth is a guard blind to two of the rules it claims to cover. The
+fifth is a guard blind to a construction it cannot even see, because nothing on the element
+carries the class it would check.
 
 ## 1. A cover that never loads retries every four seconds, for ever, on every visible row
 
@@ -131,4 +133,39 @@ authoritative statement of its rule outside the specification, and it is written
 believes the code does what they meant. This is the third guard in this pass found describing
 something its own code does not do — after one quoting a retired stricter rule as current, and one
 whose fallback claim was inverted.
+
+## 5. A type-scale guard cannot see a numeral that takes its size from its parent's line, not its own class
+
+`packages/web-client-v3/src/typeScale.test.js` and
+`packages/web-client-v3/src/components/imprint/LedgerRow.jsx`. Found while correcting the design
+system's published size for the ledger duration, which had been recorded at 11px against a
+rendered 13.
+
+The guard walks the JSX tree for elements carrying a `text-[Npx]` or named-size class and checks
+each one against the published scale. `LedgerRow.jsx`'s duration renders as
+`<span className="num">{loan.days}</span>` — no size class of its own. Its 13px comes from the
+line it sits inside, `<span className="flex justify-between gap-2 text-[13px]">`, the same way any
+inline text inherits its container's size. There is nothing on the duration's own element for the
+guard to find, so it is not exempted from the check — it is invisible to it.
+
+That is the deliberate construction, not an oversight in the markup: the design system states that
+the duration takes the ledger name line's size rather than carrying one of its own, because sizing
+it independently would put a mismatched figure beside a differently-sized unit word on one flex
+line. But the guard's method — read the element's own classes — cannot represent "declares nothing,
+inherits from its container" as a covered case. A row that had shipped at the wrong size here would
+have passed the same way this one does; the green result asserts nothing about this construction
+either way.
+
+**Not fixed here, deliberately.** This pass was comment-only. Closing the gap means teaching the
+guard to resolve a size from an ancestor when the element itself declares none — a real widening of
+what it checks, the same class of change as behaviour finding 4's longhand-outline widening, and it
+needs its own verification once it exists: confirming the ledger duration passes on its own merits,
+and checking whether any other numeral in the app relies on the same size-by-inheritance
+construction and would newly come into view.
+
+**What the fix would be.** When an element carrying `.num` (or matched as a catalogue numeral)
+declares no `text-*` class of its own, walk up to the nearest ancestor that does and assert the
+resolved size against the scale instead of skipping the element. Then re-run against the whole app,
+not just this row, since the same gap would apply to any other inherited-size numeral nobody has
+gone looking for yet.
 

@@ -1,9 +1,9 @@
 // The handoff `AddItemSheet` starts by appending `?collectionId=<id>` to every branch it can
 // reach — Book, Film — when opened from a collection board rather than the header "+". This is
-// the one mechanism for the whole add flow, no per-branch exception: AddBook/AddVideo (still
-// stubs) call this helper to build their own manual-entry link from it, and NewBook/NewVideo
-// call it again once that link is followed. The same query contract
-// `BookDetectionResults`/`VideoDetectionResults` are specified to use once built (slice D).
+// the one mechanism for the whole add flow, no per-branch exception: AddBook/AddVideo — both
+// shipped screens, not stubs — call this helper to build their own manual-entry link from it,
+// and NewBook/NewVideo call it again once that link is followed. `BookDetectionResults` and
+// `VideoDetectionResults` use the same query contract.
 //
 // A query parameter, not `location.state`: state is gone on a cold load — a fresh tab, a deep
 // link, a PWA restart resuming this exact URL — so a reader who explicitly chose a board would

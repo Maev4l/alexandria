@@ -16,10 +16,9 @@ import PlateButton from '@/components/imprint/PlateButton.jsx';
 // `collection` is optional: absent for the header "+" (a standalone item), present when this
 // sheet is reused from a collection board's Row Actions — and travels as a query parameter,
 // `?collectionId=`, on both branches. Not `location.state`: state is gone on a cold load (a
-// fresh tab, a deep link, a PWA restart resuming this exact URL), and AddBook/AddVideo now need
+// fresh tab, a deep link, a PWA restart resuming this exact URL), and AddBook/AddVideo need
 // the collection to build their own manual-entry link, not merely to display one — so a reader
-// who explicitly chose a board must not silently resume filing standalone the moment either
-// stub becomes real.
+// who explicitly chose a board never silently resumes filing standalone.
 //
 // `onBack` is optional too, and for a different reason: the header "+" has no menu to return
 // to, so it renders no Back at all. Reached from a board's own menu, closing this sheet with

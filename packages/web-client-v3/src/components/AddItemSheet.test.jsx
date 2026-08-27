@@ -6,7 +6,7 @@ import AddItemSheet from './AddItemSheet.jsx';
 import { collectionsApi } from '@/api';
 
 // Only `list` is stubbed — nothing else in this file calls the API. This is what lets the
-// reachability tests below mount the real AddBook/AddVideo stubs and the real NewBook/NewVideo
+// reachability tests below mount the real AddBook/AddVideo screens and the real NewBook/NewVideo
 // forms, so the collection picker has something to load.
 vi.mock('@/api', async (importOriginal) => {
   const actual = await importOriginal();
@@ -170,7 +170,7 @@ describe('AddItemSheet', () => {
 
   // The replacement for the test that pinned the original bug in place ("keeps Enter by hand
   // present from a board too"). After removing Enter by hand from this sheet, EVERY path to add
-  // an item runs through a stub (AddBook/AddVideo), so what needs verifying is not "is the
+  // an item runs through AddBook/AddVideo, so what needs verifying is not "is the
   // control here" but "does each of the four real paths actually arrive, with the collection
   // carried correctly end to end" — a bare URL, no router state, exactly what a cold load looks
   // like. A removed test with no replacement is how the original bug shipped unnoticed.

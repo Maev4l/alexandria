@@ -1413,7 +1413,7 @@ try {
   // asserted the opposite, and the opposite is what shipped: Sheet.jsx set `bg-paper-deep` with
   // no text colour of its own, so when it opened INSIDE item detail's inverted `text-paper`
   // ancestor, a plain <p> and a `text-current` secondary button inherited paper text straight
-  // through the sheet's own recessed ground — ~1.08:1, "grey on white, hardly readable". The
+  // through the sheet's own recessed ground — 1.09:1, "grey on white, hardly readable". The
   // check above alone could never have caught this: the sheet's OWN ground is correctly
   // paper-deep, so nothing there resolves to a forbidden background. The defect was in the
   // FOREGROUND its children resolved to once mounted on this one inverted route — the other

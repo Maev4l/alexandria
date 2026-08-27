@@ -123,7 +123,7 @@ describe('CollectionActionsSheet', () => {
   // lives here (it needed a type, so it moved to AddBook/AddVideo, where the type is already
   // known). What that test was actually pinning down — a board's collection surviving all the
   // way to the manual form — still needs proving, now through the real path: Add an item → Book
-  // → the stub's own escape → NewBook.
+  // → AddBook's own escape → NewBook.
   it('carries the collection from a board, through Book and the stub\'s escape, into the manual form', async () => {
     render(
       <MemoryRouter initialEntries={['/sheet']}>
