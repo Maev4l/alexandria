@@ -39,9 +39,9 @@ describe('plateLineParts', () => {
   });
 });
 
-// Detail carries IDENTIFICATION, which the row deliberately withholds (DESIGN.md §4). The ISBN,
+// Detail carries IDENTIFICATION, which the row deliberately withholds. The ISBN,
 // year and runtime are numerals, so they are returned apart from the names: only a numeral may
-// take the mono face (§3), and a name in mono is the category error the row's own line already
+// take the mono face, and a name in mono is the category error the row's own line already
 // refuses.
 describe('detailLineParts', () => {
   it('gives a book its author and its ISBN, which the row never shows', () => {

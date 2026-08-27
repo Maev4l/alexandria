@@ -10,7 +10,7 @@ const FILM = 1;
 // situates a film — Solaris '72 against '02 — which a director alone does not do.
 //
 // Returned as parts rather than a string because a name and a figure are different kinds of
-// thing: §3 reserves the mono for numerals, so a person's name takes the sans and only the
+// thing: the mono is reserved for numerals, so a person's name takes the sans and only the
 // year is mono. The digits beside it used to disguise that a name in mono was a category error.
 export const plateLineParts = (item) => {
   const names =
@@ -19,7 +19,7 @@ export const plateLineParts = (item) => {
   return { names: names || null, year };
 };
 
-// THE THIRD SURFACE. §5 already varies the Plate Line by surface — on item detail it gains the
+// THE THIRD SURFACE. The Plate Line already varies by surface — on item detail it gains the
 // edition, `AUTHOR · ISBN` — so a candidate row gaining the runtime is a third variant of one
 // rule rather than a widening of the component's contract.
 //
@@ -31,7 +31,7 @@ export const plateLineParts = (item) => {
 // mechanism, capture by pointing at the object.
 //
 // Explicit rather than reusing `detailLineParts`, which for a book returns the ISBN: a row must
-// never print one (§4, "the row carries recognition"), and on this screen the scanned code
+// never print one ("the row carries recognition"), and on this screen the scanned code
 // already sits once at the head. Deriving the candidate line from the detail line would make a
 // book candidate sprout an identifier the moment someone gave that screen a PlateLine.
 export const candidateLineParts = (item) => {
@@ -49,11 +49,11 @@ export const candidateLineParts = (item) => {
 };
 
 // Detail earns the fields the row withholds — an ISBN or TMDB id, and a runtime — because
-// here the reader is examining one object rather than recognising it in a scan (DESIGN.md §4,
-// "the row carries recognition; detail carries identification").
+// here the reader is examining one object rather than recognising it in a scan ("the row carries
+// recognition; detail carries identification").
 //
-// Returned apart from `names` for the same reason `plateLineParts` splits them: §3 reserves the
-// mono face for numerals only, so a person's name belongs in the sans and only the ISBN, year
+// Returned apart from `names` for the same reason `plateLineParts` splits them: the mono
+// face is reserved for numerals only, so a person's name belongs in the sans and only the ISBN, year
 // and runtime — all figures — may take the mono column. `identifiers` is that column, in
 // display order; the caller supplies the mono styling, this module only supplies the values.
 export const detailLineParts = (item) => {
@@ -67,8 +67,8 @@ export const detailLineParts = (item) => {
           // truthy check would silently drop the runtime of a short film. Same idiom as
           // `item.order != null` in VolumeFrame.jsx.
           item.releaseYear != null ? String(item.releaseYear) : null,
-          // The prime mark is the catalogue's own convention for a runtime in minutes (DESIGN.md
-          // §3 type scale, "Numerals · mono 13 · tabular" reads "130′").
+          // The prime mark is the catalogue's own convention for a runtime in minutes (the mono
+          // type scale's entry, "Numerals · mono 13 · tabular", reads "130′").
           item.duration != null ? `${item.duration}′` : null,
         ].filter(Boolean)
       : [item.isbn || null].filter(Boolean);

@@ -128,7 +128,7 @@ export const fictionItems = [
     // path on the production domain — not served by the fixture server, so it reliably fails
     // rather than resolving to a mock 200). `pictureUrl` is the detection source that WOULD
     // produce it — present here so this item also exercises the "Fetch cover" repair control on
-    // item detail (gated on both facts at once, DESIGN.md). This is the DOMINANT real cover
+    // item detail (gated on both facts at once). This is the DOMINANT real cover
     // failure (PRODUCT.md) — common and transient — which is why it stays, deliberately, even
     // though it is now one of only two coverless items in this fixture rather than one of eleven.
     picture: 'https://alexandria.isnan.eu/thumbnails/user/OWNER1/library/lib-fiction/item/missing',

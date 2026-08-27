@@ -5,8 +5,8 @@ import { collectionsApi } from '@/api';
 // `Filing into <name>` (`FilingInto.jsx`) — the two capture screens (AddBook, AddVideo), where a
 // cataloguing session actually SITS, and the two candidate-list screens
 // (BookDetectionResults, VideoDetectionResults) it passes through briefly, N times per session
-// (ui-v3.md ruling E; task-19 fix round 3 added the capture screens after the design session
-// found the mark missing from the screen the reader spends the whole session on).
+// (added to the capture screens after the design session found the mark missing from the screen
+// the reader spends the whole session on).
 //
 // A failed lookup here must never block anything else the screen can do — the mark it feeds is a
 // courtesy telling the reader the session still remembers their board, not a gate — so a rejected

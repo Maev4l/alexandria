@@ -43,7 +43,7 @@ describe('handleMockRequest - POST /search', () => {
     const lent = res.body.results.filter((r) => r.lentTo != null);
     expect(lent).toHaveLength(1);
     // `lentTo` must be ABSENT on every other result, not present-as-null (omitempty, per
-    // handlers/models.go:92 and ui-v3.md's binding API constraint) - a falsy check alone would
+    // handlers/models.go:92) - a falsy check alone would
     // also pass on an explicit `lentTo: null`, which is a different, wrong shape.
     const notLent = res.body.results.filter((r) => r.id !== lent[0].id);
     expect(notLent.every((r) => !('lentTo' in r))).toBe(true);
@@ -71,8 +71,8 @@ describe('handleMockRequest - POST /search', () => {
     expect(res.body.results.every((r) => r.libraryId && r.libraryName)).toBe(true);
 
     // ~90% carry artwork, since PRODUCT.md states a cover is the normal case, not the exception -
-    // the fixture must not (re)invent the fixtures'-lie-in-the-other-direction mistake ui-v3.md
-    // names explicitly. `picture` is omitted, not null, on the ones without.
+    // the fixture must not (re)invent the fixtures'-lie-in-the-other-direction mistake this
+    // project has already been burned by. `picture` is omitted, not null, on the ones without.
     const withArtwork = res.body.results.filter((r) => 'picture' in r);
     expect(withArtwork).toHaveLength(360);
     const withoutArtwork = res.body.results.filter((r) => !('picture' in r));

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { RECENTS_MAX, addRecent, clearRecents, readRecents } from './recentSearches.js';
 
-// The cap is FIVE (ui-v3.md § Search). An earlier draft of the plan said eight; the spec is the
-// authority and this test is what stops the number drifting back.
+// The cap is FIVE. An earlier draft of the plan said eight; this test is what stops the number
+// drifting back.
 
 beforeEach(() => {
   localStorage.clear();

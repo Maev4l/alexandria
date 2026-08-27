@@ -4,7 +4,7 @@
 // The defect this exists for: after every save the flow replaces back to the capture screen,
 // which is a fresh mount, so the mount-only effect tore the stream down and called
 // `getUserMedia` again — ten items, ten device-open-and-refocus cycles, each showing a black
-// frame and `REQUESTING CAMERA ACCESS` before anything could be aimed at. DESIGN.md §4 accepts a
+// frame and `REQUESTING CAMERA ACCESS` before anything could be aimed at. This design accepts a
 // harder reach for Add on the grounds that the flow LOOPS internally; if the loop justifies the
 // layout then its per-iteration cost is what most deserves engineering.
 //

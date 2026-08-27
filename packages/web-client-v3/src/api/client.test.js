@@ -232,7 +232,7 @@ describe('a network failure with no status', () => {
   });
 });
 
-// One case is reachable today, per .claude/ui-v3.md §7 and the critique this fixes:
+// One case is reachable today, per the critique this fixes:
 // handlers/middlewares.go's ApprovalChecker is wired ahead of EVERY route (cmd/main.go) and is
 // the API's ONLY source of a 403, meaning exactly one thing — the account is not, or is no
 // longer, approved. An ID token issued before an admin revokes approval stays valid up to 60

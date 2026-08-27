@@ -1,4 +1,4 @@
-// WCAG 2.1 relative luminance and contrast ratio. Exists so DESIGN.md section 2's stated
+// WCAG 2.1 relative luminance and contrast ratio. Exists so the design system's stated
 // ratios are asserted by the test suite rather than taken on trust — the document itself
 // marks them "intent, to be verified against the built surface".
 const parseHex = (hex) => {

@@ -20,9 +20,9 @@ describe('validateCollectionOrder', () => {
     expect(validateCollectionOrder({ collectionId: 'c', order: 1.5 })).toMatch(/whole number/);
   });
 
-  // The pair requirement this project invented (.claude/ui-v3.md, corrected at e302fd1) is gone:
-  // the API only demands order alongside a collection when the collection is UNCHANGED — see
-  // task-17a-brief.md. These five replace the old unconditional "collection needs an order" test.
+  // The pair requirement this project invented (corrected at e302fd1) is gone:
+  // the API only demands order alongside a collection when the collection is UNCHANGED. These
+  // five replace the old unconditional "collection needs an order" test.
   it('lets a new item omit its order — the server ranks it last', () => {
     expect(validateCollectionOrder({ collectionId: 'c1', order: '' })).toBeNull();
   });

@@ -1,7 +1,7 @@
-// Recent searches, per ui-v3.md § Search: at most five, most recent first, de-duplicated,
+// Recent searches: at most five, most recent first, de-duplicated,
 // persisted in localStorage.
 //
-// FIVE, not eight. The number is the spec's; an earlier draft of the plan said eight, and
+// FIVE, not eight. An earlier draft of the plan said eight, and
 // recentSearches.test.js is what stops it drifting back.
 
 const KEY = 'alexandria.v3.recent-searches';

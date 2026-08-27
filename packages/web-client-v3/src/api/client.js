@@ -11,7 +11,7 @@ export class ApiError extends Error {
     // The server's own body, kept for diagnosis (e.g. `err.data?.message` in a console capture)
     // — but `message` above is ALWAYS app-authored, from STATUS_COPY below. Never the reverse:
     // that was the defect. A 500 carrying {"message":"Unauthorized"} printed "Unauthorized" on
-    // screen because `message` used to be `data?.message` directly (.claude/ui-v3.md §7).
+    // screen because `message` used to be `data?.message` directly.
     this.data = data;
   }
 }
@@ -32,7 +32,7 @@ export class PendingApprovalError extends Error {
   }
 }
 
-// Reader-facing copy for a non-2xx, non-403 response, per ui-v3.md §7: say what the app failed to
+// Reader-facing copy for a non-2xx, non-403 response: say what the app failed to
 // do and, where recovery is possible, what the reader can do next — never the server's own
 // phrasing, which `.claude/backend.md`'s own backlog plans to change out from under this client.
 // Keyed by status only for 400, which is validation and genuinely generic across every form in
@@ -44,7 +44,7 @@ export class PendingApprovalError extends Error {
 // duplicate collection name. That is a fact about ONE FIELD on ONE FORM, not about "the request",
 // so it does not belong in an app-wide status map: NewCollection.jsx and EditCollection.jsx both
 // intercept `err.status === 409` before this copy is ever read, and set their own field-level
-// message naming the collection (ui-v3.md: "duplicate-name rejection surfaced on the field, not
+// message naming the collection ("duplicate-name rejection surfaced on the field, not
 // as a toast"). An earlier version of this entry named "library" specifically — wrong even for
 // the endpoint that exists, since the conflict is the collection's name, not the library's — and
 // would go on being wrong for any future 409 this map has no way to know about. One path per

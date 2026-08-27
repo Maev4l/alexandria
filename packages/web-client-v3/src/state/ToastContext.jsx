@@ -27,7 +27,7 @@ export const ToastProvider = ({ children }) => {
         className="pad-bottom-safe pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md px-4"
       >
         {/* NOT `caps`. A confirmation is an interface sentence but it EMBEDS content — the item's
-            title and a person's name — and §3 forbids uppercasing content. "AURORE IS OUT WITH
+            title and a person's name — and content is never uppercased. "AURORE IS OUT WITH
             MARIE" shouts a French title and someone's name, which is the same defect as the
             sheet heading, one layer further in. Sentence case, in the sans. */}
         {message && (

@@ -9,7 +9,7 @@ export const normalizeIsbn = (raw) => (raw ?? '').replace(/[\s-]/g, '');
 
 // Returns the reader-facing reason a code cannot be looked up, or `null` when it can be — never
 // a boolean, so the same call is both the validity check and the field's own error message
-// (DESIGN.md's Field component prints whatever this returns directly under the input).
+// (Field prints whatever this returns directly under the input).
 export const isbnError = (raw) => {
   const value = normalizeIsbn(raw);
   if (!value) return 'Enter an ISBN.';
