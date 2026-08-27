@@ -158,7 +158,7 @@ const ItemHistory = () => {
                   <span className="block h-3 w-24 bg-paper-deep" />
                   <span className="block h-3 w-12 bg-paper-deep" />
                 </span>
-                <span className="mt-1.5 block h-3 w-40 bg-paper-deep" />
+                <span className="mt-2 block h-3 w-40 bg-paper-deep" />
               </div>
             ))}
           </div>
