@@ -8,11 +8,10 @@ import { fillRouteParams, getRoutePaths, renderApp, stubFetch } from '@/test/app
 // layout or focus (those live in scripts/check-browser.mjs, the browser-driven suite).
 //
 // ROUTE LIST: derived from the REAL route table (`@/routes.jsx`) via `getRoutePaths()|`, not
-// retyped here. The project's own progress checklist names eight more screens still to be built (AddBook's real
-// capture flow, Search's recents, Settings/Account/About's real content, …) — a hardcoded list
-// would silently stop covering them the moment they land, which is exactly the failure this
-// guard exists to close ("Slice C added landmarks to the files slice C touched and nowhere
-// else"). Every path returned by getRoutePaths() is asserted on below; a route added to
+// retyped here — a hardcoded list would silently stop covering a screen the moment it moves from
+// stub to built, which is exactly the failure this guard exists to close ("Slice C added
+// landmarks to the files slice C touched and nowhere else"). Every path returned by
+// getRoutePaths() is asserted on below; a route added to
 // routes.jsx with no corresponding params entry fails LOUDLY (via the param-substitution check)
 // rather than being silently skipped.
 vi.mock('@/auth/AuthContext.jsx', () => ({

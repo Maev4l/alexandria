@@ -105,8 +105,8 @@ const DetailMarks = ({ item, library, loans }) => {
                 // one fragment's own padding box — fine at "Films" width, but a plain inline
                 // element that WRAPS generates one fragment box per line, and which of those
                 // fragments an absolutely-positioned child's containing block resolves against is
-                // not something this code should be leaning on. At 320px — the narrowest viewport
-                // this phone-first design supports — the arithmetic is close enough to matter:
+                // not something this code should be leaning on. At 320px — the width this
+                // project's own checks test against — the arithmetic is close enough to matter:
                 // `px-4` leaves 288px, the hero spends 132px + a 16px gap, `flex-1` gets 140px,
                 // `pl-2` leaves 132px for
                 // this line — and "Bandes dessinées" (16 characters) is real fixture content, not

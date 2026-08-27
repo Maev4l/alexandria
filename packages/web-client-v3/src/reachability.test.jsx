@@ -12,11 +12,10 @@ import { renderApp, stubFetch } from '@/test/appHarness.jsx';
 // SCOPE: this pins the two entry points the critique named as "the loudest control in the
 // entire design" — the pinned Search Field on the libraries root, and the search plate on item
 // detail — both of which routed to a dead end for three slices. It does not walk every route in
-// the app: several other screens (Settings, AddBook, AddVideo, …) are still stubs, and they are
-// pre-existing, tracked, not-yet-built work per the project's own progress checklist, not
-// a regression introduced or hidden by this task. Asserting their CONTENT here would fail the
-// suite over already-known incompleteness rather than a new defect, which is exactly the scope
-// this task was told NOT to expand into. A future screen that IS built is expected to extend
+// the app; that breadth belongs to routeExits.test.jsx and routeLandmarks.test.jsx, which do walk
+// the whole route table. Asserting every screen's CONTENT here would test incompleteness as it
+// stood on whatever day this ran rather than a new defect, which is exactly the scope
+// this task was told NOT to expand into. A future screen with its own dead-end regression is expected to extend
 // this list.
 //
 // This paragraph used to add that those stubs "equally lack a back control". That stopped being

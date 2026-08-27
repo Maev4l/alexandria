@@ -67,8 +67,8 @@ export const detailLineParts = (item) => {
           // truthy check would silently drop the runtime of a short film. Same idiom as
           // `item.order != null` in VolumeFrame.jsx.
           item.releaseYear != null ? String(item.releaseYear) : null,
-          // The prime mark is the catalogue's own convention for a runtime in minutes (the mono
-          // type scale's entry, "Numerals · mono 13 · tabular", reads "130′").
+          // The prime mark is the catalogue's own convention for a runtime in minutes (Plate Line
+          // figures take the mono at 12px, tabular, e.g. "130′").
           item.duration != null ? `${item.duration}′` : null,
         ].filter(Boolean)
       : [item.isbn || null].filter(Boolean);

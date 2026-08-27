@@ -1652,9 +1652,9 @@ try {
     // `h2` and a bare `button` that matched nothing, and a role that cannot be found is a role
     // that is not checked.
     //
-    // `em: null` means the caps table assigns the role NO tracking, which is a real published value and the
-    // one the old utility was silently overriding — the account plate initials carried 0.08em
-    // they should never have had.
+    // `em: null` means the caps table assigns the role NO tracking, which is a real published
+    // value and the one the old utility was silently overriding (see the account plate initials
+    // entry below, whose own ruling on this changed).
     const CAPS_ROLES = [
       { role: 'wordmark', route: '/libraries', text: 'ALEXANDRIA', px: 12, em: 0.2, weight: 800 },
       // The wordmark is published at one size and weight — 12px, 800 — for every screen it
@@ -2005,7 +2005,7 @@ try {
   await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
   await page.waitForSelector('[aria-label^="On loan to Marie"]', { timeout: 10_000 });
 
-  // ---- The IN <library> link survives wrapping, at 320px — the narrowest viewport this phone-first design supports ----
+  // ---- The IN <library> link survives wrapping, at 320px — the width this suite tests against ----
   // Round 6 review: the centring fix above (`left-1/2` + `w-[max(50px,100%)]`) resolves `100%`
   // against the containing block the Link's own box establishes — well-defined for a SINGLE
   // fragment, and NOT well-defined for a plain inline element that wraps across two lines (each

@@ -93,8 +93,9 @@ const SearchField = ({ className, value, onQueryChange, onSubmit }) => {
         // 16px — reported from the deployed app as "when I click on search there is somehow a
         // zoom", on the most-tapped control in the product.
         //
-        // `Field.jsx` has set 16px for exactly this reason since it was written, with a paragraph
-        // explaining it. The reason never reached here, and the type-scale guard
+        // `Field.jsx` has set 16px for exactly this reason since it was written, but carries no
+        // comment saying so — the design system's own docs hold that paragraph, not the file.
+        // The reason never reached here, and the type-scale guard
         // could not help: its exception was recorded as a property of a FILE
         // (`components/imprint/Field.jsx`), so 13px on a different input was on the scale and
         // passed. The exception now describes what it always meant — an input, select or textarea

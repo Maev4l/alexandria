@@ -1,6 +1,5 @@
 // WCAG 2.1 relative luminance and contrast ratio. Exists so the design system's stated
-// ratios are asserted by the test suite rather than taken on trust — the document itself
-// marks them "intent, to be verified against the built surface".
+// ratios are asserted by the test suite rather than taken on trust.
 const parseHex = (hex) => {
   const raw = hex.replace('#', '');
   const full = raw.length === 3 ? raw.split('').map((c) => c + c).join('') : raw;
