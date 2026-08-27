@@ -389,6 +389,15 @@ selector each appears at, and assert the **computed** `font-family` is Chivo Mon
 per-datum coverage, no false positives, and it must live in the browser suite because the face a node
 actually resolves to is a computed-style fact the unit layer cannot see.
 
+**The same manifest asserts the computed SIZE, and that is the only thing that can.** A numeral whose
+span declares no size of its own — the ledger duration, the index letter's run count — takes its size
+from the line it sits inside, so it carries no size class for a source-parsing guard to read, and the
+size published for its role is unverifiable anywhere else. The table below was found publishing one
+such figure at 11 against a rendered 13 by a person reading the two side by side, which is not a
+mechanism. Where the table publishes no size for a role, the manifest declares that absence and
+reports the measurement instead of asserting one: filling the number in from what the component
+renders would make the guard agree with the code by construction.
+
 The cost is that a numeral on a new screen is uncovered until someone lists it, so **the manifest needs
 its own drift alarm**, exactly as `monoRouteCoverage` guards `MONO_ROUTES`. An unlisted datum must fail
 the alarm rather than pass the check.

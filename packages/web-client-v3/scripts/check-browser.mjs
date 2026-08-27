@@ -2817,6 +2817,7 @@ try {
         sourceFile: 'src/pages/ItemDetail.jsx',
         route: `/libraries/lib-fiction/items/${item1984.id}`,
         expected: item1984.isbn,
+        px: 12,
       },
       // The exact regression this whole manifest exists for: a candidate's scanned ISBN on the
       // detection-results screen, reached via a query string rather than a fixture item id.
@@ -2831,6 +2832,9 @@ try {
         route: '/libraries/lib-fiction/add/book/results',
         query: '?isbn=9782070408504&collectionId=coll-melville',
         expected: '9782070408504',
+        // No published size: the mono table names no role for the scanned code echoed at the head
+        // of a results screen. Measured and reported rather than asserted — see `px: null` below.
+        px: null,
       },
       // The video-side twin of the ISBN entry above. Not the searched title (that mark deliberately renders in the
       // SANS — a film title is content, not a numeral, and the mono is reserved for numerals; the
@@ -2845,6 +2849,7 @@ try {
         route: '/libraries/lib-fiction/add/video/results',
         query: '?title=Les%20Tontons%20flingueurs',
         expected: '105′',
+        px: 12,
       },
       // The session tally. A count on display beside its own label is a labelled datum, exactly
       // like a library's item count, so it belongs in the mono. It is the first manifest entry
@@ -2864,12 +2869,15 @@ try {
           await page.waitForSelector('[data-mark="session-tally"]', { timeout: 10_000 });
         },
         expected: '1',
+        // No published size: the mono table names no role for a session tally.
+        px: null,
       },
       {
         field: 'releaseYear (row)',
         sourceFile: 'src/components/imprint/PlateLine.jsx',
         route: '/libraries/lib-films',
         expected: String(itemChinatown.releaseYear),
+        px: 12,
       },
       {
         // The SAME source file as the row entry above, on a different route, and that is the
@@ -2882,12 +2890,14 @@ try {
         route: '/search',
         query: `?q=${TERM_MIXED}`,
         expected: String(itemChinatown.releaseYear),
+        px: 12,
       },
       {
         field: 'releaseYear (detail)',
         sourceFile: 'src/pages/ItemDetail.jsx',
         route: `/libraries/lib-fiction/items/${itemSamourai.id}`,
         expected: String(itemSamourai.releaseYear),
+        px: 12,
       },
       {
         field: 'duration',
@@ -2895,24 +2905,36 @@ try {
         route: `/libraries/lib-fiction/items/${itemSamourai.id}`,
         // The prime mark is the catalogue's own runtime convention (lib/format.js).
         expected: `${itemSamourai.duration}′`,
+        px: 12,
       },
       {
         field: 'order',
         sourceFile: 'src/components/imprint/VolumePlate.jsx',
         route: '/libraries/lib-fiction',
         expected: String(itemBob.order).padStart(2, '0'),
+        px: 10,
       },
       {
         field: 'totalItems',
         sourceFile: 'src/components/imprint/VolumePlate.jsx',
         route: '/libraries',
         expected: String(libFiction.totalItems),
+        px: 12,
       },
       {
         field: 'itemCount',
         sourceFile: 'src/components/imprint/VolumePlate.jsx',
         route: '/libraries/lib-fiction',
         expected: String(melville.itemCount),
+        px: 12,
+        // Scoped to the board it belongs to, and only because asserting the SIZE made the
+        // value ambiguous where asserting the face never could. `4` renders twice on this
+        // route: here in the board's count plate at 12, and in the M index letter's run count
+        // at 11 — both correct at their own published sizes. The two can never be separated by
+        // a fixture edit: a run holding exactly one board and nothing else always equals that
+        // board's count. Every mono role shares one face, so a collision between two of them is
+        // invisible to a family check and fatal to a size check.
+        closest: '[data-board]',
       },
       {
         // Pointed at the A run, NOT at the run holding the Melville board, and the reason is not
@@ -2936,18 +2958,21 @@ try {
             .filter((entry) => indexLetterFor(entry.title) === 'A')
             .reduce((sum, entry) => sum + (entry.type === 2 ? entry.itemCount : 1), 0),
         ),
+        px: 11,
       },
       {
         field: 'ledgerDate',
         sourceFile: 'src/components/imprint/LedgerRow.jsx',
         route: '/libraries/lib-fiction/items/item-lent',
         expected: stamp(paulLoan.lentAt),
+        px: 11,
       },
       {
         field: 'loanDays',
         sourceFile: 'src/components/imprint/LedgerRow.jsx',
         route: '/libraries/lib-fiction/items/item-lent',
         expected: String(paulLoan.days),
+        px: 13,
       },
       {
         // NewLibrary.jsx's own `NAME_MAX` (20, matching openapi.yaml's `CreateLibraryRequest.name
@@ -2959,12 +2984,14 @@ try {
         sourceFile: 'src/components/imprint/Field.jsx',
         route: '/libraries/new',
         expected: '20',
+        px: 11,
       },
       {
         field: 'sectionCount',
         sourceFile: 'src/pages/Libraries.jsx',
         route: '/libraries',
         expected: String(sharedWithMeCount),
+        px: 11,
       },
       // The outbound share count. Read from the fixture, never retyped: a literal here forks the
       // substrate the day the fixture moves. The anchor is a SINGLE DIGIT, which is the shortest
@@ -2978,6 +3005,7 @@ try {
         expected: String(
           fixtureLibraries.find((library) => library.name === 'Fiction').sharedTo.length,
         ),
+        px: 11,
       },
       {
         // READ from package.json, never retyped: the version About prints comes from the same
@@ -2989,6 +3017,8 @@ try {
         sourceFile: 'src/pages/About.jsx',
         route: '/settings/about',
         expected: appVersion,
+        // No published size: the mono table names no role for the app version.
+        px: null,
       },
     ];
 
@@ -3002,27 +3032,39 @@ try {
     // and the route as drifted apart. Without this the only alternatives were to leave a `.num`
     // site uncovered or to weaken the drift alarm, both of which trade a real guard for a
     // convenience.
-    const findOwnTextMatches = async (route, expectedText, reach) => {
+    const findOwnTextMatches = async (route, expectedText, reach, closest) => {
       await page.goto(`${BASE}${route}`, { waitUntil: 'networkidle0' });
       await page.waitForSelector('main', { timeout: 10_000 });
       if (reach) await reach();
-      return page.evaluate((text) => {
+      return page.evaluate(({ text, closest: scope }) => {
         const out = [];
         for (const el of document.querySelectorAll('body *')) {
+          if (scope && !el.closest(scope)) continue;
           let direct = '';
           for (const child of el.childNodes) {
             if (child.nodeType === Node.TEXT_NODE) direct += child.textContent;
           }
-          if (direct.trim() === text) out.push(getComputedStyle(el).fontFamily);
+          if (direct.trim() === text) {
+            const style = getComputedStyle(el);
+            // The COMPUTED size, not a class string. A numeral whose span declares no size of its
+            // own — `<span className="num">{days}</span>` inside a line sized by its parent —
+            // carries no size class for a source-parsing guard to read, so the size the design
+            // publishes for that role is unverifiable anywhere but here.
+            out.push({ family: style.fontFamily, fontSize: Number.parseFloat(style.fontSize) });
+          }
         }
         return out;
-      }, expectedText);
+      }, { text: expectedText, closest: closest ?? null });
     };
 
     const fieldViolations = [];
-    for (const { field, route, query, expected, reach } of MONO_FIELDS) {
-      const families = await findOwnTextMatches(`${route}${query ?? ''}`, expected, reach);
-      if (families.length === 0) {
+    // The size violations are recorded SEPARATELY from the face ones, because they answer two
+    // different questions about the same node and a merged report cannot say which one broke.
+    const sizeViolations = [];
+    for (const { field, route, query, expected, reach, px, closest } of MONO_FIELDS) {
+      const matches = await findOwnTextMatches(`${route}${query ?? ''}`, expected, reach, closest);
+      const families = matches.map((match) => match.family);
+      if (matches.length === 0) {
         // Not a pass: a value the manifest expects to find rendered nowhere means the fixture
         // and the route have drifted apart, which is worth failing loudly on rather than
         // silently treating as "nothing to check" (monoRouteCoverage.test.js's own convention).
@@ -3039,6 +3081,22 @@ try {
             `"${wrongFace}", not Chivo Mono`,
         );
       }
+      const sizes = [...new Set(matches.map((match) => match.fontSize))];
+      console.log(
+        `    ${field.padEnd(28)} ${sizes.join('/')}px (want ${px === null ? 'unpublished' : `${px}px`})`,
+      );
+      // `px: null` is a DECLARED absence, not a forgotten key: the mono table publishes no size
+      // for that role, so there is nothing to assert and the measurement is reported instead. An
+      // entry that simply omitted the property could not be told apart from one nobody filled in.
+      if (px !== null) {
+        const wrongSize = sizes.find((size) => size !== px);
+        if (wrongSize !== undefined) {
+          sizeViolations.push(
+            `${field}: ${JSON.stringify(expected)} on ${route}${query ?? ''} rendered at ` +
+              `${wrongSize}px, expected ${px}px`,
+          );
+        }
+      }
     }
 
     record(MONO_FIELDS.length > 0, 'found more than zero catalogue fields in the manifest', '');
@@ -3046,6 +3104,11 @@ try {
       fieldViolations.length === 0,
       'every catalogue field is mono wherever its fixture value renders',
       fieldViolations.join('; '),
+    );
+    record(
+      sizeViolations.length === 0,
+      'every catalogue field renders at the size its role publishes',
+      sizeViolations.join('; '),
     );
   }
   // ---- Every PWA icon rasterised, decoded and painted ----

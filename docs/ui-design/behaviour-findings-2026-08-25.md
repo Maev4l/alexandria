@@ -1,4 +1,4 @@
-# Five behaviour findings, found while reconciling the documents — not fixed there
+# Six behaviour findings, found while reconciling the documents — not fixed there
 
 Found during `docs/superpowers/plans/2026-08-25-ui-v3-reconciliation.md`, which is a documentation
 pass over the design system. None is one of the 44 audited findings that pass applies, and none was
@@ -10,6 +10,10 @@ rather than a bug, and it is the one that blocked a sentence in the design syste
 written the obvious way. The fourth is a guard blind to two of the rules it claims to cover. The
 fifth is a guard blind to a construction it cannot even see, because nothing on the element
 carries the class it would check.
+
+The sixth arrived later than the other five and by a different route: it is what closing the fifth
+one turned up. A guard that can finally measure an inherited size immediately reported three
+numerals the design system has never published a size for at all.
 
 ## 1. A cover that never loads retries every four seconds, for ever, on every visible row — FIXED
 
@@ -183,3 +187,43 @@ resolved size against the scale instead of skipping the element. Then re-run aga
 not just this row, since the same gap would apply to any other inherited-size numeral nobody has
 gone looking for yet.
 
+## 6. Three catalogue numerals render at sizes the mono table publishes for nobody
+
+`packages/web-client-v3/scripts/check-browser.mjs`, the catalogue-field manifest. Found by giving
+that manifest the published size of each role and measuring the computed size alongside the face it
+already checked — which is the widening behaviour finding 5 asks for, done in the browser rather
+than in the source-parsing guard, because a computed size is the only thing that can see a size
+arriving from a parent line.
+
+Fifteen of the eighteen fields measure exactly the size their role publishes, including the two
+that carry no size class of their own — the ledger duration at 13 and the index letter's run count
+at 11. That half is closed and the assertion ships.
+
+**Three fields have no role in the mono table to measure against.** Not a disagreement between the
+document and the code — an absence. Each renders a numeral in the mono face at a size nothing
+publishes:
+
+| Field | Route | Renders at | Source line |
+|---|---|---|---|
+| The scanned code echoed at the head of a book results screen | `/libraries/:libraryId/add/book/results` | 13px | `src/pages/BookDetectionResults.jsx:198`, `className="num mb-4 text-[13px] text-ink-soft"` |
+| The filed-this-session tally | the capture flow's marks | 11px | `src/components/imprint/FlowMarks.jsx:29`, `className="num tracking-normal"`, size inherited from its line |
+| The app version | `/settings/about` | 14px | `src/pages/About.jsx:30`, `className="num"` inside a `text-sm` paragraph |
+
+All three sit on the type scale, so nothing here is off-scale. What is missing is a published row
+saying which step each is meant to take, and until one exists the guard measures them and reports
+the number rather than asserting anything — declared in the manifest as an explicit absence, not as
+a forgotten field, because a missing property and a deliberate one cannot otherwise be told apart.
+
+**Not decided here, deliberately.** Choosing a step for each of these three is a design judgement,
+and the wrong way to make it is to read what the component happens to render and write that number
+into the table — which would make the guard agree with the code by construction and assert nothing,
+the exact failure the ledger duration's 11-against-13 was found by avoiding.
+
+**And a fourth thing came out of the same run, which is a property of the check rather than of the
+app.** The Melville board's member count and the `M` index letter's run count both render `4` on the
+browse stream, at 12 and 11 respectively — each correct for its own role. A value-driven manifest
+cannot tell them apart, and it never had to while only the face was measured, because every mono
+role shares one face. The two can never be separated by a fixture edit either: a run holding exactly
+one board and nothing else always equals that board's count. So that one entry names the element it
+means. The general shape worth keeping: **asserting a second property can make an anchor ambiguous
+that was perfectly serviceable for the first.**
