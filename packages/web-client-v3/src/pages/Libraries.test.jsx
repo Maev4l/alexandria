@@ -75,7 +75,7 @@ describe('Libraries', () => {
     expect(alert).not.toHaveTextContent('internal failure xyz');
   });
 
-  // §6: an empty state is a RULED FRAME with a caps invitation, at the same weight as a full
+  // An empty state is a RULED FRAME with a caps invitation, at the same weight as a full
   // block. This one was a 12px `--ink-soft` line under a rule — quieter than the 22px/700 rows
   // it replaces, which is the opposite of the rule — on the app's home screen, so it is the
   // reader's first impression of the product.
@@ -87,7 +87,7 @@ describe('Libraries', () => {
     const frame = invitation.closest('div');
     expect(frame.className).toContain('border-2');
     expect(frame.className).toContain('border-ink');
-    // §6: recovery is a control, never an instruction to perform a gesture elsewhere.
+    // Recovery is a control, never an instruction to perform a gesture elsewhere.
     // SCOPED to the frame with `within`, because the bottom bar's primary carries the same name.
     // That duplication is intended and has a precedent stated in LibraryBrowse: the empty state's
     // control duplicates the existing one rather than replacing it, reached a different way.

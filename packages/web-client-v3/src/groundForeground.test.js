@@ -10,10 +10,11 @@ import { describe, expect, it } from 'vitest';
 // exact interop behaviour of a transitive dependency.
 const traverse = _traverse.default ?? _traverse;
 
-// Mechanism for DESIGN.md section 2's rule, added mid-slice and then not applied to the next
-// five blocks written after it: "Anything that sets a ground sets its foreground, in the same
-// rule." The rule alone did not catch its own next violation; this scans every .jsx source file
-// for the shape of the defect and fails the suite the moment it reappears.
+// Mechanism for the rule this guard actually enforces: a ground's text is coloured at or below
+// it, and never inherited across a surface boundary. Written down mid-slice and then not applied
+// to the next five blocks written after it, because the words alone did not catch the next
+// violation; this scans every .jsx source file for the shape of the defect and fails the suite
+// the moment it reappears.
 //
 // Bare `bg-paper` is deliberately NOT one of the checked tokens. Every current use of it is
 // either the page canvas restated on a full-height route root (`min-h-dvh`/`h-dvh` beside it,

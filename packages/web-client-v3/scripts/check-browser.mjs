@@ -1645,7 +1645,7 @@ try {
   //
   // So this reads the COMPUTED value, one element per role in §3's caps table, and it belongs in
   // the browser suite for exactly that reason.
-  console.log('every caps role computes the size, weight and tracking DESIGN.md §3 publishes for it');
+  console.log('every caps role computes the size, weight and tracking assigned to it');
   {
     // em -> px at the role's own font-size, since `letter-spacing` computes to px.
     // Selectors verified against the live DOM rather than guessed: the first draft named an
@@ -1657,7 +1657,8 @@ try {
     // they should never have had.
     const CAPS_ROLES = [
       { role: 'wordmark', route: '/libraries', text: 'ALEXANDRIA', px: 12, em: 0.2, weight: 800 },
-      // §3 publishes ONE wordmark. Two auth screens printed it at the section-header step (11px)
+      // The wordmark is published at one size and weight — 12px, 800 — for every screen it
+      // appears on. Two auth screens printed it at the section-header step (11px)
       // and nothing could see it: `typeScale.test.js` resolves sizes and 11 is ON the scale, so
       // the only guard that reads sizes is blind to this defect by construction. Hence the routes,
       // and hence `px` — the loop below already computes fontSize as the em divisor and threw it
@@ -1666,14 +1667,15 @@ try {
       { role: 'wordmark (signup)', route: '/signup', text: 'ALEXANDRIA', px: 12, em: 0.2, weight: 800 },
       { role: 'plate button label', route: '/libraries', text: 'NEW LIBRARY', px: 12, em: 0.12, weight: 800 },
       // TWO shared-ribbon roles, not one. The same component renders at 11/700 on a library row
-      // and at 10/800 in a mark column, and this entry measured the first against §3's row for the
-      // second — green only because the two surfaces coincide at +0.16em. A true measurement of the
-      // wrong substrate, inside the guard. Both surfaces are now measured: the library row's own
-      // instance, and the item-detail DetailMarks instance — lib-fiction carries sharedTo in the
-      // fixtures, so its SharedRibbon renders there at the mark-column size.
+      // and at 10/800 in a mark column, and this entry measured the first against the caps
+      // table's published row for the second — green only because the two surfaces coincide at
+      // +0.16em. A true measurement of the wrong substrate, inside the guard. Both surfaces are
+      // now measured: the library row's own instance, and the item-detail DetailMarks instance —
+      // lib-fiction carries sharedTo in the fixtures, so its SharedRibbon renders there at the
+      // mark-column size.
       // Weight 700 here, not 800: this is the "library row sub-line" role the owner ruled into
-      // §3 at 11px/700, distinct from the mark-column instance below which keeps the caps table's
-      // published 800.
+      // the caps table at 11px/700, distinct from the mark-column instance below which keeps the
+      // table's published 800.
       { role: 'shared ribbon caps (library row)', route: '/libraries', text: 'SHARED', px: 11, em: 0.16, weight: 700 },
       { role: 'shared ribbon caps (detail marks)', route: '/libraries/lib-fiction/items/item-lent', text: 'SHARED', px: 10, em: 0.16, weight: 800 },
       // 0.08em, the BASELINE — not "none". §3's caps table leaves this row's tracking cell empty,
@@ -1723,9 +1725,9 @@ try {
       if (measured.fontSize !== px) {
         trackingViolations.push(`${role}: ${measured.fontSize}px, expected ${px}px`);
       }
-      // Probed rather than assumed: §3 publishes a weight per role and nothing has ever computed
-      // one. If this is clean it stays; if it is not, the divergences are findings for their own
-      // pass, and this assertion comes back out.
+      // Probed rather than assumed: each caps role has a published weight and nothing has ever
+      // computed one. If this is clean it stays; if it is not, the divergences are findings for
+      // their own pass, and this assertion comes back out.
       if (measured.fontWeight !== weight) {
         trackingViolations.push(`${role}: weight ${measured.fontWeight}, expected ${weight}`);
       }

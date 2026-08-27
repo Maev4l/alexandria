@@ -3,9 +3,10 @@ import { describe, expect, it } from 'vitest';
 import SharedRibbon from './SharedRibbon.jsx';
 
 describe('SharedRibbon', () => {
-  // A count beside its own label is a labelled datum, which §3 puts in the mono. This
-  // component's own comment said so — "Mono is for the count, not the word or the address" —
-  // and the change that took the mono off the word and the address never put it on the count.
+  // A count beside its own label is a labelled datum, and Chivo Mono is reserved for numerals
+  // like it. This component's own comment said so — "Mono is for the count, not the word or the
+  // address" — and the change that took the mono off the word and the address never put it on
+  // the count.
   it('sets the outbound count in the mono and the word in the sans', () => {
     render(<SharedRibbon direction="out" count={3} />);
     const figure = screen.getByText('3');

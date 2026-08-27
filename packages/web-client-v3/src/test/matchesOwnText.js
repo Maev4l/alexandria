@@ -5,7 +5,8 @@
 // one reachable rather than repeating it: the name carries the rule, and the wrong (retyped)
 // form stops being available to reach for.
 //
-// SharedRibbon puts a labelled count in its own mono span (DESIGN.md §3), so a phrase like
+// SharedRibbon puts a labelled count in its own Chivo Mono span — Chivo Mono is reserved for
+// numerals — so a phrase like
 // "Shared · 2" is split across two text nodes: the outer span's direct text is "Shared · " and
 // the count lives in a nested <span className="num">. `getByText`'s default matcher
 // (`getNodeText`) only concatenates an element's DIRECT text-node children, not its full

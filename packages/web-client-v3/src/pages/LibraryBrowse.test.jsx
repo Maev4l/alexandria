@@ -69,7 +69,7 @@ describe('LibraryBrowse loading skeleton', () => {
       frame = document.querySelector('[data-skeleton="frame"]');
       expect(frame).not.toBeNull();
     });
-    // DESIGN.md §5: "'Ruled' means the rule and nothing else — the empty frame carries no fill."
+    // "Ruled" means the rule and nothing else — the empty frame carries no fill.
     // The bars beside it keep theirs; a bar is not a frame.
     expect(frame.className).toContain('border-2');
     expect(frame.className).not.toContain('bg-paper-deep');

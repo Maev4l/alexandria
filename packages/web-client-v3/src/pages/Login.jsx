@@ -41,10 +41,11 @@ const Login = () => {
 
   return (
     <div className="pad-top-safe min-h-dvh bg-paper px-4 pb-8">
-      {/* §3's published wordmark: 12/800/+0.20em, the same values AppHeader carries. These two
-          screens printed it at the SECTION HEADER step, and no guard could see it — 11px is on the
-          scale, so the size guard is blind to it by construction. check-browser's caps manifest now
-          asserts the computed size here as well as on /libraries. */}
+      {/* The wordmark's one published size and weight: 12px/800/+0.20em, the same values
+          AppHeader carries. These two screens printed it at the SECTION HEADER step, and no
+          guard could see it — 11px is on the scale, so the size guard is blind to it by
+          construction. check-browser's caps manifest now asserts the computed size here as well
+          as on /libraries. */}
       <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-xs font-extrabold tracking-[0.2em] text-ink">
         Alexandria
       </span>
@@ -56,7 +57,8 @@ const Login = () => {
         {(oauthMessage?.type === 'success' || notice) && (
           // An ink rule: the same printed-notice construction Toast and UpdateNotice use.
           // `--imprint` on `--paper-deep` is ~1.42:1 and this rule is the notice's only mark, so
-          // the yellow described nothing at all — yellow cannot carry a shape on paper (§2).
+          // the yellow described nothing at all — at that ratio yellow cannot describe a form on
+          // its own; it can only be a ground with ink on top, or a fill inside an ink outline.
           <p role="status" className="mb-6 border-t-2 border-ink bg-paper-deep p-4 text-sm text-ink">
             {oauthMessage?.type === 'success' ? oauthMessage.text : notice}
           </p>

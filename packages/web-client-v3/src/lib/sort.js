@@ -19,11 +19,15 @@ export const foldForSort = (value) =>
 // connected piece in the real Archivo binary). Near-empty head buckets are rare, truthful and
 // cheap regardless.
 //
-// A title can fold to nothing even when it is not empty: one whose first character is a bare
-// combining mark loses it to the NFD strip. Falling back to the RAW first character keeps the
-// label honest — a 76px band of nothing is worse than an odd glyph, and the reader is still
-// shown the character the server sorted on. Only a genuinely empty title yields no label, which
-// the API forbids.
+// A title can fold to nothing, and that needs its own fallback — though not for the reason a
+// leading accent alone would suggest. Stripping combining marks removes any mark that combines
+// with a preceding letter; a title whose first character is a combining mark but is followed by
+// ordinary letters still folds down to those letters. The fallback fires only when the WHOLE
+// fold comes out empty — a title composed entirely of combining marks with nothing left once
+// they are stripped. In that one case the client falls back to the title's raw, un-folded first
+// character: a monumental letter showing nothing would be worse than an odd glyph, even though
+// it means showing a character the server's own fold did NOT sort the title on. Only a
+// genuinely empty title — which the API forbids — produces no label at all.
 export const indexLetterFor = (title) => {
   const folded = foldForSort(title).charAt(0);
   if (folded) return folded.toUpperCase();

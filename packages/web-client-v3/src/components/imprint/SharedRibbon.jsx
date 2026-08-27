@@ -15,9 +15,10 @@ const SharedRibbon = ({ direction, count, owner, inverted = false }) => {
   const tone = inverted ? 'text-cover-body' : 'text-shared';
 
   if (direction === 'out') {
-    // The COUNT is a labelled datum and takes the mono (§3); the word beside it does not. This
-    // component's comment has always said so, and the change that correctly took the mono off
-    // the word — and off the owner's address — did not put it back on the figure.
+    // The count is a labelled datum and takes Chivo Mono, reserved for numerals; the word beside
+    // it does not. This component's comment has always said so, and the change that correctly
+    // took the mono off the word — and off the owner's address — did not put it back on the
+    // figure.
     return (
       <span className={tone}>
         Shared · <span className="num">{count}</span>

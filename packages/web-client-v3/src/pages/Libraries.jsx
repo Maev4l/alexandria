@@ -86,11 +86,11 @@ const Libraries = () => {
             <>
               <StreamHead label="Mine" count={owned.length} />
               {owned.length === 0 && (
-                // §6's empty state: a ruled frame with a caps invitation, at the same weight as
+                // The empty state is a ruled frame with a caps invitation, at the same weight as
                 // a full block. This was a 12px `--ink-soft` line under a rule — quieter than the
                 // 22px/700 rows it stands in for, on the screen a cold open lands on — and it
-                // pointed at the bar below rather than carrying its own control (§6: recovery is
-                // a control, never an instruction to perform a gesture). The control duplicates
+                // pointed at the bar below rather than carrying its own control: recovery is a
+                // control, never an instruction to perform a gesture. The control duplicates
                 // the bottom bar's primary rather than replacing it, reached a different way —
                 // the same precedent LibraryBrowse's empty state sets for its own add action.
                 <div className="m-4 border-2 border-ink p-8 text-center">

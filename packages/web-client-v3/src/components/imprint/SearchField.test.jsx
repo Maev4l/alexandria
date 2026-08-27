@@ -54,7 +54,7 @@ describe('SearchField', () => {
     expect(await screen.findByText('at:/search')).toBeInTheDocument();
   });
 
-  // §4: gaps between blocks are whole divisions, always. The division is 8px, and `mt-3` is
+  // Layout gaps between blocks are whole divisions, always. The division is 8px, and `mt-3` is
   // 12px — 1.5 divisions. The only layout-scale gap in the app that was off the scale, on the
   // loudest mark in the design.
   it('sits a whole division from the block above it', () => {

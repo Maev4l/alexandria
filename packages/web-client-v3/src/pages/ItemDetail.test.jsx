@@ -340,7 +340,7 @@ describe('ItemDetail', () => {
     expect(plateLine.closest('p')).not.toHaveTextContent('Fiction');
   });
 
-  // Navigation is underlined, never accented (section 5, Detail Marks) — and DetailMarks'
+  // Navigation is underlined, never accented — and DetailMarks'
   // own `IN <library>` link, sixty lines above on this same screen, already obeys it.
   // Not a contrast fix: yellow on the cover measures 11.71:1.
   it('sets the full-record link in the cover body tone, like every other link on the cover', async () => {

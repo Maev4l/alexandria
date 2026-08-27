@@ -18,10 +18,10 @@ const COLLECTION = 2;
 
 const SkeletonRow = () => (
   <div className="flex gap-4 border-b border-ink p-4" aria-hidden="true">
-    {/* Ruled and NOT filled: §5's empty frame carries the rule and nothing else, and this
+    {/* Ruled and NOT filled: the empty frame carries the rule and nothing else, and this
         skeleton stands in for exactly that frame. The bars below keep their fill — a bar
-        stands in for a line of text, not for artwork, which is the case §5 names. ItemDetail's
-        skeleton already draws this distinction; the two screens now agree. */}
+        stands in for a line of text, not for artwork, which is the distinction that matters.
+        ItemDetail's skeleton already draws this distinction; the two screens now agree. */}
     <span data-skeleton="frame" className="h-[72px] w-12 border-2 border-ink" />
     <span className="flex-1">
       <span className="block h-3 w-12 bg-paper-deep" />
