@@ -68,6 +68,21 @@ This function resizes the book covers uploaded by the user in a S3 bucket, and c
 
 It relies on the sharp library and is deployed as a Docker Container.
 
+**Encoding: lossy WebP at quality 85, fitted inside 210x300.** It was `lossless: true` until
+measurement: 302 stored thumbnails averaged 67KB each (median 69KB, p90 87KB, max 111KB) for a
+210x300 cover, which at 30 rows per listing page is 2.0MB of covers per page — the visible
+window on mobile data between a row scrolling into view and its cover appearing. q85 is 4.3x
+smaller (~18KB) and gives up nothing measurable: encoding a stored lossless thumbnail at q85 is
+byte-identical, max per-pixel difference 0, to encoding its original source image directly.
+
+Every object it writes carries the user-metadata marker `encode: webp-q<quality>`. That marker
+exists for the CLI's `data reencode-thumbnails`, which re-queues stored thumbnails through this
+Lambda to convert the lossless back-catalogue: the marker's **presence** is what makes a second
+run skip an object instead of putting an already-lossy file through a second lossy pass. The
+resize is a no-op on the way through (verified on 10 real thumbnails: `fit: inside` with
+`withoutEnlargement` leaves an already-fitted image pixel-identical), so a re-queued object
+changes only its encoding.
+
 ### Consistency-manager
 
 Source code: @../packages/functions/consistency-manager

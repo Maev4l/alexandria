@@ -292,6 +292,30 @@ module "user_approval_trigger" {
 }
 
 
+# Resolves `latest` to the digest it currently points at, on every plan.
+#
+# The Lambda below used to reference the tag directly, and a tag cannot express "the image I just
+# pushed". Lambda resolves a tag to a digest once, at update time, and then caches it — so pushing
+# a new image to the same tag leaves the configured `image_uri` string unchanged, Terraform sees no
+# diff, apply reports no changes, and the function goes on running whatever digest it resolved
+# months ago. Every step of the deploy succeeds and nothing rolls out.
+#
+# That is the worst shape of failure this repo keeps finding: no error anywhere, and the only way
+# to notice is to check the function's LastModified or observe that its behaviour never changed.
+# It was found while shipping the lossy-thumbnail encode in this commit — not because it fired,
+# but because the function turned out to be five months stale for a different reason (a deploy
+# that pushes without building), and this would have been the next thing to swallow the deploy.
+#
+# With the digest interpolated instead, a new push changes the plan and the function updates.
+#
+# The cost, accepted: this data source requires the tag to already exist, so a from-scratch
+# bootstrap needs an image in ECR before the first apply. The repository is created here and the
+# push is a separate step in `make backend-deploy`, so that ordering already held in practice.
+data "aws_ecr_image" "images_processing" {
+  repository_name = aws_ecr_repository.images_processing.name
+  image_tag       = "latest"
+}
+
 module "image_processor" {
   source = "github.com/Maev4l/terraform-modules//modules/lambda-function?ref=v1.8.1"
 
@@ -302,7 +326,7 @@ module "image_processor" {
   additional_policy_arns = [aws_iam_policy.images_processor.arn]
 
   image = {
-    uri = "${aws_ecr_repository.images_processing.repository_url}:latest"
+    uri = "${aws_ecr_repository.images_processing.repository_url}@${data.aws_ecr_image.images_processing.image_digest}"
   }
 
   environment_variables = {
