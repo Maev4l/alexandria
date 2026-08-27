@@ -164,11 +164,20 @@ mounted across capture → results → capture, however many times, and unmounte
 the moment the reader leaves the flow for the library or anywhere else. That is exactly what a
 reader means by "this session", with no timer, no storage key to expire and nothing to clear by
 hand. Two alternatives were tried and are recorded in the source as worse. `location.state` works,
-but it would carry the tally in the one channel this flow's real inputs are barred from, and the
-capture screens' probes assert `state:none` on the hop to results precisely to catch a wholesale
-state forward sitting on top of an already-correct query — loosening them to make room for a
-decoration would remove the only assertion that catches it. `sessionStorage` survives too much: a
-reader returning to the same tab an hour later would be told nine items were filed "this session".
+but it is not the channel this flow's **identifying inputs** may travel in — the code or title
+looked up, and the collection being filed into, all ride in the query, because a cold load must be
+able to resume from the URL alone. State is not barred from the flow outright: it carries what is
+safely recoverable, which is why the candidates already paid for ride to the results screen in it,
+tagged `forIsbn` or `forTitle`. That is also what makes a tally there costly. **On the hop to
+results both capture screens assert the state EXACTLY, and it is non-empty** — those candidates and
+nothing else — and an exact match is what catches a wholesale `location.state` forward riding on
+top of an already-correct query, because such a forward carries keys the asserted shape does not
+have. Adding a tally would have meant loosening those probes to make room for a decoration. (The
+`state:none` probes that survive sit on a different navigation, the hop out to manual entry; an
+earlier draft of this paragraph put them on the results hop, having read a source comment written
+twenty minutes after the change it describes rather than the tests it describes.) `sessionStorage`
+survives too much: a reader returning to the same tab an hour later would be told nine items were
+filed "this session".
 
 **The camera lease, on that same span — and that is why the lease is released on
 `visibilitychange` rather than per captured item.** A capture screen borrows the shared stream and
@@ -1972,10 +1981,14 @@ fail loudly when the substrate moves.
 
 The design system asks in its own preamble that a document authored ahead of code be reconciled
 against what shipped rather than defended. This pass did that for both documents, and the ratio is
-the finding behind the findings: of **42 live findings, 8 needed a code change** — across ten source
-files and two guard widenings — and **34 were the document being the stale half**. Every one of the
-audit's third list, **21 entries**, was a construction the build needed and the design system had no
-category for; not one of them was a defect. A specification written ahead of code accumulates claims
+the finding behind the findings: of **44 live findings, 8 needed a code change** — across ten source
+files and two guard widenings — and **36 were the document being the stale half**. The 44 is the
+audit's own counts line — 14, 11 and 21 across its three lists — less the two already closed before
+the pass began; every retelling that subtracted those two a second time and said 42 was reading a
+summary rather than the artefact, which is this corpus's own recurring fault. Every one of the
+audit's third list, **21 entries**, was a construction the build needed and **the document** had no
+category for; not one of them was a defect — and two of the twenty-one, the layout route and the
+sheet's return path, were gaps in *this* file rather than in the design system. A specification written ahead of code accumulates claims
 the build has already answered better.
 
 This file came out of it well: its screen-by-screen descriptions were the most accurate part of the
