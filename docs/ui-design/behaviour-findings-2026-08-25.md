@@ -95,7 +95,7 @@ dead export and false of the shipped component.
 comment — *"2px stroke, square caps, no fill"* — is true of the one export nothing uses and false of
 the nine that ship. That comment was transcribed into the design system before review caught it.
 
-## 3. Pull-to-refresh draws skeletons above the rows the reader is already reading
+## 3. Pull-to-refresh draws skeletons above the rows the reader is already reading — RATIFIED
 
 `src/state/StreamContext.jsx` and `src/pages/LibraryBrowse.jsx`. Found while reconciling the state
 grammar, and it is the reason one sentence in that grammar could not be written the obvious way.
@@ -106,21 +106,21 @@ loading flag alone, and renders the loaded runs unconditionally underneath. So p
 library of a thousand items paints four skeleton rows **above** the thousand real ones, rather than
 replacing anything or appending anything.
 
-**Why it is recorded rather than fixed.** It is outside the 44 findings that pass applies, and it is
-not obviously a defect: skeletons above live content is a defensible way to say *new data is
-arriving*. What is certain is narrower and is the reason this note exists — **the design system
-cannot describe the loading state honestly while this is true**, because the natural sentence
-("skeletons stand in for content that is not there yet") is false of the refresh path, and the
-distinction the document draws between a cold load and an appended page has a third shape sitting
-between them that nobody named.
+**Why it was recorded rather than fixed on the spot.** It was outside the 44 findings that pass
+applied, and it was not obviously a defect: skeletons above live content is a defensible way to say
+*new data is arriving*. What was certain was narrower and is why the note existed at all — the design
+system could not describe the loading state honestly while the behaviour had no name, because the
+natural sentence ("skeletons stand in for content that is not there yet") is false of the refresh
+path, and the distinction the document drew between a cold load and an appended page had a third
+shape sitting between them that nobody had named.
 
-So the question for whoever picks this up is a product one, not a bug report: **should a refresh
-replace the stream, append to it, or draw above it?** All three are coherent; only the third is
-implemented, and it was implemented by omission rather than by decision — the entries are simply
-never cleared.
-
-The document has been written to describe the three shapes as they are rather than to assert the
-tidy two-shape rule. If the behaviour changes, that passage is where it will need to follow.
+**Ratified.** Drawing above is correct, and the reason is the mechanism itself: `refresh()` sets the
+loading flag without clearing the entries, so the reader keeps seeing what they already have for as
+long as the request is in flight, and only a null-token load — which starts from an empty array —
+swaps the whole stream in one motion once the response lands. That is the right behaviour on its own
+terms: a reader pulling to refresh a thousand-item library should not have it blanked onto bare paper
+while a request they already trust to succeed is still in the air. The design system now describes
+this as a decided third shape rather than as an unnamed omission.
 
 ## 4. A focus guard checks only the shorthand, while its comment says it checks every rule
 
