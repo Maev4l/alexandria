@@ -18,11 +18,13 @@ import { renderApp, stubFetch } from '@/test/appHarness.jsx';
 // this task was told NOT to expand into. A future screen with its own dead-end regression is expected to extend
 // this list.
 //
-// This paragraph used to add that those stubs "equally lack a back control". That stopped being
-// true — every stub named above now carries `onBack`, and `AddBook`/`AddVideo` carry a working
-// manual escape besides. The sentence survived because the FILE was still correct: its behaviour
-// needed no change when the exits landed, so nothing in that diff opened it. That is the whole
-// failure mode — the search after moving a control is not "what breaks" but "what now says
+// This paragraph used to add that the screens once named above "equally lack a back control".
+// That stopped being true when they shipped, and it stayed unnoticed for the same reason a stale
+// claim always does here: the FILE needed no change when the exits landed, so nothing in that
+// diff opened it. The two entry points this file actually presses — the libraries root and item
+// detail — each exercise a working back control directly, below, by clicking it; that is proven
+// by the test, not asserted by this comment. This is the whole failure mode the paragraph exists
+// to record — the search after moving a control is not "what breaks" but "what now says
 // something false", and only the second one finds a comment.
 vi.mock('@/auth/AuthContext.jsx', () => ({
   useAuth: () => ({ user: { id: 'OWNER1', initials: 'JR', email: 'jr@example.com', approved: true } }),
