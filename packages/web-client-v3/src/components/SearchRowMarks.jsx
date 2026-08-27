@@ -2,8 +2,8 @@ import SharedRibbon from '@/components/imprint/SharedRibbon.jsx';
 
 // What a search row adds to a stream row, and nothing else. Results span every library the
 // reader can see, so the shelf is the one fact a row here carries that the same row inside a
-// library must not (DESIGN.md §6: "on a search row, where the library name genuinely is new
-// information…").
+// library must not: on a search row, where the library name genuinely is new
+// information, it earns its place; inside a library, the header already carries it.
 //
 // TWO facts, not one restated. `In <library>` says where the copy is filed; `From <owner>` says
 // whose shelf that is, and only appears when the library was shared TO this reader. A library
@@ -11,12 +11,12 @@ import SharedRibbon from '@/components/imprint/SharedRibbon.jsx';
 //
 // It is an INLINE tag and never a left edge rule, which is the whole reason this component
 // exists rather than reusing the ribbon's edge construction from LibraryRow: the left edge is
-// spoken for by the Overprint Stamp's `--out` rule, and one element gets one left edge
-// (DESIGN.md §6). A lent book on someone else's shelf is a real row, and it must not have to
+// spoken for by the Overprint Stamp's `--out` rule, and one element gets one left edge.
+// A lent book on someone else's shelf is a real row, and it must not have to
 // choose which of its two states to show.
 //
 // `In` and `From` are interface labels and take the caps; the library name and the owner's
-// address are content the reader authored and never do (§3) — the same construction the Detail
+// address are content the reader authored and never do — the same construction the Detail
 // Marks column uses beside the item-detail hero.
 //
 // Deliberately not a link, unlike `IN <library>` on item detail: this renders inside `ItemRow`'s

@@ -8,7 +8,7 @@ import { useToast } from '@/state/ToastContext.jsx';
 const NAME_MAX = 50;
 
 // Detail's primary action either ACTS or asks for exactly what it needs — never a menu
-// (DESIGN.md, "A control labelled with a specific action performs that action"). Lend is the one
+// ("A control labelled with a specific action performs that action"). Lend is the one
 // case that genuinely needs input, a borrower's name, so it is a sheet holding ONLY that form:
 // no Edit, no Delete, nothing the reader did not ask for when they tapped "Lend".
 const LendSheet = ({ item, libraryId, open, onClose, onLent }) => {
@@ -47,7 +47,7 @@ const LendSheet = ({ item, libraryId, open, onClose, onLent }) => {
         value={borrower}
         onChange={(event) => setBorrower(event.target.value)}
       />
-      {/* §6's FIRST form — outline-fills-to-plate with no words — only works when a disabled
+      {/* The action slot's first form — outline-fills-to-plate with no words — only works when a disabled
           outline reads as "not yet". Here it sits directly beside Cancel, a secondary that is
           ALSO a ruled outline, so at rest the two controls are the same shape: the reader
           cannot tell commit from escape without reading 10px field-label caps above, in a flow

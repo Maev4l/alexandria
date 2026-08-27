@@ -7,8 +7,8 @@ import RowActions from '@/components/imprint/RowActions.jsx';
 import useLongPress from '@/lib/useLongPress.js';
 
 // `marks` is a slot, and it is EMPTY in the stream — inside a library the header already says
-// which library this is, and repeating it on every row is the labelled-twice rule (DESIGN.md §5).
-// Search is the one surface where the library is genuinely new information, so it is the one
+// which library this is, and repeating it on every row is the nothing-is-labelled-twice
+// discipline. Search is the one surface where the library is genuinely new information, so it is the one
 // caller that fills this. Keeping it a slot rather than writing a search-specific row is
 // deliberate: the `--out` edge, the stamp and the read-only behaviour all live here, and a
 // parallel row would drift from this one the first time any of them moved.
@@ -32,13 +32,13 @@ const ItemRow = ({ item, libraryId, onActions, marks, className }) => {
           <VolumeFrame item={item} />
           <span className="min-w-0 flex-1">
             {/* Content title — authored case, never uppercased. Type is no longer marked here:
-                the Plate Line below is the only place book and film differ (DESIGN.md §4). */}
+                the Plate Line below is the only place book and film differ. */}
             <span className="block text-[17px] font-semibold leading-[1.25]">
               {item.title}
             </span>
             <PlateLine item={item} />
             {/* Reading order: what it is, who it is by, where it is filed, whether it is out —
-                the same order DESIGN.md §5 gives the Detail Marks column. Whatever a caller
+                the same order the Detail Marks column uses beside the hero. Whatever a caller
                 puts here must be TEXT, never a link: this sits inside the row's own Link, and
                 an anchor inside an anchor is invalid markup that gives one row two
                 destinations. */}

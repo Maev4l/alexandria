@@ -49,7 +49,7 @@ describe('LibraryRow', () => {
 
   it('leaves the owner address in its own case, because an address is content', () => {
     renderRow({ ...sharedIn, sharedFrom: 'marie@example.com' });
-    // §3: interface labels are uppercase, content never is. An email is content.
+    // Interface labels are uppercase, content never is. An email is content.
     expect(screen.getByText(/marie@example\.com/).className).not.toContain('uppercase');
   });
 

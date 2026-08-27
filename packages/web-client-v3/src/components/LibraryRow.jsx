@@ -49,8 +49,8 @@ const LibraryRow = ({ library, onActions }) => {
                 the row falls silent when a library is neither shared out nor shared in. */}
             {/* Routed through the SAME vocabulary component DetailMarks already uses, rather
                 than a hand-rolled tag: this used to set the whole "Shared · N" string — and,
-                worse, the owner's email address — in `.num` (Chivo Mono), which DESIGN.md §3
-                reserves for numerals. Mono is for the count, not the word or the address. The
+                worse, the owner's email address — in `.num` (Chivo Mono), which is
+                reserved for numerals. Mono is for the count, not the word or the address. The
                 `caps` wrapper supplies the same 0.16em tracking DetailMarks' caller already
                 uses, so one component now renders at one tracking value everywhere. */}
             {sharedOutCount > 0 && (

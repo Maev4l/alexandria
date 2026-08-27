@@ -98,7 +98,7 @@ const ItemActionsSheet = ({ item, libraryId, open, onClose, onChanged, onDeleted
               one-way door before this pairing existed, and that fix is correct and unrelated
               to the one below. "Back", not "Cancel": this returns to the sheet's own menu
               rather than dismissing the sheet, so it keeps its own label.
-              §6's SECOND form (DESIGN.md, LendSheet's identical fix — same defect, second
+              The action slot's second form (LendSheet's identical fix — same defect, second
               place it shipped): a disabled primary renders as a ruled outline, and outline vs
               outline is not a distinguishable pair when both sit on screen at once — "Record
               the loan" and "Back" were the same shape at rest, in the flow PRODUCT.md times in

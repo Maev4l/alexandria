@@ -33,8 +33,7 @@ const renderRow = (item, props = {}) =>
 describe('ItemRow', () => {
   // Type used to be marked three redundant ways (a tag, a spine rule, the plate line). Two of
   // them are gone: the Plate Line's FIELDS are the only place a book and a film differ now — a
-  // film carries a year, a book does not — and that is deliberately the whole distinction
-  // (DESIGN.md §4).
+  // film carries a year, a book does not — and that is deliberately the whole distinction.
   it('marks type only through the plate line, nowhere else', () => {
     renderRow(film);
     expect(screen.getByText('1974')).toBeInTheDocument();

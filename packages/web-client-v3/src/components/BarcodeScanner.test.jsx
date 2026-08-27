@@ -91,7 +91,7 @@ describe('BarcodeScanner — the state machine', () => {
     expect(container.querySelectorAll('svg, canvas')).toHaveLength(0);
   });
 
-  // Fix round 1, finding 4: DESIGN.md §5 retired a filled empty Volume Frame for the same
+  // The Volume Frame's own fill was retired for the same
   // reason — "a filled rectangle where an image belongs reads as a failed image" — and this box
   // is waiting for a live picture the same way. The rule alone describes it.
   it('is a ruled box with no fill, before the stream attaches', () => {

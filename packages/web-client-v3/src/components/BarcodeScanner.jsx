@@ -19,7 +19,8 @@ const hasCamera = () =>
 // (an abandoned camera is a battery and privacy problem, not just a leak). The viewport's
 // APPEARANCE belongs to the design session working against a live device: no reticle, no scan
 // line, no corner brackets, no overlay distinguishing scanning from decoding from found. A plain
-// <video> inside the caller's Volume Frame, nothing drawn over it (ui-v3.md task 18 boundary).
+// <video> inside the caller's Volume Frame, nothing drawn over it — deliberately undesigned, left
+// to a later pass with a live feed on a device.
 //
 // States: `requesting` (permission not yet resolved), `scanning` (stream live, decoding every
 // frame), and the two conditions that end the attempt — `unsupported` (no camera API at all,
@@ -142,9 +143,9 @@ const BarcodeScanner = ({ onCode, onError, busy = false }) => {
   if (state === 'denied' || state === 'unsupported') return null;
 
   return (
-    // Ruled, not filled: DESIGN.md §5 retired a `--paper-deep`/`--cover-rule` fill on the empty
-    // Volume Frame for exactly this reason ("a filled rectangle where an image belongs reads as
-    // a failed image") and it applies here too — before the stream attaches, this box is
+    // Ruled, not filled: the Volume Frame's own fill was retired for exactly this reason ("a
+    // filled rectangle where an image belongs reads as a failed image") and it applies here too
+    // — before the stream attaches, this box is
     // waiting for a live picture the same way an empty frame is. The rule alone describes it.
     //
     // Full column width, fixed height 192px (24 divisions) — not the 2:3 Volume Frame ratio.

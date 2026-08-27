@@ -75,11 +75,11 @@ const LibraryActionsSheet = ({ library, open, onClose, onChanged, onDeleted }) =
               not have or a scrim aria-modal hides. Found while fixing lend — the pattern was
               wrong in two places, not one.
               THAT FIX WAS ONLY HALF DONE. Pairing Share with a "Back" secondary solved the
-              one-way door, but a disabled primary still renders as a ruled ink outline (§5),
+              one-way door, but a disabled primary still renders as a ruled ink outline,
               and an outline next to an outline of the same colour is not a distinguishable pair
               at rest — the exact shape collision LendSheet had. It was seen at the time (the
-              comment above says so) and not fixed then; it is fixed now, with the same §6
-              second-form treatment as LendSheet and ItemActionsSheet's lend mode: the empty-
+              comment above says so) and not fixed then; it is fixed now, with the same action
+              slot second-form treatment as LendSheet and ItemActionsSheet's lend mode: the empty-
               email slot names the reason instead of showing a disabled twin of Back, and swaps
               to the filled plate once the address is present. "Back" stays "Back" — this
               returns to the sheet's own menu, it does not dismiss the sheet, so it is not

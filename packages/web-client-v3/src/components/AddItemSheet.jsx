@@ -38,8 +38,9 @@ const AddItemSheet = ({ open, onClose, libraryId, collection, onBack }) => {
         <PlateButton onClick={() => navigate(`/libraries/${libraryId}/add/video${query}`)}>
           Film
         </PlateButton>
-        {/* Absent, not disabled, when opened from a board (DESIGN.md §6's read-only rule
-            applied to a single option rather than a whole screen): filing into `collection` IS
+        {/* Absent, not disabled, when opened from a board (an action that does not apply is
+            absent, not offered — the same rule read-only rows use, applied here to a single
+            option rather than a whole screen): filing into `collection` IS
             this sheet's premise here, and "New collection" means abandoning that to go make an
             unrelated one. */}
         {!collection && (

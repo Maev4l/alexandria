@@ -17,8 +17,8 @@ describe('ItemForm', () => {
     expect(screen.getByLabelText(/order in the collection/i)).toBeInTheDocument();
   });
 
-  // task-17a: the pair requirement was invented by this project (.claude/ui-v3.md, corrected
-  // at e302fd1) — the server ranks an order-less new item last (`maxOrder + 1`), so a brand-new
+  // The pair requirement was invented by this project, and corrected (commit e302fd1)
+  // — the server ranks an order-less new item last (`maxOrder + 1`), so a brand-new
   // item choosing a collection must be free to leave the order box empty.
   it('omits the order rather than sending 0 when the box is empty', async () => {
     const onSubmit = vi.fn().mockResolvedValue();
@@ -58,9 +58,9 @@ describe('ItemForm', () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ collectionId: 'coll-2', order: null }));
   });
 
-  // An UNCHANGED collection is the one case the server never re-ranks (task-17a-brief.md) — a
+  // An UNCHANGED collection is the one case the server never re-ranks — a
   // null order there corrupts the record, so the reason is the disabled button itself
-  // (DESIGN.md §6, first form): it stands alone in its row, so the empty box sitting right
+  // (the action slot's first form): it stands alone in its row, so the empty box sitting right
   // above it IS the visible reason, with no separate caps explanation needed.
   it('disables submit — wordlessly — when an edit leaves its unchanged collection without an order', async () => {
     const onSubmit = vi.fn();
@@ -157,7 +157,7 @@ describe('ItemForm', () => {
     expect(onSubmit.mock.calls[0][0].authors).toEqual(['Raymond Chandler', 'Boris Vian']);
   });
 
-  // The corrected ruling (ui-v3.md, "the cover becomes a field"): a new item has no detection
+  // The corrected ruling ("the cover becomes a field"): a new item has no detection
   // result yet, so the field exists but starts empty rather than being withheld — withholding
   // it would repeat the exact gate-on-presence mistake the checkbox shipped with.
   it('offers an empty cover image field on a new item, with no source yet to pre-fill it', () => {

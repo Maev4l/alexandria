@@ -49,7 +49,7 @@ describe('LibraryActionsSheet', () => {
 
   // The third place this exact defect shipped (LendSheet, then ItemActionsSheet's lend mode):
   // a disabled primary renders as a ruled ink outline, indistinguishable at rest from the "Back"
-  // outline beside it. DESIGN.md §6's second form names the reason instead, in the button's own
+  // outline beside it. The action slot's second form names the reason instead, in the button's own
   // position, until the field is valid.
   it('names the reason instead of showing a disabled twin of Back, until an email is given', async () => {
     renderSheet();

@@ -7,8 +7,8 @@
 // pointing at — legible and illegible within one render, at a contrast the design cannot
 // predict because it does not own the pixels underneath.
 //
-// That is DESIGN.md §2's law read in the direction nobody checks: "anything that sets a ground
-// sets its foreground" was written for a surface painting its own background. Here nothing set a
+// That is the ground-and-foreground law read in the direction nobody checks: "a ground's text is
+// coloured at or below it" was written for a surface painting its own background. Here nothing set a
 // ground at all, which is the same defect arriving from the other side — and the injected
 // contrast detector reported nothing, because transparency over a <video> gives it no ground to
 // compute against. Only measurement finds this class of failure.

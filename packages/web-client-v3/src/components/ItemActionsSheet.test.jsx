@@ -58,7 +58,7 @@ describe('ItemActionsSheet', () => {
 
   // The second place this exact defect shipped (LendSheet was the first): a disabled primary
   // renders as a ruled outline, indistinguishable at rest from the "Back" outline beside it —
-  // DESIGN.md §6's SECOND form names the reason instead, in the button's own position, until
+  // the action slot's second form names the reason instead, in the button's own position, until
   // the field is valid.
   it('names the reason instead of showing a disabled twin of Back, until a name is given', async () => {
     renderSheet(atHome);
@@ -96,7 +96,8 @@ describe('ItemActionsSheet', () => {
         status: 500,
         headers: new Headers({ 'content-type': 'application/json' }),
         // Deliberately NOT a message that reads well — proving the app never renders it, per
-        // ui-v3.md §7 and api/client.js's STATUS_COPY map.
+        // api/client.js's STATUS_COPY map: an error must never attribute a system fault to the
+        // reader, so the server's raw prose never reaches the screen.
         json: async () => ({ message: 'internal failure xyz' }),
       })),
     );

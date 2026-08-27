@@ -76,7 +76,7 @@ const captureFramedRegion = (video) => {
 };
 
 // The MECHANISM only — permission request and a manual shutter — same boundary BarcodeScanner
-// draws (ui-v3.md task 19): the viewport's APPEARANCE belongs to the design session working
+// draws: the viewport's APPEARANCE belongs to the design session working
 // against a live device. No reticle, no framing guide, no capture animation, no mark
 // distinguishing requesting from ready. A plain <video> inside an ink-ruled 2:3 box, nothing
 // drawn over it.
@@ -166,7 +166,7 @@ const CoverCapture = ({ onCapture, onError, busy = false, showGuidance = true })
     // the 240px height was chosen to preserve. The block is centred; the camera is 32px high of
     // centre; that is the trade and it is deliberate.
     <div className="flex min-h-0 w-full flex-col items-center">
-      {/* Ruled, not filled (DESIGN.md §5): "ruled means the rule and nothing else" — a filled
+      {/* Ruled, not filled: "ruled means the rule and nothing else" — a filled
           rectangle where a live picture belongs reads as a failed image before the stream ever
           attaches, the same reasoning that emptied VolumeFrame's and BarcodeScanner's boxes.
           Full width, fixed 240px tall, landscape: the capture reads a TITLE, not cover art — the

@@ -26,8 +26,8 @@ export const ChevronLeft = (props) => (
 );
 
 // The select's own disclosure mark — drawn by hand so it sits on the same 2px stroke as every
-// other mark, rather than the browser's native arrow (§9: chrome this world has no vocabulary
-// for; the native glyph is neither a rule nor drawn at this stroke weight).
+// other mark, rather than the browser's native arrow (native control chrome this world has no
+// vocabulary for; the native glyph is neither a rule nor drawn at this stroke weight).
 export const ChevronDown = (props) => (
   <Mark {...props}>
     <path d="M4 7 L10 13 L16 7" />
@@ -81,17 +81,18 @@ export const Copy = (props) => (
 );
 
 // SQUARE caps, not round. These are zero-length paths, so the linecap IS the dot — and with
-// `round` they rendered as circles where DESIGN.md §5 says "three 3px ink squares — not round
-// dots, not a text ellipsis: the world has no radii". A direct contradiction of a rule stated in
-// the negative, app-wide, that nobody had filed.
+// `round` they rendered as circles where the Row Actions rule reads "three 3px ink squares —
+// not round dots, not a text ellipsis: the world has no radii". A direct contradiction of a
+// rule stated in the negative, app-wide, that nobody had filed.
 export const More = (props) => (
   <Mark {...props}>
     <path d="M4 10 H4.01 M10 10 H10.01 M16 10 H16.01" strokeWidth="3" strokeLinecap="square" />
   </Mark>
 );
 
-// The password-reveal pair. Not a state-carrying icon in the sense DESIGN.md §9 refuses: the
-// state (masked vs. showing) is already legible in the field itself — the reader can see
+// The password-reveal pair. Not a state-carrying icon in the sense this system refuses — an
+// icon standing in for state with nothing to read: the state (masked vs. showing) is already
+// legible in the field itself — the reader can see
 // whether their password is showing by looking at their password — so the glyph carries no
 // fact that has no words behind it, only the toggle's own action affordance.
 export const Eye = (props) => (

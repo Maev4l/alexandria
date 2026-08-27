@@ -31,7 +31,7 @@ beforeEach(okFetch);
 afterEach(() => vi.unstubAllGlobals());
 
 // Detail's rebuilt actions: Lend is the one action that still needs a sheet, because it
-// genuinely needs input (a borrower's name) — and per DESIGN.md this sheet holds ONLY that
+// genuinely needs input (a borrower's name) — and this sheet holds ONLY that
 // form. It replaces `ItemActionsSheet` on this one screen, which offered Edit/Lend/Delete
 // behind a button labelled with a single specific action — the defect this component fixes.
 describe('LendSheet', () => {
@@ -52,7 +52,7 @@ describe('LendSheet', () => {
     expect(screen.queryByText(/left/i)).toBeNull();
   });
 
-  // DESIGN.md §6's SECOND form: at rest there is no disabled "Record the loan" outline sitting
+  // The action slot's second form: at rest there is no disabled "Record the loan" outline sitting
   // next to the "Cancel" outline (the critique's finding — the two used to be the same shape).
   // The reason occupies the slot instead, and only the filled plate appears once the field is
   // valid.
@@ -97,7 +97,8 @@ describe('LendSheet', () => {
         status: 500,
         headers: new Headers({ 'content-type': 'application/json' }),
         // Deliberately NOT a message that reads well — proving the app never renders it, per
-        // ui-v3.md §7 and api/client.js's STATUS_COPY map.
+        // api/client.js's STATUS_COPY map: an error must never attribute a system fault to the
+        // reader, so the server's raw prose never reaches the screen.
         json: async () => ({ message: 'internal failure xyz' }),
       })),
     );

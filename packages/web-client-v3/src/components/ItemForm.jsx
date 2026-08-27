@@ -60,7 +60,7 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
   const [error, setError] = useState(null);
   const [isBusy, setIsBusy] = useState(false);
 
-  // The submit button IS the reason (DESIGN.md §6, first form): it stands alone in its row —
+  // The submit button IS the reason (the action slot's first form): it stands alone in its row —
   // no secondary or destructive control beside it to confuse with — so a required-but-empty
   // order field is stated by the disabled outline itself, filling to a plate the moment it's
   // filled. No separate caps explanation is needed, because the empty box sitting right above
@@ -91,7 +91,7 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
   const onOrderChange = (event) => {
     const value = event.target.value;
     setValues((current) => ({ ...current, order: value }));
-    // The pair is validated and reported as one (DESIGN.md §6), so either half of it clears
+    // The pair is validated and reported as one, so either half of it clears
     // the same error.
     setErrors((current) => ({ ...current, collection: undefined }));
   };
@@ -201,12 +201,12 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
         error={errors.summary}
         onChange={set('summary')}
       />
-      {/* Shared by both types, and editable rather than a re-fetch toggle (DESIGN.md, "the cover
+      {/* Shared by both types, and editable rather than a re-fetch toggle ("the cover
           becomes editable"): detection frequently returns no cover at all, and gating a control
           on `pictureUrl` already existing excludes exactly the reader who needed one. The source
           is never named ("from Babelio") — the reader cannot act on which resolver produced it,
           only on the address itself, so that is the only thing this field states. A plain text
-          input, not `.num`: an address is not a numeral (§3). */}
+          input, not `.num`: an address is not a numeral. */}
       <Field
         label="Cover image"
         type="url"
@@ -281,7 +281,7 @@ const ItemForm = ({ type, initial, collections, onSubmit, submitLabel }) => {
         />
       )}
 
-      {/* Both controls above render together and are validated as one pair (DESIGN.md §6) — a
+      {/* Both controls above render together and are validated as one pair — a
           single error under both, not two field-level messages the reader has to reconcile. */}
       {errors.collection && (
         <p role="alert" className="mb-6 border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
