@@ -200,10 +200,27 @@ try {
       'focusing the password input makes the FIELD visibly focused',
       `field outline: ${onInput.control.style} ${onInput.control.width}px`,
     );
+    // BOTH BRANCHES OF `Field` MUST INDICATE IDENTICALLY, and that is asserted by comparing
+    // them rather than by pinning each to a number. `Field` renders a password through a
+    // `.field-control` row and every other input as a bare element, and the two took their ring
+    // from different rules — 2px offset on the plain input, 0 on the password row — so the login
+    // form showed one field with a concentric ring and the next with a merged one, on adjacent
+    // rows, for the same gesture. Two independent per-site offset assertions could not see that:
+    // each passed against the value its own site happened to have.
+    //
+    // Owner's ruling: the plain input's appearance is the one to keep, so this reverses RULING 1
+    // for `Field` (see index.css). The email field is read on this same screen, because the whole
+    // defect is a difference between two fields a reader sees at once.
+    const plainOffset = await page.evaluate(() => {
+      const el = document.querySelector('input[type=email]');
+      el.focus();
+      return getComputedStyle(el).outlineOffset;
+    });
+    await page.focus('input[type=password]');
     record(
-      onInput.control.offset === '0px',
-      'the field ring merges with its own rule rather than doubling it',
-      `outline-offset: ${onInput.control.offset}`,
+      onInput.control.offset === plainOffset,
+      "the password field's ring is indistinguishable from a plain field's",
+      `password offset ${onInput.control.offset} vs plain input offset ${plainOffset}`,
     );
     record(
       onInput.input.style === 'none',

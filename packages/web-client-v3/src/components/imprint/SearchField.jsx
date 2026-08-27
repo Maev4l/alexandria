@@ -84,7 +84,7 @@ const SearchField = ({ className, value, onQueryChange, onSubmit }) => {
       // distances inside a block — a caps label and the thing it labels — and this is not one of
       // those: it is the distance from the block above to this one. It sat at `mt-3`, 12px, one and
       // a half divisions, at layout scale, on the one mark the product's first principle is about.
-      className={`field-control mt-4 flex min-h-12 items-center gap-2 border-2 border-ink bg-imprint px-2 ${className ?? ''}`}
+      className={`field-control field-control-merged mt-4 flex min-h-12 items-center gap-2 border-2 border-ink bg-imprint px-2 ${className ?? ''}`}
     >
       <input
         ref={inputRef}

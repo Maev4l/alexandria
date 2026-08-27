@@ -271,12 +271,38 @@ read as one of them. Do not fake a double ring with `box-shadow` either —
 the no-shadow law in §4 is mechanically checkable, and a shadow-shaped outline defeats the check.
 
 **Where an element already carries an ink rule, focus THICKENS that rule — it never adds a second,
-concentric one.** Two parallel ink lines with a strip of ground between them read as misregistered
-printing, not as emphasis. The offset ring was specified for a plate: a small solid `--imprint`
-rectangle with no rule of its own. Applied to something that is both imprint-grounded *and*
-ink-bordered — the search field — it produces exactly that doubled edge. Render the indicator at
-`outline-offset: 0` so it merges with the existing border into one heavier rule. State expressed by
-rule weight is already this system's language (§4); focus is not an exception to it.
+concentric one. Except on a `Field`, where it does, on the owner's ruling.** Two parallel ink lines
+with a strip of ground between them read as misregistered printing, not as emphasis. The offset ring
+was specified for a plate: a small solid `--imprint` rectangle with no rule of its own. Applied to
+something that is both imprint-grounded *and* ink-bordered — the search field — it produces exactly
+that doubled edge, so **the search field renders at `outline-offset: 0`** and merges into one heavier
+rule. State expressed by rule weight is already this system's language (§4).
+
+**The exception is not a lapse in the rule; it is the rule losing to consistency across a form.**
+`Field` draws a password through a row (input plus reveal mark, the rule on the row) and every other
+input as a bare element carrying its own `border-b-2`. Both already carry an ink rule, and both
+should therefore have merged — but only the row did, because it took its ring from the rule above
+while the plain input fell through to the base `:focus-visible` at 2px. So the login form showed a
+merged edge on one field and a concentric ring on the next, **on adjacent rows, for the same
+gesture**, and the ruling had been honoured on exactly one branch of one component.
+
+Either treatment applied to both would have been better than that. The owner chose the plain input's
+appearance, and the reason generalises: **a reader meets two fields at once and never meets one field
+twice**, so a difference between neighbours costs more than a doubled edge does. Every `Field` in the
+app now draws the concentric ring at 2px, accepting the doubled bottom rule.
+
+The search field keeps the merge, and its exception sits **in the data rather than in convenience**:
+it carries a full 2px box rule on all four sides, so a concentric ring there doubles the entire box
+rather than one edge, and it has no sibling control beside it to disagree with. `index.css` names
+that `.field-control-merged` so it cannot be read later as a leftover.
+
+**What let this ship is the shape worth copying.** The browser suite asserted `outline-offset: 0`
+twice — once for the search field, once for the password field — and nowhere else, so a rule about
+*every* ink-ruled control was checked at exactly the two sites that already obeyed it, and the plain
+input, which is every other input in the app, had no assertion at all. Two independent per-site
+assertions cannot see a divergence between the sites: each passes against the value its own site
+happens to have. The check now **compares the two branches on one screen** instead of pinning each to
+a number, so it fails when they differ regardless of which value either one holds.
 
 **Focus belongs to the control a reader sees, not to the node that happens to take the caret.** The
 search field is one control — ground, rule, input and mark together — so its indicator renders on
@@ -1355,8 +1381,9 @@ What is left is three rows — two motions that run, and one that says there is 
 - Contrast targets per §2, with `--out` restricted to large/bold text, rules and stamp outlines.
 - Minimum touch target 6 divisions (48px).
 - Focus ring: the structural tone that contrasts with its own ground — `--ink` on `--paper` and on
-  `--imprint`, `--paper` on the black cover. 3px, 2px offset; offset 0 where an ink rule already
-  exists, so focus thickens that rule rather than drawing a concentric second one beside it. This
+  `--imprint`, `--paper` on the black cover. 3px at 2px offset everywhere, including every `Field`,
+  whose own ink rule it deliberately doubles rather than merging with — see §2, where the reasoning
+  and the one control that still merges (the search field) are recorded. This
   line described the **pre-rewrite** ring for as long as the rewrite had been in the colour
   section — 3px `--imprint` at 2px offset, which the palette law's own arithmetic forbids, since
   yellow at ~1.55:1 on paper cannot describe a form at all. **A rule restated in a summary list is

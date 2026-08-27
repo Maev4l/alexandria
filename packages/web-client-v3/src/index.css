@@ -223,15 +223,42 @@
      ground is `--imprint`, so a yellow ring sat on yellow and described nothing at all; and it is
      every `Field` in the app, where yellow on paper measures ~1.55:1 against WCAG 2.2 SC 1.4.11's
      3:1 floor. Ink is 11.71:1 on the accent and 18.18:1 on paper.
-     `outline-offset: 0` is unchanged and is a different rule (RULING 1 above): where an element
-     already carries an ink rule, focus THICKENS it rather than drawing a concentric second one. */
+     The OFFSET no longer follows RULING 1 here — see the block below, which records why and
+     which control still keeps the merge. This paragraph is about the colour only; it used to end
+     by calling `outline-offset: 0` unchanged, which stopped being true the moment the offset
+     changed and would have read as a checked condition. */
   .field-control:has(input:focus-visible) {
     outline: 3px solid var(--ink);
-    outline-offset: 0;
+    outline-offset: 2px;
   }
 
   .field-control:has(input:focus-visible) input {
     outline: none;
+  }
+
+  /* 2px, MATCHING THE BASE RING — and this REVERSES RULING 1 for `Field`, by the owner's
+     ruling, deliberately and not by drift.
+
+     `Field` draws a password through a `.field-control` row and every other input as a bare
+     element carrying its own `border-b-2`. Both therefore already carry an ink rule, but they
+     took their ring from different places: the row from the rule above, the plain input from the
+     base `:focus-visible`. At offset 0 against 2px that put a merged edge on one field and a
+     concentric ring on the next — on ADJACENT ROWS OF THE LOGIN FORM, for the same gesture.
+     RULING 1 was honoured on exactly one branch of one component and breached on the other, which
+     is worse than either treatment applied consistently.
+
+     RULING 1's artefact is real: the ring lands 2px outside the field's own rule with ground
+     showing between, so the bottom edge reads as two parallel ink lines. That is now the app's
+     treatment on every `Field`, chosen over the merge because a reader meets two fields at once
+     and never meets one field twice. Consistency across a form beats the cleaner single edge.
+
+     THE SEARCH FIELD KEEPS THE MERGE, and its exception is in the data rather than in
+     convenience: it carries a full 2px box rule on all four sides, so a concentric ring there
+     doubles the entire box rather than one edge, and it has no sibling control beside it to
+     disagree with. `.field-control-merged` below is that exception, named so it cannot be
+     mistaken for a leftover. */
+  .field-control-merged:has(input:focus-visible) {
+    outline-offset: 0;
   }
 }
 
