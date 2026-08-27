@@ -1,4 +1,4 @@
-# Three behaviour findings, found while reconciling the documents — not fixed there
+# Four behaviour findings, found while reconciling the documents — not fixed there
 
 Found during `docs/superpowers/plans/2026-08-25-ui-v3-reconciliation.md`, which is a documentation
 pass over the design system. None is one of the 44 audited findings that pass applies, and
@@ -93,3 +93,34 @@ never cleared.
 
 The document has been written to describe the three shapes as they are rather than to assert the
 tidy two-shape rule. If the behaviour changes, that passage is where it will need to follow.
+
+## 4. A focus guard checks only the shorthand, while its comment says it checks every rule
+
+`packages/web-client-v3/src/tokens.test.js`, around line 151. Found by the review of the final
+comment sweep, on a line that sweep had rewritten.
+
+The comment says the check covers **every** focus rule rather than only the base one, and its test is
+named for spending no accent on any focus outline *anywhere in the stylesheet*. The filter behind
+both matches the `outline:` **shorthand** only.
+
+Two focus rules in `src/index.css` set their colour by longhand `outline-color` — the inverted cover
+surface and the accent-ground flip — and neither is visible to the check. So the sibling-rule drift
+the comment exists to prevent is undetectable in exactly the two rules written the other way, and
+that drift is not hypothetical here: this pass began with a defect of precisely that shape, where a
+focus ruling changed one rule and its sibling silently kept the accent.
+
+**Not fixed in that sweep, deliberately.** That task was comment-only, and widening what a guard
+detects is a behaviour change needing its own verification — including confirming that the two
+longhand rules pass once they become visible. The comment was corrected to describe what the code
+actually checks, which is that task's own rule.
+
+**What the fix is.** Match the longhand as well as the shorthand, then re-run and confirm the two
+newly-visible rules pass rather than assuming they will. If either fails, that is a real finding and
+not a guard bug.
+
+**The general shape, which is this pass's most repeated lesson.** A guard's comment is the most
+authoritative statement of its rule outside the specification, and it is written by the person who
+believes the code does what they meant. This is the third guard in this pass found describing
+something its own code does not do — after one quoting a retired stricter rule as current, and one
+whose fallback claim was inverted.
+
