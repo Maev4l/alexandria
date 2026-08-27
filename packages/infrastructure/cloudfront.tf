@@ -32,6 +32,21 @@ resource "aws_cloudfront_origin_access_control" "thumbnails" {
 }
 
 # CloudFront Function to strip /thumbnails prefix
+#
+# INVALIDATING THUMBNAILS USES `/user/*`, NOT `/thumbnails/*`. This function runs on
+# viewer-request, and the cache key is computed AFTER it rewrites the URI — so these objects are
+# cached under `/user/<owner>/library/<id>/item/<id>`, and the `/thumbnails/` prefix the reader
+# sees exists only in front of this function. An invalidation for `/thumbnails/*` matches no cache
+# key at all: it is accepted, it reaches status Completed, and it clears nothing.
+#
+# That is as silent as a failure gets, and it cost real time during the lossy-thumbnail
+# migration: three separate invalidations of the public path all reported Completed while 57 of
+# 302 covers went on being served at their old size. It even produced a false confirmation — a
+# request for a path that had never been cached returned the new bytes as a MISS, which reads
+# exactly like an invalidation that worked.
+#
+# `frontend-invalidate`'s `/*` is unaffected, since it matches everything either way. Anything
+# narrower aimed at covers must use the rewritten path.
 resource "aws_cloudfront_function" "strip_thumbnails_prefix" {
   name    = "alexandria-strip-thumbnails-prefix"
   runtime = "cloudfront-js-2.0"

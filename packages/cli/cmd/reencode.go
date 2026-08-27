@@ -174,8 +174,13 @@ func reencodeThumbnails(ctx context.Context, ddb *dynamodb.Client, s3Client *aws
 		fmt.Println()
 		fmt.Println("The image processor re-encodes these asynchronously. Re-run this command to")
 		fmt.Println("verify: everything queued above should then report as already lossy.")
-		fmt.Println("Then invalidate the CDN, or readers keep the old bytes for up to 7 days:")
-		fmt.Println("  aws cloudfront create-invalidation --paths '/thumbnails/*' \\")
+		fmt.Println("Then invalidate the CDN, or readers keep the old bytes for up to 7 days.")
+		// `/user/*`, NOT the `/thumbnails/*` path a reader sees: a viewer-request function strips
+		// that prefix before the cache key is computed, so an invalidation of the public path
+		// matches nothing, reports Completed, and clears nothing. See cloudfront.tf.
+		fmt.Println("Note the path: the /thumbnails prefix is stripped before the cache key, so")
+		fmt.Println("invalidating '/thumbnails/*' completes successfully and clears NOTHING.")
+		fmt.Println("  aws cloudfront create-invalidation --paths '/user/*' \\")
 		fmt.Println("    --distribution-id $(terraform -chdir=packages/infrastructure output -raw cloudfront_distribution_id)")
 	}
 

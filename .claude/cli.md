@@ -69,7 +69,10 @@ CLI resolves it to the Cognito username internally.
     verify a previous run** — everything queued should come back as already lossy.
   - The image processor must be deployed with the lossy setting *first*, or every object is
     re-encoded losslessly again and nothing changes.
-  - Afterwards, invalidate `/thumbnails/*` on the CloudFront distribution; the objects are
+  - Afterwards, invalidate **`/user/*`** on the CloudFront distribution — *not* `/thumbnails/*`:
+    a viewer-request function strips that prefix before the cache key is computed, so
+    invalidating the public path matches no cache key, reports `Completed`, and clears nothing
+    (see `packages/infrastructure/cloudfront.tf`). The objects are
     served `immutable, max-age=604800` keyed on `?v={updatedAt}`, which this deliberately
     does not bump (bumping it would rewrite every item row and ripple through the
     consistency-manager and indexer streams to change a byte count).
