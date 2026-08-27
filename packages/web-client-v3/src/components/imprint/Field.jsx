@@ -9,10 +9,10 @@ import { ChevronDown, Eye, EyeOff } from '@/components/icons/index.jsx';
 // `aria-required` announce "<label>, required" while the reader is IN the field, rather than only
 // at a disabled submit button where a sighted reader merely observes the consequence (see
 // PlateButton's `reason`). The location of a visual affordance is not necessarily the right
-// location for its non-visual equivalent — that is now DESIGN.md §6's general rule, and this and
+// location for its non-visual equivalent — that is now a general rule in this system, and this and
 // `reason` are its two instances. `noValidate` on every form using Field is what keeps `required`
-// from also raising the browser's own validation bubble, chrome this world has no vocabulary for
-// (§9) — verified against every `<form>` in the app before relying on it here.
+// from also raising the browser's own validation bubble, native chrome this world has no
+// vocabulary for — verified against every `<form>` in the app before relying on it here.
 // `liveHint`: the hint CHANGES as the reader types and the change is the information — a password
 // rule list that goes from four unmet to none is silent otherwise, so the qualifying moment, the
 // one the reader is waiting for, is the one nothing announces.
@@ -21,9 +21,10 @@ import { ChevronDown, Eye, EyeOff } from '@/components/icons/index.jsx';
 // would announce unchanging text on each render, which is the crying-wolf failure that gets a
 // mechanism switched off rather than fixed.
 //
-// Note the parity argument this shares with §6's disabled primary: both are cases where the visual
-// signal (a list shortening, an outline filling to a plate) has no non-visual equivalent, and both
-// belong in this shared primitive rather than on the screens that surface them.
+// Note the parity argument this shares with the disabled primary button's own `reason` text: both
+// are cases where the visual signal (a list shortening, an outline filling to a plate) has no
+// non-visual equivalent, and both belong in this shared primitive rather than on the screens that
+// surface them.
 const Field = ({ label, error, hint, liveHint = false, counter, className, as = 'input', type, required = false, ...props }) => {
   const id = useId();
   const Tag = as;
@@ -47,10 +48,10 @@ const Field = ({ label, error, hint, liveHint = false, counter, className, as = 
 
   return (
     <div className={cn('mb-6', className)}>
-      {/* +0.12em, named in §3 against the section header's +0.16em. The difference is the point:
-          both were 11px caps in the same tone, so nothing marked where one section's heading ended
-          and its fields began — and the register carries that distinction without a new rule or a
-          new size. */}
+      {/* +0.12em — the field label's own tracking value, distinct from the section header's
+          +0.16em. The difference is the point: both were 11px caps in the same tone, so nothing
+          marked where one section's heading ended and its fields began — and the register carries
+          that distinction without a new rule or a new size. */}
       <label htmlFor={id} className="caps mb-1 block text-[11px] font-bold tracking-[0.12em] text-ink-soft">
         {label}
       </label>
@@ -83,8 +84,9 @@ const Field = ({ label, error, hint, liveHint = false, counter, className, as = 
           </button>
         </div>
       ) : as === 'select' ? (
-        // A native <select> draws its own disclosure arrow, which is exactly the chrome §9
-        // refuses — a glyph this world never authored, at someone else's stroke weight. The
+        // A native <select> draws its own disclosure arrow, which is exactly the native control
+        // chrome this world has no vocabulary for — a glyph this world never authored, at
+        // someone else's stroke weight. The
         // select itself stays the real, focusable, keyboard-operable control (its own
         // :focus-visible ring needs no help, unlike the compound password/search fields
         // above); only the arrow is replaced, drawn over it and out of the tab order.
@@ -144,11 +146,11 @@ const Field = ({ label, error, hint, liveHint = false, counter, className, as = 
             {error || hint}
           </span>
           {/* A bare `100` (or, at the moment it matters most, a bare `3`) is an unlabelled
-              number — DESIGN.md §3's mono-numerals rule doesn't cover the WORD beside it, and a
-              figure alone reads as noise. `<n> LEFT`: the figure inherits `.num` from this
-              wrapper (mono), the caps label resets to the sans explicitly — `caps` carries case
-              and tracking only (§3), never weight, so `font-bold` is stated here rather than
-              assumed. This single span is now the ONE place the split happens; ItemForm.jsx's
+              number — only the figure may be mono, never the word beside it, and a figure alone
+              reads as noise. `<n> LEFT`: the figure inherits `.num` from this wrapper (mono), the
+              caps label resets to the sans explicitly — `caps` carries case and tracking only,
+              never weight, so `font-bold` is stated here rather than assumed. This single span is
+              now the ONE place the split happens; ItemForm.jsx's
               own `remaining()` used to duplicate it (double `.num` wrap: its outer span here
               plus the inner one `remaining()` built for the figure) and has been removed in
               favour of this. */}

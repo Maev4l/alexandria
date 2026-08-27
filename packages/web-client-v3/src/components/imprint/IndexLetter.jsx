@@ -13,8 +13,9 @@
 //
 // The mechanism was never wrong: an outline traced per stroke does collide wherever a counter is
 // narrower than twice the stroke. It simply does not bite in this face at these parameters. That
-// makes the treatment correct but parameter-bound — DESIGN.md §4 requires re-verifying against
-// rendered crops whenever weight, width or stroke moves, and scripts/check-index-letter.mjs pins it
+// makes the treatment correct but parameter-bound — parameters are set from rendered output and
+// must be re-verified against crops whenever weight, width or stroke moves, and
+// scripts/check-index-letter.mjs pins it
 // so a change cannot pass silently. Solid ink would have been more robust; the guard is what was
 // bought instead, and the difference that makes it acceptable is that this fails loudly.
 //
@@ -42,7 +43,7 @@ const IndexLetter = ({ letter, count }) => (
     {/* No count on the run still filling: it would grow while the reader looks at it.
         Only the figure is a numeral — "volume"/"volumes" is a word, so it stays in the sans
         (inherited, no override needed) and only the count itself takes `.num`, the same split
-        LedgerRow already makes for "9 days" (DESIGN.md §3: a word in mono is a category error).
+        LedgerRow already makes for "9 days" (a word in mono is a category error).
         This was the sweep's seed instance: invisible while both faces rendered as `system-ui`. */}
     {count != null && (
       <span className="pb-2 text-[11px] text-ink-soft">

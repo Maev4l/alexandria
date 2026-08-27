@@ -3,15 +3,15 @@ import OverprintStamp from './OverprintStamp.jsx';
 import SharedRibbon from './SharedRibbon.jsx';
 
 // Beside the item-detail hero, everything true of the COPY rather than the work: where it is
-// filed, who else can see it, whether it has left the building (DESIGN.md §5, "Detail Marks").
-// Reading order mirrors that sentence — filed, then visible, then circulating. The ~210px next
-// to a 132px frame was dead space until this column filled it.
+// filed, who else can see it, whether it has left the building. Reading order mirrors that
+// sentence — filed, then visible, then circulating. The ~210px next to a 132px frame was dead
+// space until this column filled it.
 //
 // The column carries its own one-division left padding so the sharing mark's edge rule has
 // somewhere to hang without shoving that line out of alignment with the two beside it — the
-// exact defect the design session's own first `border-left` attempt produced (DESIGN.md §6:
-// an edge rule never displaces content). `.item.lent::before` in the comp uses the same
-// hang-into-the-padding construction for a whole row; here it is scoped to one stacked line.
+// exact defect the design session's own first `border-left` attempt produced (an edge rule must
+// never displace content). `.item.lent::before` in the comp uses the same hang-into-the-padding
+// construction for a whole row; here it is scoped to one stacked line.
 const DetailMarks = ({ item, library, loans }) => {
   const sharedOutCount = library?.sharedTo?.length ?? 0;
   const sharedFrom = library?.sharedFrom;
@@ -39,12 +39,12 @@ const DetailMarks = ({ item, library, loans }) => {
         <div className="flex flex-col items-start gap-2">
           {libraryName && (
             // "In" is an interface label and takes caps; the library name is content the reader
-            // authored, so it never does (§3) — the same construction as FROM <owner>. It links
+            // authored, so it never does — the same construction as FROM <owner>. It links
             // rather than sitting inert: arriving from search, the shelf is genuinely new
             // information, and the link underlines rather than takes --imprint, which would
-            // compete with the title rule just below (DESIGN.md §5). `data-mark` is a stable
-            // hook for check:browser's geometry assertion (a real-Chrome bounding-rect
-            // comparison a stylesheet test cannot make) — content, not styling.
+            // compete with the title rule just below. `data-mark` is a stable hook for
+            // check:browser's geometry assertion (a real-Chrome bounding-rect comparison a
+            // stylesheet test cannot make) — content, not styling.
             <p data-mark="in" className="text-sm leading-[1.3] text-cover-body">
               <span className="caps text-[10px] font-extrabold tracking-[0.16em] text-cover-soft">
                 In
@@ -58,16 +58,17 @@ const DetailMarks = ({ item, library, loans }) => {
                 // `relative`, it extends the tappable region without asking the surrounding text
                 // flow (or the flex column stacking this line above the sharing mark) to give it
                 // any more room than it already has, so the green edge rule on the sharing mark
-                // below (DESIGN.md §6: an edge rule never displaces content) stays exactly where
-                // it is regardless of how this expands.
+                // below (an edge rule must never displace content) stays exactly where it is
+                // regardless of how this expands.
                 //
                 // The inset is ASYMMETRIC, not -inset-y-N: the group's own gap-2 (8px) between
                 // this line and the sharing mark below is under half of what a ~15px line needs
                 // (~16.5px/side) to clear 48px, so a symmetric inset unavoidably eats into that
                 // sibling's own box — harmless today only because SharedRibbon has no click
                 // handler of its own to steal a tap from (a future one would silently lose its
-                // top ~7px with no error to report, per ui-v3.md §7's "defects that cannot be
-                // reported"). This link is the column's FIRST item, beside a 198px VolumeFrame,
+                // top ~7px with no error to report — a silent defect nobody would ever complain
+                // about, which this project weighs as the worst kind precisely because it has no
+                // reporter). This link is the column's FIRST item, beside a 198px VolumeFrame,
                 // so there is ~25px of genuinely free space above it (down to the header's own
                 // bottom edge) and only ~10px below before the sharing mark's box starts.
                 // -top-[30px]/-bottom-[8px] spends that asymmetrically: 8px down leaves a real
@@ -104,9 +105,10 @@ const DetailMarks = ({ item, library, loans }) => {
                 // one fragment's own padding box — fine at "Films" width, but a plain inline
                 // element that WRAPS generates one fragment box per line, and which of those
                 // fragments an absolutely-positioned child's containing block resolves against is
-                // not something this code should be leaning on. At the 320px floor DESIGN.md §4
-                // commits to, the arithmetic is close enough to matter: `px-4` leaves 288px, the
-                // hero spends 132px + a 16px gap, `flex-1` gets 140px, `pl-2` leaves 132px for
+                // not something this code should be leaning on. At 320px — the narrowest viewport
+                // this phone-first design supports — the arithmetic is close enough to matter:
+                // `px-4` leaves 288px, the hero spends 132px + a 16px gap, `flex-1` gets 140px,
+                // `pl-2` leaves 132px for
                 // this line — and "Bandes dessinées" (16 characters) is real fixture content, not
                 // a synthetic stress case. `inline-block` still flows on the same line as "In ",
                 // still shrinks to the text's width when that fits, but is always exactly ONE

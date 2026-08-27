@@ -28,7 +28,7 @@ describe('IndexLetter', () => {
   });
 
   // The seed instance for this sweep: "volume"/"volumes" is a word, not a numeral, so it must
-  // never sit inside `.num` (DESIGN.md §3) — only the figure is.
+  // never sit inside `.num` — only the figure is.
   it('keeps the word out of the mono: only the figure is a numeral', () => {
     const { container } = render(<IndexLetter letter="A" count={14} />);
     const countLine = container.querySelector('.text-ink-soft');
@@ -60,8 +60,8 @@ describe('IndexLetter', () => {
   });
 
   it('keeps the yellow on the letter itself; the rule beneath is ink', () => {
-    // The stroke IS the yellow-on-paper contrast mechanism now (DESIGN.md §2: --imprint on
-    // --paper is ~1.55:1 and needs the ink outline to read as a shape at all) — so unlike round
+    // The stroke IS the yellow-on-paper contrast mechanism now (--imprint on --paper is ~1.55:1
+    // and needs the ink outline to read as a shape at all) — so unlike round
     // 2's solid-ink treatment, the accent does not need to live on the rule instead, and doesn't.
     render(<IndexLetter letter="A" count={1} />);
     expect(screen.getByRole('separator').className).toContain('border-ink');

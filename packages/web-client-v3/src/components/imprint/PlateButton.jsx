@@ -14,8 +14,9 @@ const VARIANTS = {
   // costs most.
   //
   // `text-current`, NOT a hardcoded `text-ink`: this variant sets no ground of its own
-  // (`bg-transparent`), so per DESIGN.md §2 it follows ambient like `secondary` does rather than
-  // assuming one. A hardcoded `text-ink` was invisible — ink on ink — the one time this shipped
+  // (`bg-transparent`), so it follows ambient like `secondary` does — a variant that paints no
+  // ground of its own must take its colour from context, never assume one. A hardcoded `text-ink`
+  // was invisible — ink on ink — the one time this shipped
   // straight onto item detail's black cover instead of inside a paper-grounded sheet; every
   // earlier use happened to sit inside a Sheet, where ambient ink and a hardcoded ink read
   // identically and the bug had nowhere to show itself.
@@ -40,8 +41,8 @@ const VARIANTS = {
 // So the reason is rendered as `sr-only` text INSIDE the button instead: it becomes part of the
 // button's own accessible name, which is exactly what a screen reader's linear/browse-mode
 // reading walks over even though the element cannot take focus while disabled. Nothing new
-// appears on screen — the caption text this replaces is exactly what §6 rejected as visible
-// nonsense duplicating a control that already speaks for itself visually.
+// appears on screen — the caption text this replaces is exactly the visible nonsense the state
+// grammar rejects: a control duplicating what it already speaks for itself visually.
 const PlateButton = forwardRef(
   ({ variant = 'primary', disabled = false, reason, className, children, ...props }, ref) => (
     <button

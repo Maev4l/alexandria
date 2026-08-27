@@ -4,8 +4,9 @@ import OverprintStamp from './OverprintStamp.jsx';
 const stamp = (iso) =>
   new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-// One loan pairing, over two lines (DESIGN.md section 5 "Ledger Row", comp 3's `.ledger-row`).
-// There is no due date in this API, so a loan states its duration and nothing about lateness.
+// One loan pairing, over two lines ("Ledger Row" in the component vocabulary, comp 3's
+// `.ledger-row`). There is no due date in this API, so a loan states its duration and nothing
+// about lateness.
 //
 // `boxed` is its own prop rather than being keyed off `inverted`: `inverted` is a surface fact
 // (paper vs. the black cover) and both surfaces need this ledger; `boxed` is a LAYOUT fact (does
@@ -20,14 +21,14 @@ const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
         inverted ? 'border-cover-rule text-cover-soft' : 'border-ink text-ink-soft',
         // Padding lives on the ROW, not on whatever wraps it: with the separator on the same
         // element the border still spans the full width. Padding the card instead would leave
-        // hairlines stopping short of the rule, reading as broken (DESIGN.md section 5).
+        // hairlines stopping short of the rule, reading as broken.
         boxed && 'px-4',
       )}
     >
       {/* Line 1: who has it, and for how long — the reason the row exists. The name is
           content, authored by whoever typed it into the Lend sheet, so it sets in the sans
           (never `.num`); a name in mono is the category error the Plate Line already warns
-          about (section 3). The comp brightens this whole line on an open loan — there is no
+          about. The comp brightens this whole line on an open loan — there is no
           brighter-than-`--ink` tone on paper to promote to, so that lift only has somewhere to
           go on the cover, where `--paper` sits above `--cover-body`.
 
@@ -60,7 +61,7 @@ const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
       {/* Line 2: when it left, and — for a genuinely CLOSED loan — when it came back.
           `LENT`/`RETURNED` are interface labels: caps, set in the SANS (never `.num`), with
           weight stated explicitly here because the `caps` utility carries case and tracking
-          only, never weight (DESIGN.md section 3). Only the dates themselves are numerals and
+          only, never weight. Only the dates themselves are numerals and
           take the mono. There is no connector joining the two fields — no arrow, no dash
           between them — labelling both endpoints is the one grammar that reads the same for a
           closed loan and an open one. `→` (U+2192) is the glyph this replaces: verified absent
@@ -70,7 +71,7 @@ const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
           An OPEN loan states only the LENT half: there is no second date to label, and the
           loan is already stamped OUT (on the cover via DetailMarks, or here via the bare
           OverprintStamp below when boxed) — printing "still out" beside that stamp would say
-          the same thing twice (DESIGN.md's "nothing is labelled twice").
+          the same thing twice, which the nothing-is-labelled-twice discipline forbids.
 
           An UNRESOLVED pairing (a LENT superseded by another LENT with no RETURNED between
           them, see `pairLoanEvents` in lib/loans.js) reads the SAME as an open loan here —
@@ -79,7 +80,7 @@ const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
           That argument is correct but doesn't belong on this line: the duration slot above
           already states "no return recorded", precisely and in words — a `RETURNED —` here
           would restate that same fact in a weaker form, which is exactly the position an open
-          loan is in with its own stamp (DESIGN.md's "nothing is labelled twice"). So the two
+          loan is in with its own stamp — the same nothing-is-labelled-twice discipline. So the two
           rows share this line's grammar and differ only in the duration slot and, for a boxed
           open loan, the stamp — never ambiguous, since the stamp only ever marks OPEN. */}
       <span className="mt-0.5 block">
@@ -104,7 +105,7 @@ const LedgerRow = ({ loan, inverted = false, boxed = false }) => {
           construction (its `--out` outline, its ink caps) rather than with colour. Bare, no
           name/days: this row's own two lines already state who and how long, so the stamp only
           needs to contribute the "OUT" mark itself, or it would restate what the row already
-          says (DESIGN.md's "nothing is labelled twice"). */}
+          says — the same nothing-is-labelled-twice discipline. */}
       {boxed && loan.open && <OverprintStamp />}
     </div>
   );

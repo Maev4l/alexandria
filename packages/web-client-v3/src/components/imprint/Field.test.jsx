@@ -78,8 +78,8 @@ describe('Field', () => {
     });
 
     // The seed instance for the whole sweep was exactly this shape (IndexLetter's "volume"/
-    // "volumes"): a word sitting inside `.num` is DESIGN.md §3's category error. Only the
-    // figure may be mono; "left" must resolve to the sans.
+    // "volumes"): a word sitting inside `.num` is a category error — only a numeral may render
+    // in mono. Only the figure may be mono; "left" must resolve to the sans.
     it('keeps the word out of the mono: only the figure is a numeral', () => {
       const { container } = render(<Field label="Title" counter={97} onChange={() => {}} />);
       const wrapper = container.querySelector('.num');
@@ -97,7 +97,8 @@ describe('Field', () => {
   // `required` announces "<label>, required" WHILE the reader is in the field — where the fix
   // actually happens — rather than only at a disabled submit button, where a sighted reader
   // merely observes the consequence. Every form using Field already sets `noValidate`, so this
-  // never raises the browser's own validation bubble (DESIGN.md §9 refuses platform chrome).
+  // never raises the browser's own validation bubble — native validation UI is exactly the
+  // platform chrome this design refuses.
   describe('required', () => {
     it('exposes a required field as required to the accessibility tree', () => {
       render(<Field label="ISBN" required onChange={() => {}} />);

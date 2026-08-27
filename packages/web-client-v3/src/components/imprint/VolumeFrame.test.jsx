@@ -13,7 +13,7 @@ const bookWithArt = {
 
 describe('VolumeFrame', () => {
   // Type used to be marked three redundant ways, one of them a spine rule drawn on this
-  // frame. It is gone now (DESIGN.md §4): a book and a film render the IDENTICAL frame, with
+  // frame. It is gone now: a book and a film render the IDENTICAL frame, with
   // or without artwork. This is the inverse of the old spine tests, and it is the one a future
   // contributor restoring a type marker would break — pinned deliberately.
   //
@@ -110,7 +110,7 @@ describe('VolumeFrame', () => {
     }).not.toThrow();
   });
 
-  // The third size, and the reason it exists: ui-v3.md says of the detection-results screen that
+  // The third size, and the reason it exists: on the detection-results screen
   // "the picture is what decides the match" — a candidate list is where a reader compares
   // editions, and choosing the wrong one writes a record they cannot detect as wrong later. It
   // shipped at the row's 48x72, smaller than a stream row's job needs, on the screen with the
@@ -120,8 +120,8 @@ describe('VolumeFrame', () => {
     expect(container.firstChild.className).toContain('h-[132px]');
     expect(container.firstChild.className).toContain('w-[88px]');
     expect(container.firstChild.className).toContain('border-ink');
-    // 88x132 is exactly 2:3, like the other two — the size changes, never the ratio (DESIGN.md
-    // §4: one ratio for every item, so nothing is ever cropped).
+    // 88x132 is exactly 2:3, like the other two — the size changes, never the ratio: one ratio
+    // for every item, so nothing is ever cropped.
     expect(132 / 88).toBeCloseTo(3 / 2, 5);
   });
 });

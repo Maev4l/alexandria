@@ -9,7 +9,7 @@ import { cn } from '@/lib/cn';
 //
 // The comp defines the row stamp (`.stamp`) and the cover's open-loan stamp (`.stamp-open`) as
 // two distinct rules, not one style read twice: the row sits at 0.92 opacity so it "reads as ink
-// over paper" (DESIGN.md §5), while the cover's stamp is full-strength paper-coloured ink with a
+// over paper", while the cover's stamp is full-strength paper-coloured ink with a
 // tighter 1px/5px pad — there is no paper ground on the cover for the opacity trick to read
 // against. `inverted` already forks the text colour for this reason, so it forks these too.
 const OverprintStamp = ({ name, days, inverted = false }) => {

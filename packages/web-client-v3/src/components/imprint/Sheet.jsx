@@ -148,8 +148,8 @@ const Sheet = ({ open, title, onClose, children }) => {
         // Constrained and centred like the column it belongs to: a full-bleed sheet under a
         // 448px column would be a different app at 1440px.
         //
-        // `text-ink` is NOT decoration — it is the other half of `bg-paper-deep`. Anything that
-        // sets a ground must set its foreground in the same rule (DESIGN.md §2): a sheet is
+        // `text-ink` is NOT decoration — it is the other half of `bg-paper-deep`. A ground's text
+        // is coloured at or below it, never inherited across a surface boundary: a sheet is
         // correct wherever it opens on a normal paper screen (ambient text is already ink) and
         // was unreadable on the one screen that inverts it (item detail's black cover sets
         // `text-paper` on an ancestor, which a plain paragraph or a `text-current` secondary
@@ -157,7 +157,7 @@ const Sheet = ({ open, title, onClose, children }) => {
         className="pad-bottom-safe mx-auto max-h-[80dvh] w-full max-w-md overflow-y-auto border-t-[3px] border-ink bg-paper-deep p-4 text-ink motion-safe:animate-[sheet-rise_var(--press-sheet)_linear]"
       >
         {/* No `caps` here. A sheet's title is usually a content name — the library or item
-            being acted on — and content is never uppercased (§3): the rule exists because
+            being acted on — and content is never uppercased: the rule exists because
             this collection's titles are mixed English and French, and "BANDES DESSINÉES"
             set in caps is exactly what it forbids.
 

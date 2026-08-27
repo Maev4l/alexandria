@@ -32,7 +32,7 @@ const CollectionBoard = ({ board, libraryId, onItemActions, onBoardActions }) =>
         {/* Bare figure, no prefix: `⌗` isn't in Archivo at all (confirmed by cmap, not just
             missing from our subset), so it had been rendering in a browser-substituted font.
             The container already says what the number is — this plate belongs to the
-            collection, so it needs no caption of its own (DESIGN.md §4). */}
+            collection, so it needs no caption of its own. */}
         <VolumePlate aria-label={`${board.itemCount} items in this collection`}>
           {board.itemCount}
         </VolumePlate>

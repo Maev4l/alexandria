@@ -87,7 +87,7 @@ describe('DetailMarks', () => {
   });
 
   it('does not displace the sharing text with its own edge rule', () => {
-    // §6: an edge rule never displaces content. The edge is an absolutely positioned sibling
+    // An edge rule must never displace content. The edge is an absolutely positioned sibling
     // hanging into the column's own padding-left, never a border on the text itself — a border
     // would add to the box and shove SHARED right of IN/OUT beside it (the regression the
     // design session's first `border-left` attempt produced).

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn';
 import { candidateLineParts, plateLineParts } from '@/lib/format';
 
-// The line's position never changes; only which fields fill it — and §5 already varies those by
+// The line's position never changes; only which fields fill it — and it already varies those by
 // surface, gaining the edition on item detail. `surface` selects which variant this is:
 //
 //   `row`       DIRECTOR · YEAR            the browse stream
@@ -13,7 +13,7 @@ import { candidateLineParts, plateLineParts } from '@/lib/format';
 // reason anyone would guess.
 //
 // Mixed typeface on a film, and that is correct rather than awkward: a name and a figure are
-// different kinds of thing, and §3 reserves the mono for numerals. Names take the sans.
+// different kinds of thing, and the mono is reserved for numerals. Names take the sans.
 const PARTS = { row: plateLineParts, candidate: candidateLineParts };
 
 const PlateLine = ({ item, surface = 'row', className }) => {

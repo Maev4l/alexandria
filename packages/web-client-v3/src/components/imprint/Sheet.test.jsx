@@ -41,7 +41,8 @@ describe('Sheet', () => {
       </Sheet>,
     );
     // The rule exists because this collection's titles are mixed English and French, and a
-    // library name shouted in caps is exactly the case §3 was written for.
+    // library name shouted in caps is exactly the case the content-is-never-uppercased rule
+    // was written for.
     const heading = screen.getByRole('heading', { name: 'Bandes dessinées' });
     expect(heading.className).not.toContain('caps');
     expect(heading.className).not.toContain('uppercase');
@@ -130,8 +131,8 @@ describe('Sheet', () => {
   // whatever text colour its ambient context happened to set — `text-ink` on every ordinary
   // paper screen, but `text-paper` on item detail's inverted cover, ~1.08:1, "grey on white,
   // hardly readable". jsdom cannot compute the resulting colour (that is scripts/check-browser.mjs's
-  // job, proven both ways there); this only asserts the DECLARATION survives — that a ground and
-  // its foreground are set in the same rule, per DESIGN.md §2.
+  // job, proven both ways there); this only asserts the DECLARATION survives — that a ground's
+  // text is coloured at or below it, never inherited across a surface boundary.
   it('declares its own foreground alongside its own ground, so it never inherits an ambient colour', () => {
     render(
       <Sheet open title="Actions">

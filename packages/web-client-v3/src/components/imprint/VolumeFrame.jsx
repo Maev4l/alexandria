@@ -16,15 +16,15 @@ const SIZES = {
 // One ratio for every item: portrait 2:3. Book covers and TMDB posters are both that shape,
 // so a single frame crops nothing and the stream keeps one row height.
 //
-// Type is not marked on the frame (DESIGN.md §4, "The frame, and how books and films differ"):
+// Type is not marked on the frame:
 // a book and a film take the IDENTICAL frame now. The Plate Line — AUTHOR vs DIRECTOR · YEAR —
 // is the only place they differ, and it already survives with no artwork at all.
 //
 // THREE SIZES, one ratio. `row` (48x72) is the browse stream, where a reader is scanning a
 // thousand titles and the words do the work. `hero` (132x198) is item detail on the inverted
 // cover — ruled in paper rather than ink, because the ground is black there. `candidate`
-// (88x132) sits between them, on the detection-results screens, and it exists because ui-v3.md
-// says of that one screen that "the picture is what decides the match": a candidate list is the
+// (88x132) sits between them, on the detection-results screens, and it exists because on that
+// one screen "the picture is what decides the match": a candidate list is the
 // moment a reader compares editions, and choosing the wrong one writes a record they cannot
 // detect as wrong later. It shipped at the row's 48x72 — smaller than a stream row's job
 // required, on the screen with the most vertical room to spare (measured: 284px unused at 844).
@@ -57,7 +57,8 @@ const VolumeFrame = ({ item, size = 'row', className, onFailedChange }) => {
         // else. The hero used to fill with `--cover-rule` at full strength — 1.73:1 against
         // `--ink`, a mid-grey slab in the largest frame in the app — and since `picture` is
         // absent for most items, that slab was the DEFAULT appearance of the peak screen: a
-        // filled rectangle where artwork belongs reads as a failed image, which §6 forbids. It
+        // filled rectangle where artwork belongs reads as a failed image, which the state grammar
+        // forbids outright. It
         // also spent a token declared "hairline separators, structure only" as a ground. The
         // non-hero frame's `bg-paper-deep` read as harmless (~1.05:1, near-invisible against
         // `--paper`) but was still a fill where the rule alone was already doing the job — so
@@ -91,7 +92,7 @@ const VolumeFrame = ({ item, size = 'row', className, onFailedChange }) => {
         // run; the comp was checked, 9px was found declared there, and it was recorded as
         // documentation drift with the code deemed right. That answered whose fault it was and
         // silently dropped whether 9 was correct. Both were wrong together, which is precisely
-        // the case a provenance check cannot see. DESIGN.md §3 now sets the scale floor at 10.
+        // the case a provenance check cannot see. The type scale's floor is now 10.
         <VolumePlate className="absolute bottom-0 right-0 border bg-paper px-[3px] py-0 text-[10px]">
           {String(item.order).padStart(2, '0')}
         </VolumePlate>

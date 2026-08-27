@@ -22,8 +22,8 @@ const renderBoard = (props) =>
 
 describe('CollectionBoard', () => {
   // SERIES ORDER was retired: every member already carries a numbered plate, and a numbered
-  // sequence needs no caption saying it runs in sequence (DESIGN.md §4). An ordinary board
-  // states nothing about its own ordering.
+  // sequence needs no caption saying it runs in sequence. An ordinary board states nothing
+  // about its own ordering.
   it('carries no ordering caption on an ordinary board', () => {
     renderBoard({ partial: false });
     expect(screen.queryByText(/series order/i)).toBeNull();

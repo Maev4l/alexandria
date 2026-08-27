@@ -23,7 +23,7 @@ describe('FlowMarks', () => {
     expect(screen.getByText('3', { selector: '[data-mark="session-tally"]' })).toBeInTheDocument();
   });
 
-  it('sets the figure in the mono and the label in caps, per DESIGN.md §3', () => {
+  it('sets the figure in the mono and the label in caps', () => {
     render(<FlowMarks collectionName={null} filedCount={9} />);
     const figure = screen.getByText('9', { selector: '[data-mark="session-tally"]' });
     // The DECLARATION only — whether `.num` resolves to Chivo Mono is a computed-style fact

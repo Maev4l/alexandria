@@ -113,8 +113,8 @@ describe('LedgerRow', () => {
   });
 
   // The name is content and authored by whoever typed it into the Lend sheet — it sets in the
-  // sans. Only the dates and the day count are numerals, and take the mono utility (`.num`,
-  // DESIGN.md section 3): a name in mono is the category error the Plate Line already warns
+  // sans. Only the dates and the day count are numerals, and take the mono utility (`.num`):
+  // a name in mono is the category error the Plate Line already warns
   // about, and this component must not import it.
   it('sets the name in the sans, never the mono', () => {
     render(<LedgerRow loan={closedLoan} />);
@@ -152,7 +152,7 @@ describe('LedgerRow', () => {
 
   // Line 2 is now mixed: LENT/RETURNED are interface labels and take the sans (`caps`, never
   // `.num`), while only the date values themselves are numerals. A name in mono was the
-  // category error the Plate Line warns about (§3) — a LABEL in mono would be the same error.
+  // category error the Plate Line warns about — a LABEL in mono would be the same error.
   it('keeps LENT/RETURNED in the sans (caps) and only the dates themselves in the mono', () => {
     const { container } = render(<LedgerRow loan={closedLoan} />);
     const dateLine = container.firstChild.children[1];
@@ -211,8 +211,8 @@ describe('LedgerRow', () => {
   });
 
   // Every colour rule below is a surface pairing: the cover set (`--cover-*`) only appears
-  // together with `inverted`, and the paper set only without it — never mixed, per DESIGN.md's
-  // "anything that sets a ground sets its foreground" rule.
+  // together with `inverted`, and the paper set only without it — never mixed. A ground's text
+  // is coloured at or below it, and never inherited across a surface boundary.
   it('never mixes the two surfaces’ secondary tones', () => {
     const paper = render(<LedgerRow loan={closedLoan} />).container.firstChild;
     expect(paper.className).toMatch(/\btext-ink-soft\b/);

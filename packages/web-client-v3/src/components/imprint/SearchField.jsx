@@ -67,7 +67,7 @@ const SearchField = ({ className, value, onQueryChange, onSubmit }) => {
     <form
       role="search"
       onSubmit={submit}
-      // `field-control`, not `focus-control`. DESIGN.md §2: the whole-box `:focus-within` construction
+      // `field-control`, not `focus-control`. The whole-box `:focus-within` construction
       // "holds only while the control has exactly one focusable descendant", and this control has
       // three — the input, the submit mark, and the clear mark. Measured under `focus-within`,
       // `Clear the search` and `Search` were pixel-identical when focused, because the box lit for
@@ -88,13 +88,13 @@ const SearchField = ({ className, value, onQueryChange, onSubmit }) => {
       <input
         ref={inputRef}
         type="search"
-        // 16px, NOT §3's 13px display step, and this is platform behaviour rather than
+        // 16px, not the 13px display step, and this is platform behaviour rather than
         // typography. Mobile Safari ZOOMS THE PAGE when a focused input's font-size is under
         // 16px — reported from the deployed app as "when I click on search there is somehow a
         // zoom", on the most-tapped control in the product.
         //
         // `Field.jsx` has set 16px for exactly this reason since it was written, with a paragraph
-        // in DESIGN.md §3 explaining it. The reason never reached here, and the type-scale guard
+        // explaining it. The reason never reached here, and the type-scale guard
         // could not help: its exception was recorded as a property of a FILE
         // (`components/imprint/Field.jsx`), so 13px on a different input was on the scale and
         // passed. The exception now describes what it always meant — an input, select or textarea
@@ -115,7 +115,7 @@ const SearchField = ({ className, value, onQueryChange, onSubmit }) => {
         // did the opposite. The indicator lives on the whole control (`focus-control`) because
         // that is the thing a reader sees.
         // `type="search"` gives WebKit a clear button of its own, and it is native chrome this
-        // world has no vocabulary for (DESIGN.md §9) — the same refusal `Field.jsx` already makes
+        // world has no vocabulary for — the same refusal `Field.jsx` already makes
         // for the textarea's resize grabber and the number spinner. Worse than out of place: it
         // renders BLUE, a colour that appears nowhere in the palette, on the loudest mark in the
         // whole design. It has been here since this field was built and was invisible until now,
@@ -125,8 +125,8 @@ const SearchField = ({ className, value, onQueryChange, onSubmit }) => {
       />
       {/* Suppressing the native control removes a real affordance rather than mere decoration —
           clearing the field is genuinely useful on the one screen built for repeated lookups — so
-          it is REPLACED, not simply deleted. `Close` is already in the Marks set (DESIGN.md §5
-          names close among the universal affordances), so this authors nothing new; it draws the
+          it is REPLACED, not simply deleted. `Close` is already in the Marks set (close is
+          already among the universal affordances), so this authors nothing new; it draws the
           same mark at the same 2px stroke in ink.
           Controlled mode only: on the libraries root the field is a launcher whose text never
           persists, so a clear control there would have nothing to clear. */}
@@ -150,12 +150,12 @@ const SearchField = ({ className, value, onQueryChange, onSubmit }) => {
       )}
       {/* IN BOTH MODES NOW, because in both it is the control that runs the lookup. It was
           dropped from the surface when the surface searched as it was typed: submitting did
-          nothing there, and §6 forbids the action slot holding an inert control. That premise is
+          nothing there, and the action slot must never hold an inert control. That premise is
           gone — the field no longer queries on its own — so the mark is back, and it is the one
           the reader reaches for after typing rather than a decoration beside a live query.
           It is also the only route for a reader with no action key: a hardware keyboard's Return
           submits, but a pointer needs something to press.
-          `aria-label` rather than visible text, per §5's Marks — search is one of the universal
+          `aria-label` rather than visible text — search is one of the Marks, the universal
           affordances that set names outright. */}
       <button
         type="submit"

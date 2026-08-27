@@ -25,8 +25,8 @@ describe('PlateButton', () => {
   it('puts the destructive red on the RULE and keeps its label ambient, never red', () => {
     render(<PlateButton variant="danger">Delete</PlateButton>);
     const cls = screen.getByRole('button').className;
-    // --out is 4.11:1 on paper — sound for a 2px edge, short of AA for 12px caps. Section 2
-    // restricts it to >=18px bold, rules and stamp outlines, so the label cannot be red.
+    // --out is 4.11:1 on paper — sound for a 2px edge, short of AA for 12px caps, so it is
+    // restricted to >=18px bold, rules and stamp outlines, and the label cannot be red.
     expect(cls).toContain('border-out');
     expect(cls).not.toContain('text-out');
     // `text-current`, not a hardcoded `text-ink`: this variant sets no ground of its own, so it
@@ -88,9 +88,10 @@ describe('PlateButton', () => {
           Look up
         </PlateButton>,
       );
-      // §6's outline-fills-to-plate stays the only thing a sighted reader sees; a printed caption
-      // reading "Enter an ISBN to continue" next to a button already labelled "Look up" is exactly
-      // the visible-nonsense the removed aria-describedby attempt produced.
+      // The disabled primary's outline-fills-to-plate treatment stays the only thing a sighted
+      // reader sees; a printed caption reading "Enter an ISBN to continue" next to a button
+      // already labelled "Look up" is exactly the visible-nonsense the removed aria-describedby
+      // attempt produced.
       expect(screen.getByText('Enter an ISBN to continue')).toHaveClass('sr-only');
     });
 

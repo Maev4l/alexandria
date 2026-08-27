@@ -20,8 +20,8 @@ const FlowMarks = ({ collectionName, filedCount = 0 }) => {
     <div className="mb-4 flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <FilingInto name={collectionName} />
       {filedCount > 0 && (
-        // Caps for the label, mono for the figure: §3's split, and this figure is a labelled
-        // datum (a count on display) rather than a numeral inside a sentence, so it takes the
+        // Caps for the label, mono for the figure — the mono/caps split — and this figure is a
+        // labelled datum (a count on display) rather than a numeral inside a sentence, so it takes the
         // mono exactly as a library's item count does. Same 11px caps register as FilingInto's
         // own label, because the two marks are peers on this row and neither outranks the other.
         <p className="caps text-[11px] font-bold tracking-[0.16em] text-ink-soft">
