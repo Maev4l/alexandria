@@ -103,7 +103,7 @@ describe('AddBook', () => {
   // reads as a heading for the control beneath it, not an explanation of an absent one. The real
   // fix moves "Enter by hand" off the outline treatment entirely (see the link test below), which
   // dissolves the collision at its source: the disabled "Look it up" becomes the only ruled
-  // outline in its row, so DESIGN.md §6's FIRST form — a plain disabled outline, no words —
+  // outline in its row, so the action slot's first form — a plain disabled outline, no words —
   // applies correctly, and the button itself, not a caps stand-in, is what proves the state.
   it('disables Look it up while the code is empty, and calls nothing on Enter', async () => {
     renderPage();
@@ -115,7 +115,7 @@ describe('AddBook', () => {
   });
 
   // The matchers below are start-anchored rather than exact: a DISABLED primary carries an
-  // `sr-only` reason inside the button (DESIGN.md §6), so its accessible name is the label plus
+  // `sr-only` reason inside the button, so its accessible name is the label plus
   // that sentence. That is the mechanism working — the outline-fills-to-plate affordance is
   // purely visual, and this is the half a screen reader gets — not a name to assert around.
   it('enables Look it up once the code is a valid ISBN', async () => {
@@ -265,7 +265,7 @@ describe('AddBook', () => {
     ).toBeInTheDocument();
   });
 
-  // ui-v3.md task 18, Step 6: the stub row (back + wordmark) is correct only while a screen has
+  // The stub row (back + wordmark) is correct only while a screen has
   // nothing to call itself. `getByText` cannot be used verbatim here as a plain page-wide query
   // — the header's own visible title and the sr-only <h1> both carry the exact string "Add a
   // book" as their own direct text, which `getByText` treats as two independent matches (dom-

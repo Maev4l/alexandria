@@ -16,10 +16,10 @@ import { useToast } from '@/state/ToastContext.jsx';
 const FILM = 1;
 const LEDGER_PREVIEW = 3;
 
-// Names take the sans and only a figure takes the mono (§3) — the same split PlateLine already
+// Names take the sans and only a figure takes the mono — the same split PlateLine already
 // makes on the row, carried onto detail's longer line. The library is deliberately absent here:
 // the Plate Line is the WORK (author, edition), and where a COPY is kept belongs to the Detail
-// Marks column beside the hero instead (DESIGN.md §5, "Plate Line ... it never carries the
+// Marks column beside the hero instead (the Plate Line rule: "it never carries the
 // library"). Running them together as `AUTHOR · ISBN · LIBRARY` put three categories in one
 // dot-separated run and made location read as identity.
 const buildDetailLineSegments = (item) => {
@@ -86,7 +86,7 @@ const ItemDetail = () => {
   // stay absent rather than briefly appearing before a slow /libraries fetch resolves.
   const isReadOnly = !canAct(libraryId);
   // The Detail Marks column needs the library's own sharedTo/sharedFrom, which live on the
-  // LIBRARY, not the item (§6 in the brief) — /libraries is already loaded by the provider, so
+  // LIBRARY, not the item — /libraries is already loaded by the provider, so
   // this is a lookup, not a second fetch.
   const library = byId(libraryId);
 
@@ -102,8 +102,9 @@ const ItemDetail = () => {
   // Distinct from `status`: the ITEM can load fine while its history fails to. A transient
   // failure here used to be swallowed (`.catch(() => ({ events: [] }))`) and render as though
   // the item had never been lent — no error, no retry, `item.lentTo` possibly still saying OUT
-  // while the ledger beneath it silently vanished. That is the exact silent-failure shape
-  // ui-v3.md §7 weighs heaviest, so it is surfaced instead (see the render below).
+  // while the ledger beneath it silently vanished. That is the exact silent-failure shape this
+  // project weighs as the worst class of defect — nobody reports what they never noticed — so
+  // it is surfaced instead (see the render below).
   const [eventsError, setEventsError] = useState(null);
   const [status, setStatus] = useState('loading');
   // Lend genuinely needs input (a borrower's name), so it is the one action that still opens a
@@ -122,7 +123,7 @@ const ItemDetail = () => {
   // action row below for why that placement was reversed.
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  // Inline, because a toast is never the only report of a failure (DESIGN.md, "Errors").
+  // Inline, because a toast is never the only report of a failure.
   const [actionError, setActionError] = useState(null);
   const { confirm } = useToast();
   // Where focus lands the instant the confirmation is revealed, and where it returns on cancel.
@@ -282,7 +283,7 @@ const ItemDetail = () => {
       <div className="cover min-h-dvh bg-ink text-paper">
         <AppHeader inverted onBack={() => navigate(-1)} search={false} />
         <main className="p-4">
-          {/* The header carries no title on this screen (DESIGN.md §3 table), so this state
+          {/* The header carries no title on this screen, so this state
               still needs a real accessible name — visually hidden, since the alert already
               says what happened in the reader's eye line. */}
           <h1 className="sr-only">Item detail</h1>
@@ -316,7 +317,7 @@ const ItemDetail = () => {
       {status === 'loading' && (
         // `px-4 py-6` — the SAME padding as the ready branch below, not `p-6`: the two used to
         // differ, so the instant content landed every element nudged by the difference, which
-        // is the exact thing a "ruled skeleton at the correct ratio" (DESIGN.md §6) exists to
+        // is the exact thing a "ruled skeleton at the correct ratio" exists to
         // prevent. The hero frame and the three action controls are RULED, unfilled boxes —
         // the same treatment VolumeFrame's own empty frame now takes (round 5, item 1) — rather
         // than a tinted fill, since a filled box in exactly the hero's own size/position would
@@ -354,7 +355,7 @@ const ItemDetail = () => {
         <main className="px-4 py-6">
           {/* Detail is the one screen where artwork earns real space: the reader is looking
               at a single object, not scanning a thousand. Same 2:3 frame as the stream — book
-              and film are identical, type is not marked (DESIGN.md §4) — at hero scale, ruled
+              and film are identical, type is not marked — at hero scale, ruled
               in paper on the cover. VolumeFrame already draws
               the collection-order plate inside itself — a second plate beside it would label
               the same fact twice. Beside it, Detail Marks fills what was dead space with
@@ -389,10 +390,10 @@ const ItemDetail = () => {
           </div>
 
           {/* The visible title doubles as the screen's <h1>; nothing hides it, and content
-              titles are never uppercased (§3). */}
+              titles are never uppercased. */}
           <h1 className="text-[32px] font-extrabold leading-[1.06]">{item.title}</h1>
 
-          {/* Never carries the library (DESIGN.md §5) — that fact moved into Detail Marks
+          {/* Never carries the library — that fact moved into Detail Marks
               above, beside the hero, where location joins visibility and circulation. */}
           <DetailLine item={item} />
 
@@ -429,7 +430,7 @@ const ItemDetail = () => {
           {!eventsError && events.length > 0 && (
             <>
               {/* The record carries its own past: the ledger reads on the item itself.
-                  `caps` sets ONLY text-transform/letter-spacing (DESIGN.md §3) — weight is
+                  `caps` sets ONLY text-transform/letter-spacing — weight is
                   always stated at the point of use, so font-extrabold is explicit here rather
                   than assumed from the class. */}
               <h2 className="caps mt-6 text-[10px] font-extrabold tracking-[0.16em] text-imprint">
@@ -485,7 +486,7 @@ const ItemDetail = () => {
             </>
           )}
 
-          {/* Read-only here can mean three different things (§7, "prefer the defects that
+          {/* Read-only here can mean three different things ("prefer the defects that
               cannot be reported"): not mine, not loaded yet, or the /libraries fetch failed.
               Silently hiding Lend/Edit/Delete for the third reason tells the owner nothing —
               a plausible, wrong story ("the app decided I may not act on my own item") with no
@@ -505,7 +506,7 @@ const ItemDetail = () => {
               {actionError && (
                 // Ambient text is already `--paper` on this ground (inherited from the root
                 // div below), which is correct here: this block sets no background of its own,
-                // only a rule — the half-declaration rule in DESIGN.md §2 is about elements that
+                // only a rule — the ground-and-foreground rule is about elements that
                 // set a GROUND, not every bordered block.
                 <p role="alert" className="mt-4 border-2 border-out p-4 text-sm">
                   {actionError}
@@ -550,7 +551,7 @@ const ItemDetail = () => {
                         Framed, not just spaced (round 5 critique #3): at the same size, colour
                         and margin as the summary paragraph above, this read as one more line of
                         prose rather than a destructive confirmation. A 2px `--out` TOP rule —
-                        §6's own state-grammar treatment for a destructive block ("Error ...
+                        the state grammar's own treatment for a destructive block ("Error ...
                         with a 2px `--out` top rule"), not a new token and not a full box: `--out`
                         measures 4.42:1 against `--ink` on this cover, comfortably past the bar a
                         rule (not text) needs to clear. Ambient text stays `--paper`, inherited

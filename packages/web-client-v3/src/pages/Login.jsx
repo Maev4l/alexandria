@@ -96,7 +96,7 @@ const Login = () => {
 
         <p className="mt-8 text-sm">
           No account yet?{' '}
-          {/* 48px floor (last site under it, DESIGN.md §4/§8): measured 72.6x15 in real Chrome.
+          {/* 48px floor (last site under it): measured 72.6x15 in real Chrome.
               This reads as a sentence but is not the WCAG 2.5.5 "inline text" case that
               exemption targets — that exception is for a link occurring incidentally inside a
               block of prose written to be read for its own content (an article paragraph). Here

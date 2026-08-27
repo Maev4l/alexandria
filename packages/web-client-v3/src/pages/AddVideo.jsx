@@ -10,8 +10,8 @@ import { NO_INPUT_MESSAGE, seedFromAddFlowState } from '@/lib/addFlowState.js';
 import { useCollectionName } from '@/lib/useCollectionName.js';
 import { useFilingSession } from '@/state/FilingSessionContext.jsx';
 
-// Both paths visible at once, the same discipline AddBook uses for ISBN scan vs. manual entry
-// (ui-v3.md task 18): a live cover capture sits above a labelled, always-editable title field —
+// Both paths visible at once, the same discipline AddBook uses for ISBN scan vs. manual entry:
+// a live cover capture sits above a labelled, always-editable title field —
 // a denied permission, poor light, or a cover the camera cannot read must never leave a reader
 // with nothing to press. The THIRD, separate escape survives unchanged from the stub this
 // replaces: "Enter by hand" skips detection entirely and goes to the full manual form. It is not
@@ -27,7 +27,7 @@ const AddVideo = () => {
   }`;
   // The design session's own finding: a cataloguing session SITS on this screen and only passes
   // THROUGH the candidate list, briefly, once per capture — so the FILING INTO mark belongs here
-  // at least as much as there (ui-v3.md ruling E). Missing from this screen, it was missing from
+  // at least as much as there. Missing from this screen, it was missing from
   // the one place a whole session of back-to-back captures could actually see it.
   const collectionName = useCollectionName(libraryId, collectionId);
   // How many items have gone in since the reader entered this flow. Zero on arrival, so the
@@ -154,7 +154,7 @@ const AddVideo = () => {
           here after VideoDetectionResults REPLACES its own spent results entry (see that
           screen's onConfirm). A relative step is correct for the first and wrong for the
           second — after a replace, `-1` still walks past this screen's own earlier self to
-          whatever came before it, never to the library in one step. `ui-v3.md`'s own flow spec
+          whatever came before it, never to the library in one step. The flow spec
           ("Cancel at any point returns to the library") already named this destination; the
           collection is deliberately NOT carried into it — going back to the library is going
           back to the library, and the board that was being filed is visible there already. */}
@@ -167,15 +167,15 @@ const AddVideo = () => {
           surface taking the free space, the form and the manual escape are pushed against the
           viewport's bottom edge rather than following the content. `p-4` alone would leave the
           escape 16px from the edge — under the home indicator on an installed PWA, which is
-          exactly the case ui-v3.md §7 names for a bottom-anchored action. */}
+          exactly the case that requires safe-area padding on a bottom-anchored action. */}
       <main className="flex min-h-0 flex-1 flex-col p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <h1 className="sr-only">Add a film</h1>
 
         <FlowMarks collectionName={collectionName} filedCount={filedCount} />
 
         {/* Nothing failed here — the reader arrived at a route with no input, usually a typed or
-            shared bare URL. `--out` means on loan and nothing else (DESIGN.md palette law), and
-            §6's Error construction (a 2px OUT rule) tells a reader they did something wrong when
+            shared bare URL. `--out` means on loan and nothing else, and
+            the state grammar's Error construction (a 2px OUT rule) tells a reader they did something wrong when
             they did not. Borrowed from `src/pwa/UpdateNotice.jsx`'s own recessed-notice
             construction instead — 3px ink, not 2px out — the shape this app already uses for "a
             fact worth a printed line" that is not a failure. */}
@@ -237,7 +237,7 @@ const AddVideo = () => {
           )}
 
           {/* Always the same control — a ruled outline that fills to a plate the moment the
-              field is valid (DESIGN.md §6's FIRST form). That form holds here only because
+              field is valid (the action slot's first form). That form holds here only because
               "Enter by hand" below is no longer a second ruled outline in this row: a caps
               reason used to stand in for this button while disabled, but the actual collision
               was two identical outlines side by side, not a missing explanation, so moving the
@@ -258,12 +258,12 @@ const AddVideo = () => {
         </form>
 
         {/* Navigation to another route, not an action performed on this screen — so it takes the
-            underlined-link treatment DetailMarks already uses for "IN <library>"
-            (DESIGN.md §5), not a PlateButton. As a PlateButton it was a second ruled outline
+            underlined-link treatment DetailMarks already uses for "IN <library>",
+            not a PlateButton. As a PlateButton it was a second ruled outline
             sitting beside the disabled "Look up this title" button, indistinguishable from it at
             rest; as a link it carries no border or fill at all, so there is nothing left to
             collide with. `inline-flex min-h-12 items-center` reserves the same 48px hit target a
-            PlateButton claims (DESIGN.md §4) without drawing a second box — the text itself is
+            PlateButton claims without drawing a second box — the text itself is
             long enough that width is never the constraint the way it is for a short library name
             embedded mid-sentence in DetailMarks. */}
         <Link

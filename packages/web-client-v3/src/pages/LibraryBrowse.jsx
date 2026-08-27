@@ -109,7 +109,7 @@ const LibraryBrowse = () => {
         // Provenance is declared once, here, and never repeated on every row. Routed through
         // the same SharedRibbon vocabulary component LibraryRow and DetailMarks use — the
         // hand-rolled version this replaced set the owner's email address in `.num` (Chivo
-        // Mono), which DESIGN.md §3 reserves for numerals, not an authored address.
+        // Mono), which is reserved for numerals, not an authored address.
         <p className="relative border-b-2 border-ink px-4 py-2">
           <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-shared" />
           <span className="caps text-[11px] font-bold tracking-[0.16em]">
@@ -147,7 +147,7 @@ const LibraryBrowse = () => {
           {!isLoading && !error && runs.length === 0 && (
             <div className="m-4 border-2 border-ink p-8 text-center">
               <p className="caps text-xs font-bold text-ink-soft">Nothing filed here yet</p>
-              {/* §6: recovery — and here, the very first action on the screen — is a CONTROL,
+              {/* Recovery — and here, the very first action on the screen — is a CONTROL,
                   never an instruction to perform a gesture on an unlabelled target. "The plus
                   above" is spatial recall pointing at an icon with no visible label, meaningless
                   read out in a linear reading order. This IS the whole body of the screen, so

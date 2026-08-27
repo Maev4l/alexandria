@@ -8,7 +8,7 @@ import { seedFromAddFlowState } from '@/lib/addFlowState.js';
 const FILM = 1;
 
 // Manual entry, reached either from AddVideo's own "Enter by hand" escape or as the fallback
-// when cover-OCR + TMDB search finds nothing (DESIGN.md, AddVideo). No item exists yet, so `initial`
+// when cover-OCR + TMDB search finds nothing (see AddVideo). No item exists yet, so `initial`
 // starts from whatever the previous screen already knew — the query string, `?collectionId=` —
 // the same seeding NewBook does for the identical reason: state is gone on a cold load, which
 // is exactly when the loss would be silent.

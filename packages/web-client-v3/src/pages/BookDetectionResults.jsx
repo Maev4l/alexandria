@@ -9,7 +9,7 @@ import { useCollectionName } from '@/lib/useCollectionName.js';
 import { useFilingSession } from '@/state/FilingSessionContext.jsx';
 import { useToast } from '@/state/ToastContext.jsx';
 
-// The identifying input lives in the QUERY, never `location.state` (ui-v3.md ruling H): a cold
+// The identifying input lives in the QUERY, never `location.state`: a cold
 // load — a reload, a PWA restart, a shared URL — must re-run detection from `?isbn=` and land
 // the reader exactly where they were, still filing into the same collection if `?collectionId=`
 // is present. Detection is a side-effect-free read, so re-running it here is safe even though
@@ -101,7 +101,7 @@ const BookDetectionResults = () => {
     load();
   }, [load]);
 
-  // Finding 1/2 (ui-v3.md ruling A): a real miss is a NON-EMPTY array whose every entry carries
+  // Finding 1/2: a real miss is a NON-EMPTY array whose every entry carries
   // `error` (Google always emits one on zero results), never `detectedBooks.length === 0` — the
   // schema permits a genuinely empty array too, but that models every resolver being
   // UNREACHABLE, not "no book matches this ISBN", and both must offer the same way forward.
@@ -126,7 +126,7 @@ const BookDetectionResults = () => {
         summary: candidate.summary,
         authors: candidate.authors ?? [],
         isbn: candidate.isbn || isbn,
-        // Truthiness, never presence (ui-v3.md ruling B): Google's own no-cover candidate is a
+        // Truthiness, never presence: Google's own no-cover candidate is a
         // PRESENT empty string, not an absent key, and `''` must degrade the same way an absent
         // `pictureUrl` does rather than being sent to the API as a real address.
         pictureUrl: candidate.pictureUrl || null,
@@ -191,7 +191,7 @@ const BookDetectionResults = () => {
         {/* Task 18, fix round 2 finding 2: the scanned code is one fact about the WHOLE lookup,
             not a fact repeated on every candidate — all three rows below are resolutions of
             this one input, so printing it three times differentiated nothing and cost every row
-            a line. It lives here once, in the mono (§3 reserves the mono face for numerals;
+            a line. It lives here once, in the mono (the mono face is reserved for numerals;
             `data-mark` is check:browser's hook for the resolved font-family, same convention as
             "filing-into-name" above). */}
         {status !== 'loading' && isbn && (
@@ -211,7 +211,7 @@ const BookDetectionResults = () => {
                       absent case (Goodreads/TMDB) and the present-but-empty-string case
                       (Google, ruling B) to the same falsy input `pictureSrc()` already treats
                       as "no picture" — never an empty image source, which resolves against the
-                      page URL and produces the broken-image glyph DESIGN.md section 6 forbids. */}
+                      page URL and produces the broken-image glyph the state grammar forbids outright. */}
                   <VolumeFrame item={{ picture: candidate.pictureUrl || null }} size="candidate" />
                   <div className="min-w-0 flex-1">
                     {/* No `|| 'Untitled'` fallback (fix round 2 finding 1): a candidate reaching
@@ -233,7 +233,7 @@ const BookDetectionResults = () => {
                         both manual escapes and the re-search were `secondary`, and the two
                         `primary` submits are disabled at rest and therefore render AS the
                         secondary outline. So the accent marked the fallback route and nothing
-                        else, against DESIGN.md §2's law that `--imprint` is the apparatus of
+                        else, against the palette law that `--imprint` is the apparatus of
                         acting. Filing a candidate is this flow's only write.
                         Three small plates in a list are not the accent spent decoratively —
                         each is a genuine commit, and three ruled outlines read as three options
@@ -258,7 +258,8 @@ const BookDetectionResults = () => {
         {/* Fix round 2 finding 1: a failed resolver used to render as a FULL candidate — a
             ruled frame, an invented `Untitled` title in the loudest role on the row, an ISBN
             that was only ever the reader's own code echoed back. That was three faults at once:
-            fabricated content in the slot a reader scans first (DESIGN.md §9), a screen that
+            fabricated content in the slot a reader scans first — implying data the app does not
+            have, which this system refuses outright — a screen that
             could show `Untitled` directly above `NO MATCH FOUND` on a true miss (one candidate,
             two opposite claims), and a hierarchy that buried the one fact that matters — this
             source did not answer — last, in the quiet tone, under the invented one in ink.

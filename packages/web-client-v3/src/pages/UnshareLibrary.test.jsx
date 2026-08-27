@@ -35,7 +35,7 @@ beforeEach(() => vi.mocked(librariesApi.unshare).mockClear());
 
 // Revoking another person's access is at least as consequential as deleting your own library,
 // and delete confirms in place while this fired on the first tap. Same weight, same treatment.
-// DESIGN.md §3: mono is for numerals only, and an email address is content the reader authored
+// Mono is for numerals only, and an email address is content the reader authored
 // (a NAME, not a numeral) — the third instance of the same category error this sweep found
 // (the other two were LedgerRow's durations and IndexLetter's "volume(s)").
 it('never sets a reader\'s address in the mono — that is a name, not a numeral', () => {

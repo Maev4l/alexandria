@@ -88,8 +88,8 @@ const VideoDetectionResults = () => {
     // `allowFastPath` is what `Try again` turns off, and this is the defect it fixes: after a
     // failed re-search the URL is unchanged, so the tag still matched and this path re-served the
     // PREVIOUS candidates as `ready` — a control labelled with a specific action presenting stale
-    // results as fresh, the rule ui-v3.md §7 records as already learned on item detail and which
-    // shipped again four screens later. A retry is a demand for a real fetch.
+    // results as fresh, the same defect already learned and fixed on item detail, shipping
+    // again four screens later. A retry is a demand for a real fetch.
     //
     // A PARAMETER, not a read of `status`. Deriving it from state would put `status` in this
     // callback's dependencies, and this callback drives a fetch that SETS `status` — an effect
@@ -188,7 +188,7 @@ const VideoDetectionResults = () => {
         // Truthiness, never presence (ruling B): TMDB guards its own poster pointer, but the
         // shared handling must also survive a present empty string the way Google's book
         // candidates can carry one — an empty image source resolves against the page URL and
-        // fails, producing the broken-image glyph DESIGN.md section 6 forbids outright.
+        // fails, producing the broken-image glyph the state grammar forbids outright.
         pictureUrl: candidate.pictureUrl || null,
         collectionId: collectionId ?? null,
         order: null,
@@ -254,7 +254,7 @@ const VideoDetectionResults = () => {
             rather than a static label: this is the review step the capture screen no longer
             performs (one-call-capture task), since OCR is fallible and the reader must be able to
             correct a misread cover without walking back to AddVideo. It takes the SANS, not the
-            mono, the same as the read-only version it replaces: §3 reserves Chivo Mono for
+            mono, the same as the read-only version it replaces: Chivo Mono is reserved for
             numerals, and a film title is not one — unlike BookDetectionResults' scanned ISBN,
             which this pattern otherwise mirrors exactly.
             THE HINT NO LONGER NAMES OCR. This screen is reached three ways — a captured cover, a
@@ -299,7 +299,7 @@ const VideoDetectionResults = () => {
                     {/* `DIRECTOR · YEAR · RUNTIME`, one line. The runtime used to keep a line of
                         its own, which spends a whole row-line on a single number — and on a
                         comparison screen every row's height is paid once per candidate, five
-                        times at the resolver's maximum. §5 already varies this line by surface
+                        times at the resolver's maximum. This line already varies by surface
                         (it gains the edition on item detail), so this is a third variant of one
                         rule rather than a new construction. */}
                     <PlateLine
@@ -316,7 +316,7 @@ const VideoDetectionResults = () => {
                       // shorter than the data, which is a different act from clipping a string.
                       // `truncate` cut mid-word (`Nathalie D…`) and letting all five wrap is the
                       // other wrong answer: three lines per row across five rows, on a screen
-                      // whose job is comparison. §4 settles it — the row carries recognition,
+                      // whose job is comparison. The row carries recognition,
                       // detail carries identification — and a cast line discriminates through its
                       // LEAD; nobody chooses on the fourth and fifth names. The browse stream
                       // prints no cast at all, so this field exists only for comparison and is
@@ -341,7 +341,7 @@ const VideoDetectionResults = () => {
                         both manual escapes and the re-search were `secondary`, and the two
                         `primary` submits are disabled at rest and therefore render AS the
                         secondary outline. So the accent marked the fallback route and nothing
-                        else, against DESIGN.md §2's law that `--imprint` is the apparatus of
+                        else, against the palette law that `--imprint` is the apparatus of
                         acting. Filing a candidate is this flow's only write.
                         Three small plates in a list are not the accent spent decoratively —
                         each is a genuine commit, and three ruled outlines read as three options

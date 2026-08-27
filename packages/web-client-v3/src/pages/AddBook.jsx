@@ -11,7 +11,7 @@ import { isbnError, normalizeIsbn } from '@/lib/isbn.js';
 import { useCollectionName } from '@/lib/useCollectionName.js';
 import { useFilingSession } from '@/state/FilingSessionContext.jsx';
 
-// Both paths visible at once, never one behind the other (ui-v3.md task 18): the live scanner
+// Both paths visible at once, never one behind the other: the live scanner
 // sits above a labelled ISBN field that works whether or not the camera does — a denied
 // permission, poor light, or a damaged barcode must never leave a reader with nothing to press.
 // A THIRD, separate escape survives from the stub this replaces: "Enter by hand" skips detection
@@ -29,7 +29,7 @@ const AddBook = () => {
   }`;
   // The design session's own finding: a cataloguing session SITS on this screen and only passes
   // THROUGH the candidate list, briefly, once per scan — so the FILING INTO mark belongs here at
-  // least as much as there (ui-v3.md ruling E). Missing from this screen, it was missing from the
+  // least as much as there. Missing from this screen, it was missing from the
   // one place a whole session of back-to-back scans could actually see it.
   const collectionName = useCollectionName(libraryId, collectionId);
   // How many items have gone in since the reader entered this flow. Zero on arrival, so the
@@ -82,7 +82,7 @@ const AddBook = () => {
       // AddVideo's do. Until now this response was thrown away and BookDetectionResults ran the
       // identical `POST /detections` again on mount — two full Google/Babelio/GoodReads fan-outs
       // per scan, on the connection PRODUCT.md describes as poor, in a flow whose whole layout
-      // argument (DESIGN.md §4) is that it loops. The film path was fixed for this and its
+      // argument is that it loops. The film path was fixed for this and its
       // sibling was never checked.
       //
       // Tagged with the ISBN it answers, and trusted on the other side only when the tag
@@ -135,7 +135,7 @@ const AddBook = () => {
           here after BookDetectionResults REPLACES its own spent results entry (see that
           screen's onConfirm). A relative step is correct for the first and wrong for the
           second — after a replace, `-1` still walks past this screen's own earlier self to
-          whatever came before it, never to the library in one step. `ui-v3.md`'s own flow spec
+          whatever came before it, never to the library in one step. The flow spec
           ("Cancel at any point returns to the library") already named this destination; the
           collection is deliberately NOT carried into it — going back to the library is going
           back to the library, and the board that was being filed is visible there already. */}
@@ -150,8 +150,8 @@ const AddBook = () => {
         <FlowMarks collectionName={collectionName} filedCount={filedCount} />
 
         {/* Nothing failed here — the reader arrived at a route with no input, usually a typed or
-            shared bare URL. `--out` means on loan and nothing else (DESIGN.md palette law), and
-            §6's Error construction (a 2px OUT rule) tells a reader they did something wrong when
+            shared bare URL. `--out` means on loan and nothing else, and
+            the state grammar's Error construction (a 2px OUT rule) tells a reader they did something wrong when
             they did not. Borrowed from `src/pwa/UpdateNotice.jsx`'s own recessed-notice
             construction instead — 3px ink, not 2px out — the shape this app already uses for "a
             fact worth a printed line" that is not a failure. */}
@@ -201,7 +201,7 @@ const AddBook = () => {
           )}
 
           {/* Always the same control — a ruled outline that fills to a plate the moment the
-              field is valid (DESIGN.md §6's FIRST form). That form holds here only because
+              field is valid (the action slot's first form). That form holds here only because
               "Enter by hand" below is no longer a second ruled outline in this row: a caps
               reason used to stand in for this button while disabled, but the actual collision
               was two identical outlines side by side, not a missing explanation, so moving the
@@ -211,7 +211,7 @@ const AddBook = () => {
               is purely visual and says nothing to a screen reader, so the reason is rendered
               `sr-only` INSIDE the button, where it joins the accessible name a browse-mode read
               walks over — a disabled button is not focusable, so an `aria-describedby` there
-              would never be announced on tab (DESIGN.md §6, and PlateButton's own comment).
+              would never be announced on tab (see PlateButton's own comment).
               The mechanism existed and was passed nowhere in the app: built, tested, and unused
               on every screen that has exactly this control.
               Always the same sentence, never `codeError`: the field already announces its own
@@ -227,12 +227,12 @@ const AddBook = () => {
         </form>
 
         {/* Navigation to another route, not an action performed on this screen — so it takes the
-            underlined-link treatment DetailMarks already uses for "IN <library>"
-            (DESIGN.md §5), not a PlateButton. As a PlateButton it was a second ruled outline
+            underlined-link treatment DetailMarks already uses for "IN <library>",
+            not a PlateButton. As a PlateButton it was a second ruled outline
             sitting beside the disabled "Look it up" button, indistinguishable from it at rest;
             as a link it carries no border or fill at all, so there is nothing left to collide
             with. `inline-flex min-h-12 items-center` reserves the same 48px hit target a
-            PlateButton claims (DESIGN.md §4) without drawing a second box — the text itself is
+            PlateButton claims without drawing a second box — the text itself is
             long enough that width is never the constraint the way it is for a short library name
             embedded mid-sentence in DetailMarks. */}
         <Link

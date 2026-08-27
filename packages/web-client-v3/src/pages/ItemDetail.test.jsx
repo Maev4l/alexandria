@@ -268,7 +268,7 @@ describe('ItemDetail', () => {
   // The old `.catch(() => ({ events: [] }))` swallowed a transient events failure and rendered
   // the item as though it had never been lent — no error, no retry, and `item.lentTo` could
   // still say OUT while the ledger silently vanished beneath it. This is the exact
-  // silent-failure shape ui-v3.md §7 weighs heaviest, and the item itself must still render:
+  // silent-failure shape this project weighs as the worst class of defect, and the item itself must still render:
   // the failure is scoped to its history, not to whether this volume exists.
   it('surfaces a failed history fetch inline, with a retry, rather than as "never lent"', async () => {
     vi.stubGlobal(
@@ -321,7 +321,7 @@ describe('ItemDetail', () => {
   });
 
   // Round 2: the hero gained a marks column beside the frame, and the library left the plate
-  // line for it (DESIGN.md §5). `lib-fiction` in the fixtures is shared with two people
+  // line for it. `lib-fiction` in the fixtures is shared with two people
   // (marie@example.com, paul@example.com), which is exactly the amended comp's "Shared · 2".
   it('links IN <library> beside the hero, not the header, which carries no title here', async () => {
     renderPage('item-lent');
@@ -464,7 +464,8 @@ describe('the primary action acts or asks for exactly what it needs — never a 
             status: 500,
             headers: new Headers({ 'content-type': 'application/json' }),
             // Deliberately NOT app-authored copy — proving the app never renders the server's
-            // own words, per ui-v3.md §7 and api/client.js's STATUS_COPY map.
+            // own words, per api/client.js's STATUS_COPY map: an error must never attribute a
+            // system fault to the reader.
             json: async () => ({ message: 'internal failure xyz' }),
           };
         }
@@ -494,7 +495,7 @@ describe('the primary action acts or asks for exactly what it needs — never a 
   });
 });
 
-// Delete now sits on the same line as Mark returned/Lend and Edit (DESIGN.md, "all three on one
+// Delete now sits on the same line as Mark returned/Lend and Edit ("all three on one
 // line" — a lone Delete below the ledger used to read as though it deleted the RECORD, not the
 // item). Hierarchy is carried by treatment, not distance. It still confirms IN PLACE before
 // acting, the same in-page reveal UnshareLibrary.jsx already uses, rather than a sheet.
@@ -559,7 +560,8 @@ describe('Delete shares the action row and confirms in place', () => {
             status: 500,
             headers: new Headers({ 'content-type': 'application/json' }),
             // Deliberately NOT app-authored copy — proving the app never renders the server's
-            // own words, per ui-v3.md §7 and api/client.js's STATUS_COPY map.
+            // own words, per api/client.js's STATUS_COPY map: an error must never attribute a
+            // system fault to the reader.
             json: async () => ({ message: 'internal failure xyz' }),
           };
         }
@@ -589,7 +591,7 @@ describe('Delete shares the action row and confirms in place', () => {
 // yet, and the /libraries fetch failed — and only the third one used to render in total
 // silence. An owner who deep-links to their own item while /libraries is failing saw no Lend,
 // no Edit, no Delete and no explanation, which reads as "the app decided I may not act on my
-// own item" — a plausible, wrong story with no error to report (§7: prefer the defects that
+// own item" — a plausible, wrong story with no error to report (prefer the defects that
 // cannot be reported).
 describe('when /libraries fails, read-only says why instead of staying silent', () => {
   const failLibrariesFetch = () =>
@@ -730,7 +732,7 @@ describe('a shared (read-only) library offers no action controls', () => {
   });
 });
 
-// ui-v3.md's corrected ruling: the checkbox that used to live on the edit form repaired a
+// The corrected ruling: the checkbox that used to live on the edit form repaired a
 // cover that is CORRECT but never arrived (the async thumbnail pipeline failing — what
 // `data fix-thumbnails` exists for on the admin side), and moved to item detail, where that
 // failure is actually visible. It must NOT be gated on `pictureUrl` alone — that repeats the
@@ -798,7 +800,7 @@ describe('Fetch cover — repairs a thumbnail that failed to arrive, not a wrong
     expect(screen.queryByRole('button', { name: /fetch cover/i })).toBeNull();
   });
 
-  // Read-only means absent, not disabled (DESIGN.md) — the same rule Lend/Edit/Delete already
+  // Read-only means absent, not disabled — the same rule Lend/Edit/Delete already
   // follow. A shared-in library with both a failing picture AND a pictureUrl must still show
   // nothing, since actions belong to the owner alone.
   it('stays absent on a shared (read-only) library, even with a failed thumbnail and a pictureUrl', async () => {

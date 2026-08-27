@@ -116,11 +116,11 @@ const Account = () => {
               selectable text — which is what the failure path below falls back to when the
               clipboard is unavailable. */}
           <span className="min-w-0 break-all text-[17px] font-semibold">{user?.email}</span>
-          {/* A MARK, not a labelled button: copy belongs to DESIGN.md §5's universal-affordance
+          {/* A MARK, not a labelled button: copy belongs to the Marks' universal-affordance
               family beside back, add, search and close, and the caption below says what it is
               for. Negative-margined to the 48px floor so it does not inflate the row — the same
               construction Row Actions and the password reveal already use. The `aria-label` is
-              this control's only name (§8), so it names what it copies rather than the verb. */}
+              an icon-only control's only name, so it names what it copies rather than the verb. */}
           <button
             type="button"
             aria-label="Copy your email address"

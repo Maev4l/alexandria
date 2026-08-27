@@ -148,7 +148,7 @@ const ItemHistory = () => {
         {status === 'loading' && (
           // Round 5 critique #7: this branch used to render nothing below the sr-only <h1> — a
           // blank screen on the two routes with the worst network conditions in the app. Ruled
-          // skeleton frames at the correct ratio (DESIGN.md §6), shaped like the boxed ledger
+          // skeleton frames at the correct ratio, shaped like the boxed ledger
           // card below (same border-[3px] card, same per-row border-b/px-4/py-2 LedgerRow
           // already uses) so the layout does not move once real rows replace these bars.
           <div aria-hidden="true" className="border-[3px] border-ink [&>*:last-child]:border-b-0">

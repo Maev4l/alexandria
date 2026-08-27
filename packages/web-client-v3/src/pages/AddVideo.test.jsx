@@ -180,7 +180,7 @@ describe('AddVideo', () => {
   // noun phrase reads as a heading for the control beneath it, not an explanation of an absent
   // one. The real fix moves "Enter by hand" off the outline treatment entirely (see the link
   // test below), which dissolves the collision at its source: the disabled "Look up this title"
-  // becomes the only ruled outline in its row, so DESIGN.md §6's FIRST form — a plain disabled
+  // becomes the only ruled outline in its row, so the action slot's first form — a plain disabled
   // outline, no words — applies correctly, and the button itself, not a caps stand-in, is what
   // proves the state.
   it('disables Look up this title while the title is empty, and calls nothing on Enter', async () => {
@@ -268,7 +268,7 @@ describe('AddVideo', () => {
     ).toBeInTheDocument();
   });
 
-  // ui-v3.md §2, the stub row: back + wordmark is correct only while a screen has nothing to call
+  // The stub row: back + wordmark is correct only while a screen has nothing to call
   // itself. Scoped to the header, per AddBook.test.jsx's own comment on why an unscoped query
   // cannot tell "title shown" apart from "title dropped, h1 still there".
   it("takes its own name rather than the stub row's wordmark", () => {

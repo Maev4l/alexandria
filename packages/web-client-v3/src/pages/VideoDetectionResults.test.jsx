@@ -124,7 +124,7 @@ describe('VideoDetectionResults', () => {
     });
     renderPage('?title=Les%20Tontons%20flingueurs');
     await screen.findAllByText('Les Tontons flingueurs');
-    // Director and year share one PlateLine span (§5's Plate Line construction) — "Georges
+    // Director and year share one PlateLine span (the Plate Line construction) — "Georges
     // Lautner" is a bare text node beside a nested `.num` year span, not its own element, so it
     // is asserted against the rendered text rather than queried as a standalone node.
     expect(document.body.textContent).toContain('Georges Lautner');
@@ -139,8 +139,9 @@ describe('VideoDetectionResults', () => {
   // false. Fix round 2 (the one-call-capture task) brings state BACK, but only as a fast path
   // gated on the query: see the two tests below this one. This test's own scenario — no
   // `?title=` at all — is untouched by that reintroduction, because the redirect-on-missing-
-  // title branch runs before state is ever consulted; renamed (not deleted, ui-v3.md §7's own
-  // rule on a forbidding test) to say what is actually still true: a query is what makes a
+  // title branch runs before state is ever consulted; renamed rather than deleted, per the rule
+  // that a passing test whose premise has quietly changed must say what is actually still true —
+  // a query is what makes a
   // search reproducible, and state can never substitute for one that is entirely absent.
   it('a location.state payload with no `?title=` in the query still redirects — the query is what recovers, state never substitutes for it', async () => {
     const candidates = [{ id: 't1', title: 'Le Trou', directors: ['Jacques Becker'], releaseYear: 1960, duration: 132, cast: [], source: TMDB, pictureUrl: '/c4.webp' }];
@@ -169,7 +170,7 @@ describe('VideoDetectionResults', () => {
     expect(detectionApi.video).not.toHaveBeenCalled();
   });
 
-  // The guard against the exact silent-regression shape ui-v3.md §7 warns about: forwarding
+  // The guard against the exact silent-regression shape this project has been burned by before: forwarding
   // `location.state` on top of an already-correct query is only safe while the state actually
   // answers that query. A stale payload (a different title than the one in the URL — browser
   // back/forward, or a corrected search that changed the query without this remounting) must be
@@ -213,7 +214,7 @@ describe('VideoDetectionResults', () => {
 
   // The searched title used to be a static caps label with its own `data-mark`. It is now the
   // editable review field's value (one-call-capture task) — plain text input, no mono class
-  // anywhere near it, which is the same "content, not a numeral" guarantee §3 asked for, just
+  // anywhere near it, which is the same "content, not a numeral" guarantee the mono rule asked for, just
   // enforced by the field never having a mono option rather than by a class assertion on a span
   // that no longer exists.
   it('prints the searched title once, at the head, as an editable field pre-filled from the query', async () => {
@@ -382,8 +383,8 @@ describe('VideoDetectionResults', () => {
   // `Try again` did not try again. After a failed re-search the URL is unchanged, so the tagged
   // state still matched the title on screen and `load()` re-served the PREVIOUS candidates as
   // `ready` — a control labelled with a specific action presenting stale results as fresh, which
-  // is the rule §7 records as already learned on item detail and which shipped again four screens
-  // later on this one.
+  // is the same defect already learned and fixed on item detail and which shipped again four
+  // screens later on this one.
   it('a retry after a failed re-search fetches again instead of re-serving the tagged candidates', async () => {
     const carried = [{ id: 't1', title: 'Le Samouraï', directors: ['Melville'], releaseYear: 1967, duration: 105, cast: [], source: TMDB }];
     renderPage('?title=Le%20Samoura%C3%AF', { candidates: carried, forTitle: 'Le Samouraï' });
@@ -433,7 +434,7 @@ describe('VideoDetectionResults', () => {
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
   });
 
-  // §4: the row carries recognition, detail carries identification. A cast line discriminates
+  // The row carries recognition, detail carries identification. A cast line discriminates
   // through its LEAD — nobody chooses on the fourth and fifth names — so the field is the first
   // two, and NOTHING IS TRUNCATED because the field is defined shorter than the data rather than
   // clipping a string. `truncate` cut mid-word ("Nathalie D…"); letting all five wrap is the other

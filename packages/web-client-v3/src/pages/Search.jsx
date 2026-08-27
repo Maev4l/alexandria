@@ -11,7 +11,7 @@ import { useLibraries } from '@/state/LibrariesContext.jsx';
 import { addRecent, clearRecents, readRecents } from '@/lib/recentSearches.js';
 import { replaceById } from '@/lib/replaceById.js';
 
-// Three, per ui-v3.md § Search. Below it the index would return most of the catalogue, which
+// Three. Below it the index would return most of the catalogue, which
 // answers nothing and costs a round trip on the poor signal PRODUCT.md describes.
 const MIN_CHARS = 3;
 
@@ -219,7 +219,7 @@ const Search = () => {
 
   const showRecents = state.status === 'idle' && recents.length > 0;
   // A first visit has no recents and no query, so the surface below the field was BLANK — and
-  // §6's Empty rule is "a ruled frame with a caps invitation, at the same weight as a full
+  // The Empty state's rule is "a ruled frame with a caps invitation, at the same weight as a full
   // block", never nothing at all. It is also the one state where the reader may not know what
   // It does NOT restate what search covers. That is ruling 3 — the limits print at zero results
   // and nowhere else — and the first draft of this block broke it, caught by the probe that
@@ -229,7 +229,7 @@ const Search = () => {
 
   return (
     <div className="min-h-dvh bg-paper">
-      {/* No wordmark: that's reserved for the libraries root (DESIGN.md's header table). This
+      {/* No wordmark: that's reserved for the libraries root (the header table). This
           screen is reached BY the pinned field, so its own header is just the way back — the
           same "onBack, no title" shape ItemDetail's own non-happy-path states already use.
           `onBack` is a real `history.back()`, not a hardcoded destination, so it returns the
@@ -257,14 +257,14 @@ const Search = () => {
         <div className="sticky top-0 z-10 -mx-4 border-b-2 border-ink bg-paper px-4 pb-3">
           <SearchField value={terms} onQueryChange={onQueryChange} onSubmit={onSubmit} />
           {/* Inside the sticky block, so it travels with the field it is about — a reason that
-              scrolls away from its cause explains nothing. Not the Error construction (§6's
-              `--paper-deep` and `--out` top rule): nothing failed, and dressing a rule the reader
+              scrolls away from its cause explains nothing. Not the Error construction (the
+              state grammar's `--paper-deep` and `--out` top rule): nothing failed, and dressing a rule the reader
               simply has not met yet as a failure is the same misreport as the no-input notice on
               the capture screens. It takes `Field`'s hint treatment instead, which is this
               system's existing line-under-a-field.
               THE FIGURE IS SANS, and the guard is why this comment exists. I set it in the mono
-              on the reflex that a numeral takes the mono, and `monoFieldCoverage` went red — §3
-              splits on what the numeral IS, not on whether it is a digit: mono is for a labelled
+              on the reflex that a numeral takes the mono, and `monoFieldCoverage` went red — the
+              mono rule splits on what the numeral IS, not on whether it is a digit: mono is for a labelled
               datum, sans for a numeral inside a sentence the app authored. This is a sentence,
               the same case as "Delete Fiction and its 412 items?". */}
           {tooShort && (
@@ -298,7 +298,7 @@ const Search = () => {
 
         {state.status === 'error' && (
           // Inline and in place, with a control rather than an instruction to perform a
-          // gesture (DESIGN.md §6). Never a toast: a toast carries confirmations only, and it
+          // gesture. Never a toast: a toast carries confirmations only, and it
           // auto-dismisses, so a failure reported that way can be missed entirely.
           <div role="alert" className="mt-6 border-t-2 border-out bg-paper-deep p-4 text-ink">
             <p className="text-sm">{state.error}</p>
@@ -393,7 +393,7 @@ const Search = () => {
                   {/* A recent fills the field rather than navigating: the debounce then runs it
                       exactly as if the reader had typed it, and they can edit it in place
                       instead of starting over. Sentence case, in the sans — a recent is what
-                      the reader typed, which is content (§3). */}
+                      the reader typed, which is content. */}
                   <button
                     type="button"
                     // FILLS AND RUNS. Under the debounce, filling the field was enough — the

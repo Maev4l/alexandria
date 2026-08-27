@@ -21,7 +21,7 @@ const About = () => {
         <section className="mt-6 border-t-2 border-ink pt-4">
           <h2 className="caps mb-1 text-[11px] font-extrabold text-ink-soft">This build</h2>
           <p className="text-sm text-ink">
-            {/* The VERSION is a numeral and takes the mono (DESIGN.md §3); the commit hash sits
+            {/* The VERSION is a numeral and takes the mono; the commit hash sits
                 beside it in the sans, because a short hash is hexadecimal — mostly letters —
                 and the mono is reserved for numerals. Setting it in the mono would also make
                 scripts/check-browser.mjs's digit-dominance check depend on which commit is

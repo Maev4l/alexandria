@@ -11,7 +11,7 @@ vi.mock('@/auth/AuthContext.jsx', () => ({
 
 // The critique's second finding: an empty OWNED library told the reader to "Add the first
 // volume with the plus above" — spatial recall pointing at an unlabelled header icon, meaningless
-// in a linear reading order, and exactly what DESIGN.md §6 forbids ("recovery is a control,
+// in a linear reading order, and exactly what the recovery rule forbids ("recovery is a control,
 // never an instruction to perform a gesture"). This is the whole body of that screen, so the fix
 // gives it its own control rather than describing one elsewhere. `lib-empty` in the shared
 // fixtures is owned (no `sharedFrom`) with `totalItems: 0` and zero items in the mock store.

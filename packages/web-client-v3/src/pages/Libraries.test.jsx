@@ -65,7 +65,8 @@ describe('Libraries', () => {
 
   it('reports a failure inline rather than only as a toast, and never the server\'s own words', async () => {
     // Deliberately NOT app-authored copy — proving the app never renders the server's own
-    // words, per ui-v3.md §7 and api/client.js's STATUS_COPY map. This is the exact defect a
+    // words, per api/client.js's STATUS_COPY map: an error must never attribute a system fault
+    // to the reader. This is the exact defect a
     // design critique found by intercepting this same request: a 500 carrying
     // {"message":"Unauthorized"} printed "Unauthorized" on screen.
     respondWith({ message: 'internal failure xyz' }, false, 500);

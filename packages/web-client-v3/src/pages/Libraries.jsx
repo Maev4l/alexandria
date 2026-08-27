@@ -10,8 +10,8 @@ import { useAuth } from '@/auth/AuthContext.jsx';
 
 // Index letters (IndexLetter.jsx) mark POSITION within one alphabetical stream and stay
 // role="separator" — they are not structure, just a place a reader currently is. "Mine" and
-// "Shared with me" are a different thing: the product's primary IA division (PRODUCT.md,
-// ui-v3.md §2) between two real, labelled sections. Exposing that division only as a separator
+// "Shared with me" are a different thing: the product's primary IA division (PRODUCT.md)
+// between two real, labelled sections. Exposing that division only as a separator
 // made it structurally unreachable to a screen reader navigating by heading — the shared
 // section had no heading to land on at all. Promoted to <h2> so the outline says what the
 // screen actually contains; the separator role stays reserved for the index letters it was

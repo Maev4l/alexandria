@@ -101,7 +101,7 @@ const UnshareLibrary = () => {
                 {isSelected && <Check size={16} />}
               </span>
               {/* An address is content, so it keeps its own case — and it is a NAME, not a
-                  numeral, so it never takes `.num` either (DESIGN.md §3: mono is for numerals
+                  numeral, so it never takes `.num` either (mono is for numerals
                   only, and a name set in mono is a category error). This used to carry `.num`,
                   the same category error SharedRibbon's own `From <owner>` construction already
                   corrected — an email is that same fact, just spelled differently. */}

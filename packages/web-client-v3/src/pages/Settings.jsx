@@ -11,12 +11,12 @@ import { useAuth } from '@/auth/AuthContext.jsx';
 //
 // The wordmark is GONE now that the screen is real. A stub carried both marks because it had no
 // title worth printing and still owed the reader an exit; a finished screen showing the wordmark
-// beside a back control is announcing it has nothing to call itself (ui-v3.md §2).
+// beside a back control is announcing it has nothing to call itself.
 
 // Two rows, and nothing else on them. A row is a destination, so it carries the destination's
 // name and one line saying what is there — no chevron: this world's Marks are universal
 // affordances (back, add, search, close), and a decorative arrow restating "this is a link" on
-// something already announced as a link is ornament (DESIGN.md §5).
+// something already announced as a link is ornament.
 const SettingsRow = ({ to, label, note }) => (
   <Link to={to} className="flex min-h-12 flex-col justify-center gap-1 border-b-2 border-ink p-4">
     <span className="text-[17px] font-semibold">{label}</span>
@@ -29,7 +29,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const [error, setError] = useState(null);
 
-  // NO CONFIRMATION. §7 reserves that for what is actually destructive, and signing out destroys
+  // NO CONFIRMATION. Confirmation is reserved for what is actually destructive, and signing out destroys
   // nothing — the reader signs back in and everything is where they left it. It is still not a
   // navigation row: it does something rather than going somewhere, so it is a ruled secondary
   // plate set apart from the rows, with the consequence stated beside it.
@@ -73,7 +73,7 @@ const Settings = () => {
               {error}
             </p>
           )}
-          {/* Linked to the button. §6 rejected `aria-describedby` on a DISABLED primary because a
+          {/* Linked to the button. The state grammar rejected `aria-describedby` on a DISABLED primary because a
               disabled button is not focusable, so the description was never announced on tab —
               that objection does not apply here: this button is enabled, so a reader tabbing to it
               hears the consequence with it rather than only if they happened to read past it. */}

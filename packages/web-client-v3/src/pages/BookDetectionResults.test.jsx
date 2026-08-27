@@ -128,7 +128,7 @@ describe('BookDetectionResults', () => {
 
   // Fix round 2, finding 2: the scanned code used to print on every candidate row (the
   // reader's own code echoed back three times over, differentiating nothing) — it now lives
-  // once, at the head of the list, in the mono. §3 reserves the mono face for numerals, and the
+  // once, at the head of the list, in the mono. The mono face is reserved for numerals, and the
   // looked-up code is the canonical case (PlateLine.jsx's own ISBN treatment, the site round 1
   // copied from, applies the same class).
   it('prints the scanned code once, in the mono, at the head — never repeated on any row', async () => {

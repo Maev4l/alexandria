@@ -8,7 +8,7 @@ import { seedFromAddFlowState } from '@/lib/addFlowState.js';
 const BOOK = 0;
 
 // Manual entry, reached either from AddBook's own "Enter by hand" escape or as the fallback
-// when ISBN detection finds nothing (DESIGN.md, AddBook). No item exists yet, so `initial` starts
+// when ISBN detection finds nothing (see AddBook). No item exists yet, so `initial` starts
 // from whatever the previous screen already knew — the query string, `?collectionId=` —
 // rather than nothing: arriving from a collection board's "Add an item" must not silently drop
 // the collection the reader just named, leaving them to notice and re-pick it from the

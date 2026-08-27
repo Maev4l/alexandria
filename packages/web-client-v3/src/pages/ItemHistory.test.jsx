@@ -80,7 +80,7 @@ describe('ItemHistory', () => {
     renderPage();
     // Every LedgerRow carries exactly one `Lent` label, open or closed — the stable,
     // already-established visual marker of one loan (the ruling dropped the `→` connector that
-    // used to serve this role: DESIGN.md, LedgerRow.jsx), rather than a test-only hook.
+    // used to serve this role: see LedgerRow.jsx), rather than a test-only hook.
     await waitFor(() => expect(screen.getAllByText(/^lent$/i)).toHaveLength(4));
   });
 
@@ -154,7 +154,8 @@ describe('ItemHistory', () => {
         if (path.endsWith('/libraries')) return jsonResponse(200, { libraries });
         if (options.method === 'DELETE' && path.includes('/events')) {
           // Deliberately NOT app-authored copy — proving the app never renders the server's own
-          // words, per ui-v3.md §7 and api/client.js's STATUS_COPY map.
+          // words, per api/client.js's STATUS_COPY map: an error must never attribute a system
+          // fault to the reader.
           return jsonResponse(500, { message: 'internal failure xyz' });
         }
         const result = handleMockRequest('GET', path);
@@ -222,7 +223,8 @@ describe('ItemHistory', () => {
           }
           if (eventsCalls === 2) {
             // Deliberately NOT app-authored copy — proving the app never renders the server's
-            // own words, per ui-v3.md §7 and api/client.js's STATUS_COPY map.
+            // own words, per api/client.js's STATUS_COPY map: an error must never attribute a
+            // system fault to the reader.
             return jsonResponse(500, { message: 'internal failure xyz' });
           }
           return jsonResponse(200, {

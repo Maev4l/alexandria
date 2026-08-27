@@ -246,7 +246,7 @@ describe('Search — the result row', () => {
     expect(tag).toBeInTheDocument();
     expect(row.querySelector('.text-shared')).not.toBeNull();
 
-    // The left edge stays free for the stamp's --out rule (DESIGN.md §6, one left edge per
+    // The left edge stays free for the stamp's --out rule (one left edge per
     // element). A shared row that is not lent draws no edge at all.
     expect(row.querySelector('[data-edge]')).toBeNull();
   });
@@ -566,7 +566,7 @@ describe('Search — what a reader who cannot see it hears', () => {
 });
 
 describe('Search — the surface before a query exists', () => {
-  // §6's Empty rule: "a ruled frame with a caps invitation, at the same weight as a full block",
+  // The Empty state's rule: "a ruled frame with a caps invitation, at the same weight as a full block",
   // never nothing at all. A first visit has no recents and no query, so the whole surface below
   // the field was blank.
   it('invites rather than showing a blank page when there are no recents', async () => {

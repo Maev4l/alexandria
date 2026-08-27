@@ -20,7 +20,7 @@ const renderPage = () =>
 describe('Settings', () => {
   it('names itself in the header and drops the wordmark', () => {
     renderPage();
-    // ui-v3.md §2: a screen that becomes real takes back plus its own name. A finished screen
+    // A screen that becomes real takes back plus its own name. A finished screen
     // still showing the wordmark beside a back control is announcing it has nothing to call
     // itself, which for a built screen is a defect rather than a fallback.
     expect(within(screen.getByRole('banner')).getByText('Settings')).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe('Settings', () => {
     renderPage();
     await userEvent.click(screen.getByRole('button', { name: /sign out/i }));
 
-    // §7 reserves confirmation for what is actually destructive, and signing out destroys
+    // Confirmation is reserved for what is actually destructive, and signing out destroys
     // nothing. One press does it — no sheet, no second control to find.
     expect(signOut).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -50,7 +50,7 @@ describe('Settings', () => {
 
   it('offers no account deletion, because the API has no such endpoint', () => {
     renderPage();
-    // §9's rule against implying data the backend lacks covers ACTIONS as well as fields:
+    // The rule against implying data the backend lacks covers ACTIONS as well as fields:
     // deleting an account exists only in the admin CLI.
     expect(document.body.textContent).not.toMatch(/delete/i);
   });
