@@ -45,7 +45,7 @@ describe('token layer', () => {
   });
 });
 
-describe('contrast, as promised by DESIGN.md section 2', () => {
+describe('contrast, as promised by the design system', () => {
   const paper = PALETTE.paper;
 
   it('ink on paper clears AAA body text', () => {
@@ -104,7 +104,7 @@ describe('the inverted surface, which cannot borrow the paper palette', () => {
 
   // Round 2 (item-detail hero): the design session wrote "~3.03:1" in their message and
   // "3.07:1" in the comp's own CSS comment, and said plainly both are computed rather than
-  // measured — DESIGN.md §2's own table has been off by up to 0.7 before. Pinned here with a
+  // measured — the design system's own table has been off by up to 0.7 before. Pinned here with a
   // tolerance so a future palette edit that drifts the true figure fails loudly instead of the
   // document quietly going stale again.
   it('shared on ink fails as text — ~3.03:1, which is why the cover puts it on an edge', () => {
@@ -114,7 +114,7 @@ describe('the inverted surface, which cannot borrow the paper palette', () => {
     expect(ratio).toBeLessThan(4.5);
   });
 
-  // Same shape as --out on --paper (§2's existing table): sound for a rule or an outline,
+  // Same shape as --out on --paper (the existing contrast table): sound for a rule or an outline,
   // short of AA for small text, which is exactly the discipline the Overprint Stamp already
   // applies — colour on the outline, caps in a legible tone.
   it('out on ink fails as text too, for the same reason its stamp keeps caps off the colour', () => {
@@ -126,7 +126,7 @@ describe('the inverted surface, which cannot borrow the paper palette', () => {
 
 describe('the focus ring', () => {
   // THIS BLOCK USED TO PIN THE DEFECT. It asserted `outline: 3px solid var(--imprint)`, which was
-  // faithfully what DESIGN.md said — and what DESIGN.md said was forbidden two sections earlier
+  // faithfully what the design system said — and was forbidden elsewhere in the same document
   // by its own palette law: `--imprint` on `--paper` is ~1.55:1, and yellow cannot describe a
   // form at that ratio. An assertion inherits the correctness of the rule it encodes and adds
   // nothing to it, so this one defended a ring no reader could see.
@@ -148,7 +148,7 @@ describe('the focus ring', () => {
     expect(contrastRatio(PALETTE.ink, PALETTE.imprint)).toBeGreaterThanOrEqual(3);
   });
 
-  // EVERY focus rule, not just the base one. When §2's ruling moved the ring from the accent to
+  // EVERY focus rule, not just the base one. When the focus-ring ruling moved the ring from the accent to
   // the structural tone, `.field-control` kept `--imprint` — the fix touched the rule under
   // review and the sibling survived, and this file asserted only `:focus-visible`, so nothing
   // reported it. Found by reconciling the document against the build, months later.

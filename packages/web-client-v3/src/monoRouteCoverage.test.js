@@ -9,7 +9,7 @@ const traverse = _traverse.default ?? _traverse;
 
 // DRIFT ALARM for scripts/check-browser.mjs's `MONO_ROUTES` list (added at 431277a), per the
 // design session's f7 task. That check walks a HAND-MAINTAINED set of routes and asserts every
-// element resolving to Chivo Mono is digit-dominant (DESIGN.md section 3: the mono is for
+// element resolving to Chivo Mono is digit-dominant (the mono is for
 // numerals only). The list is complete today, but nothing says so mechanically — a future
 // component that adds a `.num` class is invisible to it until someone remembers to add a route.
 //

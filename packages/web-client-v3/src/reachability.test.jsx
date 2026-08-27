@@ -13,7 +13,7 @@ import { renderApp, stubFetch } from '@/test/appHarness.jsx';
 // entire design" — the pinned Search Field on the libraries root, and the search plate on item
 // detail — both of which routed to a dead end for three slices. It does not walk every route in
 // the app: several other screens (Settings, AddBook, AddVideo, …) are still stubs, and they are
-// pre-existing, tracked, not-yet-built work per `.claude/ui-v3.md`'s own progress checklist, not
+// pre-existing, tracked, not-yet-built work per the project's own progress checklist, not
 // a regression introduced or hidden by this task. Asserting their CONTENT here would fail the
 // suite over already-known incompleteness rather than a new defect, which is exactly the scope
 // this task was told NOT to expand into. A future screen that IS built is expected to extend

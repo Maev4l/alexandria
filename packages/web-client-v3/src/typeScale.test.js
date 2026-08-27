@@ -9,10 +9,10 @@ import { describe, expect, it } from 'vitest';
 // lands wrapped an extra level deep depending on which module system loaded it first.
 const traverse = _traverse.default ?? _traverse;
 
-// Mechanism for DESIGN.md section 3's type scale: "The steps in use are 10, 11, 12, 13, 14, 17,
+// Mechanism for the type scale: "The steps in use are 10, 11, 12, 13, 14, 17,
 // 20, 22, 32, 76. Anything else is off the scale."
 //
-// It exists because that section was unenforceable, and unenforceability is not theoretical here.
+// It exists because that rule was unenforceable, and unenforceability is not theoretical here.
 // The collection member-order plate shipped at 9px, survived a critique that named it the clearest
 // finding of its run, survived the provenance check that closed that finding ("the comp declares
 // it, so the code is right" — which answered whose fault it was and dropped whether 9 was
@@ -20,11 +20,11 @@ const traverse = _traverse.default ?? _traverse;
 // 1111 tests could not see it. Same family as fonts.test.js, groundForeground.test.js and the
 // mono split: a rule in the document with nothing able to report on it.
 //
-// Note the direction of the current risk. 9px has now been REMOVED from section 3, which leaves
+// Note the direction of the current risk. 9px has now been REMOVED from the scale, which leaves
 // the scale more exposed rather than less: the document no longer sanctions it, and without this
 // file nothing in the codebase would notice a 9 coming back.
 
-// DESIGN.md section 3. Sorted for the failure message only; membership is what matters.
+// The type scale's steps. Sorted for the failure message only; membership is what matters.
 const SCALE = [10, 11, 12, 13, 14, 17, 20, 22, 32, 76];
 
 // Tailwind's named sizes, resolved to the pixels they actually render.
@@ -67,7 +67,7 @@ const TEXT_UTILITY = /(?<![\w-])text-([a-z0-9][a-z0-9-]*|\[\d+px\])/g;
 
 // Tailwind colour utilities share the `text-` prefix with the size utilities, so the scan has to
 // know which tokens are colours or it will read `text-ink` as an unknown size. This list is the
-// palette from DESIGN.md section 2 plus the keywords the codebase uses.
+// palette plus the keywords the codebase uses.
 const COLOUR_TOKENS = new Set([
   'paper',
   'paper-deep',
@@ -111,8 +111,8 @@ const NON_SIZE_UTILITIES = new Set([
 // spinner and resize-grabber suppressions, why `outline-none` is absent — and the three
 // `text-base` sites carried nothing. The value is correct and had been surviving on nobody's
 // knowledge since it was typed, which is a worse condition than a badly-filed exception, not a
-// better one. It is written down here and in DESIGN.md section 3 so the next reader who finds 16
-// off the scale does not "fix" it.
+// better one. It is written down here and in the design system's own docs so the next reader who
+// finds 16 off the scale does not "fix" it.
 // AN INPUT, not a file. This was `{ file: 'components/imprint/Field.jsx', px: 16 }`, and scoping
 // it to a file is what let the defect through: `SearchField`'s input sat at 13px — on the scale,
 // so the guard passed it — while being the one control in the app that actually zooms, and the
@@ -253,8 +253,8 @@ const findViolations = (file) => {
       if (px === INPUT_ZOOM_PX && isFormControl) continue;
 
       violations.push(
-        `${relative}:${line} — \`${match[0]}\` resolves to ${px}px, which is off DESIGN.md ` +
-          `section 3's scale (${SCALE.join(', ')})`,
+        `${relative}:${line} — \`${match[0]}\` resolves to ${px}px, which is off the type ` +
+          `scale (${SCALE.join(', ')})`,
       );
     }
   }
@@ -262,7 +262,7 @@ const findViolations = (file) => {
   return violations;
 };
 
-describe('type scale (DESIGN.md section 3)', () => {
+describe('type scale', () => {
   const files = listSourceFiles(SRC_DIR);
 
   it('found source files to check', () => {

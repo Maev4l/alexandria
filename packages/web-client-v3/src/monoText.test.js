@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 // CJS/ESM interop, same defensive unwrap as groundForeground.test.js.
 const traverse = _traverse.default ?? _traverse;
 
-// Mechanism for DESIGN.md section 3: "the mono is for numerals only... a person's name set in
+// Mechanism for the mono rule: "the mono is for numerals only... a person's name set in
 // the mono is a category error." That rule was invisible for weeks because both shipped fonts
 // were near-empty and resolved to the same `system-ui` fallback (fixed in 20d2db7) — every
 // violation of the split looked identical to compliance until the fonts actually differed.
@@ -163,7 +163,7 @@ const findViolations = (file) => {
   return violations;
 };
 
-describe('mono text (DESIGN.md section 3, "the mono is for numerals only")', () => {
+describe('mono text ("the mono is for numerals only")', () => {
   const files = listSourceFiles(SRC_DIR);
 
   it('found more than zero .jsx files to check', () => {

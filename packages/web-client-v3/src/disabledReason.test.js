@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const traverse = _traverse.default ?? _traverse;
 
-// DESIGN.md §6: a disabled primary renders as the ruled outline and fills to a plate the moment
+// A disabled primary renders as the ruled outline and fills to a plate the moment
 // the form is valid — "becoming a filled plate the moment the form is valid is itself the
 // affordance saying so". True, and it says NOTHING to a screen reader. `PlateButton`'s `reason`
 // is the non-visual half: an `sr-only` sentence inside the button, which joins its accessible
@@ -15,9 +15,9 @@ const traverse = _traverse.default ?? _traverse;
 //
 // THE MECHANISM WAS BUILT, TESTED, AND PASSED NOWHERE. `grep 'reason={'` returned zero
 // non-test hits across the whole app while every form in it had exactly that control. This file
-// exists because the fix for that is not "add it to the two screens someone noticed" — DESIGN.md
-// records that a local patch to a system-wide gap is how the same defect returns on the next
-// screen, and it has watched that happen four times.
+// exists because the fix for that is not "add it to the two screens someone noticed" — a
+// local patch to a system-wide gap is how the same defect returns on the next
+// screen, and this project has watched that happen four times.
 //
 // THE BOUNDARY, and it is the whole design of this check. A control disabled because something
 // is MISSING owes the reader that fact. A control disabled because an operation is IN FLIGHT owes

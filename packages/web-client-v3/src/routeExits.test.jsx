@@ -23,7 +23,7 @@ import { fillRouteParams, getRoutePaths, renderApp, stubFetch } from '@/test/app
 //      currently on screen.
 // Both are disqualified if disabled: `disabled` on the button, `aria-disabled="true"` on the
 // link. A disabled control cannot currently fire, so it is not an exit, it is a decoy — the same
-// reasoning DESIGN.md §6 already applies to a not-yet-valid primary action. A link back to the
+// reasoning already applies to a not-yet-valid primary action. A link back to the
 // SAME path is also disqualified: the wordmark now links home (this guard's own fix), and on the
 // libraries root itself that link's `href` equals the current path, so it does not count there —
 // the root's real exit is the account plate to `/settings`, asserted below like everywhere else.

@@ -32,8 +32,8 @@ describe('the PWA manifest', () => {
 
   // THE ABSENCE IS THE ASSERTION. `orientation: 'portrait'` was specified by the plan and would
   // HARD-LOCK rotation on an installed Android app — a tablet held in landscape could not display
-  // the app at all. PRODUCT.md requires tablet and desktop to be "sane and usable", DESIGN.md §4's
-  // 448px column exists precisely so a wide viewport is not a stretched phone, and the capture
+  // the app at all. PRODUCT.md requires tablet and desktop to be "sane and usable", the design
+  // system's own 448px column exists precisely so a wide viewport is not a stretched phone, and the capture
   // screen's no-scroll ruling was measured at 667x390 with landscape scrolling accepted on the
   // record. A lock contradicts all three.
   //

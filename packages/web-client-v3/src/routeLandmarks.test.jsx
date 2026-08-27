@@ -5,10 +5,10 @@ import { fillRouteParams, getRoutePaths, renderApp, stubFetch } from '@/test/app
 // one <main> and exactly one <h1>. Zero is the defect the landmark work fixed; two is a defect
 // too — a screen with two <main>s or two <h1>s has an ambiguous outline, which is just as wrong
 // as having none. jsdom is legitimate for this: it is a DOM-structure fact, not computed style,
-// layout or focus (those live in scripts/check-browser.mjs per DESIGN.md's own boundary).
+// layout or focus (those live in scripts/check-browser.mjs, the browser-driven suite).
 //
 // ROUTE LIST: derived from the REAL route table (`@/routes.jsx`) via `getRoutePaths()|`, not
-// retyped here. `.claude/ui-v3.md` names eight more screens still to be built (AddBook's real
+// retyped here. The project's own progress checklist names eight more screens still to be built (AddBook's real
 // capture flow, Search's recents, Settings/Account/About's real content, …) — a hardcoded list
 // would silently stop covering them the moment they land, which is exactly the failure this
 // guard exists to close ("Slice C added landmarks to the files slice C touched and nowhere

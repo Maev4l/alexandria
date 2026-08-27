@@ -60,7 +60,7 @@ const LATIN1_LETTERS = Array.from({ length: 0xff - 0xc0 + 1 }, (_, i) => 0xc0 + 
 );
 
 // Latin Extended-A, the full block (U+0100–U+017F). The design system's index alphabet
-// (DESIGN.md §4 "The index alphabet") depends on this range: NFD-folding does not decompose Œ/Æ,
+// (its own fold, over first-letter buckets) depends on this range: NFD-folding does not decompose Œ/Æ,
 // so folded titles can bucket under letters anywhere in this block, not just the ones already
 // known to appear in the fixture data today.
 const LATIN_EXTENDED_A = Array.from({ length: 0x17f - 0x100 + 1 }, (_, i) => 0x100 + i);
@@ -71,7 +71,7 @@ const FRENCH_DIACRITICS = [...'éèàùçîôëï'].map((c) => c.codePointAt(0))
 const OE_AE_LIGATURES = [...'ŒÆœæ'].map((c) => c.codePointAt(0));
 const MIDDOT = 0xb7; // '·' — every Plate Line ("AUTHOR · ISBN"), OverprintStamp, SharedRibbon.
 // '→' is no longer rendered anywhere: LedgerRow.jsx dropped the "out → back" connector
-// (DESIGN.md ruling, ui-v3.md) precisely because this glyph is absent from both faces. The
+// (a documented ruling) precisely because this glyph is absent from both faces. The
 // constant and the confirmation test below stay — they document a verified upstream gap, not
 // current usage, and exist so a future re-introduction of the glyph is caught here first.
 const RIGHTWARDS_ARROW = 0x2192;
