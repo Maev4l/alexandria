@@ -61,7 +61,25 @@ const Field = ({ label, error, hint, liveHint = false, counter, className, as = 
         // DIFFERENT mechanism from the search field's `focus-control` (see index.css RULING 3):
         // it indicates only when the INPUT specifically is focus-visible, so the mark keeps its
         // own separate ring rather than being suppressed whenever either descendant is focused.
-        <div className={cn('field-control flex items-center border-b-2', borderClass)}>
+        <div
+          className={cn(
+            // THE RULE IS DRAWN, NOT BORDERED, so this row is the same height as a plain field.
+            // §6: an edge rule never displaces content — a border adds its own width to the box.
+            // As `border-b-2` this row measured 50px against a plain input's 48: the input inside
+            // is `min-h-12` and the border sat outside it, so the field was 2px taller than every
+            // other field in the app and its ink rule sat 2px lower. Drawn as an absolutely
+            // positioned 2px bar it overlays the input's own bottom 2px instead, which is exactly
+            // where a plain input's border already is — so both fields are 48px, both rules land
+            // on the same line, and the focus ring hugs an identical box on each.
+            //
+            // The input keeps its full 48px: shrinking it to fit a bordered 48px row was the
+            // other way to even this up, and it would have taken the tappable field to 46px,
+            // under §4's 48px minimum, to save a border.
+            'field-control relative flex items-center',
+            'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:content-[""]',
+            error ? 'after:bg-out' : 'after:bg-ink',
+          )}
+        >
           <Tag
             id={id}
             type={revealed ? 'text' : 'password'}

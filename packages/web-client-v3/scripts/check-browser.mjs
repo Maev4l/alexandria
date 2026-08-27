@@ -222,6 +222,49 @@ try {
       "the password field's ring is indistinguishable from a plain field's",
       `password offset ${onInput.control.offset} vs plain input offset ${plainOffset}`,
     );
+
+    // ...AND THE BOX THAT RING HUGS IS THE SAME SIZE. A matching offset is only half of "these
+    // two fields look alike": the password row carried `border-b-2` OUTSIDE a `min-h-12` input,
+    // so it measured 50px against a plain input's 48 and its ink rule sat 2px lower than every
+    // other field's. The rule is now drawn as an absolutely positioned bar (§6: an edge rule
+    // never displaces content), so both are 48px.
+    const boxes = await page.evaluate(() => {
+      const read = (sel) => {
+        const input = document.querySelector(sel);
+        const field = input.closest('.field-control') ?? input;
+        return {
+          field: Math.round(field.getBoundingClientRect().height),
+          input: Math.round(input.getBoundingClientRect().height),
+        };
+      };
+      return { email: read('input[type=email]'), password: read('input[type=password]') };
+    });
+    record(
+      boxes.email.field === boxes.password.field,
+      'a password field is the same height as a plain field',
+      `email ${boxes.email.field}px vs password ${boxes.password.field}px`,
+    );
+    // The input keeps the full 48px target. Evening the heights by shrinking the input inside a
+    // bordered row was the other route and would have cost 2px of tappable field to save a
+    // border, which §4's 48px minimum does not allow.
+    record(
+      boxes.password.input >= 48,
+      'the password input still meets the 48px touch target',
+      `input height ${boxes.password.input}px`,
+    );
+    // A DRAWN RULE CAN VANISH IN A WAY A BORDER CANNOT: it depends on `after:content-[""]` and a
+    // background utility, so dropping either leaves a field with no rule at all and nothing else
+    // in the app would notice. A border at least fails loudly in the box model.
+    const drawn = await page.evaluate(() => {
+      const row = document.querySelector('.field-control');
+      const a = getComputedStyle(row, '::after');
+      return { height: a.height, bg: a.backgroundColor, position: a.position };
+    });
+    record(
+      drawn.position === 'absolute' && parseFloat(drawn.height) === 2 && drawn.bg === 'rgb(11, 11, 11)',
+      'the password field still paints its own 2px ink rule',
+      `::after ${drawn.position} ${drawn.height} ${drawn.bg}`,
+    );
     record(
       onInput.input.style === 'none',
       'the input draws no competing ring while the field indicates on its behalf',
