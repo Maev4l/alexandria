@@ -62,72 +62,93 @@ stale half 36 times out of 44, and the whole of List 3 (21 entries) is a constru
 needed and the document had no category for, not one of them a defect. A specification written ahead
 of code accumulates claims the build has already answered better.
 
-### The line numbers are pinned to `7bc45f7` and have drifted
+### The line numbers were read against the audit-date tree, and are not all reliable
 
-Every citation in this file was read at `7bc45f7` and is correct as of that commit. The sources have
-moved since, both in this pass and before it. Two known drifts, given as examples rather than as the
-set — sixty citations were **not** re-resolved, and a reader chasing one should grep for the quoted
-text rather than trusting the number:
+**The header above says the tree was clean at `7bc45f7`. That commit is not the substrate.** It is
+dated 2026-08-17, eight days before the audit, and at that tree `check-browser.mjs` is 1450 lines
+with no caps manifest in it at all — so the manifest citation below points past the end of the file
+there. The citations were read against the tree the audit was committed on, `aa93858`, where that
+line is exactly the entry cited.
 
-- `CollectionBoard.jsx` — the unconditional member render, cited at `:33`, is now at `:50`.
-- `check-browser.mjs` — the caps manifest, cited at `:1596`, is now at `:1659`.
+So do **not** read the citations as correct-as-of-a-commit. Two different things are true of them:
+
+- **Some have genuinely drifted.** The caps manifest in `check-browser.mjs`, cited at `:1596`, was
+  the wordmark entry on the audit-date tree and is now at `:1659`.
+- **At least one was wrong when it was written.** `CollectionBoard.jsx`'s unconditional member
+  render is cited at `:33`. It sits at line 50 on the audit-date tree, at line 50 at `7bc45f7`, and
+  at line 50 today. It has never moved, so calling it drift would assert a movement that did not
+  happen — the citation was simply wrong.
+
+The body carries **94 source-file line citations**, plus 34 more into the two specification
+documents, and they were **not** re-resolved. Grep for the quoted text rather than trusting the
+number.
 
 ### Disposition, finding by finding
 
 **code** — the build was wrong and was changed. **document** — the build was right and the
 specification was corrected. **already closed** — settled before this pass opened.
 
+Two rows are marked **code + document**, because the finding had a half on each side. **They are
+counted once, in the code bucket** — which is what makes 8 + 36 = 44 hold. Counting rows containing
+the word *document* gives 38, and is the wrong count.
+
+**A documentation range is printed, not a single commit, and the reason is worth stating.** Every
+documentation task ran as a write commit followed by a review-fix commit; citing only the second
+sends a reader to a diff where the text they are checking appears as a *context* line, or — for the
+new vocabulary entries — to a one-line commit. The first SHA in each range is where the change
+landed. Code rows name a single commit because that is where the change is.
+
 | Finding | Status | Settled by |
 |---|---|---|
 | 1.1 route transition never built | already closed | `f3f7323` — the motion row and its unconsumed token dropped, before this pass |
-| 1.2 board not expandable, expand motion absent | document | `d6d3a9a` component vocabulary, `65dedd9` motion table, `81cbde2` screen specification |
-| 1.3 destructive button's caps are `currentColor` | document | `d6d3a9a` — the vocabulary now carries the code's own contrast reasoning |
+| 1.2 board not expandable, expand motion absent | document | `b838b0f..d6d3a9a` component vocabulary, `cff5cf4..65dedd9` motion table, `a5424fb..81cbde2` screen specification |
+| 1.3 destructive button's caps are `currentColor` | document | `b838b0f..d6d3a9a` — the vocabulary now carries the code's own contrast reasoning |
 | 1.4 `--out` on the pending-approval badge | **code** | `c9dbd98` |
-| 1.5 yellow carrying a shape | **code** + document | `c9dbd98` fixed the invisible rule on the sign-in notice; `40e3873` rescoped the law, which was derived from a paper-only measurement |
+| 1.5 yellow carrying a shape | **code** + document | `c9dbd98` fixed the invisible rule on the sign-in notice; `c70fb30..40e3873` rescoped the law, which was derived from a paper-only measurement |
 | 1.6 `--imprint` on a navigational link | **code** | `c9dbd98` |
-| 1.7 ground/foreground stated stricter than the guard enforces | document | `40e3873` — the rule now states what is enforced, and its inverse case |
+| 1.7 ground/foreground stated stricter than the guard enforces | document | `c70fb30..40e3873` — the rule now states what is enforced, and its inverse case |
 | 1.8 skeleton reintroduced the fill the frame removed | **code** | `5a89501` |
 | 1.9 home and unshare empty states | **code** | `8bd1009` |
-| 1.10 unshare bar's state count | document | `65dedd9` — five branches, four states plus one that renders nothing |
-| 1.11 stamp on a ledger row | document | `d6d3a9a` vocabulary, `65dedd9` state grammar |
-| 1.12 `--ink-soft` used for structure | document | `40e3873` — the token means the quiet register, marks and content alike |
-| 1.13 member order plate has a fill and a 1px rule | document | `d6d3a9a` |
-| 1.14 Error has three constructions, one documented | document | `65dedd9` — and the count corrected to 43 sites, 30/5/4 with a remainder of four |
-| 2.1 search input at 16px | document | `9f062fc` — the platform-zoom exception widened past the one component that named it |
+| 1.10 unshare bar's state count | document | `cff5cf4..65dedd9` — five branches, four states plus one that renders nothing |
+| 1.11 stamp on a ledger row | document | `b838b0f..d6d3a9a` vocabulary, `cff5cf4..65dedd9` state grammar |
+| 1.12 `--ink-soft` used for structure | document | `c70fb30..40e3873` — the token means the quiet register, marks and content alike |
+| 1.13 member order plate has a fill and a 1px rule | document | `b838b0f..d6d3a9a` |
+| 1.14 Error has three constructions, one documented | document | `cff5cf4..65dedd9` — and the count corrected to 43 sites, 30/5/4 with a remainder of four |
+| 2.1 search input at 16px | document | `ad27016..9f062fc` — the platform-zoom exception widened past the one component that named it |
 | 2.2 wordmark at the section-header step on two auth screens | **code** | `ac50805`, with the guard widened to see it; `7597223` completed the manifest |
-| 2.3 library row sub-line and the shared count | **code** + document | `6f5b119` put the figure in the mono (`b21dd1b` extracted the shared matcher); `9f062fc` published the row |
-| 2.4 stream row height in no table row | document | `9f062fc` |
-| 2.5 member plate 1px | document | `d6d3a9a` |
-| 2.6 stamp's inverted variant | document | `d6d3a9a` |
-| 2.7 three structural separators at 2px | document | `9f062fc` — all seven 1px sites and all five 3px sites enumerated |
+| 2.3 library row sub-line and the shared count | **code** + document | `6f5b119` put the figure in the mono (`b21dd1b` extracted the shared matcher); `ad27016..9f062fc` published the row |
+| 2.4 stream row height in no table row | document | `ad27016..9f062fc` |
+| 2.5 member plate 1px | document | `b838b0f..d6d3a9a` |
+| 2.6 stamp's inverted variant | document | `b838b0f..d6d3a9a` |
+| 2.7 three structural separators at 2px | document | `ad27016..9f062fc` — all seven 1px sites and all five 3px sites enumerated |
 | 2.8 `mt-3` on the search field | **code** | `db8e4aa` |
-| 2.9 frame has three sizes | document | `d6d3a9a` |
+| 2.9 frame has three sizes | document | `b838b0f..d6d3a9a` |
 | 2.10 `.field-control` outlined in `--imprint` | already closed | `aebdc4d`, before this pass — the focus ruling changed `:focus-visible` and left the sibling on the accent, so the search field had a yellow ring on yellow and every form field one at ~1.55:1 against a 3:1 floor |
-| 2.11 `--cover-rule` at 25% as a ground | document | `65dedd9` |
-| List 3 #1 `CaptureCaption` | document | `40e3873` recorded the inverse-ground case as a rule with the guard that finds it; `151b258` added the component |
-| List 3 #2 `FilingInto`, `FlowMarks` | document | `151b258` |
-| List 3 #3 `SearchRowMarks` | document | `d6d3a9a`, `36db7d7`, `151b258` — stated once, with the second site a pointer |
-| List 3 #4 Toast | document | `151b258` |
-| List 3 #5 `UpdateNotice`, and the shared silhouette | document | `151b258` |
-| List 3 #6 end of list | document | `65dedd9` — the rule is `--ink`, not `--ink-soft` |
-| List 3 #7 appending | document | `65dedd9` |
-| List 3 #8 in-flight capture lookup | document | `65dedd9` |
-| List 3 #9 route-chunk pending | document | `65dedd9` |
-| List 3 #10 capture viewports are not the item ratio | document | `9f062fc` |
-| List 3 #11 the Sheet's real mechanism | document | `d6d3a9a` |
-| List 3 #12 the `Field` variants and its error treatment | document | `d6d3a9a` |
-| List 3 #13 index-letter count is a phrase | document | `d6d3a9a` |
-| List 3 #14 section heads carry counts | document | `9f062fc` |
-| List 3 #15 `CONTINUES` | document | `d6d3a9a` |
-| List 3 #16 `.row-skip` | document | `9f062fc` — with the constraint that it must never wrap a sticky letter |
-| List 3 #17 `AddFlowLayout` | document | `81cbde2` — a route that is not a screen |
-| List 3 #18 the empty-fold branch | document | `9f062fc` — and the fallback shows the raw character, which the server did **not** sort on |
-| List 3 #19 `on-imprint` as a documented no-op | document | `40e3873` — 10 call sites, recounted |
-| List 3 #20 `AddItemSheet`'s `Back` | document | `81cbde2` — an option is scoped by the flow's premise; a return path is not an option |
-| List 3 #21 the in-place delete confirmation | document | `d6d3a9a` recorded it, `65dedd9` moved it whole into the state grammar — a confirmation is a state, not a component |
+| 2.11 `--cover-rule` at 25% as a ground | document | `cff5cf4..65dedd9` |
+| List 3 #1 `CaptureCaption` | document | `c70fb30..40e3873` recorded the inverse-ground case as a rule with the guard that finds it; `9d10c59..151b258` added the component |
+| List 3 #2 `FilingInto`, `FlowMarks` | document | `9d10c59..151b258` |
+| List 3 #3 `SearchRowMarks` | document | `b838b0f..d6d3a9a` and `9d10c59..151b258` — stated once, with the second site a pointer |
+| List 3 #4 Toast | document | `9d10c59..151b258` |
+| List 3 #5 `UpdateNotice`, and the shared silhouette | document | `9d10c59..151b258` |
+| List 3 #6 end of list | document | `cff5cf4..65dedd9` — the rule is `--ink`, not `--ink-soft` |
+| List 3 #7 appending | document | `cff5cf4..65dedd9` |
+| List 3 #8 in-flight capture lookup | document | `cff5cf4..65dedd9` |
+| List 3 #9 route-chunk pending | document | `cff5cf4..65dedd9` |
+| List 3 #10 capture viewports are not the item ratio | document | `ad27016..9f062fc` |
+| List 3 #11 the Sheet's real mechanism | document | `b838b0f..d6d3a9a` |
+| List 3 #12 the `Field` variants and its error treatment | document | `b838b0f..d6d3a9a` |
+| List 3 #13 index-letter count is a phrase | document | `b838b0f..d6d3a9a` |
+| List 3 #14 section heads carry counts | document | `ad27016..9f062fc` |
+| List 3 #15 `CONTINUES` | document | `b838b0f..d6d3a9a` |
+| List 3 #16 `.row-skip` | document | `ad27016..9f062fc` — with the constraint that it must never wrap a sticky letter |
+| List 3 #17 `AddFlowLayout` | document | `a5424fb..81cbde2` — a route that is not a screen |
+| List 3 #18 the empty-fold branch | document | `ad27016..9f062fc` — and the fallback shows the raw character, which the server did **not** sort on |
+| List 3 #19 `on-imprint` as a documented no-op | document | `c70fb30..40e3873` — 10 call sites, recounted |
+| List 3 #20 `AddItemSheet`'s `Back` | document | `a5424fb..81cbde2` — an option is scoped by the flow's premise; a return path is not an option |
+| List 3 #21 the in-place delete confirmation | document | `b838b0f..d6d3a9a` recorded it, `cff5cf4..65dedd9` moved it whole into the state grammar — a confirmation is a state, not a component |
 
 The two closing notes that are **not** findings are also settled: the accessibility list's
-pre-rewrite focus sentence in `65dedd9`, and `typeScale.test.js`'s stale paragraph above the live
+pre-rewrite focus sentence in `cff5cf4..65dedd9`, and `typeScale.test.js`'s stale paragraph above the live
 one in `db8e4aa`.
 
 ### Two entries that were not in the lists above
@@ -139,7 +160,7 @@ one in `db8e4aa`.
   describing the 10/800 one — and had only ever been green because the two surfaces coincide on the
   one property it asserted, the tracking. A true measurement of the wrong substrate, inside the
   guard written to prevent exactly that. Neither rendered size changed; both are now published
-  (`9f062fc`) and both are now measured (`7597223`).
+  (`ad27016..9f062fc`) and both are now measured (`7597223`).
 - **The weight probe: probed clean, asserted.** The caps manifest computed only tracking, so two of
   the three properties the typography rules publish per role were unasserted. The size half found a
   real defect (2.2); the weight half was probed against all ten roles and **every one matched its
@@ -149,8 +170,9 @@ one in `db8e4aa`.
 
 ### What this pass produced and did not fix
 
-Three findings arrived out of this work, sit outside the 44, and were deliberately left as evidence
-rather than folded into a documentation commit:
+Three records hold the findings that arrived out of this work — about six between them, one of
+them titled for holding three. All sit outside the 44 and were deliberately left as evidence rather
+than folded into a documentation commit:
 
 - `docs/ui-design/behaviour-findings-2026-08-25.md` — **one real product defect**: a cover that
   never loads retries every four seconds for ever, on every visible row, where all three documents
@@ -164,8 +186,8 @@ rather than folded into a documentation commit:
 - The plan itself, for the two comment sweeps still to run: this pass's own citation comments, and
   the pre-existing citations across the wider source.
 
-Both findings files still say *"the 42 audited findings"*. That is the double-subtraction described
-above; the correct figure is 44, derived at the top of this section.
+Both findings files were written carrying the wrong count — the double-subtraction described above —
+and both have since been corrected to 44, the figure derived at the top of this section.
 
 ---
 
