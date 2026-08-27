@@ -1864,6 +1864,22 @@ of this comment and into the design document, where it was corrected under revie
 document left the source still asserting it, which is how it would travel again. Correct it here, in
 the same words the document now uses.
 
+- [ ] **Step 2c: Correct a retired rule quoted as current in a guard's own comment**
+
+`src/groundForeground.test.js` (around lines 14–16) quotes the design system's **pre-rewrite**
+ground/foreground rule verbatim and in the present tense, as the rule the guard exists to enforce.
+That rule was rewritten during this pass to what the guard actually checks: **a ground's text is
+coloured at or below it, and never inherited across a surface boundary.** The old wording demanded
+both be declared together in one rule, which the guard has never required and which the build does
+not do.
+
+So the comment describes a stricter rule than its own code enforces, inside the file that enforces
+it. Correct it to the rule as it now stands, in the same words the design system uses, and drop the
+citation with it.
+
+Found by the task reconciling the other specification document, which was told that document held
+the only live copy of the retired sentence. It did not — this is a second, and it reads as current.
+
 - [ ] **Step 3: Confirm the sweep is clean and nothing else moved**
 
 ```bash
