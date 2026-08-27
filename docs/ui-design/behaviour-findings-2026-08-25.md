@@ -1,11 +1,13 @@
-# Two behaviour findings, found while reconciling the documents — not fixed there
+# Three behaviour findings, found while reconciling the documents — not fixed there
 
 Found during `docs/superpowers/plans/2026-08-25-ui-v3-reconciliation.md`, which is a documentation
 pass over the design system. Neither is one of the 42 audited findings that pass applies, and
 neither was fixed there: a code change smuggled into a documentation commit is how a reviewer stops
 being able to see either one.
 
-The first is a real product defect. The second is housekeeping.
+The first is a real product defect. The second is housekeeping. The third is a product question
+rather than a bug, and it is the one that blocked a sentence in the design system from being
+written the obvious way.
 
 ## 1. A cover that never loads retries every four seconds, for ever, on every visible row
 
