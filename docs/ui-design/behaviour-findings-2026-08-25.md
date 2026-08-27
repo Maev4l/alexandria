@@ -1,7 +1,7 @@
 # Three behaviour findings, found while reconciling the documents — not fixed there
 
 Found during `docs/superpowers/plans/2026-08-25-ui-v3-reconciliation.md`, which is a documentation
-pass over the design system. Neither is one of the 42 audited findings that pass applies, and
+pass over the design system. None is one of the 44 audited findings that pass applies, and
 neither was fixed there: a code change smuggled into a documentation commit is how a reviewer stops
 being able to see either one.
 
@@ -37,7 +37,7 @@ as the reader stays on the screen.
 bound: retry once, record that the retry happened, and then hold the ruled empty frame — which is
 what all three documents already claim happens, and what the empty frame exists to be.
 
-**Why it was not fixed in that pass.** It is outside the 42 findings, it is a behaviour change to a
+**Why it was not fixed in that pass.** It is outside the 44 findings, it is a behaviour change to a
 component rendered on every row of the densest screen in the app, and it deserves its own
 measurement — how many frames in a real library actually reach the permanent case — rather than
 riding along inside a documentation commit.
@@ -78,7 +78,7 @@ loading flag alone, and renders the loaded runs unconditionally underneath. So p
 library of a thousand items paints four skeleton rows **above** the thousand real ones, rather than
 replacing anything or appending anything.
 
-**Why it is recorded rather than fixed.** It is outside the 42 findings that pass applies, and it is
+**Why it is recorded rather than fixed.** It is outside the 44 findings that pass applies, and it is
 not obviously a defect: skeletons above live content is a defensible way to say *new data is
 arriving*. What is certain is narrower and is the reason this note exists — **the design system
 cannot describe the loading state honestly while this is true**, because the natural sentence

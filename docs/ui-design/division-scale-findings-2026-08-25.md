@@ -2,7 +2,7 @@
 
 Found by Task 07's sweep during
 `docs/superpowers/plans/2026-08-25-ui-v3-reconciliation.md`, and **deliberately not fixed there**.
-They are outside the 42 findings that pass applies, and folding unplanned corrections into a pass
+They are outside the 44 findings that pass applies, and folding unplanned corrections into a pass
 is how `DESIGN.md` accumulated the divergences the pass exists to repair.
 
 `DESIGN.md` §4: *"gaps between blocks … are whole divisions, always."* The division is 8px. §4 also
