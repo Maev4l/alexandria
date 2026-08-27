@@ -253,8 +253,17 @@ const Search = () => {
             `-mx-4 px-4` so the ground spans the full column rather than letting rows show through
             beside it, and its own 2px rule so it reads as a surface the content passes under
             rather than as a block that happens to be stuck. The header is not sticky, so `top-0`
-            is the viewport edge and nothing overlaps. */}
-        <div className="sticky top-0 z-10 -mx-4 border-b-2 border-ink bg-paper px-4 pb-3">
+            is the viewport edge and nothing overlaps.
+            `pb-2` (not the `pb-3` this shipped with, one and a half divisions and off the scale):
+            shot at 8px, 12px and 16px against the same fixture results, 12px and 16px both open a
+            strip of paper between the field's own black border and this rule, so the rule reads as
+            a divider floating below the field rather than the field's own base — the opposite of
+            "a surface the content passes under" two lines up. 8px closes that gap enough that the
+            rule reads as closing the field's frame, not as a break after it, which also matches
+            `AppHeader`'s identical construction (search field, then this same gap, then its own
+            closing `border-b-2`) so the root and this screen read as one system rather than two
+            locally-plausible ones. */}
+        <div className="sticky top-0 z-10 -mx-4 border-b-2 border-ink bg-paper px-4 pb-2">
           <SearchField value={terms} onQueryChange={onQueryChange} onSubmit={onSubmit} />
           {/* Inside the sticky block, so it travels with the field it is about — a reason that
               scrolls away from its cause explains nothing. Not the Error construction (the
