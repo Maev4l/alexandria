@@ -408,11 +408,22 @@ the alarm rather than pass the check.
 |---|---|---|---|
 | Count plate | 12 | 700 | tabular, in a 2px ruled plate |
 | Plate Line figures, detail plate line | 12 | 400 | `--cover-soft` on the cover |
-| Index letter count, ledger dates, the capture flow's session tally | 11 | 400 | tabular; the tally (`FILED THIS SESSION · N`) takes the size from this row, and its **weight is the exception**: it sits inside its own caps label and inherits that label's 700, the same construction as the section-header count below. It was rendering at this size all along and simply had no row saying so |
+| Index letter count, ledger dates, the capture flow's session tally | 11 | 400 | tabular; the tally (`FILED THIS SESSION · N`) takes the size from this row and its weight from the caps label it sits inside — see the weight rule below. It was rendering at this size all along and simply had no row saying so |
 | Scanned code at the head of a detection results screen | 13 | 400 | tabular; **one step above the detail ISBN's 12, and the difference is the point.** The head code is an echo of what the reader just typed or scanned, sized to be read at a glance and confirmed; the detail ISBN is an identifier inside a dense line of metadata. Different jobs, different sizes — do not tidy one onto the other |
 | Ledger duration | 13 | 400 | tabular; it sits **inside** the ledger's name line, which the content table above publishes at 13, and takes that line's size rather than the row's own 11 — published at 11 here until somebody read the component |
-| Section-header count (the figure beside `MINE` and `SHARED WITH ME`) | 11 | 800 | tabular; the weight is inherited from the caps label beside it rather than set here, and its tracking is cancelled outright rather than left blank — explained below |
+| Section-header count (the figure beside `MINE` and `SHARED WITH ME`) | 11 | 800 | tabular; the weight comes from the caps label it sits inside — see the weight rule below — and its tracking is cancelled outright rather than left blank, explained further down |
 | **Collection member order plate** | **10** | 400 | tabular, in a **1px** rule — one step lighter than the ordinary plate's 2px, because this plate sits inside a Volume Frame whose own 2px rule it must not out-weigh |
+
+**A figure inside a caps label takes that label's weight, and this column states the figure's own.**
+Two of the rows above have a weight the column does not predict, and neither is an exception: the
+session tally is 700 because it sits inside a caps label set in `font-bold`, and the section-header
+count is 800 because its label is set in `font-extrabold`. One construction, twice — a mono figure
+nested in a caps label — so it is a rule and not two footnotes. **Only the family and the digit
+treatment change when a numeral takes the mono**; the weight stays whatever the line it sits in is
+set at, which is why a nested figure is never given a weight of its own at the site. The column
+above therefore describes a figure standing alone, and a nested one reads its weight off its label.
+This was recorded as a per-row exception on the first instance, which is how one construction comes
+to be described twice and reconciled nowhere.
 
 **The library row's own sub-line used to sit in this table, and it never should have.** An earlier
 draft listed it here as a mono numeral at 11px, weight 400, alongside ledger dates and durations. It
@@ -698,11 +709,32 @@ the difference between an imprint and a poster.
 One visible scale, per the Signal Bench discipline. Base unit **4px**; the division is **8px**.
 
 **The division governs layout; the base unit and optical adjustment govern typographic interiors.**
-Block padding, gaps between blocks, insets, row heights and margins are whole divisions, always.
-Inside a plate, a tag or a stamp, the 4px base unit applies, and optical adjustments of 1–3px are
-legitimate where the alternative is worse: a plate padded to a full 8px vertically stops reading as
-a plate and starts reading as a button. What the rule forbids is spacing by eye at layout scale,
-which is where drift is visible and compounding.
+Block padding, gaps **between** blocks, insets, row heights and margins are whole divisions, always.
+**Inside** a block the 4px base unit applies, and optical adjustments of 1–3px are legitimate where
+the alternative is worse: a plate padded to a full 8px vertically stops reading as a plate and
+starts reading as a button. What the rule forbids is spacing by eye at layout scale, which is where
+drift is visible and compounding.
+
+**The base unit has one settled use, and this rule was written too narrow to name it.** It used to
+permit the base unit only *inside a plate, a tag or a stamp* — which is where it was first needed,
+and not where it is now used. **Thirteen sites already sit at 4px for one relationship: a caps label
+and the thing it labels, or a name and its sub-line.** A field's label above its input and its note
+row below it; the shared tag under a library's name; a section heading above its paragraph; a
+destination row's label above its note; a skeleton's sub-line under its name bar; the source under a
+candidate's title. Read against the old wording every one of them was a violation, because a library
+name and its sub-line sit inside a **row**, not inside a plate. Thirteen sites at one value for one
+relationship is a convention the rule failed to name, not thirteen mistakes — so the permitted case
+widens from a plate, a tag or a stamp to a **block**, and the convention is written down rather than
+left to be rediscovered by the next sweep.
+
+**Widening what may sit inside a block moved nothing about what sits between two of them, and the
+case that prompted this is still rejected.** The search field's 12px top margin and the item-detail
+skeleton's were gaps from one block to the next — one and a half divisions, at layout scale, which is
+exactly the drift the rule exists to stop — and both still owe a whole division. The question that
+separates the two cases is one a reader can answer by looking: **is this distance between two things
+read as separate blocks, or between a label and its own content?** The first takes whole divisions.
+The second takes the base unit. A gap between blocks never takes 4px, and a label never needs 8px to
+separate it from the thing it names.
 
 | Name | Value |
 |---|---|

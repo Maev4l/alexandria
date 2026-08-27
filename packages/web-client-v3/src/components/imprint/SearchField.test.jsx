@@ -54,10 +54,10 @@ describe('SearchField', () => {
     expect(await screen.findByText('at:/search')).toBeInTheDocument();
   });
 
-  // Layout gaps between blocks are whole divisions, always. The division is 8px, and `mt-3` is
-  // 12px — 1.5 divisions. The only layout-scale gap in the app that was off the scale, on the
-  // loudest mark in the design.
-  it('sits a whole division from the block above it', () => {
+  // A gap between blocks is a whole division, always — the division being 8px, and the `mt-3` this
+  // shipped with being 12px, one and a half of them. This asserts the between-blocks case only: the
+  // base unit is legitimate INSIDE a block, so 4px elsewhere is not evidence of the same defect.
+  it('sits a whole division from the block above it, not a fraction of one', () => {
     const { container } = renderLauncher();
     expect(container.querySelector('.field-control').className).toContain('mt-4');
   });
