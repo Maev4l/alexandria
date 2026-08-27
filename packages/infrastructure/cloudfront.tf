@@ -63,6 +63,50 @@ resource "aws_cloudfront_function" "strip_thumbnails_prefix" {
   EOF
 }
 
+# SPA fallback, done per-behavior — because the distribution-wide alternative was corrupting the
+# API and nobody could see it.
+#
+# `custom_error_response` sits on the DISTRIBUTION, not on a cache behavior, so it applies to
+# `/api/*` as well as to the web client. The block that used to live here mapped 404 -> /index.html
+# with status 200, and it carried a comment warning against adding 403 because that "would mask API
+# Gateway auth errors". The warning was right and the same masking was already live one status code
+# over: `GET /api/v1/nope` returned `200 text/html` with the app shell in it. `ItemDetail.jsx` reads
+# `reason?.status === 404` to raise its "not in this collection" notice, so that branch could never
+# fire in production — the client got a 200, tried to parse HTML as JSON, and fell through to the
+# generic error instead.
+#
+# It also never did the job it was there for. The web client's bucket policy grants `s3:GetObject`
+# and not `s3:ListBucket`, and S3 answers a MISSING object with 403 rather than 404 when the caller
+# cannot list (AWS: the Access Denied error masks a 404). So every deep link — /login, /libraries,
+# an item URL someone shared — returned raw S3 AccessDenied XML, and the 404 rule sat there looking
+# like a working SPA fallback while firing only for the API it should never have touched.
+#
+# A viewer-request function is attached to ONE cache behavior, which is exactly the scope this
+# needs: `/api/*`, `/assets/*` and `/thumbnails/*` have their own behaviors and are untouched, so
+# API 404s stay 404s and a missing asset keeps failing as a missing asset instead of quietly
+# becoming HTML. Granting `s3:ListBucket` was the other route and is worse: it revives the
+# distribution-wide rule, which is the half that was doing damage.
+resource "aws_cloudfront_function" "spa_fallback" {
+  name    = "alexandria-spa-fallback"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = <<-EOF
+    function handler(event) {
+      var request = event.request;
+      var uri = request.uri;
+      // An extension in the LAST path segment means a real object — /sw.js, /manifest.webmanifest,
+      // /icons/logo192.png, /fonts/*.woff2. Everything else is a client route, and the router
+      // resolves it once the shell loads. Query strings are untouched: only the URI is rewritten,
+      // so ?q= and ?v= survive.
+      var last = uri.substring(uri.lastIndexOf('/') + 1);
+      if (last.indexOf('.') === -1) {
+        request.uri = '/index.html';
+      }
+      return request;
+    }
+  EOF
+}
+
 # Cache policy for thumbnails (7 days TTL, forward query strings for cache busting)
 resource "aws_cloudfront_cache_policy" "thumbnails" {
   name        = "alexandria-thumbnails-cache-policy"
@@ -169,6 +213,13 @@ resource "aws_cloudfront_distribution" "main" {
     compress                   = true
     cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.webclient_no_cache.id
+
+    # Client routes resolve to the app shell here and NOWHERE else — see the function above for
+    # why this is attached per-behavior rather than expressed as a distribution-wide error page.
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.spa_fallback.arn
+    }
   }
 
   # /thumbnails/* → S3 (pictures bucket)
@@ -212,14 +263,6 @@ resource "aws_cloudfront_distribution" "main" {
     compress                   = true
     cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.webclient_immutable.id
-  }
-
-  # SPA fallback: return index.html for 404 only
-  # Note: Do NOT add 403 here - it would mask API Gateway auth errors
-  custom_error_response {
-    error_code         = 404
-    response_code      = 200
-    response_page_path = "/index.html"
   }
 
   restrictions {
