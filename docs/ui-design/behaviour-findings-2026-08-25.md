@@ -64,3 +64,30 @@ dead export and false of the shipped component.
 `More` additionally declares a `stroke-linecap` the shared mark does not, so the file's own header
 comment — *"2px stroke, square caps, no fill"* — is true of the one export nothing uses and false of
 the nine that ship. That comment was transcribed into the design system before review caught it.
+
+## 3. Pull-to-refresh draws skeletons above the rows the reader is already reading
+
+`src/state/StreamContext.jsx` and `src/pages/LibraryBrowse.jsx`. Found while reconciling the state
+grammar, and it is the reason one sentence in that grammar could not be written the obvious way.
+
+`refresh()` sets the loading flag and **does not clear the entries** — only the mount effect does
+that. The browse screen wires pull-to-refresh straight to `refresh`, gates its skeleton block on the
+loading flag alone, and renders the loaded runs unconditionally underneath. So pulling to refresh a
+library of a thousand items paints four skeleton rows **above** the thousand real ones, rather than
+replacing anything or appending anything.
+
+**Why it is recorded rather than fixed.** It is outside the 42 findings that pass applies, and it is
+not obviously a defect: skeletons above live content is a defensible way to say *new data is
+arriving*. What is certain is narrower and is the reason this note exists — **the design system
+cannot describe the loading state honestly while this is true**, because the natural sentence
+("skeletons stand in for content that is not there yet") is false of the refresh path, and the
+distinction the document draws between a cold load and an appended page has a third shape sitting
+between them that nobody named.
+
+So the question for whoever picks this up is a product one, not a bug report: **should a refresh
+replace the stream, append to it, or draw above it?** All three are coherent; only the third is
+implemented, and it was implemented by omission rather than by decision — the entries are simply
+never cleared.
+
+The document has been written to describe the three shapes as they are rather than to assert the
+tidy two-shape rule. If the behaviour changes, that passage is where it will need to follow.
