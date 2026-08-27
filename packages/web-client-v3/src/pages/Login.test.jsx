@@ -68,8 +68,8 @@ describe('Login', () => {
   });
 
   // --imprint on --paper-deep computes to ~1.42:1, and that rule was the notice's only
-  // distinguishing mark — at that ratio yellow cannot describe a form on its own, exactly the
-  // failure this predicts, in the one place nobody had scoped the rule out of.
+  // distinguishing mark — at that ratio yellow cannot describe a form on its own, which is
+  // exactly the failure that ratio produces, in the one place nobody had scoped the rule out of.
   it('prints the OAuth success notice with an ink rule, not an invisible yellow one', () => {
     auth.oauthMessage = { type: 'success', text: 'Your Google account has been linked.' };
     renderPage();

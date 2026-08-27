@@ -165,7 +165,7 @@ const findViolations = (file) => {
   return violations;
 };
 
-describe('ground/foreground pairing (DESIGN.md section 2, "sets a ground sets its foreground")', () => {
+describe('a ground colours its own text, never inherited across a surface boundary', () => {
   const files = listSourceFiles(SRC_DIR);
 
   it('found more than zero .jsx files to check', () => {
