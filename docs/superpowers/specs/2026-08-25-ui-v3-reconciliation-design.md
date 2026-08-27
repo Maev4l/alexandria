@@ -15,9 +15,9 @@ The audit filed three lists — 14 rules the build does not follow, 11 values th
 constructions the document never named — plus a per-screen pass over `ui-v3.md` §4. Its List 1
 heading assumes the build is the defendant.
 
-Read against the artefact it is the other way round. Of 42 live findings (1.1 and 2.10 closed
+Read against the artefact it is the other way round. Of 44 live findings (1.1 and 2.10 closed
 before this pass began), **8 need a code change** — across 10 source files plus two guard
-widenings — and **34 are the document being the stale half**. Every one of List 3's 21 entries is a construction the build needed and the document
+widenings — and **36 are the document being the stale half**. Every one of List 3's 21 entries is a construction the build needed and the document
 has no category for; none is a defect.
 
 That ratio is the finding behind the findings, and it is what the reconciliation was for: a

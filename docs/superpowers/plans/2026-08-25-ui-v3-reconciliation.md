@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Apply the 42 live findings of `docs/ui-design/reconciliation-2026-08-25.md` — 8 as code
+**Goal:** Apply the 44 live findings of `docs/ui-design/reconciliation-2026-08-25.md` — 8 as code
 changes, 34 as corrections to `DESIGN.md` and `.claude/ui-v3.md` — so the specification and the
 build stop disagreeing.
 
@@ -545,7 +545,7 @@ cd /Users/jrsue/dev/repos/alexandria/packages/web-client-v3 && git checkout -- s
 `docs/ui-design/caps-weight-findings-2026-08-25.md` recording, for each divergent role: the role
 name, the route measured, §3's published weight, the computed weight, and the source site with its
 anchor string. State at the top that these were found by a probe run during the reconciliation pass,
-that they are outside its 42 findings, and that the assertion was withdrawn rather than the code
+that they are outside its 44 findings, and that the assertion was withdrawn rather than the code
 changed — because a divergence discovered while applying old findings is a new finding, and folding
 it in silently is how §3's caps table grew the problem the pass repairs.
 
@@ -556,7 +556,7 @@ docs(ui-design): §3 publishes weights nothing has ever computed
 
 A probe added the weight assertion the caps manifest lacks and found N
 roles rendering a weight §3 does not publish for them. The assertion is
-withdrawn rather than the code changed: these are outside the 42 findings
+withdrawn rather than the code changed: these are outside the 44 findings
 this pass applies, and folding them in silently is how the caps table grew
 the problem the pass exists to repair.
 
@@ -1695,8 +1695,8 @@ distinction: **an option is scoped by the flow's premise; a return path is not a
 
 - [ ] **Step 4: §8 — record the pass**
 
-Add a progress entry: the reconciliation `DESIGN.md` asks for in its own preamble, applied. 42 live
-findings; 8 code changes, 34 document corrections; the build was the stale half 8 times out of 42
+Add a progress entry: the reconciliation `DESIGN.md` asks for in its own preamble, applied. 44 live
+findings; 8 code changes, 36 document corrections; the build was the stale half 8 times out of 44
 and the document 34. Name the two guards widened and what each was blind to. Name the finding that
 arrived during planning — `SharedRibbon`'s two caps sizes measured against one published row, green
 only because the surfaces coincide at +0.16em.
@@ -1752,8 +1752,8 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 
 - [ ] **Step 1: Rewrite the preamble**
 
-Record: the pass that ruled on it, its spec path, its date, and the outcome — 42 live findings, 8
-code changes, 34 document corrections, 2 already closed before it began. Record that the audit's
+Record: the pass that ruled on it, its spec path, its date, and the outcome — 44 live findings, 8
+code changes, 36 document corrections, 2 already closed before it began. Record that the audit's
 List 1 heading assumes the build is the defendant and that the artefact reversed that 34 times.
 Record that the line numbers are pinned to `7bc45f7`, with `CollectionBoard`'s member render
 (`:33` → `:50`) and the caps manifest (`:1596` → `:1659`) as the known drifts.
@@ -1784,8 +1784,8 @@ docs(ui-design): the reconciliation is ruled, and the record says so
 The file opened by declaring itself unapplied and every finding an open
 question for whoever next owned the documents. Both are now false, and a
 document asserting a stale fact is the defect this project keeps paying
-for — so the preamble records the outcome instead: 42 live findings, 8
-code changes, 34 document corrections, 2 closed before the pass began.
+for — so the preamble records the outcome instead: 44 live findings, 8
+code changes, 36 document corrections, 2 closed before the pass began.
 
 The findings are untouched. They are the evidence; only their status
 changed.
