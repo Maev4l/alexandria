@@ -42,7 +42,7 @@ elsewhere.
 | Navigation chrome | **No bottom tab bar.** One stack rooted at `/libraries`; header carries search and account |
 | Settings access | Account plate in the Libraries header → `/settings` |
 | Mine vs shared | Two labelled sections in one list: mine first, then "Shared with me", each row naming the owner |
-| Collections | Inline groups inside a library, server-grouped, expanded in place. One hierarchy: library → (collection) → item |
+| Collections | Inline groups inside a library, server-grouped, rendered in place with their members. One hierarchy: library → (collection) → item |
 | Lending | Surfaced in place wherever an item appears. **No "on loan" overview screen** |
 | Adding | Starts inside the library being viewed, so the destination is never asked |
 
@@ -148,6 +148,53 @@ now mirrors the API exactly.
 Sheets, which are not routes: AddItemSheet (Book / Film), LibraryActionsSheet, ItemActionsSheet,
 CollectionActionsSheet, the inline Share form, and all confirmations.
 
+**And one route in this stack is not a screen at all.** The table above says what each URL renders;
+the line above says what a sheet is. Neither has a category for a **layout route** — no path segment
+of its own, no content, wrapping other routes purely so that it stays mounted across them. There is
+one, and it is load-bearing.
+
+`AddFlowLayout` (`src/components/AddFlowLayout.jsx`, wired in `src/routes.jsx`) wraps the four
+add-flow routes: `add/book`, `add/book/results`, `add/video`, `add/video/results`. It renders only
+an outlet, so those four keep the exact URLs printed above and nothing in the path changes. What it
+owns is a **span** — the two things whose lifetime is precisely *the reader is cataloguing*.
+
+**The filing session's identity.** How many items this session has filed is held by
+`FilingSessionProvider`, and "session" is defined by nothing except where that provider is mounted:
+mounted across capture → results → capture, however many times, and unmounted — tally back to zero —
+the moment the reader leaves the flow for the library or anywhere else. That is exactly what a
+reader means by "this session", with no timer, no storage key to expire and nothing to clear by
+hand. Two alternatives were tried and are recorded in the source as worse. `location.state` works,
+but it would carry the tally in the one channel this flow's real inputs are barred from, and the
+capture screens' probes assert `state:none` on the hop to results precisely to catch a wholesale
+state forward sitting on top of an already-correct query — loosening them to make room for a
+decoration would remove the only assertion that catches it. `sessionStorage` survives too much: a
+reader returning to the same tab an hour later would be told nine items were filed "this session".
+
+**The camera lease, on that same span — and that is why the lease is released on
+`visibilitychange` rather than per captured item.** A capture screen borrows the shared stream and
+never stops it, because every save remounts that screen and stopping it there is what made each
+item pay for a fresh `getUserMedia` and a sensor warm-up. This layout is the other end: leaving the
+flow, for the library or a detail screen or anywhere, unmounts it and turns the camera off.
+Backgrounding the app releases it too, which is what makes the trade defensible in one sentence —
+*the camera is open while the reader is inside the add flow **and** the app is in front of them* —
+where the alternative claim would include an app sitting backgrounded for an hour. Re-attaching on
+the way back belongs to whichever viewport is on screen, since only a component holding a `<video>`
+can do it; the results screen has none and correctly needs nothing. It never acquires anything
+itself, so releasing on a flow the reader never pointed a camera at is a no-op.
+
+The release is deferred by one macrotask, and **not as a grace window**: React StrictMode
+double-invokes mount effects in development (mount → cleanup → mount), so an immediate release
+stopped the stream the first mount had just acquired and forced a second `getUserMedia` — measured,
+and the exact cost the shared stream exists to remove, reintroduced by its own cleanup. A remount
+cancels the pending release; a real unmount lets it fire on the next tick, which is immediate in
+every sense a reader can perceive. The pending handle sits at module scope rather than in a ref,
+because it has to survive this component being unmounted and immediately remounted, which is the
+case it exists for.
+
+The two are **composed, not merged**. They are genuinely two concerns that happen to share a span,
+and folding the camera lease into the session provider would make a component named for counting
+saved items also responsible for turning a device off.
+
 ---
 
 ## 4. Screen specification
@@ -208,7 +255,9 @@ Body: a single stream of Volume Frames in **the server's order**, never re-sorte
 sticky Index Letters marking position. The stream's alphabet is the server's folded one and is not
 strictly A–Z — see `DESIGN.md` §4, *The index alphabet*.
 Collections arrive from the API as `type=2` entries and render as Collection Boards, filed
-alphabetically under the collection's name but with members in `order`. The head carries **no
+alphabetically under the collection's name but with members in `order`. **A board's members render
+unconditionally.** There is no expanding and no collapsing — no toggle, no state, no control to
+press; the component holds no state at all. A board shows its members. The head carries **no
 `SERIES ORDER` label** — every member's plate already carries its number, and a numbered sequence
 needs no caption saying it runs in sequence (`DESIGN.md` §5). A board flagged `partial` on a
 continuation page **merges into the board already on screen** — the
@@ -1197,6 +1246,20 @@ not offered**. The rare genuine intent — this volume belongs in a collection t
 is fully served by cancelling and using the library's own new-collection route, and an item can only
 belong to one collection anyway.
 
+**A return path is not an option, and is not scoped by the premise.** The same sheet carries a
+`Back` entry — present only when it was opened from another sheet. The library header's add control
+opens it directly, has no menu to return to, and renders no Back at all; a collection board's own
+menu swaps its whole body for this sheet and supplies one, so closing it is not a one-way door. That
+is the same repair the lend form and the inline Share both took, applied to a nested sheet.
+
+So `Back` is never weighed against the flow's premise the way `New collection` is. It is present
+exactly when there is somewhere to return to and absent when there is not, which is a fact about how
+the sheet was reached rather than about what the reader is filing. And unlike `Enter by hand`, it
+needs nothing its siblings exist to supply: it returns to whatever opened this sheet, whatever that
+was. Apply the same tell — *can this entry be described without referring to another entry's
+answer?* — and `Back` passes where `Enter by hand` did not. **An option is scoped by the flow's
+premise; a return path is not an option.**
+
 **A manual path is always reachable — but `Enter by hand` does not belong in this sheet at all, and
 that sentence used to say it did.** `PRODUCT.md` requires a non-camera path always in reach, and it
 must carry the collection through: a reader who chose a board, entered by hand, and received a
@@ -1762,7 +1825,7 @@ not applied**:
 | Guard | The rule it enforces, and why writing it down was not enough |
 |---|---|
 | `fonts.test.js` | Nothing asserted the shipped faces contained the alphabet. The committed Archivo held a space and the letter `A`; everything else fell back to `system-ui`. That survived three slices, a full critique and a dedicated typography task — because the comp fell back too, so reproduction passes agreed. |
-| `groundForeground.test.js` | "Anything that sets a ground sets its foreground" was written into `DESIGN.md` §2 and then **violated five times in the two commits after it**. |
+| `groundForeground.test.js` | The pairing rule was written into the design system mid-slice and then **violated five times in the two commits after it**. As first written it demanded that a ground and its foreground be declared together on one class — stricter than this guard has ever enforced, and stricter than the defect needs. It has since been narrowed to what the check asserts and what the bug actually was: **a ground's text is coloured at or below it, and never inherited across a surface boundary.** A surface whose text-bearing descendants each declare their own foreground passes, and that is the correct pass rather than a hole in it. |
 | `routeLandmarks.test.jsx` | `<main>` and `<h1>` were declared binding in §7, then added only to the files each slice happened to touch. |
 | `monoText.test.js` + `monoRouteCoverage.test.js` | §3's mono/sans split was **unenforceable** for three slices: while both faces resolved to the same fallback, a name in mono and a name in sans rendered identically. A whole section sat dormant with nothing able to report it. |
 | `typeScale.test.js` | §3's scale was **never enforceable**: nothing read the list of steps. A 9px plate shipped, survived a critique that named it the clearest finding of its run, survived the provenance check that closed it, and the suite was green at 1111 before and after the fix. It resolves Tailwind's named sizes to pixels, because 70 of 114 size classes are named and a `text-[Npx]`-only guard would have covered 44 and reported clean. |
@@ -1904,3 +1967,43 @@ fail loudly when the substrate moves.
       silently rolling production back, with `--delete` removing v3 as it went. `frontend-invalidate`
       widened to `/*`: v3 adds `/icons/*` and `/fonts/*`, and the app-shell-only rule it was
       narrowed for stops holding once a release can change any path
+
+### The reconciliation, applied
+
+The design system asks in its own preamble that a document authored ahead of code be reconciled
+against what shipped rather than defended. This pass did that for both documents, and the ratio is
+the finding behind the findings: of **42 live findings, 8 needed a code change** — across ten source
+files and two guard widenings — and **34 were the document being the stale half**. Every one of the
+audit's third list, **21 entries**, was a construction the build needed and the design system had no
+category for; not one of them was a defect. A specification written ahead of code accumulates claims
+the build has already answered better.
+
+This file came out of it well: its screen-by-screen descriptions were the most accurate part of the
+corpus, with four divergences across twenty-one screens.
+
+**Two guards were widened, and each was blind in the same shape — a true measurement held against
+the wrong published row.**
+
+- **The caps manifest in `check-browser.mjs` computed one of the three properties the typography
+  rules publish per role.** Size, weight and tracking are published for every caps role, and only
+  tracking was asserted — while the manifest was already computing the font size, as the divisor
+  turning `em` into pixels, and throwing it away. So both auth screens printed the wordmark at the
+  section-header step, 11px against a published 12, and nothing could see it: the size guard
+  resolves Tailwind's named steps to pixels and 11 is *on* the scale, so it is blind to that defect
+  by construction, and no amount of widening it would help. The manifest now asserts pixels and
+  weight beside the tracking, and the wordmark gains the two routes it was never checked on.
+- **The field manifest did not list a count that was rendering in the wrong face.** The shared
+  ribbon's outbound figure is a labelled datum and belongs in the mono; the component's own comment
+  had always said so, and the change that correctly took the mono off the *word* beside it — and off
+  the owner's address on the inbound form — did not put it back on the figure. That manifest exists
+  precisely so an unlisted field fails with zero registration, and the entry was simply missing.
+
+**And one finding arrived during planning, out of the first widening itself.** `SharedRibbon`
+renders at **two** caps sizes on two classes of surface — 11px/700 as a library row's sub-line,
+10px/800 in the mark column beside the item-detail hero and on a search row — while the typography
+rules published a single row for it. The manifest's one entry was routed to the libraries root, so
+it measured the 11/700 instance against the row describing the 10/800 one, and it had only ever been
+green because **the two surfaces coincide on the one property it was asserting**, +0.16em of
+tracking. A true measurement of the wrong substrate, inside the guard written to prevent exactly
+that. Neither rendered size was changed — both are real — and both are now published and both are
+now measured.
