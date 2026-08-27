@@ -155,14 +155,9 @@ describe('the focus ring', () => {
   //
   // It was the worse of the two: `.field-control` is the SEARCH FIELD, whose ground IS the
   // accent, so a yellow ring described nothing at all — and it is every form field in the app.
-  //
-  // KNOWN BLIND SPOT: the regex below matches only the `outline:` SHORTHAND. Two rules in this
-  // stylesheet set the colour by longhand `outline-color:` instead, and an `--imprint` written
-  // that way would pass this check unseen. Not widened here — broadening what a guard detects is
-  // a behaviour change outside a comment sweep, and this gap is recorded separately.
-  it('spends no accent on any `outline:` shorthand focus rule in the stylesheet', () => {
+  it('spends no accent on any focus rule in the stylesheet, shorthand or longhand', () => {
     const focusRules = css.match(/[^{}]*focus[^{}]*\{[^}]*\}/g) ?? [];
-    const onAccent = focusRules.filter((rule) => /outline:[^;]*var\(--imprint\)/.test(rule));
+    const onAccent = focusRules.filter((rule) => /outline(-color)?:[^;]*var\(--imprint\)/.test(rule));
     expect(onAccent).toEqual([]);
   });
 
