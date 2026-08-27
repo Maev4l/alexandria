@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -76,21 +77,69 @@ func (c *Client) DeleteByPrefix(ctx context.Context, prefix string) (int, error)
 	return deleted, nil
 }
 
+// isNotFound reports whether a HEAD error means "the object is not there" rather than
+// "the request failed". Extracted from HeadObject so that the two head paths classify an
+// error identically: a missing object and an expired token must never be conflated, since
+// callers act on absence (re-fetch, re-queue) and would act on a credentials failure the
+// same way if it were reported as absence.
+func isNotFound(err error) bool {
+	e := err.Error()
+	return strings.Contains(e, "NotFound") || strings.Contains(e, "NoSuchKey") ||
+		strings.Contains(e, "404") || strings.Contains(e, "not found")
+}
+
 // HeadObject reports whether key exists.
 func (c *Client) HeadObject(ctx context.Context, key string) (bool, error) {
-	_, err := c.client.HeadObject(ctx, &s3.HeadObjectInput{
+	exists, _, err := c.HeadObjectMetadata(ctx, key)
+	return exists, err
+}
+
+// HeadObjectMetadata reports whether key exists and returns its user metadata.
+// S3 lowercases user-metadata keys in flight, so a value written as `Metadata: { encode }`
+// reads back under "encode" here and as `metadata.encode` in the image-processing Lambda.
+func (c *Client) HeadObjectMetadata(ctx context.Context, key string) (bool, map[string]string, error) {
+	out, err := c.client.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(c.bucket),
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		e := err.Error()
-		if strings.Contains(e, "NotFound") || strings.Contains(e, "NoSuchKey") ||
-			strings.Contains(e, "404") || strings.Contains(e, "not found") {
-			return false, nil
+		if isNotFound(err) {
+			return false, nil, nil
 		}
-		return false, err
+		return false, nil, err
 	}
-	return true, nil
+	return true, out.Metadata, nil
+}
+
+// copySource builds the `bucket/key` value CopyObject expects, escaping each path segment
+// while leaving the separators intact. Escaping the whole string would encode the slashes
+// themselves and address one object whose name contains "/" rather than a nested key.
+func copySource(bucket, key string) string {
+	parts := strings.Split(key, "/")
+	for i, p := range parts {
+		parts[i] = url.PathEscape(p)
+	}
+	return url.PathEscape(bucket) + "/" + strings.Join(parts, "/")
+}
+
+// CopyObject copies srcKey onto dstKey inside the same bucket, replacing the object's user
+// metadata with the supplied map rather than carrying the source's across.
+//
+// This is a server-side copy: the bytes never travel to the caller, which is what makes
+// re-queueing the whole back-catalogue of thumbnails through the image-processing Lambda
+// cheap - the CLI moves keys, not images.
+func (c *Client) CopyObject(ctx context.Context, srcKey, dstKey string, metadata map[string]string) error {
+	_, err := c.client.CopyObject(ctx, &s3.CopyObjectInput{
+		Bucket:            aws.String(c.bucket),
+		Key:               aws.String(dstKey),
+		CopySource:        aws.String(copySource(c.bucket, srcKey)),
+		Metadata:          metadata,
+		MetadataDirective: types.MetadataDirectiveReplace,
+	})
+	if err != nil {
+		return fmt.Errorf("copying %s to %s: %w", srcKey, dstKey, err)
+	}
+	return nil
 }
 
 // PutObject uploads data with content type and metadata.

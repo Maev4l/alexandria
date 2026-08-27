@@ -18,7 +18,7 @@
 - `internal/config/` — config loader (userPoolId, region, tableName, bucketName)
 - `internal/cognito/` — Cognito client (ListUsers, GetByID, SetApproval, DeleteUser)
 - `internal/dynamodb/` — DynamoDB client (QueryByPK, Scan, DeleteItems)
-- `internal/s3/` — S3 client (DeleteByPrefix, HeadObject, PutObject)
+- `internal/s3/` — S3 client (DeleteByPrefix, HeadObject, HeadObjectMetadata, PutObject, CopyObject)
 
 ## Configuration
 
@@ -58,6 +58,21 @@ CLI resolves it to the Cognito username internally.
 - `data fix-thumbnails` — detect items whose thumbnails are missing from S3 and
   re-queue them from their source PictureUrl
   - `--dry-run` — show what would be changed without making changes
+- `data reencode-thumbnails` — re-queue *existing* thumbnails through the image processor
+  so ones written before the pipeline switched to lossy WebP are re-encoded. Copies the
+  stored thumbnail server-side into `incoming/<itemId>`; it never re-fetches PictureUrl,
+  because external sources rot (one sampled publisher URL still answers 200 while serving
+  a 244-byte HTML page, so re-fetching would destroy a cover we still hold intact).
+  - `--dry-run` — show what would be re-encoded without making changes
+  - Skips any thumbnail already carrying the image processor's `encode` metadata marker, so
+    it is safe to re-run, resumes after an interruption, and **re-running it is how you
+    verify a previous run** — everything queued should come back as already lossy.
+  - The image processor must be deployed with the lossy setting *first*, or every object is
+    re-encoded losslessly again and nothing changes.
+  - Afterwards, invalidate `/thumbnails/*` on the CloudFront distribution; the objects are
+    served `immutable, max-age=604800` keyed on `?v={updatedAt}`, which this deliberately
+    does not bump (bumping it would rewrite every item row and ripple through the
+    consistency-manager and indexer streams to change a byte count).
 
 ## Tasks
 
@@ -67,3 +82,4 @@ CLI resolves it to the Cognito username internally.
 - [x] `users delete` with full data cascade + `--dry-run` / `--force`
 - [x] Port `check-consistency` under `data`
 - [x] Port `fix-thumbnails` under `data`
+- [x] `data reencode-thumbnails` — lossless → lossy WebP migration for the back-catalogue

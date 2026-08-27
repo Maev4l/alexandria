@@ -107,7 +107,7 @@ func fixThumbnails(ctx context.Context, ddb *dynamodb.Client, s3Client *awss3.Cl
 
 	for i, item := range items {
 		// Check if thumbnail exists in S3
-		s3Key := fmt.Sprintf("user/%s/library/%s/item/%s", item.OwnerId, item.LibraryId, extractItemIdFromSK(item.SK))
+		s3Key := thumbnailKey(item.OwnerId, item.LibraryId, extractItemIdFromSK(item.SK))
 		exists, err := s3Client.HeadObject(ctx, s3Key)
 		if err != nil {
 			fmt.Printf("  [%d/%d] Error checking S3 for %s: %v\n", i+1, len(items), item.Title, err)
@@ -145,11 +145,7 @@ func fixThumbnails(ctx context.Context, ddb *dynamodb.Client, s3Client *awss3.Cl
 		// Upload to S3 incoming folder (image processor will handle the rest)
 		itemId := extractItemIdFromSK(item.SK)
 		incomingKey := fmt.Sprintf("incoming/%s", itemId)
-		metadata := map[string]string{
-			"targetprefix": fmt.Sprintf("user/%s/library/%s/item/%s", item.OwnerId, item.LibraryId, itemId),
-			"targetwidth":  "210",
-			"targetheight": "300",
-		}
+		metadata := incomingMetadata(item.OwnerId, item.LibraryId, itemId)
 		if err := s3Client.PutObject(ctx, incomingKey, imageData, contentType, metadata); err != nil {
 			result.FailedToFetch++
 			fmt.Printf("          ERROR: failed to upload: %v\n", err)
@@ -202,6 +198,24 @@ func fetchImageFromUrl(url string) ([]byte, string, error) {
 	}
 
 	return data, contentType, nil
+}
+
+// thumbnailKey is where the image processor writes an item's finished thumbnail, and the
+// path the API synthesises its CloudFront URL from (api/handlers/items.go buildItemResponse).
+func thumbnailKey(ownerId, libraryId, itemId string) string {
+	return fmt.Sprintf("user/%s/library/%s/item/%s", ownerId, libraryId, itemId)
+}
+
+// incomingMetadata is the instruction set the image-processing Lambda reads off an object
+// dropped into incoming/: where to write the result and what to fit it inside. Shared by
+// fix-thumbnails and reencode-thumbnails so the two cannot drift into disagreeing about the
+// thumbnail geometry - which would be invisible until covers came back a different size.
+func incomingMetadata(ownerId, libraryId, itemId string) map[string]string {
+	return map[string]string{
+		"targetprefix": thumbnailKey(ownerId, libraryId, itemId),
+		"targetwidth":  "210",
+		"targetheight": "300",
+	}
 }
 
 // extractItemIdFromSK extracts item ID from SK format "library#<libraryId>#item#<itemId>"
