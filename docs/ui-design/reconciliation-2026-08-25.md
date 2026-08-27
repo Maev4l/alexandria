@@ -1,15 +1,10 @@
-<!-- Produced for Task 23, the pass DESIGN.md asks for in its own preamble: "a design system
+<!-- Produced as the pass the design system asks for in its own preamble: "a design system
 authored ahead of code is a specification, not a description: once v3 is built, reconcile this
 document against what actually shipped rather than defending it."
 
-IT HAS NOT BEEN APPLIED. The design session that owned DESIGN.md and .claude/ui-v3.md ended before
-this could be handed over, so nobody has ruled on any of it. Each finding is a question for
-whoever next owns those documents: either the document drops the claim, or the build owes it.
-
-One finding was NOT a documentation divergence and has already been fixed in code (aebdc4d): §2's
-focus ruling changed `:focus-visible` and left `.field-control` on `--imprint`, so the search
-field — whose ground IS the accent — had a yellow ring on yellow, and every form field had one at
-~1.55:1 against WCAG's 3:1 floor.
+IT HAS NOW BEEN RULED ON, IN FULL. See "Status — ruled" below for the outcome, the derivation of
+its figures, and a per-finding disposition. The findings themselves are untouched: they are the
+evidence, and only their status changed.
 
 Tracked rather than left in `.superpowers/sdd/`, which is git-ignored scratch that `git clean -fdx`
 removes. -->
@@ -29,6 +24,148 @@ the artefact, which is this project's own recurring failure mode arriving one le
 
 Counts: **List 1 — 14. List 2 — 11. List 3 — 21.** `ui-v3.md` §4: **4** divergences across 21
 screens.
+
+---
+
+## Status — ruled
+
+Applied by the reconciliation pass planned in
+`docs/superpowers/plans/2026-08-25-ui-v3-reconciliation.md`, run 2026-08-25 to 2026-08-27 on `main`,
+commits `794122b..81cbde2`. **Every finding below has been ruled on.** The findings are unchanged;
+this section is the only thing that was added.
+
+**The outcome: 44 live findings — 8 needed a code change, 36 were the document being the stale
+half — plus 2 already closed before the pass began.**
+
+**Derivation, printed because this figure was got wrong repeatedly.** Take it from this file's own
+counts line above, not from any summary of it:
+
+```
+List 1 (14) + List 2 (11) + List 3 (21)   =  46   findings in this audit
+                       less already closed =  -2   (1.1 and 2.10)
+                                              ----
+                                    live    =  44
+                       less code changes    =  -8
+                                              ----
+                    document corrections    =  36
+```
+
+Every retelling that said **42 live / 34 document** subtracted the same two findings a second time,
+having read a derived summary instead of this file. That includes the pass's own controlling spec,
+which printed 44 in its subject line and 42 sixteen lines below. A number a reader cannot re-derive
+is a number that gets "corrected" back to a wrong one, so the arithmetic is printed rather than
+asserted.
+
+**The ratio is the finding behind the findings.** List 1 is headed *"Rules the build does not
+follow"* — it assumes the build is the defendant. Read against the artefact, the document was the
+stale half 36 times out of 44, and the whole of List 3 (21 entries) is a construction the build
+needed and the document had no category for, not one of them a defect. A specification written ahead
+of code accumulates claims the build has already answered better.
+
+### The line numbers are pinned to `7bc45f7` and have drifted
+
+Every citation in this file was read at `7bc45f7` and is correct as of that commit. The sources have
+moved since, both in this pass and before it. Two known drifts, given as examples rather than as the
+set — sixty citations were **not** re-resolved, and a reader chasing one should grep for the quoted
+text rather than trusting the number:
+
+- `CollectionBoard.jsx` — the unconditional member render, cited at `:33`, is now at `:50`.
+- `check-browser.mjs` — the caps manifest, cited at `:1596`, is now at `:1659`.
+
+### Disposition, finding by finding
+
+**code** — the build was wrong and was changed. **document** — the build was right and the
+specification was corrected. **already closed** — settled before this pass opened.
+
+| Finding | Status | Settled by |
+|---|---|---|
+| 1.1 route transition never built | already closed | `f3f7323` — the motion row and its unconsumed token dropped, before this pass |
+| 1.2 board not expandable, expand motion absent | document | `d6d3a9a` component vocabulary, `65dedd9` motion table, `81cbde2` screen specification |
+| 1.3 destructive button's caps are `currentColor` | document | `d6d3a9a` — the vocabulary now carries the code's own contrast reasoning |
+| 1.4 `--out` on the pending-approval badge | **code** | `c9dbd98` |
+| 1.5 yellow carrying a shape | **code** + document | `c9dbd98` fixed the invisible rule on the sign-in notice; `40e3873` rescoped the law, which was derived from a paper-only measurement |
+| 1.6 `--imprint` on a navigational link | **code** | `c9dbd98` |
+| 1.7 ground/foreground stated stricter than the guard enforces | document | `40e3873` — the rule now states what is enforced, and its inverse case |
+| 1.8 skeleton reintroduced the fill the frame removed | **code** | `5a89501` |
+| 1.9 home and unshare empty states | **code** | `8bd1009` |
+| 1.10 unshare bar's state count | document | `65dedd9` — five branches, four states plus one that renders nothing |
+| 1.11 stamp on a ledger row | document | `d6d3a9a` vocabulary, `65dedd9` state grammar |
+| 1.12 `--ink-soft` used for structure | document | `40e3873` — the token means the quiet register, marks and content alike |
+| 1.13 member order plate has a fill and a 1px rule | document | `d6d3a9a` |
+| 1.14 Error has three constructions, one documented | document | `65dedd9` — and the count corrected to 43 sites, 30/5/4 with a remainder of four |
+| 2.1 search input at 16px | document | `9f062fc` — the platform-zoom exception widened past the one component that named it |
+| 2.2 wordmark at the section-header step on two auth screens | **code** | `ac50805`, with the guard widened to see it; `7597223` completed the manifest |
+| 2.3 library row sub-line and the shared count | **code** + document | `6f5b119` put the figure in the mono (`b21dd1b` extracted the shared matcher); `9f062fc` published the row |
+| 2.4 stream row height in no table row | document | `9f062fc` |
+| 2.5 member plate 1px | document | `d6d3a9a` |
+| 2.6 stamp's inverted variant | document | `d6d3a9a` |
+| 2.7 three structural separators at 2px | document | `9f062fc` — all seven 1px sites and all five 3px sites enumerated |
+| 2.8 `mt-3` on the search field | **code** | `db8e4aa` |
+| 2.9 frame has three sizes | document | `d6d3a9a` |
+| 2.10 `.field-control` outlined in `--imprint` | already closed | `aebdc4d`, before this pass — the focus ruling changed `:focus-visible` and left the sibling on the accent, so the search field had a yellow ring on yellow and every form field one at ~1.55:1 against a 3:1 floor |
+| 2.11 `--cover-rule` at 25% as a ground | document | `65dedd9` |
+| List 3 #1 `CaptureCaption` | document | `40e3873` recorded the inverse-ground case as a rule with the guard that finds it; `151b258` added the component |
+| List 3 #2 `FilingInto`, `FlowMarks` | document | `151b258` |
+| List 3 #3 `SearchRowMarks` | document | `d6d3a9a`, `36db7d7`, `151b258` — stated once, with the second site a pointer |
+| List 3 #4 Toast | document | `151b258` |
+| List 3 #5 `UpdateNotice`, and the shared silhouette | document | `151b258` |
+| List 3 #6 end of list | document | `65dedd9` — the rule is `--ink`, not `--ink-soft` |
+| List 3 #7 appending | document | `65dedd9` |
+| List 3 #8 in-flight capture lookup | document | `65dedd9` |
+| List 3 #9 route-chunk pending | document | `65dedd9` |
+| List 3 #10 capture viewports are not the item ratio | document | `9f062fc` |
+| List 3 #11 the Sheet's real mechanism | document | `d6d3a9a` |
+| List 3 #12 the `Field` variants and its error treatment | document | `d6d3a9a` |
+| List 3 #13 index-letter count is a phrase | document | `d6d3a9a` |
+| List 3 #14 section heads carry counts | document | `9f062fc` |
+| List 3 #15 `CONTINUES` | document | `d6d3a9a` |
+| List 3 #16 `.row-skip` | document | `9f062fc` — with the constraint that it must never wrap a sticky letter |
+| List 3 #17 `AddFlowLayout` | document | `81cbde2` — a route that is not a screen |
+| List 3 #18 the empty-fold branch | document | `9f062fc` — and the fallback shows the raw character, which the server did **not** sort on |
+| List 3 #19 `on-imprint` as a documented no-op | document | `40e3873` — 10 call sites, recounted |
+| List 3 #20 `AddItemSheet`'s `Back` | document | `81cbde2` — an option is scoped by the flow's premise; a return path is not an option |
+| List 3 #21 the in-place delete confirmation | document | `d6d3a9a` recorded it, `65dedd9` moved it whole into the state grammar — a confirmation is a state, not a component |
+
+The two closing notes that are **not** findings are also settled: the accessibility list's
+pre-rewrite focus sentence in `65dedd9`, and `typeScale.test.js`'s stale paragraph above the live
+one in `db8e4aa`.
+
+### Two entries that were not in the lists above
+
+- **`SharedRibbon` renders at two caps sizes — found while planning, not by the audit.** It sets
+  11px/700 as a library row's sub-line and 10px/800 in the mark column beside the item-detail hero
+  and on a search row, while the typography rules published a single row for it. The caps manifest's
+  one entry was routed to the libraries root, so it measured the 11/700 instance against the row
+  describing the 10/800 one — and had only ever been green because the two surfaces coincide on the
+  one property it asserted, the tracking. A true measurement of the wrong substrate, inside the
+  guard written to prevent exactly that. Neither rendered size changed; both are now published
+  (`9f062fc`) and both are now measured (`7597223`).
+- **The weight probe: probed clean, asserted.** The caps manifest computed only tracking, so two of
+  the three properties the typography rules publish per role were unasserted. The size half found a
+  real defect (2.2); the weight half was probed against all ten roles and **every one matched its
+  published value**, including the corrected 700 on the library-row ribbon. Because it was clean, it
+  was asserted rather than filed — `495ab49` — so the manifest now computes size, weight and
+  tracking, and the typography rules may state that their caps table is computed in full.
+
+### What this pass produced and did not fix
+
+Three findings arrived out of this work, sit outside the 44, and were deliberately left as evidence
+rather than folded into a documentation commit:
+
+- `docs/ui-design/behaviour-findings-2026-08-25.md` — **one real product defect**: a cover that
+  never loads retries every four seconds for ever, on every visible row, where all three documents
+  claimed a single delayed re-poll. Plus one piece of housekeeping (two icon exports imported by
+  nothing, one of them the sole declarer of a linecap its file advertises), and one product question
+  that is not a bug — pull-to-refresh paints skeletons *above* the rows already on screen, and
+  nobody has decided whether a refresh should replace the stream, append to it, or draw above it.
+- `docs/ui-design/division-scale-findings-2026-08-25.md` — two off-division layout gaps, and the
+  fact that the sweep which found them matches only Tailwind's named odd steps and is blind to
+  bracket-notation gaps, so two is a lower bound rather than the set.
+- The plan itself, for the two comment sweeps still to run: this pass's own citation comments, and
+  the pre-existing citations across the wider source.
+
+Both findings files still say *"the 42 audited findings"*. That is the double-subtraction described
+above; the correct figure is 44, derived at the top of this section.
 
 ---
 
