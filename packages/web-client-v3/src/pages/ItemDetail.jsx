@@ -333,7 +333,8 @@ const ItemDetail = () => {
               <span className="block h-[198px] w-[132px] border-2 border-paper" />
               <span className="flex-1 pl-2">
                 <span className="block h-4 w-24 bg-cover-rule/25" />
-                <span className="mt-3 block h-5 w-20 bg-cover-rule/25" />
+                {/* mt-2, not mt-3: a gap between blocks is a whole division, and the division is 8px. */}
+                <span className="mt-2 block h-5 w-20 bg-cover-rule/25" />
               </span>
             </div>
             <span className="block h-8 w-3/4 bg-cover-rule/25" />
