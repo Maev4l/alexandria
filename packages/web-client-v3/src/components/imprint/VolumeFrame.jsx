@@ -4,13 +4,20 @@ import { pictureSrc } from '@/lib/picture';
 import VolumePlate from './VolumePlate.jsx';
 
 // Thumbnails are produced asynchronously, so a frame that failed 4s ago may well succeed now.
-// NOT a single retry, whatever the documents used to say: nothing counts attempts. The timer is
-// armed whenever `failed` is set, clearing the flag remounts the <img>, and that image's next
-// failure sets the flag again. A merely-late thumbnail resolves on the second attempt, which is the
-// case this was written for; a permanently missing one re-requests every 4s for as long as the row
-// is mounted, on every such row on screen. Recorded as it behaves rather than as it was meant to —
-// bounding it is a change to this component, not to this comment.
-const RETRY_MS = 4000;
+// ONE retry, then the ruled empty frame — which is what the empty frame is for. The bound is the
+// point: without something counting attempts, clearing the flag remounts the <img>, that image's
+// next failure sets the flag again, and the timer is armed once more. A merely-late thumbnail
+// resolves on the second attempt, which is the case this was written for; a permanently missing
+// one used to re-request every 4s for as long as the row was mounted, on every such row of a
+// thirty-row page. The thumbnail URL is synthesised from a template without checking storage, so
+// an address that 404s is the common case rather than the rare one.
+//
+// The single retry RE-ARMS when `src` changes, and that is deliberate rather than incidental. The
+// address carries ?v={updatedAt}, so a changed src means the item was genuinely written to: a new
+// subject, not a repeat of the one that failed. It is also what item detail's "Fetch cover" repair
+// depends on — that write moves `updatedAt`, so the repaired cover is tried afresh instead of
+// inheriting a verdict reached about a different address.
+export const RETRY_MS = 4000;
 
 const SIZES = {
   row: 'h-[72px] w-12 border-ink',
@@ -43,12 +50,31 @@ const SIZES = {
 const VolumeFrame = ({ item, size = 'row', className, onFailedChange }) => {
   const src = pictureSrc(item);
   const [failed, setFailed] = useState(false);
+  const [retried, setRetried] = useState(false);
+  const [attemptedSrc, setAttemptedSrc] = useState(src);
 
+  // Reset during render rather than in an effect: an effect would let the frame commit one paint
+  // holding the previous address's verdict — empty, with the repair control still offered —
+  // before correcting itself. This is the derived-from-props adjustment React re-renders
+  // immediately, so nothing stale ever reaches the screen.
+  if (attemptedSrc !== src) {
+    setAttemptedSrc(src);
+    setFailed(false);
+    setRetried(false);
+  }
+
+  // Armed only while a retry is still owed. Once it is spent, a further failure leaves the flag
+  // set and nothing rearms — so the flag SETTLES true rather than flickering on a clock, which is
+  // what keeps item detail's "Fetch cover" control stably on screen instead of appearing and
+  // vanishing every four seconds in front of the reader.
   useEffect(() => {
-    if (!failed) return undefined;
-    const timer = setTimeout(() => setFailed(false), RETRY_MS);
+    if (!failed || retried) return undefined;
+    const timer = setTimeout(() => {
+      setRetried(true);
+      setFailed(false);
+    }, RETRY_MS);
     return () => clearTimeout(timer);
-  }, [failed]);
+  }, [failed, retried]);
 
   useEffect(() => {
     onFailedChange?.(failed);

@@ -226,12 +226,18 @@ const ItemDetail = () => {
       await load();
       // `coverFailed` is a snapshot from VolumeFrame's LAST load attempt, against the OLD src —
       // the request above just changed `updatedAt`, so the cache-busted src is new and nothing
-      // has tried loading it yet. Waiting on VolumeFrame's own independent 4s retry clock to
-      // clear it would leave this button asserting "still broken" for up to four seconds after
-      // a request that may have already worked, which is a control stating something the screen
-      // cannot support — the same shape as the checkbox this control replaced. Clearing it here
-      // removes that stale assertion, not a true one: if the new src also fails, VolumeFrame's
-      // own onError fires again and calls onFailedChange(true) right back.
+      // has tried loading it yet. A verdict reached about a different address must not be left
+      // asserting "still broken" over a request that may have already worked, which would be a
+      // control stating something the screen cannot support — the same shape as the checkbox
+      // this control replaced. Clearing it here removes that stale assertion, not a true one: if
+      // the new src also fails, VolumeFrame's own onError fires again and calls
+      // onFailedChange(true) right back.
+      //
+      // VolumeFrame resets on a changed src for exactly this reason, so it reports false the
+      // moment the re-read lands and the two agree rather than race. This line is what makes the
+      // clearing happen at the write rather than at the render after it, and it is why the frame
+      // holding its verdict indefinitely — which it now does, the retry being spent after one
+      // attempt — is safe here instead of stranding the reader with a permanent button.
       setCoverFailed(false);
     } catch (err) {
       setActionError(err.message);

@@ -125,7 +125,9 @@ new or changed endpoints** — the contract is `packages/functions/api/openapi.y
   a cover the collection genuinely lacks (rare), and a `picture` URL that **404s while the thumbnail
   is still being produced, or that was synthesised from a template without checking S3** (common, and
   transient). The second is the dominant cover failure, which makes the load-failure fallback and its
-  retry load-bearing, not the empty state. (That retry repeats rather than firing once — see
+  retry load-bearing, not the empty state. (That retry fires **once**, and then the frame holds the
+  ruled empty state; it re-arms only when the cache-busted address itself changes, which means the
+  item was genuinely written to — see
   `packages/web-client-v3/src/components/imprint/VolumeFrame.jsx`.)
 
 ### Absent data (must not be faked)

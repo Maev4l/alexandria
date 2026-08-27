@@ -178,9 +178,11 @@ audit and was then overtaken by the tasks after it**, so its counts are restated
 left at the figures that were true when it was first typed:
 
 - `docs/ui-design/behaviour-findings-2026-08-25.md` — **four**, of which one is a real product
-  defect: a cover that never loads retries every four seconds for ever, on every visible row, where
-  every document describing it claimed a single delayed re-poll. Those documents have since been
-  corrected; the code has not. Plus one piece of housekeeping (two icon exports imported by
+  defect: a cover that never loads retried every four seconds for ever, on every visible row, where
+  every document describing it claimed a single delayed re-poll. Those documents were corrected
+  first; the bound has since been built in its own commit, and they have been corrected a second
+  time to describe it — the frame now retries once and then holds, re-arming only when the
+  cache-busted address changes. Plus one piece of housekeeping (two icon exports imported by
   nothing, one of them the sole declarer of a linecap its file advertises); one product question
   that is not a bug — pull-to-refresh paints skeletons *above* the rows already on screen, and
   nobody has decided whether a refresh should replace the stream, append to it, or draw above it;

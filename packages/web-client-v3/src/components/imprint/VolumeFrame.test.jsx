@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import { describe, expect, it, vi } from 'vitest';
-import VolumeFrame from './VolumeFrame.jsx';
+import VolumeFrame, { RETRY_MS } from './VolumeFrame.jsx';
 
 const bookWithArt = {
   id: 'a',
@@ -123,5 +123,89 @@ describe('VolumeFrame', () => {
     // 88x132 is exactly 2:3, like the other two — the size changes, never the ratio: one ratio
     // for every item, so nothing is ever cropped.
     expect(132 / 88).toBeCloseTo(3 / 2, 5);
+  });
+  // THE test for the bound. The retry exists for a thumbnail that is merely late; a thumbnail
+  // that is permanently missing must stop asking. Before the bound there was nothing counting
+  // attempts, so the timer cleared the flag, the <img> remounted, its onError set the flag, and
+  // the timer was armed again — every four seconds, for as long as the row stayed mounted, on
+  // every row of a thirty-row page. Written and watched fail against that code before the bound
+  // existed: a guard that has only ever been green is indistinguishable from a comment.
+  it('retries exactly once and then holds the empty frame, however long it is left', () => {
+    vi.useFakeTimers();
+    try {
+      render(<VolumeFrame item={bookWithArt} />);
+
+      // First attempt fails.
+      fireEvent.error(screen.getByRole('presentation'));
+      expect(screen.queryByRole('presentation')).toBeNull();
+
+      // The one retry: the image comes back and is tried again.
+      act(() => vi.advanceTimersByTime(RETRY_MS));
+      expect(screen.getByRole('presentation')).toBeInTheDocument();
+
+      // It fails again. That is the answer, and the frame holds it.
+      fireEvent.error(screen.getByRole('presentation'));
+      expect(screen.queryByRole('presentation')).toBeNull();
+
+      act(() => vi.advanceTimersByTime(RETRY_MS * 25));
+      expect(screen.queryByRole('presentation')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // The bound must not settle the flag by oscillating it. Item detail raises its "Fetch cover"
+  // repair from this signal, so a flag that flipped back and forth on a four-second clock made
+  // that control appear and vanish while the reader looked at it. Once the retry is spent the
+  // flag is true and stays true, so the control is stably on screen.
+  it('settles its failure signal true rather than flickering it on a clock', () => {
+    vi.useFakeTimers();
+    try {
+      const onFailedChange = vi.fn();
+      render(<VolumeFrame item={bookWithArt} onFailedChange={onFailedChange} />);
+
+      fireEvent.error(screen.getByRole('presentation'));
+      act(() => vi.advanceTimersByTime(RETRY_MS));
+      fireEvent.error(screen.getByRole('presentation'));
+      expect(onFailedChange).toHaveBeenLastCalledWith(true);
+
+      onFailedChange.mockClear();
+      act(() => vi.advanceTimersByTime(RETRY_MS * 25));
+      expect(onFailedChange).not.toHaveBeenCalledWith(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // A new src is a new subject, not a repeat of the one that failed. The address carries
+  // ?v={updatedAt}, so a changed src means the item was genuinely written to — which is exactly
+  // what the "Fetch cover" repair does. Item detail clears its own copy of the flag after that
+  // write on the reasoning that the cache-busted address has not been tried yet; this is what
+  // makes that reasoning true rather than a guess.
+  it('re-arms its single retry when the src changes, which is what the cover repair needs', () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(<VolumeFrame item={bookWithArt} />);
+
+      fireEvent.error(screen.getByRole('presentation'));
+      act(() => vi.advanceTimersByTime(RETRY_MS));
+      fireEvent.error(screen.getByRole('presentation'));
+      act(() => vi.advanceTimersByTime(RETRY_MS * 25));
+      expect(screen.queryByRole('presentation')).toBeNull();
+
+      // The repair wrote the item, so updatedAt moved and the address is new.
+      const repaired = { ...bookWithArt, updatedAt: '2026-08-20T11:00:00Z' };
+      rerender(<VolumeFrame item={repaired} />);
+      const img = screen.getByRole('presentation');
+      expect(img).toHaveAttribute('src', 'https://cdn/a?v=2026-08-20T11%3A00%3A00Z');
+
+      // And the fresh subject gets a fresh retry, not the spent one.
+      fireEvent.error(img);
+      expect(screen.queryByRole('presentation')).toBeNull();
+      act(() => vi.advanceTimersByTime(RETRY_MS));
+      expect(screen.getByRole('presentation')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

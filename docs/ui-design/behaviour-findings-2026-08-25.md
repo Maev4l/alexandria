@@ -11,16 +11,30 @@ written the obvious way. The fourth is a guard blind to two of the rules it clai
 fifth is a guard blind to a construction it cannot even see, because nothing on the element
 carries the class it would check.
 
-## 1. A cover that never loads retries every four seconds, for ever, on every visible row
+## 1. A cover that never loads retries every four seconds, for ever, on every visible row — FIXED
 
 `src/components/imprint/VolumeFrame.jsx`. The frame's own comment, the state grammar and the screen
-specification all described this as **one delayed re-poll**. It is not bounded at all.
+specification all described this as **one delayed re-poll**. It was not bounded at all.
 
-**The document half is now fixed; the code is not.** The final review ruled that deferring the code
-change was right and deferring the prose was not, so every description of this behaviour — the
-frame's comment, the design system's Volume Frame entry and its state grammar, the screen
-specification's API-constraints table and the product record — now says what the component does. The
-bound below is still unbuilt.
+**Both halves are now closed.** The documents were corrected first, in the reconciliation pass, to
+say what the component actually did; the bound was then built in its own commit, and every one of
+those descriptions has been corrected a second time to say what it does now. The frame retries once
+and then holds the ruled empty frame, and the single retry re-arms when the address changes — a
+changed `?v={updatedAt}` means the item was genuinely written to, so it is a new subject rather than
+a repeat of the one that failed.
+
+**A second defect fell out of the same bound, and nobody had filed it.** The failure flag is
+reported upward, and item detail raises its `Fetch cover` repair from it. While the retry was
+unbounded that flag did not merely clear late — it **oscillated**, set by each failure and cleared by
+each timer — so on a permanently broken cover the repair control appeared and vanished on a
+four-second cycle while the reader looked at it. A bounded retry settles the flag true, so the
+control is stably on screen. The finding as filed named the request volume and missed the thing on
+screen; the fix for one was the fix for the other.
+
+**The guard is the negative, and it was watched fail before the bound existed.** A test that fails
+the image, advances well past a second interval and asserts no further attempt is the one that would
+have caught this; a second test asserts the flag never returns to false once the retry is spent, and
+a third that a changed address re-arms it, because the repair flow depends on that.
 
 The cycle, verified by reading the component:
 
@@ -45,10 +59,10 @@ as the reader stays on the screen.
 bound: retry once, record that the retry happened, and then hold the ruled empty frame — which is
 what all of those documents used to claim happens, and what the empty frame exists to be.
 
-**Why it was not fixed in that pass.** It is outside the 44 findings, it is a behaviour change to a
-component rendered on every row of the densest screen in the app, and it deserves its own
-measurement — how many frames in a real library actually reach the permanent case — rather than
-riding along inside a documentation commit.
+**Why it was not fixed in that pass.** It was outside the 44 findings, it is a behaviour change to a
+component rendered on every row of the densest screen in the app, and it deserved its own commit
+rather than riding along inside a documentation one. It was fixed in that separate commit, which is
+what the deferral was for.
 
 **One inherited-claim note worth keeping.** All three descriptions of this behaviour said "re-polls
 once on a delay" — five, once the product record and the screen specification were counted. That
