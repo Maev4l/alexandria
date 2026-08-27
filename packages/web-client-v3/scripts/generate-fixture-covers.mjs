@@ -2,10 +2,10 @@
 // Generates the tiny placeholder "cover art" used by the fixtures — solid-colour rectangles
 // standing in for a book cover or film poster, portrait 2:3 at 132x198 (the item-detail hero's
 // own frame size; the browser's `object-cover` scales them down cleanly for the 48x72 row frame
-// too, so one asset size serves both, per DESIGN.md's "one ratio for every item").
+// too, so one asset size serves both, per the frame's "one ratio for every item" rule).
 //
 // These are CONTENT — fixture book/film artwork, standing in for what Google Books/TMDB would
-// actually return — not UI. They deliberately do NOT reuse the app's palette tokens: DESIGN.md's
+// actually return — not UI. They deliberately do NOT reuse the app's palette tokens: the
 // palette law ("each colour has exactly one job") governs the interface, not a fictional book
 // jacket, the same way a real cover photo is not subject to it.
 //

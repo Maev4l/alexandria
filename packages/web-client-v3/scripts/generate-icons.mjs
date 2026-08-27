@@ -13,7 +13,7 @@
 // rasterises through fontconfig, which substitutes a face SILENTLY when the named one is absent
 // — so an icon built on a machine without Archivo would ship a system-font letterform and
 // nothing would report it. That is the exact mechanism that hid a total font failure in this
-// project for three slices (DESIGN.md §3): the comp fell back too, so both sides were wrong
+// project for three slices: the comp fell back too, so both sides were wrong
 // identically and matching was mistaken for correct. The sources hand-author the letterform as
 // geometry, which has no such dependency and is identical on every machine.
 //
@@ -35,7 +35,7 @@ const PUBLIC_DIR = path.resolve(__dirname, '../public');
 const SOURCE_SIZE = 512;
 const BASE_DENSITY = 72;
 
-// DESIGN.md §2. Asserted below on every emitted file, not assumed: these two are the whole mark.
+// Ink and chrome yellow, the imprint's two structural colours. Asserted below on every emitted file, not assumed: these two are the whole mark.
 const INK = { r: 0x0b, g: 0x0b, b: 0x0b };
 const IMPRINT = { r: 0xf2, g: 0xc2, b: 0x00 };
 

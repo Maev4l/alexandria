@@ -119,9 +119,9 @@ try {
   }
 
   // ---- The search CONTROL shows focus, even though its input does not ----
-  // Required, not optional. Ruling 2 in DESIGN.md §2 re-permits suppressing an inner outline,
-  // which is exactly what killed the focus ring in slice A: an `outline-none` in a later cascade
-  // layer beat the base :focus-visible, and no stylesheet test could see it because both rules
+  // Required, not optional. This is the one case where suppressing an inner outline is
+  // permitted, which is exactly what killed the focus ring in slice A: an `outline-none` in a
+  // later cascade layer beat the base :focus-visible, and no stylesheet test could see it because both rules
   // read as correct on their own. The suppression is only defensible while the parent
   // DEMONSTRABLY shows an indicator, so that is asserted here, computed, in real Chrome. If this
   // check fails, the ruling is wrong and the rule goes — it is not to be adjusted into passing.
@@ -562,7 +562,7 @@ try {
   // ---- The `FILING INTO` mark's collection name must not inherit the label's caps ----
   // Fix round 1, finding 1: `<p className="caps ...">Filing into {collectionName}</p>` set
   // `text-transform: uppercase` on the WHOLE element, so "Blake et Mortimer" rendered as
-  // "BLAKE ET MORTIMER" — a content title, which DESIGN.md §3 forbids outright. jsdom's
+  // "BLAKE ET MORTIMER" — a content title, and content titles are never uppercased. jsdom's
   // `textContent` cannot see this at all (it ignores CSS), which is exactly why `yarn test`
   // passed on the broken markup and this check exists: the unit suite asserts the class is
   // DECLARED (`.className` contains `normal-case`), this asserts it SURVIVES the cascade as an
@@ -811,7 +811,7 @@ try {
   // ---- The camera survives the loop instead of restarting on every item ----
   // Slice D's other P1. Each save `replace`s back to the capture screen, which is a fresh mount,
   // and the mount-only effect used to tear the stream down and call `getUserMedia` again — ten
-  // items, ten device-open-and-refocus cycles, each showing a black frame first. DESIGN.md §4
+  // items, ten device-open-and-refocus cycles, each showing a black frame first. This design
   // accepts a harder reach for Add BECAUSE the flow loops; the loop's per-item cost is therefore
   // the thing most worth engineering.
   //
@@ -991,7 +991,7 @@ try {
   }
 
   // ---- The candidate screens are where the picture decides, so the picture gets room ----
-  // ui-v3.md says of this one screen that "the picture is what decides the match". It shipped at
+  // On this one screen "the picture is what decides the match". It shipped at
   // the browse row's 48x72 — smaller than a stream row's job needs, on the screen with the most
   // vertical space to spare — and truncated the title as well, on the surface whose entire job is
   // telling two editions of one book apart. A mis-selection here writes a record the reader
@@ -1044,14 +1044,14 @@ try {
   }
 
   // ---- Three tab stops in one control must be distinguishable ----
-  // DESIGN.md §2: the whole-box `:focus-within` construction "holds only while the control has
+  // The whole-box `:focus-within` construction "holds only while the control has
   // exactly one focusable descendant". The search field had THREE — the input, the submit mark and
   // the clear mark — and under `focus-within` the box lit for all of them while each mark's own
   // ring was suppressed. Pixel-diffed by the critique: `Clear the search` and `Search` were
   // IDENTICAL when focused, 0 pixels differing, with one of the two destroying the query.
   //
   // It went to two when the submit mark was dropped — on a field that searched as it was typed,
-  // submitting did nothing, and §6 forbids an inert control in the action slot — and it is THREE
+  // submitting did nothing, and the action slot must never hold an inert control — and it is THREE
   // again now that the field only searches on submit. So the exact adjacency the critique found is
   // back on the screen, and what makes it safe is the selector rather than the removal.
   //
@@ -1298,7 +1298,7 @@ try {
   // At rest no chrome-yellow plate existed anywhere in the add flow: every `Use this`, both
   // shutters, both manual escapes and the re-search were `secondary`, and the two `primary`
   // submits are disabled at rest and therefore render AS the secondary outline. So `--imprint`,
-  // which DESIGN.md §2 reserves for the apparatus of ACTING, marked only the fallback path.
+  // which the palette law reserves for the apparatus of ACTING, marked only the fallback path.
   // Filing a candidate is this flow's only write.
   //
   // Asserted on the five-candidate fixtures rather than the three: five is the most either
@@ -1371,7 +1371,7 @@ try {
   );
 
   // ---- The inverted cover never borrows the paper surface's secondary tokens ----
-  // DESIGN.md §2 is explicit that --ink-soft and --paper-deep belong to the PAPER surface only:
+  // The palette is explicit that --ink-soft and --paper-deep belong to the PAPER surface only:
   // --ink-soft on --ink measures ~1.9:1, unreadable, which is exactly why the cover has its own
   // --cover-body/--cover-soft/--cover-rule tokens. Reaching for the familiar `text-ink-soft` out
   // of habit while styling a component that also appears on paper is invisible in source review —
@@ -1462,7 +1462,7 @@ try {
   }
 
   // ---- --shared and --out must never resolve as TEXT colour on the cover either ----
-  // Round 2 (the item-detail marks column): DESIGN.md §2 measures --shared on --ink at ~3.03:1
+  // Round 2 (the item-detail marks column): the contrast table measures --shared on --ink at ~3.03:1
   // and --out on --ink at ~4.42:1 — both sound for a rule or an outline, both short of AA for
   // small text. Both ALSO have a legitimate use as a background/border colour on this exact
   // route: the sharing mark's edge is `bg-shared`, the Overprint Stamp's outline is `border-out`.
@@ -1496,7 +1496,7 @@ try {
   // Round 1 shipped the stamp fix with no automated regression coverage; this closes that gap
   // for the mark that replaces it. The design session's OWN first attempt at this edge used
   // `border-left`, which adds to the box and pushed the SHARED line 12px right of IN <library>
-  // directly above it (DESIGN.md §6: an edge rule never displaces content). The fix hangs the
+  // directly above it (an edge rule must never displace content). The fix hangs the
   // edge into the column's own padding-left as an absolutely positioned sibling instead, so the
   // IN line and the SHARED line's own flow boxes should share the same left edge, in real
   // Chrome's layout — a stylesheet test can assert the rule exists, not that the cascade leaves
@@ -1560,7 +1560,7 @@ try {
   // PASS while the render is unchanged, which is exactly what happened. A declaration and a
   // computed value both looked right for two months.
   //
-  // Threshold set FROM the measurement, not from the document: DESIGN.md said 27-44% and the
+  // Threshold set FROM the measurement, not from the document: the design system's stated range was 27-44% and the
   // measured range is 24-37%, so a guard written against the documented floor would have failed on
   // correct code — and on `#` specifically, the glyph whose rendering was most doubted. That is
   // the crying-wolf opening that gets a guard deleted rather than fixed. 15% is ~1.6x below the
@@ -1632,18 +1632,18 @@ try {
     );
   }
 
-  // ---- Every caps role renders the tracking §3 publishes for it ----
+  // ---- Every caps role renders the tracking the design system publishes for it ----
   // `.caps` used to set `letter-spacing: 0.08em`, and because it sits later in `@layer utilities`
   // at equal specificity it BEAT every `tracking-[Nem]` class in the app. Measured:
   // `caps tracking-[0.16em]` computed 1.28px where the class alone computes 2.56px. So not one of
-  // §3's five published values had ever reached a screen, across 26 call sites — the wordmark
+  // the five published values had ever reached a screen, across 26 call sites — the wordmark
   // declared 0.20em and rendered 0.96px.
   //
   // It survived because NOTHING COMPUTED `letter-spacing`. The type-scale guard reads declared
   // classes, the mono guards read font-family; a class can be present and beaten, and only the
   // computed value can tell. Same gap that hid the missing font cmap and the 9px plate.
   //
-  // So this reads the COMPUTED value, one element per role in §3's caps table, and it belongs in
+  // So this reads the COMPUTED value, one element per role in the caps table, and it belongs in
   // the browser suite for exactly that reason.
   console.log('every caps role computes the size, weight and tracking assigned to it');
   {
@@ -1652,7 +1652,7 @@ try {
     // `h2` and a bare `button` that matched nothing, and a role that cannot be found is a role
     // that is not checked.
     //
-    // `em: null` means §3 assigns the role NO tracking, which is a real published value and the
+    // `em: null` means the caps table assigns the role NO tracking, which is a real published value and the
     // one the old utility was silently overriding — the account plate initials carried 0.08em
     // they should never have had.
     const CAPS_ROLES = [
@@ -1678,7 +1678,7 @@ try {
       // table's published 800.
       { role: 'shared ribbon caps (library row)', route: '/libraries', text: 'SHARED', px: 11, em: 0.16, weight: 700 },
       { role: 'shared ribbon caps (detail marks)', route: '/libraries/lib-fiction/items/item-lent', text: 'SHARED', px: 10, em: 0.16, weight: 800 },
-      // 0.08em, the BASELINE — not "none". §3's caps table leaves this row's tracking cell empty,
+      // 0.08em, the BASELINE — not "none". The caps table leaves this row's tracking cell empty,
       // and the two rulings read that blank differently: the first said the initials carry no
       // tracking, the second restored a baseline for every site that declares none. A site that
       // declares nothing is exactly what this is, so it takes the baseline.
@@ -1759,7 +1759,7 @@ try {
     );
 
     // THE OTHER DIRECTION, AND IT IS THE ONE THAT WOULD HAVE CAUGHT THE FIRST FIX. The roles above
-    // are the six §3 names, so an unlisted role is an unchecked role — and when `.caps` lost its
+    // are the six the design system names, so an unlisted role is an unchecked role — and when `.caps` lost its
     // `letter-spacing` entirely, 26 sites dropped to `normal` with nothing going red. Every one of
     // them uppercase at 11-12px, which is precisely what the baseline exists to prevent.
     //
@@ -1877,7 +1877,7 @@ try {
 
   // ---- The other two controls a critique measured as failing, which measure as passing ----
   // Slice E's critique reported `Full record` at 90.8x15.4 and four `/libraries` rows at
-  // 44.7-47.5px against §4's 48px floor. Those are the ELEMENT BOXES, and both controls carry a
+  // 44.7-47.5px against the 48px minimum touch target. Those are the ELEMENT BOXES, and both controls carry a
   // `::before` expansion — so the box understates the target by design, exactly as the
   // `IN <library>` check below already establishes for its own case.
   //
@@ -2005,7 +2005,7 @@ try {
   await page.goto(`${BASE}/libraries/lib-fiction/items/item-lent`, { waitUntil: 'networkidle0' });
   await page.waitForSelector('[aria-label^="On loan to Marie"]', { timeout: 10_000 });
 
-  // ---- The IN <library> link survives wrapping, at the 320px floor DESIGN.md §4 commits to ----
+  // ---- The IN <library> link survives wrapping, at 320px — the narrowest viewport this phone-first design supports ----
   // Round 6 review: the centring fix above (`left-1/2` + `w-[max(50px,100%)]`) resolves `100%`
   // against the containing block the Link's own box establishes — well-defined for a SINGLE
   // fragment, and NOT well-defined for a plain inline element that wraps across two lines (each
@@ -2113,7 +2113,7 @@ try {
   }
 
   // ---- `caps` elements on the cover keep an explicit weight through the cascade ----
-  // `.caps` sets ONLY text-transform and letter-spacing, by deliberate design (DESIGN.md §3):
+  // `.caps` sets ONLY text-transform and letter-spacing, by deliberate design:
   // weight is always stated separately, at the point of use, because a `caps` utility that also
   // set font-weight once let "stop uppercasing this, it's content" silently drop the emphasis
   // too — the exact regression this checks for. Every other `caps` usage in the package pairs it
@@ -2180,7 +2180,7 @@ try {
   }
 
   // ---- The item-detail action row reflows on the narrowest phones, never overflows ----
-  // Delete moved onto the same line as Mark returned/Lend and Edit (DESIGN.md, "all three on
+  // Delete moved onto the same line as Mark returned/Lend and Edit ("all three on
   // one line" — a lone Delete below the ledger used to read as though it deleted the RECORD,
   // not the item). The three labels total ~319px, which fits a 390px viewport with margins and
   // does not fit a 320px one, so the row relies on `flex-wrap` rather than a second layout.
@@ -2456,7 +2456,7 @@ try {
   // ---- Ledger Row: the last row does not double the card's own bottom rule (MINOR 5) ----
   // Every row carries its own 1px `border-b`, and the card wrapping them carries a 3px
   // `border-[3px]`. Stacked, the last row's hairline sat directly on the card's own bottom
-  // edge — a 1px + 3px composite the rule-weight scale (DESIGN.md section 4: 1/2/3/4px, and
+  // edge — a 1px + 3px composite the rule-weight scale (1/2/3/4px, and
   // nothing else) does not contain. jsdom can see the `border-b-0` utility string on a
   // className, but only a real cascade can confirm the browser actually resolves it to 0 at
   // that specific element while every row before it keeps its own hairline.
@@ -2497,13 +2497,13 @@ try {
   }
 
   // ---- Round 5, item 1: the empty hero frame is unfilled — the rule alone describes it ----
-  // DESIGN.md §6: an empty Volume Frame is a designed state, never a placeholder. The hero size
+  // An empty Volume Frame is a designed state, never a placeholder. The hero size
   // used to fill with `--cover-rule` at full strength — 1.73:1 against `--ink` — a mid-grey slab
   // that read as a failed image. At the time this was written `picture` was absent for most
   // fixture items, which made that slab look like the DEFAULT appearance of the peak screen —
   // PRODUCT.md has since corrected the record: artwork present is the normal case, and this is
   // the rare exception, not the common one. The unfilled rule stays correct for both readings:
-  // a real cover still renders inside it (§4 below), and the rare coverless item still needs a
+  // a real cover still renders inside it (below), and the rare coverless item still needs a
   // designed empty state rather than a placeholder. An intermediate fix tried tuning the SAME
   // token down with opacity (~1.09:1, matching
   // the row frame's own quiet `bg-paper-deep`), but the ruling was "unfill both", not "tint
@@ -2588,7 +2588,7 @@ try {
     );
   }
   // ---- Mono is for numerals only: everything that resolves to Chivo Mono is digit-dominant ----
-  // DESIGN.md §3: "the mono is for numerals only... a person's name set in the mono is a
+  // The mono is for numerals only... a person's name set in the mono is a
   // category error." src/monoText.test.js guards this STATICALLY, by scanning source for a
   // literal word written directly under a `.num`-classed element — but it discloses two blind
   // spots it cannot close by construction: a word arriving as a runtime value through a prop
@@ -2599,7 +2599,7 @@ try {
   //
   // The rule that makes this checkable without drowning in false positives is not "no letters" —
   // `07 Aug 2026` is a legitimate mono string that contains a word (it is a tabular date, one of
-  // the four things §3 licenses: catalogue numerals, ISBN, runtime, dates). The rule is DIGIT
+  // the four things this system licenses: catalogue numerals, ISBN, runtime, dates). The rule is DIGIT
   // PROPORTION: every legitimate mono string this app renders is digit-dominant, and every
   // violation found so far (an email, a director's name) has no digits in it at all. So: walk
   // every element whose OWN direct text (its immediate Text-node children only, not a
@@ -2631,7 +2631,7 @@ try {
   // otherwise sit at 0.75–1.0. The worst VIOLATION on record (the email, reintroduced below to
   // prove this) is 0.0 — zero digits. That is not a threshold balanced on a knife edge; 0.5 sits
   // in a gap between two clearly separated distributions, nowhere near either one.
-  console.log('mono text is digit-dominant everywhere it renders (DESIGN.md §3)');
+  console.log('mono text is digit-dominant everywhere it renders');
   {
     const MONO_ROUTES = [
       '/login',
@@ -2737,7 +2737,7 @@ try {
     );
   }
 
-  // ---- Field-driven manifest: the OTHER direction of DESIGN.md §3 ----
+  // ---- Field-driven manifest: the OTHER direction of the mono rule ----
   //
   // The check above proves "nothing but numerals may be mono" — every element that RESOLVES to
   // Chivo Mono is digit-dominant. It has a blind spot with a name and a history: it can only
@@ -2777,7 +2777,7 @@ try {
   //    be non-empty and ALL-mono, not "at least one"). Mitigated, not eliminated, by preferring
   //    distinctive values (a 13-digit ISBN, a formatted date) and route-scoping every field to
   //    where it is actually expected — verified by hand for each entry below, not assumed.
-  console.log('catalogue fields render in mono wherever their fixture VALUE appears (DESIGN.md §3, field-driven)');
+  console.log('catalogue fields render in mono wherever their fixture VALUE appears (field-driven)');
   {
     // Mirrors LedgerRow.jsx's own private `stamp` formatter exactly (not imported: it is an
     // unexported const inside a component file), so an expected ledger date can never hand-drift
@@ -2832,8 +2832,8 @@ try {
         query: '?isbn=9782070408504&collectionId=coll-melville',
         expected: '9782070408504',
       },
-      // Task 19's video-side twin. Not the searched title (that mark deliberately renders in the
-      // SANS — a film title is content, not a numeral, and §3 reserves the mono for numerals; the
+      // The video-side twin of the ISBN entry above. Not the searched title (that mark deliberately renders in the
+      // SANS — a film title is content, not a numeral, and the mono is reserved for numerals; the
       // book side's ISBN echo is mono only because an ISBN IS a numeral). Runtime is the new
       // numeral this screen introduces, so it is what the manifest checks. Literal, like the isbn
       // entry above, because this value comes from TITLE_MIXED_ARTWORK's first candidate in
@@ -2847,7 +2847,7 @@ try {
         expected: '105′',
       },
       // The session tally. A count on display beside its own label is a labelled datum, exactly
-      // like a library's item count, so §3 puts it in the mono. It is the first manifest entry
+      // like a library's item count, so it belongs in the mono. It is the first manifest entry
       // that has to ACT to exist: `reach` files one item, which is what produces the mark.
       {
         field: 'filed-this-session tally',
@@ -2893,7 +2893,7 @@ try {
         field: 'duration',
         sourceFile: 'src/pages/ItemDetail.jsx',
         route: `/libraries/lib-fiction/items/${itemSamourai.id}`,
-        // The prime mark is the catalogue's own runtime convention (lib/format.js, DESIGN.md §3).
+        // The prime mark is the catalogue's own runtime convention (lib/format.js).
         expected: `${itemSamourai.duration}′`,
       },
       {
@@ -2917,8 +2917,8 @@ try {
       {
         // Pointed at the A run, NOT at the run holding the Melville board, and the reason is not
         // cosmetic. A review found this entry and `itemCount` above both expecting 4 and proposed
-        // "a future fixture tweak" to separate them. That fix is impossible: DESIGN.md section 5
-        // defines a run's count as standalone entries plus each board's `itemCount`, and
+        // "a future fixture tweak" to separate them. That fix is impossible: the index letter's
+        // own count rule defines a run's count as standalone entries plus each board's `itemCount`, and
         // stream.js's `entryItemCount` implements exactly that — so a run holding one board and
         // nothing else ALWAYS equals that board's count, whatever number the fixture carries.
         // Changing the fixture moves both together, forever. Only re-pointing at a run with a
@@ -2926,7 +2926,7 @@ try {
         // Aurore) closes at 2, arithmetically distinct from any board's count, so a bug swapping
         // these two elements' font logic can no longer hide behind a shared value.
         //
-        // Derived through the client's own `indexLetterFor`, and summed the way section 5 says,
+        // Derived through the client's own `indexLetterFor`, and summed the same way,
         // so it stays correct if a board is ever filed under A.
         field: 'indexLetterCount',
         sourceFile: 'src/components/imprint/IndexLetter.jsx',
