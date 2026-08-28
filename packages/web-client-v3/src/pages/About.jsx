@@ -8,9 +8,12 @@ const About = () => {
   const { needRefresh, checkForUpdate, checkState } = usePWA();
   const navigate = useNavigate();
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       <AppHeader title="About" onBack={() => navigate(-1)} search={false} />
-      <main className="p-4">
+      <main
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
         <h1 className="sr-only">About</h1>
 
         <p className="text-sm">

@@ -32,6 +32,11 @@ import { indexLetterFor } from '../src/lib/sort.js';
 // would fall through tools/mock-search.js's "any other term" branch the day that constant moves,
 // and this script would go on checking a state it no longer names.
 import { TERM_MIXED } from '../tools/mock-search.js';
+// The detection fixtures' own keys, imported for that same reason: a retyped ISBN would fall
+// through to the mock's default branch and the route would render a DIFFERENT state than the
+// check's name claims, green throughout. These two are chosen because they are the fixtures that
+// return enough candidates to overflow a 667px viewport, which is what the scroll checks need.
+import { ISBN_MULTI_VOLUME, TITLE_FIVE_CANDIDATES } from '../tools/mock-detections.js';
 // The icon set's single source of truth (tools/pwa-icons.js), imported for the same reason as
 // the fixtures above: a list of files retyped here could pass while the manifest advertises a
 // different set entirely.
@@ -3279,6 +3284,317 @@ try {
         `${target.url} carries the mark (chrome yellow on ink)`,
         `imprint ${(found.imprintShare * 100).toFixed(1)}%, ink ${(found.inkShare * 100).toFixed(1)}% ` +
           '— a raster made of one flat colour decodes perfectly and shows nothing',
+      );
+    }
+  }
+
+  // ---- The app shell pins its header; the content scrolls under it ----
+  // Four screens scrolled the whole DOCUMENT — header included — while `Libraries` and
+  // `LibraryBrowse` had always been a fixed-height flex column with the content scrolling inside
+  // `overflow-y-auto`. They now take the same shape. jsdom cannot report any of this: it does no
+  // layout, so a class string is all it can see, and every one of these facts is a rendered
+  // geometry fact. Each route asserts the region GENUINELY overflows before asserting anything
+  // about it — a screen whose content happens to fit would otherwise pass every line below
+  // without exercising one of them.
+  console.log('the header stays put while the content scrolls under it');
+  {
+    const SHELL_ROUTES = [
+      { url: '/libraries/lib-fiction/items/item-lent', name: 'item detail' },
+      { url: '/search?q=roman', name: 'search' },
+      { url: `/libraries/lib-fiction/add/book/results?isbn=${ISBN_MULTI_VOLUME}`, name: 'book results' },
+      {
+        url: `/libraries/lib-fiction/add/video/results?title=${encodeURIComponent(TITLE_FIVE_CANDIDATES)}`,
+        name: 'film results',
+      },
+      // The item forms, both directions of the same component: a long form whose Save sits at the
+      // bottom is the case where a header that scrolls away costs the most, and `EditItem` is
+      // where it was reported. `NewBook` and `NewVideo` render the identical `ItemForm` one tap
+      // away in the add flow, so they are listed beside it rather than left to be reported next.
+      { url: '/libraries/lib-fiction/items/item-1984/edit', name: 'edit item' },
+      { url: '/libraries/lib-fiction/items/new/book', name: 'new book' },
+      { url: '/libraries/lib-fiction/items/new/video', name: 'new film' },
+      // The control: it already had this shape and is the reference the others were changed to
+      // match, so a regression there must fail here too.
+      { url: '/libraries/lib-fiction', name: 'library browse' },
+
+      // EVERY REMAINING PAGE, each at 300px tall rather than 667. Their fixture content fits a
+      // real phone, so at 667 their regions never overflow and every assertion below would pass
+      // without exercising one — the vacuity the libraries root was originally dropped for. What
+      // is under test is the shell, not how much content a fixture happens to hold, so the
+      // viewport shrinks until there is genuinely something to scroll. Measured: all of these
+      // overflow by 62–300px at this height, and none of them scrolls the document.
+      { url: '/libraries', name: 'libraries root', height: 300 },
+      { url: '/libraries/new', name: 'new library', height: 300 },
+      { url: '/libraries/lib-fiction/edit', name: 'edit library', height: 300 },
+      { url: '/libraries/lib-fiction/collections/new', name: 'new collection', height: 300 },
+      { url: '/libraries/lib-fiction/collections/coll-melville/edit', name: 'edit collection', height: 300 },
+      { url: '/libraries/lib-fiction/add/book', name: 'add book', height: 300 },
+      { url: '/libraries/lib-fiction/items/item-lent/history', name: 'item history', height: 300 },
+      { url: '/settings', name: 'settings', height: 300 },
+      { url: '/settings/account', name: 'account', height: 300 },
+      { url: '/settings/about', name: 'about', height: 300 },
+      // Headerless by construction: these three carry a wordmark badge instead of an `AppHeader`,
+      // so there is no header element to assert a position for. Everything else still applies —
+      // most of all that the document does not scroll, which is what the badge staying put means.
+      { url: '/login', name: 'login', height: 300, headerless: true },
+      { url: '/signup', name: 'sign up', height: 300, headerless: true },
+      { url: '/libraries?as=pending', name: 'pending approval', height: 300, headerless: true },
+
+      // Two absences, each for its own reason, both stated so neither reads as an oversight.
+      //
+      // `/libraries/lib-fiction/add/video` is deliberately absent and must stay absent: the film
+      // capture screen is fixed-height with NO scroll region, because its viewfinder shrinks to
+      // keep the manual escape on screen rather than letting the page grow. It is the one page
+      // that is not a scrolling shell, and listing it here would fail on the first line.
+      //
+      // `/libraries/lib-fiction/unshare` is absent because its region cannot be made to overflow
+      // at any sane viewport: the only shared fixture library has two recipients, and its action
+      // bar sits BELOW the region rather than inside it, so shrinking the viewport takes height
+      // from both at once. It was listed, measured at 0px of overflow, and removed — which is
+      // what should have been said about the libraries root the first time rather than dropping
+      // it quietly. The drift alarm below still covers it, and that check needs no overflow. To
+      // cover it here, give a fixture library enough recipients to fill a short viewport.
+    ];
+
+    for (const route of SHELL_ROUTES) {
+      await page.setViewport({ width: 390, height: route.height ?? 667, deviceScaleFactor: 2 });
+      await page.goto(`${BASE}${route.url}`, { waitUntil: 'networkidle0' });
+      await page.waitForSelector('[data-scroll-region]', { timeout: 10_000 });
+      // The regions on these routes fill on a second commit (a fetch, then rows); without this
+      // the overflow assertion below races the content and the whole block passes vacuously.
+      await new Promise((done) => setTimeout(done, 600));
+
+      const measured = await page.evaluate(() => {
+        const region = document.querySelector('[data-scroll-region]');
+        const header = document.querySelector('header');
+        const headerTopBefore = header ? header.getBoundingClientRect().top : 0;
+        region.scrollTop = region.scrollHeight;
+        const scrolled = region.scrollTop;
+        // THEN TRY TO SCROLL THE DOCUMENT, and this line is why the two assertions below mean
+        // anything. Without it they were blind to the very defect this check exists for: put a
+        // screen back on `min-h-dvh` and the region simply does not scroll, so nothing moves at
+        // all — and "the header stayed at 0" and "the document did not scroll" both PASSED
+        // against a page whose header scrolls away, while only the vacuity guard went red. A
+        // correctly shaped screen has nothing for this to move; a document-scrolling one does.
+        window.scrollTo(0, 2000);
+        return {
+          overflows: region.scrollHeight - region.clientHeight,
+          scrolled,
+          headerTopBefore,
+          headerTopAfter: header ? header.getBoundingClientRect().top : 0,
+          headerBottom: header ? header.getBoundingClientRect().bottom : null,
+          regionTop: region.getBoundingClientRect().top,
+          documentScrollY: window.scrollY,
+        };
+      });
+
+      record(
+        measured.overflows > 20,
+        `${route.name}: its scroll region genuinely overflows, so the rest of this is not vacuous`,
+        `scrollHeight - clientHeight = ${measured.overflows}px`,
+      );
+      record(
+        measured.scrolled > 20,
+        `${route.name}: the content scrolls inside the region`,
+        `scrollTop ${measured.scrolled}px after scrolling to the end`,
+      );
+      if (!route.headerless) {
+        record(
+          measured.headerTopAfter === 0 && measured.headerTopBefore === 0,
+          `${route.name}: the header stays at the viewport top throughout`,
+          `top ${measured.headerTopBefore} -> ${measured.headerTopAfter}`,
+        );
+      }
+      record(
+        measured.documentScrollY === 0,
+        `${route.name}: the document itself never scrolls`,
+        `window.scrollY ${measured.documentScrollY}`,
+      );
+      // No overlap and no gap: the region begins exactly where the header ends. A region tucked
+      // under the header would hide its first rows behind it, which is the defect a pinned
+      // header introduces if the two are positioned independently.
+      if (!route.headerless) {
+        record(
+          Math.abs(measured.regionTop - measured.headerBottom) < 1,
+          `${route.name}: the scroll region starts exactly at the header's bottom edge`,
+          `header bottom ${measured.headerBottom.toFixed(1)}, region top ${measured.regionTop.toFixed(1)}`,
+        );
+      }
+    }
+  }
+
+  // ---- Search's sticky field comes to rest under the header, not behind it ----
+  // Its `top-0` used to mean the viewport's top, and the source comment said so. Inside a scroll
+  // region `top-0` is the region's top, which is where the header ends — so the field needs no
+  // offset to compute. That is a claim about what `position: sticky` resolves against, which only
+  // a real engine can answer.
+  console.log("the search field comes to rest under the header, not behind it");
+  {
+    await page.setViewport({ width: 390, height: 667, deviceScaleFactor: 2 });
+    await page.goto(`${BASE}/search?q=roman`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('main input', { timeout: 10_000 });
+    await new Promise((done) => setTimeout(done, 600));
+
+    const stuck = await page.evaluate(() => {
+      const region = document.querySelector('[data-scroll-region]');
+      const field = document.querySelector('main input').closest('.sticky');
+      const before = field.getBoundingClientRect().top;
+      region.scrollTop = region.scrollHeight;
+      return {
+        before,
+        after: field.getBoundingClientRect().top,
+        headerBottom: document.querySelector('header').getBoundingClientRect().bottom,
+        scrolled: region.scrollTop,
+      };
+    });
+
+    record(
+      stuck.scrolled > 20,
+      'search: the region scrolled far enough to press the field against its top',
+      `scrollTop ${stuck.scrolled}px`,
+    );
+    record(
+      Math.abs(stuck.after - stuck.headerBottom) < 1,
+      'search: the stuck field sits exactly at the header\'s bottom edge',
+      `field top ${stuck.after.toFixed(1)}, header bottom ${stuck.headerBottom.toFixed(1)}`,
+    );
+    record(
+      stuck.after <= stuck.before + 1,
+      'search: the field did not travel down the page as the list scrolled',
+      `top ${stuck.before.toFixed(1)} -> ${stuck.after.toFixed(1)}`,
+    );
+  }
+
+  // ---- A sheet freezes the scroll region, not just the document ----
+  // `Sheet` locked `document.body.style.overflow`, which governs the DOCUMENT — and nothing on a
+  // shell-shaped screen scrolls the document, so the page went on scrolling behind an open sheet.
+  // `inert` does not close it: it removes the subtree from the tab order and the accessibility
+  // tree and says nothing about scrolling. Asserted as a real failed scroll rather than as a
+  // computed style, because the style is the mechanism and not-moving is the requirement.
+  console.log('a sheet freezes the scrolling region behind it, not only the document');
+  {
+    await page.setViewport({ width: 390, height: 667, deviceScaleFactor: 2 });
+    await page.goto(`${BASE}/libraries/lib-fiction`, { waitUntil: 'networkidle0' });
+    await page.waitForSelector('[data-scroll-region]', { timeout: 10_000 });
+    await new Promise((done) => setTimeout(done, 600));
+
+    const overflowBefore = await page.evaluate(
+      () => getComputedStyle(document.querySelector('[data-scroll-region]')).overflowY,
+    );
+
+    await page.waitForSelector('[aria-label^="Actions for"]', { timeout: 10_000 });
+    await page.click('[aria-label^="Actions for"]');
+    await page.waitForSelector('[role=dialog]', { timeout: 10_000 });
+
+    // THE MECHANISM, and named as the mechanism because the behaviour is not reachable here.
+    // Two probes were tried and both were no-ops. Assigning `scrollTop` fails against a correctly
+    // locked region, because `overflow: hidden` stops the reader and leaves programmatic
+    // scrolling untouched. Dispatching a real wheel passes whether the lock exists or not: the
+    // sheet's scrim is `fixed inset-0` and portalled to `<body>`, so it sits under the cursor and
+    // is not a descendant of the region — the wheel scrolls the scrim's own scrollable ancestor,
+    // which is the document, and the body lock already holds that still. In Chrome there is
+    // therefore no gesture that reaches the region behind a sheet at all.
+    //
+    // So this asserts the computed style rather than a movement, and the freeze it asserts is
+    // DEFENCE rather than a repair of anything observed here: it is kept for the touch platform
+    // this ships to, where an overlay does not reliably stop a flick from chaining, and which
+    // this harness cannot reproduce. Recorded plainly so nobody later reads the freeze as
+    // closing a defect somebody measured.
+    const behind = await page.evaluate(
+      () => getComputedStyle(document.querySelector('[data-scroll-region]')).overflowY,
+    );
+    record(
+      behind === 'hidden',
+      'the region behind an open sheet is frozen, not only the document',
+      `overflow-y: ${behind}`,
+    );
+
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('[role=dialog]'), { timeout: 10_000 });
+    const restored = await page.evaluate(() => {
+      const region = document.querySelector('[data-scroll-region]');
+      const before = region.scrollTop;
+      region.scrollTop = before + 400;
+      return {
+        // Programmatic here on purpose: with the freeze lifted this is a fair probe again, and
+        // what it adds over the computed style is that the element is genuinely scrollable and
+        // not merely reporting a restored string.
+        moved: region.scrollTop !== before,
+        overflowY: getComputedStyle(region).overflowY,
+      };
+    });
+    // Restored to what it was, not to a hardcoded value — the same requirement the body lock
+    // above already carries, and the direction a lock most often gets wrong.
+    record(
+      restored.moved && restored.overflowY === overflowBefore,
+      'closing the sheet gives the region back exactly the overflow it had',
+      `overflow-y ${overflowBefore} -> ${restored.overflowY}, scrolls again: ${restored.moved}`,
+    );
+  }
+
+  // ---- Drift alarm: every element that actually scrolls is marked as a scroll region ----
+  // `Sheet`'s lock is driven by `data-scroll-region`, so a new scrolling surface that nobody
+  // marks is a surface that keeps scrolling behind an open sheet — silently, and only on the
+  // screen somebody just built. Keyed on COMPUTED overflow rather than on a class name, so it
+  // cannot be missed by writing the overflow in a way this file does not recognise.
+  //
+  // It deliberately does NOT require the element to be overflowing right now, and that condition
+  // is why the first version of this check was useless: run against `UnshareLibrary` with its
+  // attribute deleted, it passed, because two fixture recipients do not fill a 667px viewport.
+  // An unmarked region would then have gone unreported until real data grew past the screen —
+  // which is to say, until it was already scrolling behind somebody's sheet. A region is a
+  // region whether or not today's fixture fills it.
+  //
+  // Two exemptions, both for things that are not page surfaces. The sheet's own panel scrolls
+  // internally at `max-h-[80dvh]`, and freezing it would break the very dialog doing the freezing;
+  // scoped by `closest('[role=dialog]')` rather than by class, so it survives a restyle. And a
+  // native form control owns its own scroll: a `<textarea>` computes `overflow-y: auto` by
+  // default, so dropping the overflowing requirement above made all three item forms fail on a
+  // correct `SUMMARY` field. That is the crying-wolf shape this project has paid for before — a
+  // guard whose first act is to report correct code gets deleted rather than fixed — and the
+  // exemption is by tag, because no page region is ever a form control.
+  console.log('every element that really scrolls carries data-scroll-region');
+  {
+    const ROUTES = [
+      '/libraries',
+      '/libraries/lib-fiction',
+      '/libraries/lib-fiction/items/item-lent',
+      '/search?q=roman',
+      `/libraries/lib-fiction/add/book/results?isbn=${ISBN_MULTI_VOLUME}`,
+      `/libraries/lib-fiction/add/video/results?title=${encodeURIComponent(TITLE_FIVE_CANDIDATES)}`,
+      '/libraries/lib-fiction/unshare',
+      '/libraries/lib-fiction/items/item-1984/edit',
+      '/libraries/lib-fiction/items/new/book',
+      '/libraries/lib-fiction/items/new/video',
+      '/libraries/lib-fiction/items/item-lent/history',
+      '/libraries/lib-fiction/add/book',
+      '/libraries/lib-fiction/add/video',
+      '/libraries/new',
+      '/libraries/lib-fiction/collections/new',
+      '/login',
+      '/settings',
+      '/settings/account',
+      '/settings/about',
+    ];
+    await page.setViewport({ width: 390, height: 667, deviceScaleFactor: 2 });
+    for (const url of ROUTES) {
+      await page.goto(`${BASE}${url}`, { waitUntil: 'networkidle0' });
+      await new Promise((done) => setTimeout(done, 600));
+      const unmarked = await page.evaluate(() =>
+        [...document.querySelectorAll('body *')]
+          .filter((el) => {
+            const overflowY = getComputedStyle(el).overflowY;
+            if (overflowY !== 'auto' && overflowY !== 'scroll') return false;
+            if (el.closest('[role=dialog]')) return false;
+            if (['TEXTAREA', 'SELECT', 'INPUT'].includes(el.tagName)) return false;
+            return !el.hasAttribute('data-scroll-region');
+          })
+          .map((el) => `${el.tagName.toLowerCase()}.${el.className}`.slice(0, 80)),
+      );
+      record(
+        unmarked.length === 0,
+        `${url}: no unmarked scrolling element`,
+        unmarked.join(' | '),
       );
     }
   }

@@ -65,13 +65,16 @@ const EditCollection = () => {
 
   if (status === 'missing' || status === 'error') {
     return (
-      <div className="min-h-dvh bg-paper">
+      <div className="flex h-dvh flex-col bg-paper">
         <AppHeader
           title="Not found"
           onBack={() => navigate(`/libraries/${libraryId}`)}
           search={false}
         />
-        <main className="p-4">
+        <main
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
           <h1 className="sr-only">Not found</h1>
           <p role="alert" className="border-t-2 border-out bg-paper-deep p-4 text-sm text-ink">
             {status === 'missing'
@@ -84,9 +87,12 @@ const EditCollection = () => {
   }
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       <AppHeader title="Edit collection" onBack={() => navigate(-1)} search={false} />
-      <main>
+      <main
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]"
+      >
         {/* The header already shows this title visibly, so the <h1> duplicating it stays
             hidden — nothing is labelled twice. */}
         <h1 className="sr-only">Edit collection</h1>

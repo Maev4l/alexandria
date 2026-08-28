@@ -98,6 +98,40 @@ describe('Sheet', () => {
     document.body.style.overflow = ''; // leave the shared jsdom document clean for the next test
   });
 
+  // The body lock above is necessary and, since the four document-scrolling screens took the
+  // app shell's fixed-height shape, no longer sufficient: a screen whose content scrolls inside
+  // `overflow-y-auto` ignores `document.body`'s overflow entirely, so the page behind an open
+  // sheet went on scrolling. `inert` does not close it either — it removes the subtree from the
+  // tab order and the accessibility tree, and says nothing about scrolling. Every scroll region
+  // therefore carries `data-scroll-region` and is frozen alongside the body. Restored per
+  // element, and to whatever was really there, for the same reason the body's value is.
+  it('freezes every scroll region while open, and restores each one to what it had before', async () => {
+    const region = document.createElement('div');
+    region.setAttribute('data-scroll-region', '');
+    region.style.overflowY = 'auto';
+    document.body.append(region);
+
+    const Harness = () => {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Open
+          </button>
+          <Sheet open={open} title="Actions" onClose={() => setOpen(false)}>
+            <p>Body</p>
+          </Sheet>
+        </>
+      );
+    };
+    render(<Harness />);
+    await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+    expect(region.style.overflowY).toBe('hidden');
+    await userEvent.keyboard('{Escape}');
+    expect(region.style.overflowY).toBe('auto');
+    region.remove();
+  });
+
   it('closes when the scrim is clicked', async () => {
     const onClose = vi.fn();
     render(

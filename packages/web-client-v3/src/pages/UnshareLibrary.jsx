@@ -57,7 +57,14 @@ const UnshareLibrary = () => {
         search={false}
       />
 
-      <main className="min-h-0 flex-1 overflow-y-auto">
+      <main
+        // This screen had the shell's shape before the shape was written down, and its region was
+        // unmarked — found by the drift alarm's own route list being widened, not by the alarm.
+        // No sheet opens over it today, so nothing was scrolling behind one; the attribute is
+        // what stops that being luck.
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
         {/* The header already names the library visibly ("Unshare Fiction" / "Unshare"), so
             the <h1> mirrors it hidden rather than printing it a second time on screen. */}
         <h1 className="sr-only">{library ? `Unshare ${library.name}` : 'Unshare'}</h1>

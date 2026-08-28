@@ -50,7 +50,16 @@ const PlateButton = forwardRef(
       type="button"
       disabled={disabled}
       className={cn(
-        'caps min-h-12 px-4 py-2 text-xs font-extrabold tracking-[0.12em]',
+        // `relative` is load-bearing and not decoration: the `sr-only` reason below is
+        // `position: absolute`, so without a positioned ancestor its containing block is the
+        // initial one — outside whatever scroll region the button sits in, therefore NOT clipped
+        // by it. On a fixed-height screen that span's 1px box lands past the viewport's bottom
+        // and lengthens `documentElement.scrollHeight`, so the whole page gains a slice of
+        // scroll and the "pinned" header travels off the top after all. Measured on `NewBook`
+        // (124px) and `NewVideo` (420px, its form being longer so the disabled submit sits
+        // lower); `EditItem` was clean only because a loaded item enables the button and the
+        // span is never rendered. Anchoring it here keeps it inside the region that clips it.
+        'relative caps min-h-12 px-4 py-2 text-xs font-extrabold tracking-[0.12em]',
         'transition-colors duration-[var(--press-fast)] ease-linear',
         disabled && variant === 'primary' ? VARIANTS.secondary : VARIANTS[variant],
         disabled && 'cursor-not-allowed',

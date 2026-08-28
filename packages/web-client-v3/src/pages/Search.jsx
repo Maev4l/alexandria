@@ -228,7 +228,7 @@ const Search = () => {
   const showEmptyInvitation = state.status === 'idle' && recents.length === 0;
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       {/* No wordmark: that's reserved for the libraries root (the header table). This
           screen is reached BY the pinned field, so its own header is just the way back — the
           same "onBack, no title" shape ItemDetail's own non-happy-path states already use.
@@ -239,7 +239,10 @@ const Search = () => {
           typing into. */}
       <AppHeader onBack={() => navigate(-1)} search={false} />
 
-      <main className="p-4">
+      <main
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
         {/* The header carries no title here (just the back control), so the landmark needs its
             own accessible name — visually hidden, since the field below says what this screen
             is in the reader's eye line far louder than a heading would. */}
@@ -252,8 +255,13 @@ const Search = () => {
             fast and, until this, unnavigable.
             `-mx-4 px-4` so the ground spans the full column rather than letting rows show through
             beside it, and its own 2px rule so it reads as a surface the content passes under
-            rather than as a block that happens to be stuck. The header is not sticky, so `top-0`
-            is the viewport edge and nothing overlaps.
+            rather than as a block that happens to be stuck. `top-0` is the top of the SCROLL
+            REGION, not of the viewport: this screen took the app shell's fixed-height shape, so
+            `<main>` is the scrollport and the header sits above it as a fixed flex item. The
+            field therefore comes to rest directly under the header with no offset to compute —
+            the same reason `IndexLetter`'s own `top-0` has always landed under LibraryBrowse's
+            header. Under the document scrolling this screen used to do, `top-0` was the viewport
+            edge and a pinned header would have hidden the field behind it.
             `pb-2` (not the `pb-3` this shipped with, one and a half divisions and off the scale):
             shot at 8px, 12px and 16px against the same fixture results, 12px and 16px both open a
             strip of paper between the field's own black border and this rule, so the rule reads as
@@ -263,7 +271,13 @@ const Search = () => {
             `AppHeader`'s identical construction (search field, then this same gap, then its own
             closing `border-b-2`) so the root and this screen read as one system rather than two
             locally-plausible ones. */}
-        <div className="sticky top-0 z-10 -mx-4 border-b-2 border-ink bg-paper px-4 pb-2">
+        {/* `pt-4` HERE and not on the scrollport, measured: a sticky element cannot rise above its
+            containing block's content box, so `<main>`'s own `p-4` clamped this block 16px below
+            the header and left a strip of bare paper for rows to slide through — exactly the
+            "surface the content passes under" this construction exists to be. Carried on the block
+            instead, the same 16px is part of the opaque stuck surface: identical at rest, correct
+            once stuck. */}
+        <div className="sticky top-0 z-10 -mx-4 border-b-2 border-ink bg-paper px-4 pb-2 pt-4">
           <SearchField value={terms} onQueryChange={onQueryChange} onSubmit={onSubmit} />
           {/* Inside the sticky block, so it travels with the field it is about — a reason that
               scrolls away from its cause explains nothing. Not the Error construction (the

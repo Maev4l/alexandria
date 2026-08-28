@@ -20,18 +20,35 @@ const APP_ROOT_ID = 'root';
 //    but assuming that instead of reading it is exactly the kind of "do not assume" this fix was
 //    written to close, so the value in place before the first lock is captured and put back
 //    verbatim rather than reset to ''.
+//
+// 3. Locking `document.body` is not enough, because most screens do not scroll the document.
+//    The app shell is a fixed-height flex column whose content scrolls inside an
+//    `overflow-y-auto` region, and such a region ignores the body's overflow entirely — so the
+//    page behind an open sheet went on scrolling. `inert` does not close it either: it removes
+//    the subtree from the tab order and the accessibility tree and says nothing about scrolling.
+//    Every scroll region is marked `data-scroll-region` and frozen alongside the body. They are
+//    collected at lock time rather than kept in a registry: which regions exist is a fact about
+//    the screen currently mounted, and reading the DOM once per lock cannot go stale the way a
+//    registry outliving a route change would.
 let openSheetCount = 0;
 let bodyOverflowBeforeFirstLock = null;
 let rootWasInertBeforeFirstLock = false;
+let regionsLockedByFirstLock = [];
 
 const lockPage = () => {
   const root = document.getElementById(APP_ROOT_ID);
   if (openSheetCount === 0) {
     bodyOverflowBeforeFirstLock = document.body.style.overflow;
     rootWasInertBeforeFirstLock = root?.hasAttribute('inert') ?? false;
+    // Each region's own prior value, captured per element for the same reason the body's is:
+    // restoring a blanket '' would clear an inline overflow somebody else had set.
+    regionsLockedByFirstLock = [...document.querySelectorAll('[data-scroll-region]')].map(
+      (element) => ({ element, overflowY: element.style.overflowY }),
+    );
   }
   openSheetCount += 1;
   document.body.style.overflow = 'hidden';
+  for (const { element } of regionsLockedByFirstLock) element.style.overflowY = 'hidden';
   // `inert` — not aria-hidden alone — because aria-modal is a PROMISE to assistive tech that the
   // rest of the page is unreachable, and the critique measured that promise being broken: the
   // search input and every library link behind an open sheet reported tabbable: true. `inert`
@@ -46,6 +63,8 @@ const unlockPage = () => {
   openSheetCount = Math.max(0, openSheetCount - 1);
   if (openSheetCount > 0) return;
   document.body.style.overflow = bodyOverflowBeforeFirstLock;
+  for (const { element, overflowY } of regionsLockedByFirstLock) element.style.overflowY = overflowY;
+  regionsLockedByFirstLock = [];
   const root = document.getElementById(APP_ROOT_ID);
   if (root && !rootWasInertBeforeFirstLock) root.removeAttribute('inert');
 };

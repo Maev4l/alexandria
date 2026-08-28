@@ -129,7 +129,7 @@ const AddBook = () => {
   const canSubmit = !isBusy && !isbnError(code);
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       {/* Explicit destination, not `navigate(-1)`: this screen has two genuinely different
           predecessors — a fresh add from the library (push), and the post-save loop landing
           here after BookDetectionResults REPLACES its own spent results entry (see that
@@ -144,7 +144,10 @@ const AddBook = () => {
         onBack={() => navigate(`/libraries/${libraryId}`)}
         search={false}
       />
-      <main className="p-4">
+      <main
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
         <h1 className="sr-only">Add a book</h1>
 
         <FlowMarks collectionName={collectionName} filedCount={filedCount} />

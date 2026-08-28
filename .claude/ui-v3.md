@@ -64,6 +64,15 @@ One `AppHeader` with a **contextual right slot**, rendered as an `--imprint` pla
 | Item detail (cover) | back | search | slot only, no field |
 | Unbuilt stub | back **and** wordmark | none | **none** |
 
+**The header never scrolls, on any screen.** It is a fixed item at the top of a fixed-height flex
+column and the content scrolls beneath it — see `DESIGN.md` §4, *The shell, and what scrolls*, which
+owns the mechanism. Recorded here because for four slices it was true of two screens and false of
+four, with nothing in either document saying which was intended: `Libraries` and `LibraryBrowse` were
+built around `PullToRefresh`, which *is* a scroll region, while `ItemDetail`, `Search` and the two
+detection-results screens scrolled the whole document and took their headers with them. The
+divergence was reported by the owner, not caught by anything here, because neither document had a
+sentence for a reviewer to check a new screen against. This is that sentence.
+
 **The stub row is transitional and must not become a pattern.** A stub carries both marks because it
 has no title worth printing and still owes the reader an exit — back leaves, and the wordmark is the
 second route home added when seven routes turned out to have neither. Every screen that becomes real
@@ -1986,6 +1995,81 @@ fail loudly when the substrate moves.
       silently rolling production back, with `--delete` removing v3 as it went. `frontend-invalidate`
       widened to `/*`: v3 adds `/icons/*` and `/fonts/*`, and the app-shell-only rule it was
       narrowed for stops holding once a release can change any path
+- [x] The app shell applied to the seven screens that never took it — `ItemDetail`, `Search`,
+      `BookDetectionResults`, `VideoDetectionResults`, then `EditItem`, `NewBook` and `NewVideo`,
+      reported after the first four shipped. Each was `min-h-dvh` with the whole document
+      scrolling, so its header travelled away with the content; each is now the fixed-height flex
+      column `Libraries` and `LibraryBrowse` had from the start, with one `data-scroll-region`
+      below a header that stays put. Reported by the owner, and invisible to review because
+      **neither document had a sentence to check a new screen against** — `DESIGN.md` §4 now does.
+
+      Three findings came out of it, none of them the change itself. **The search profiler had
+      stopped measuring anything**: it types the term and never submits, and the query stopped
+      running on keystroke when the debounce was removed, so every run since reported `rows 0` and
+      then timed out after 30s. **`UnshareLibrary` already had the shape with its region unmarked**,
+      found by widening a route list rather than by any check. **And the sheet's scroll lock — the
+      one thing here that was asked for by name — could not be shown to fix anything.** `Sheet`
+      freezes `document.body`, which governs a document no shell-shaped screen scrolls, and that
+      much is true; what does not follow is the leak I inferred from it. In Chrome nothing reaches
+      the region behind a sheet at all, because the scrim is `fixed inset-0` and portalled to
+      `<body>`, so a wheel scrolls the scrim's own scrollable ancestor — the document, already held
+      — and `inert` plus the focus trap close the keyboard routes. The freeze ships as **defence for
+      the touch platform**, where an overlay does not reliably stop a flick from chaining, and every
+      document that had recorded it as a repair was corrected.
+
+      **Four guards were wrong before they were right, all in one direction — a true measurement of
+      something the subject never claimed.** The sheet probe assigned `scrollTop`, which
+      `overflow: hidden` does not prevent, so it failed against a correctly locked region; rewritten
+      as a wheel it then passed against a *removed* lock, for the reason above; it asserts the
+      computed style now and is labelled as asserting the mechanism. The shell check covered the
+      libraries root, whose three fixture rows fit a 667px viewport, so every assertion there would
+      have passed without exercising one. And its two headline assertions — the header stays at the
+      top, the document never scrolls — **were blind to the exact defect they name**: reverting a
+      screen to `min-h-dvh` leaves its region unscrollable, so nothing moved and both passed while
+      only the vacuity guard went red. They scroll the window as well now, which a correctly shaped
+      screen has nothing to move. And the drift alarm — the one guarding every *future* scrolling
+      surface — passed against a region whose attribute had been deleted on purpose, because it
+      required the element to be overflowing and two fixture recipients do not fill a phone. It
+      would have stayed quiet until real data grew past the screen, which is to say until the
+      surface was already escaping the lock.
+
+      Measured after: the search profiler reproduces its published baseline on the new shape —
+      mount 102ms against ~110, fling p95 10.2ms against 10.3, zero frames over budget, containment
+      still inert. Scrolling a region costs what scrolling the document cost.
+
+      **Then the remaining eleven, in one pass** — auth, settings, the library and collection
+      forms, `AddBook`, `PendingApproval` and `ItemHistory` — so every page in the app now has the
+      shell except `AddVideo`, which has no scroll region by design.
+
+      Two things that pass turned out to need building. **`PendingApproval` had never been rendered
+      by anything**: it is not a route, so no check or shot could reach it, and it was the one page
+      here changed with no way to look at it. `?as=pending` now reaches it, the same device
+      `?as=google` already uses for the federated account branch and for the same reason.
+
+      **And the sweep covers every page at a 300px viewport rather than 667**, because their fixture
+      content fits a real phone: at 667 their regions never overflow and every assertion would pass
+      without exercising one — the same vacuity that made me drop the libraries root from the first
+      list. What is under test is the shell, not how much content a fixture holds, so the viewport
+      shrinks until there is something to scroll. Measured: 62–300px of overflow, no document scroll
+      anywhere.
+
+      `LibraryBrowse`'s missing bottom safe-area is still open, and still recorded in `DESIGN.md` §4
+      rather than fixed in passing — it is a real gap and nobody's ask.
+
+      The forms also produced the slice's best finding, and the guard that caught it is the one
+      whose blindness I had just fixed. `PlateButton`'s disabled `sr-only` reason is
+      `position: absolute` with no positioned ancestor, so its containing block was the initial one
+      — outside the scroll region and unclipped by it. Its 1px box landed below the viewport and
+      lengthened `documentElement.scrollHeight`, so the page kept a slice of document scroll and the
+      "pinned" header still travelled off the top: 124px on `NewBook`, 420px on `NewVideo`.
+      `EditItem` was clean only by luck, because a loaded item enables the button and the span never
+      renders. **`the document itself never scrolls` is the assertion that reported it** — the one
+      that had passed vacuously two rounds earlier until it was made to scroll the window.
+
+      The item forms are the one place I widened the ask rather than flagging it: `EditItem` was
+      what got reported, and `NewBook` / `NewVideo` render the identical `ItemForm` one tap away in
+      the add flow, so fixing only the reported half would have left the same trapped Save button
+      for the next session to hear about.
 
 ### The reconciliation, applied
 

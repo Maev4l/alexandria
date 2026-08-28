@@ -215,7 +215,7 @@ const VideoDetectionResults = () => {
   };
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       {/* A relative step, not an explicit destination: reached only from AddVideo, whether that
           screen was pushed fresh from the library or is itself the loop's replaced entry (see
           onConfirm's own comment) — both cases leave AddVideo directly behind this screen in
@@ -224,7 +224,10 @@ const VideoDetectionResults = () => {
           property of `navigate(-1)` shared by most of this app's back buttons, not something this
           fix's post-save loop introduced or is scoped to touch.) */}
       <AppHeader title="Film results" onBack={() => navigate(-1)} search={false} />
-      <main className="p-4">
+      <main
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
         <h1 className="sr-only">Film results</h1>
 
         {/* Shared with AddBook, AddVideo and BookDetectionResults — see FilingInto.jsx for why

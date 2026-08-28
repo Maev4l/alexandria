@@ -45,13 +45,16 @@ const SignUp = () => {
   };
 
   return (
-    <div className="pad-top-safe min-h-dvh bg-paper px-4 pb-8">
+    <div className="pad-top-safe flex h-dvh flex-col bg-paper px-4">
       <span className="caps on-imprint mt-8 inline-block bg-imprint px-2 py-1 text-xs font-extrabold tracking-[0.2em] text-ink">
         Alexandria
       </span>
       {/* This screen carries no separate header component, so <main> wraps everything below
           the wordmark badge rather than a nested subset of it. */}
-      <main>
+      <main
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(2rem,env(safe-area-inset-bottom))]"
+      >
         <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Create an account</h1>
 
         {error && (

@@ -114,9 +114,19 @@ const watchMount = (expected) =>
     requestAnimationFrame(step);
   });
 
-// Flings the DOCUMENT — search has no scroller element of its own, unlike the browse stream.
-const flingDocument = (stepPx) =>
+// Flings THE SCROLL REGION. This said "search has no scroller element of its own, unlike the
+// browse stream" and drove the document, which was true while this screen scrolled the document
+// — it has since taken the app shell's fixed-height shape, so `<main>` is the scrollport and the
+// document does not move at all. Left as it was, every measurement here would have been a flat
+// line taken against a page that cannot scroll: a green run asserting nothing, which is the
+// failure this project keeps finding rather than a broken one it would notice.
+const flingScroller = (stepPx) =>
   new Promise((resolve) => {
+    const scroller = document.querySelector('[data-scroll-region]');
+    if (!scroller) {
+      resolve({ error: 'no [data-scroll-region] on the search screen' });
+      return;
+    }
     const frames = [];
     let last = performance.now();
     let idle = 0;
@@ -124,12 +134,12 @@ const flingDocument = (stepPx) =>
       const now = performance.now();
       frames.push(now - last);
       last = now;
-      const before = window.scrollY;
-      window.scrollBy(0, stepPx);
-      if (window.scrollY === before) idle += 1;
+      const before = scroller.scrollTop;
+      scroller.scrollTop += stepPx;
+      if (scroller.scrollTop === before) idle += 1;
       else idle = 0;
       if (idle > 60 || frames.length > 1200) {
-        resolve({ frames, rows: document.querySelectorAll('main li').length, height: document.documentElement.scrollHeight });
+        resolve({ frames, rows: document.querySelectorAll('main li').length, height: scroller.scrollHeight });
         return;
       }
       requestAnimationFrame(step);
@@ -154,6 +164,11 @@ try {
       await tab.waitForSelector('main input');
       const watching = tab.evaluate(watchMount, EXPECTED_ROWS);
       await tab.type('main input', TERM);
+      // SUBMIT. Typing alone resolved nothing: this screen ran a 300ms debounce when the
+      // profiler was written and now runs the query on submit only, so every run since that
+      // change waited on rows that were never going to arrive — the mount reported `rows 0` and
+      // the fling below timed out after 30s. The tool had stopped measuring the thing it names.
+      await tab.keyboard.press('Enter');
       return await watching;
     } finally {
       await tab.close();
@@ -178,11 +193,15 @@ try {
       await tab.goto(`${BASE}/search`, { waitUntil: 'networkidle0' });
       await tab.waitForSelector('main input');
       await tab.type('main input', TERM);
+      await tab.keyboard.press('Enter'); // see the mount path above: the query runs on submit
       await tab.waitForFunction((n) => document.querySelectorAll('main li').length >= n, { timeout: 30_000 }, EXPECTED_ROWS);
       if (disableSkip) {
         await tab.addStyleTag({ content: '.row-skip { content-visibility: visible !important; }' });
       }
-      const result = await tab.evaluate(flingDocument, 600);
+      const result = await tab.evaluate(flingScroller, 600);
+      // Fail loudly rather than reporting a flat line about a scroller that was not found: a
+      // profiler that silently measures nothing reads exactly like a fast one.
+      if (result.error) throw new Error(`profile-search: ${result.error}`);
       return { ...summarise(result.frames), rows: result.rows, height: result.height };
     } finally {
       await tab.close();

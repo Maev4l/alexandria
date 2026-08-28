@@ -40,7 +40,7 @@ const Login = () => {
   };
 
   return (
-    <div className="pad-top-safe min-h-dvh bg-paper px-4 pb-8">
+    <div className="pad-top-safe flex h-dvh flex-col bg-paper px-4">
       {/* The wordmark's one published size and weight: 12px/800/+0.20em, the same values
           AppHeader carries. These two screens printed it at the SECTION HEADER step, and no
           guard could see it — 11px is on the scale, so the size guard is blind to it by
@@ -51,7 +51,10 @@ const Login = () => {
       </span>
       {/* This screen carries no separate header component, so <main> wraps everything below
           the wordmark badge rather than a nested subset of it. */}
-      <main>
+      <main
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(2rem,env(safe-area-inset-bottom))]"
+      >
         <h1 className="mb-8 mt-4 text-[32px] font-extrabold leading-[1.06]">Sign in</h1>
 
         {(oauthMessage?.type === 'success' || notice) && (

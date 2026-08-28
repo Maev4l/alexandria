@@ -6,7 +6,7 @@ import { useAuth } from '@/auth/AuthContext.jsx';
 const PendingApproval = () => {
   const { signOut } = useAuth();
   return (
-    <div className="pad-top-safe flex min-h-dvh flex-col bg-paper px-4 pb-8">
+    <div className="pad-top-safe flex h-dvh flex-col bg-paper px-4">
       {/* Ink, not `--out`. This badge used to wear the Overprint Stamp's own construction — a
           2px `--out` outline — on a screen that holds no items at all. `--out` is the alarm
           register: a lent item, an error block, the destructive button, a failing field, a delete
@@ -18,7 +18,10 @@ const PendingApproval = () => {
       </span>
       {/* Not a route (App.jsx's Gate renders this in place of the router), but still a real
           screen a reader lands on, so it gets the same landmark and heading discipline. */}
-      <main className="flex flex-1 flex-col">
+      <main
+        data-scroll-region
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-[max(2rem,env(safe-area-inset-bottom))]"
+      >
         <h1 className="mt-4 text-[32px] font-extrabold leading-[1.06]">
           Your request is with an administrator
         </h1>

@@ -109,6 +109,12 @@ const PullToRefresh = forwardRef(({ onRefresh, className, children }, ref) => {
       // A stable hook for scripts/profile-stream.mjs, which has to address the scrolling
       // element directly to measure frame times and scroll drift.
       data-stream-scroller=""
+      // Marks this as one of the app's scroll regions, which is what `Sheet` freezes while a
+      // sheet is open: the body's overflow governs the document, and nothing here scrolls the
+      // document. Separate from `data-stream-scroller` above on purpose — that one names THIS
+      // scroller for the profiler, this one names the CLASS of element the lock applies to, and
+      // the four screens that scroll their own `<main>` carry it without being stream scrollers.
+      data-scroll-region=""
       className={cn('overflow-y-auto overscroll-contain', className)}
       onPointerDown={ifMouse(begin)}
       onPointerMove={ifMouse(move)}

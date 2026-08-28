@@ -48,9 +48,12 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       <AppHeader title="Settings" onBack={() => navigate(-1)} search={false} />
-      <main>
+      <main
+        data-scroll-region
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]"
+      >
         {/* The header prints the name; this is the same name for a reader who navigates by
             heading, not a second visible copy of it. */}
         <h1 className="sr-only">Settings</h1>

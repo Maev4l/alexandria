@@ -64,8 +64,14 @@ export const AuthProvider = ({ children }) => {
   // shot or check can reach the state by asking for it.
   const [user, setUser] = useState(() => {
     if (!config.isMock) return null;
-    const federated =
-      typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('as') === 'google';
+    const as =
+      typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('as') : null;
+    const federated = as === 'google';
+    // A THIRD MOCK READER, `?as=pending`, for the same reason as the second: `PendingApproval` is
+    // not a route — it renders whenever a session is authenticated and unapproved — so nothing
+    // that looks at a screen could reach it, and it was the one page in the app no check or shot
+    // had ever rendered.
+    if (as === 'pending') return { ...MOCK_USER, approved: false };
     // `google_<sub>` is exactly the shape Cognito mints for a user CREATED by the provider, which
     // is the shape Account tests for. A linked native account would keep its email as its
     // username, and is therefore the DEFAULT reader above, not this one.

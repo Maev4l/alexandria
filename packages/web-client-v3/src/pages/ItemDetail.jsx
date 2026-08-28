@@ -286,9 +286,12 @@ const ItemDetail = () => {
 
   if (status === 'missing' || status === 'error') {
     return (
-      <div className="cover min-h-dvh bg-ink text-paper">
+      <div className="cover flex h-dvh flex-col bg-ink text-paper">
         <AppHeader inverted onBack={() => navigate(-1)} search={false} />
-        <main className="p-4">
+        <main
+          data-scroll-region
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        >
           {/* The header carries no title on this screen, so this state
               still needs a real accessible name — visually hidden, since the alert already
               says what happened in the reader's eye line. */}
@@ -304,7 +307,7 @@ const ItemDetail = () => {
   }
 
   return (
-    <div className="cover min-h-dvh bg-ink text-paper">
+    <div className="cover flex h-dvh flex-col bg-ink text-paper">
       <AppHeader
         inverted
         search={false}
@@ -332,7 +335,11 @@ const ItemDetail = () => {
         // skeleton LINE, not an artwork frame — and keep a quiet `bg-cover-rule/25` tint so they
         // are visible at all; the same token `OverprintStamp`'s row variant already tunes with
         // opacity, not a new one.
-        <main className="px-4 py-6" aria-busy="true">
+        <main
+          data-scroll-region
+          aria-busy="true"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        >
           <h1 className="sr-only">Item detail</h1>
           <div aria-hidden="true">
             <div className="mb-6 flex items-start gap-4">
@@ -359,7 +366,10 @@ const ItemDetail = () => {
       )}
 
       {status === 'ready' && item && (
-        <main className="px-4 py-6">
+        <main
+          data-scroll-region
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        >
           {/* Detail is the one screen where artwork earns real space: the reader is looking
               at a single object, not scanning a thousand. Same 2:3 frame as the stream — book
               and film are identical, type is not marked — at hero scale, ruled

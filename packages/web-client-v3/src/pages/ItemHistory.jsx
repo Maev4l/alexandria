@@ -112,9 +112,13 @@ const ItemHistory = () => {
   const title = item?.title ?? '';
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="flex h-dvh flex-col bg-paper">
       <AppHeader title={title} onBack={() => navigate(-1)} search={false} />
-      <main className="p-4" aria-busy={status === 'loading'}>
+      <main
+        data-scroll-region
+        aria-busy={status === 'loading'}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+      >
         {/* The header already carries the item's title once loaded; this restates it for
             assistive tech only, and names the screen even before that fetch resolves. */}
         <h1 className="sr-only">{title ? `${title} — full record` : 'Item history'}</h1>
