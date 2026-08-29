@@ -36,11 +36,35 @@ var searchableFields = []string{
 	FieldCollection,
 }
 
+// elisions is the pair of apostrophes French elision uses. The catalogue
+// carries BOTH — the live index holds straight U+0027 and typographic U+2019
+// in different titles — so anything keyed on one silently misses the other.
+var elisions = strings.NewReplacer("'", " ", "\u2019", " ")
+
 // Fold normalises text for indexing and for querying. Wildcard and fuzzy
 // queries are term-level and bypass Bluge's analyzer, so the fold has to be
 // applied explicitly on both sides.
+//
+// It splits elisions before folding, because Bluge's analyzer treats an
+// apostrophe as a word character: `d'ambre` was one token, so a prefix query
+// for `ambre` could not reach it, and the fuzzy clause answered with a
+// DIFFERENT book one edit away. Splitting makes the elided head and the word
+// itself separate tokens.
+//
+// The split lives HERE and deliberately not in persistence.NormalizeForMatching,
+// which also builds DynamoDB sort keys: moving it down there would change the
+// sort key of every item, reordering the browse stream and leaving every stored
+// key stale until rewritten. Search and sort fold alike for accents; they are
+// still different jobs.
 func Fold(s string) string {
-	return persistence.NormalizeForMatching(s)
+	return persistence.NormalizeForMatching(elisions.Replace(s))
+}
+
+// tokenize folds a term and splits what the fold produced. A reader's term
+// arrives whole — the client splits input on whitespace only — so `l'etranger`
+// is one term that folds into two tokens.
+func tokenize(term string) []string {
+	return strings.Fields(Fold(term))
 }
 
 // DocumentId is the Bluge document identifier for an item: its full DynamoDB
@@ -87,15 +111,18 @@ func TextQuery(terms []string) bluge.Query {
 	query := bluge.NewBooleanQuery()
 
 	for _, term := range terms {
-		folded := Fold(term)
-		perTerm := bluge.NewBooleanQuery()
+		// Every token the term folded into must match. Building one wildcard
+		// from a folded term containing a space would match nothing at all.
+		for _, token := range tokenize(term) {
+			perToken := bluge.NewBooleanQuery()
 
-		for _, field := range searchableFields {
-			perTerm.AddShould(bluge.NewWildcardQuery(folded + "*").SetField(field))
-			perTerm.AddShould(bluge.NewFuzzyQuery(folded).SetField(field))
+			for _, field := range searchableFields {
+				perToken.AddShould(bluge.NewWildcardQuery(token + "*").SetField(field))
+				perToken.AddShould(bluge.NewFuzzyQuery(token).SetField(field))
+			}
+
+			query.AddMust(perToken)
 		}
-
-		query.AddMust(perTerm)
 	}
 
 	return query

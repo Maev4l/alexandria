@@ -538,7 +538,10 @@ what was not: title, authors, directors, cast and collection, **not the summary 
 **Accents are folded by the server, on both sides, so there is no accent caveat to print.** The index
 and the query both run `NormalizeForMatching` (NFD → strip combining marks → NFC → lowercase), so
 `elephants` reaches `éléphants` regardless of how many accents are missing, and `NewFuzzyQuery`'s
-`fuzziness: 1` is left to do what it is for — typos. The zero-result block previously carried
+`fuzziness: 1` is left to do what it is for — typos. **French elision is split on both apostrophe
+forms**, so `ambre` reaches *Les 9 Princes d'Ambre*; before that it returned *En pleine ombre*, a
+different book one edit away, which is the failure shape this screen exists to prevent. The
+zero-result block previously carried
 *"one missing accent usually still finds a title, two do not"*, which described fuzziness standing in
 for a fold; it is removed rather than reworded, because **a caveat that no longer holds is worse than
 none** — it teaches a reader to distrust a spelling that works.

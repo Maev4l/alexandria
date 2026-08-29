@@ -191,9 +191,73 @@ func TestTextQuery_DoesNotMatchOnSummary(t *testing.T) {
 func TestFold_StripsDiacriticsAndLowercases(t *testing.T) {
 	cases := map[string]string{
 		"Éléphants":  "elephants",
-		"L'Étranger": "l'etranger",
+		"L'Étranger": "l etranger",
 		"Meaulnes":   "meaulnes",
 		"ÎLE":        "ile",
+	}
+
+	for in, want := range cases {
+		if got := Fold(in); got != want {
+			t.Errorf("Fold(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// French elision keeps `d'ambre` as a single token in Bluge's analyzer, so a
+// prefix query for the word AFTER the apostrophe matched nothing. Worse than
+// nothing, in fact: `ambre` returned `en pleine ombre` on a one-edit fuzzy
+// match while the book actually named Ambre stayed hidden, so the reader is
+// handed a different book and concludes they do not own theirs.
+func TestTextQuery_FindsAWordAfterAStraightApostrophe(t *testing.T) {
+	reader := buildIndex(t, item("i1", "Les 9 princes d'Ambre"))
+
+	if ids := search(t, reader, "ambre"); !contains(ids, "i1") {
+		t.Errorf("expected 'ambre' to match \"Les 9 princes d'Ambre\", got %v", ids)
+	}
+}
+
+// The catalogue carries BOTH apostrophe forms — the live index has straight
+// U+0027 and typographic U+2019 in different titles — so a fix keyed on one
+// would silently miss the other, which is exactly how the accent defect worked.
+func TestTextQuery_FindsAWordAfterATypographicApostrophe(t *testing.T) {
+	reader := buildIndex(t, item("i1", "Dragons d’un crépuscule d’automne"))
+
+	if ids := search(t, reader, "automne"); !contains(ids, "i1") {
+		t.Errorf("expected 'automne' to match a title using U+2019, got %v", ids)
+	}
+}
+
+// The client splits the reader's input on whitespace only, so an elided word
+// arrives as ONE term. Folding it yields two tokens, and both have to be
+// required — a wildcard built from a term containing a space matches nothing.
+func TestTextQuery_MatchesATermTheReaderTypedWithAnApostrophe(t *testing.T) {
+	reader := buildIndex(t, item("i1", "L'Étranger"))
+
+	for _, term := range []string{"l'etranger", "l’étranger", "etranger"} {
+		if ids := search(t, reader, term); !contains(ids, "i1") {
+			t.Errorf("expected %q to match \"L'Étranger\", got %v", term, ids)
+		}
+	}
+}
+
+// Splitting must not turn every term into a match-anything query: a term whose
+// elided head is a single letter still has to require the rest.
+func TestTextQuery_StillRequiresTheWordAfterAnElision(t *testing.T) {
+	reader := buildIndex(t,
+		item("i1", "L'Étranger"),
+		item("i2", "Le Grand Meaulnes"),
+	)
+
+	if ids := search(t, reader, "l'etranger"); contains(ids, "i2") {
+		t.Errorf("expected \"Le Grand Meaulnes\" not to match 'l'etranger', got %v", ids)
+	}
+}
+
+func TestFold_SplitsBothApostropheForms(t *testing.T) {
+	cases := map[string]string{
+		"L'Étranger":            "l etranger",
+		"L’Étranger":            "l etranger",
+		"Les 9 princes d'Ambre": "les 9 princes d ambre",
 	}
 
 	for in, want := range cases {

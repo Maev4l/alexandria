@@ -17,15 +17,21 @@ import (
 // NormalizeForMatching folds a string to its accent-free lowercase form.
 // It removes diacritics (É→E, ñ→n) and converts to lowercase.
 //
-// Three consumers must produce byte-identical output or they silently diverge,
-// so they all call this one function rather than folding for themselves:
+// Two jobs share this fold, and they are NOT the same job:
 //   - DynamoDB sort keys (models.go), so listing order ignores accents
-//   - the search index (internal/searchindex), when indexing item text
-//   - the search query (internal/searchindex), when folding the reader's terms
+//   - the search index and its queries, via internal/searchindex.Fold
 //
-// Tuning this for any one of them changes the other two. In particular, a
+// What must be byte-identical is the search index and the search query — a
 // query folded differently from the text it searches stops matching it, with
-// no error anywhere.
+// no error anywhere. internal/searchindex guarantees that by calling one
+// function for both.
+//
+// Sort keys merely happen to want the same accent handling. DO NOT add
+// search-only behaviour here: internal/searchindex.Fold additionally splits
+// French elisions, and pushing that down into this function would change the
+// sort key of every item — reordering the browse stream and leaving every
+// stored GSI1SK/GSI2SK stale until rewritten. That is a data migration, not a
+// search-index resync. normalize_test.go guards the boundary.
 func NormalizeForMatching(s string) string {
 	// Step 1: NFD normalization separates base characters from combining marks
 	// "É" becomes "E" + combining acute accent

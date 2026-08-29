@@ -38,6 +38,28 @@ to bridge accents: `etranger` reached `étranger` at one edit, but `elephants` n
 `éléphants` at two. On a catalogue that is deliberately half French that was a routine miss.
 Fuzziness now covers typos only, which is what it is for.
 
+### Elision
+
+The fold also splits French elision, on **both** apostrophe forms — straight `U+0027` and
+typographic `U+2019`, both of which occur in the live catalogue.
+
+Bluge's analyzer treats an apostrophe as a word character, so `d'ambre` was a single token and a
+prefix query for `ambre` could not reach it. The failure was not a silent miss but a wrong
+answer: the fuzzy clause returned `en pleine ombre`, one edit away, so a reader searching for
+*Les 9 Princes d'Ambre* was handed a different book and would reasonably conclude they did not
+own theirs.
+
+A reader's term arrives whole — the client splits input on whitespace only — so a folded term can
+yield several tokens. `TextQuery` requires **all** of them; building one wildcard from a term
+containing a space matches nothing.
+
+**The split lives in `searchindex.Fold` and must not move into
+`persistence.NormalizeForMatching`**, which also builds DynamoDB sort keys. Moving it down there
+changes the sort key of every item, reordering the browse stream and leaving every stored
+GSI1SK/GSI2SK stale until each item is rewritten — a data migration rather than a resync.
+`internal/persistence/normalize_test.go` guards that boundary and has been seen to fail when the
+split is moved.
+
 **A change to the fold, the field list, or the document id requires `make resync-index`** —
 documents already in the index carry the old shape and no amount of waiting rewrites them.
 
