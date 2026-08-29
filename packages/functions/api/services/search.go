@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	"alexandria.isnan.eu/functions/internal/domain"
+	"alexandria.isnan.eu/functions/internal/searchindex"
 	"github.com/blugelabs/bluge"
 	"github.com/rs/zerolog/log"
 )
@@ -39,29 +41,10 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 	}
 	defer func() { _ = reader.Close() }()
 
-	// Build text query with prefix matching (wildcard) and fuzzy fallback
-	// Searches: title, authors (books), directors (videos), cast (videos), collection
-	textQuery := bluge.NewBooleanQuery()
-	for _, term := range terms {
-		termLower := strings.ToLower(term)
-		termQuery := bluge.NewBooleanQuery()
-
-		// Prefix matching (e.g., "drag" matches "dragons")
-		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("title"))
-		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("authors"))
-		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("directors"))
-		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("cast"))
-		termQuery.AddShould(bluge.NewWildcardQuery(termLower + "*").SetField("collection"))
-
-		// Fuzzy matching for typos (e.g., "dragns" matches "dragons")
-		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("title"))
-		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("authors"))
-		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("directors"))
-		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("cast"))
-		termQuery.AddShould(bluge.NewFuzzyQuery(termLower).SetField("collection"))
-
-		textQuery.AddMust(termQuery)
-	}
+	// The document layout and this query live together in internal/searchindex,
+	// because they have to agree on the searchable fields and on the fold
+	// applied to them. They previously did not.
+	textQuery := searchindex.TextQuery(terms)
 
 	// Build access filter: ownerId = currentUser OR (ownerId, libraryId) in sharedLibraries
 	accessQuery := bluge.NewBooleanQuery()
@@ -94,24 +77,50 @@ func (s *services) SearchItems(ownerId string, terms []string) ([]*domain.Librar
 		return nil, errors.New(msg)
 	}
 
-	// Collect matched items
-	matchedItemsId := []domain.IndexItem{}
+	// Collect matched items with their relevance score. The score is the only
+	// ordering this search has: the fetch that follows returns items in no
+	// particular order, so dropping it here leaves results effectively
+	// unranked.
+	type scoredMatch struct {
+		item  domain.IndexItem
+		score float64
+	}
+
+	matches := []scoredMatch{}
 	next, err := dmi.Next()
 	for err == nil && next != nil {
+		score := next.Score
 		_ = next.VisitStoredFields(func(field string, value []byte) bool {
 			if field == "_id" {
 				// Document ID format: "PK|SK"
 				parts := strings.Split(string(value), "|")
 				if len(parts) == 2 {
-					matchedItemsId = append(matchedItemsId, domain.IndexItem{
-						PK: parts[0],
-						SK: parts[1],
+					matches = append(matches, scoredMatch{
+						item:  domain.IndexItem{PK: parts[0], SK: parts[1]},
+						score: score,
 					})
 				}
 			}
 			return true
 		})
 		next, err = dmi.Next()
+	}
+	if err != nil {
+		msg := fmt.Sprintf("Failed to read search results: %s", err.Error())
+		log.Error().Msg(msg)
+		return nil, errors.New(msg)
+	}
+
+	// Most relevant first. SortStable keeps equally scored matches in the
+	// order the index yielded them, so the result set does not reshuffle
+	// between two identical searches.
+	sort.SliceStable(matches, func(i, j int) bool {
+		return matches[i].score > matches[j].score
+	})
+
+	matchedItemsId := make([]domain.IndexItem, 0, len(matches))
+	for _, m := range matches {
+		matchedItemsId = append(matchedItemsId, m.item)
 	}
 
 	// Fetch full items from DynamoDB

@@ -14,10 +14,19 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-// NormalizeForSort transforms a string for DynamoDB sort key usage.
+// NormalizeForMatching folds a string to its accent-free lowercase form.
 // It removes diacritics (É→E, ñ→n) and converts to lowercase.
-// This ensures proper alphabetical sorting regardless of accents.
-func NormalizeForSort(s string) string {
+//
+// Three consumers must produce byte-identical output or they silently diverge,
+// so they all call this one function rather than folding for themselves:
+//   - DynamoDB sort keys (models.go), so listing order ignores accents
+//   - the search index (internal/searchindex), when indexing item text
+//   - the search query (internal/searchindex), when folding the reader's terms
+//
+// Tuning this for any one of them changes the other two. In particular, a
+// query folded differently from the text it searches stops matching it, with
+// no error anywhere.
+func NormalizeForMatching(s string) string {
 	// Step 1: NFD normalization separates base characters from combining marks
 	// "É" becomes "E" + combining acute accent
 	// Step 2: Remove combining marks (diacritics)

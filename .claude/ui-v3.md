@@ -507,10 +507,17 @@ in place; shared results do not. Recent searches persist in `localStorage`.
 **API:** `POST /search`.
 
 **The result set is unpaginated, and a large one is the LIKELY shape of a short query.**
-`services/search.go:89` builds `bluge.NewAllMatches` with no size and no top-N, and **each term
-contributes a prefix wildcard** across title, authors, directors, cast and collection. On a catalogue
-deliberately half French, `les`, `des` and `une` are common leading tokens. No sort or filter controls,
-since the API offers none.
+`api/services/search.go:72` builds `bluge.NewAllMatches` with no size and no top-N, and **each term
+contributes a prefix wildcard** across the five fields `internal/searchindex/searchindex.go:31` lists.
+On a catalogue deliberately half French, `les`, `des` and `une` are common leading tokens. No sort or
+filter controls, since the API offers none.
+
+**A large result set used to fail outright, which is why this paragraph matters.** The matched keys went
+to a single `BatchGetItem`, and DynamoDB rejects more than **100** keys per call with a
+`ValidationException` — so the short-query case this paragraph describes returned a 500 rather than a long
+list. The repository now splits at that limit (`api/repositories/dynamodb/batch.go:13`) and retries what
+comes back in `UnprocessedKeys`, **erroring rather than returning silently short results**: a search that
+quietly drops rows tells a reader they do not own something they do, and nothing surfaces the loss.
 
 **Windowing is REFUSED, measured.** Scrolling 400 results is p95 **10.3ms** with **zero** frames over
 budget, unchanged at 4× throttle and better than the browse stream's 24.2ms, because search fetches
@@ -528,12 +535,18 @@ on every successful search; at zero they prevent the one wrong conclusion this s
 don't own it* — when the truth is *we did not look there*. The empty result says what was searched and
 what was not: title, authors, directors, cast and collection, **not the summary and not the ISBN**.
 
-**Accents belong in that same copy, measured rather than hedged.** `bluge.NewFuzzyQuery` defaults to
-`fuzziness: 1`, and terms are lowercased with no folding. So **one missing accent usually still finds the
-item** — `etranger` reaches `étranger` at distance 1 — while **two do not** — `elephants` against
-`éléphants` is distance 2. Suggest the accented spelling at zero results. **The client must not fold
-accents itself**: it would diverge from the index the server queries, the same reason the stream's letters
-never use `localeCompare`.
+**Accents are folded by the server, on both sides, so there is no accent caveat to print.** The index
+and the query both run `NormalizeForMatching` (NFD → strip combining marks → NFC → lowercase), so
+`elephants` reaches `éléphants` regardless of how many accents are missing, and `NewFuzzyQuery`'s
+`fuzziness: 1` is left to do what it is for — typos. The zero-result block previously carried
+*"one missing accent usually still finds a title, two do not"*, which described fuzziness standing in
+for a fold; it is removed rather than reworded, because **a caveat that no longer holds is worse than
+none** — it teaches a reader to distrust a spelling that works.
+
+**The client still must not fold accents itself.** The reason changed but the ruling did not: the client
+would have to reproduce the server's fold byte-for-byte, and any drift silently stops matching. Same
+reason the stream's letters never use `localeCompare`. This does leave recents holding `etranger` and
+`étranger` as two entries that now return identical results — a wart, recorded, nobody's ask.
 
 **An invitation and a limitation are not the same sentence.** An invitation says what to do; the limits
 explain a result the reader did not expect. One belongs where nothing has happened yet, the other only
@@ -546,14 +559,21 @@ from **the commit**, not from scroll performance.
 
 **Recents collapse a prefix, asymmetrically.** When a term is recorded, drop any existing recent that is a
 prefix of it — that removes typing artefacts, which are always prefixes, while keeping a *later*
-deliberate shorter search. Case is folded, matching the server; **accents never are.** At most five, most
-recent first, each a catalogue tag that re-runs its term. One `Clear` control, no confirmation.
+deliberate shorter search. Case is folded; **accents are not**, which no longer matches the server and is
+recorded above as a known wart rather than a rule. At most five, most recent first, each a catalogue tag
+that re-runs its term. One `Clear` control, no confirmation.
+
+**Results arrive ranked by relevance, most relevant first.** Bluge scores every match; the service sorts
+on that score and the repository re-applies the order after the DynamoDB fetch, which answers in no
+order of its own. Until that landed the score was discarded and results arrived effectively arbitrary.
+The client neither re-sorts nor displays the score — a number a reader cannot act on.
 
 **The search header carries its own name, and that name is inert.** It shipped as back-and-nothing —
 the transitional stub shape §2 condemns, on a finished screen — so it now takes `Search` like every
-other built screen. What it does **not** take is `LibraryBrowse`'s tap-to-scroll-top: that gesture
-exists there because the stream is alphabetical and the top is a place, whereas a result set arrives
-in an order `POST /search` does not define. The problem scroll-to-top would solve is solved by the
+other built screen. What it does **not** take is `LibraryBrowse`'s tap-to-scroll-top. That gesture
+exists there because the stream is alphabetical and the top is a place. Here the top is now *the best
+match*, which is a stronger claim than the old "an order `POST /search` does not define" — and it still
+does not earn the gesture, because the problem scroll-to-top would solve is already solved by the
 sticky field. **A title is not an argument for the gesture** — the two travelled together only because
 `LibraryBrowse` happened to have both.
 

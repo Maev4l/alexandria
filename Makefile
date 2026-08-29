@@ -112,5 +112,10 @@ frontend-preview: ## Build and serve locally against fixtures, no AWS required
 	VITE_MOCK=1 yarn --cwd packages/web-client-v3 preview
 
 
-resync-index: ## Trigger a full search-index resync (was resync-index)
-	aws lambda invoke --function-name alexandria-index-items --payload '{"action":"fullResync"}' --cli-binary-format raw-in-base64-out /dev/stdout
+# The function is named `alexandria-indexer` (packages/infrastructure/functions.tf); this target
+# invoked `alexandria-index-items`, the package directory's name, and so failed with
+# ResourceNotFoundException. Required after any change to the index shape — the fold, the
+# searchable field list, or the document id — because documents already in the index carry the
+# old shape and nothing rewrites them in place.
+resync-index: ## Trigger a full search-index resync
+	aws lambda invoke --function-name alexandria-indexer --payload '{"action":"fullResync"}' --cli-binary-format raw-in-base64-out /dev/stdout

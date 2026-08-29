@@ -46,7 +46,7 @@ func MakeLibraryGSI1PK(ownerId string) string {
 
 func MakeLibraryGSI1SK(libraryName string) string {
 	// Normalize for consistent alphabetical sorting regardless of accents
-	return fmt.Sprintf("library#%s", NormalizeForSort(libraryName))
+	return fmt.Sprintf("library#%s", NormalizeForMatching(libraryName))
 }
 
 type LibraryItem struct {
@@ -95,7 +95,7 @@ func MakeLibraryItemGSI1PK(ownerId string, libraryId string) string {
 
 func MakeLibraryItemGSI1SK(itemTitle string, collectionName *string, order *int) string {
 	// Normalize for consistent alphabetical sorting regardless of accents
-	normalizedTitle := NormalizeForSort(itemTitle)
+	normalizedTitle := NormalizeForMatching(itemTitle)
 
 	// Both collectionName AND order are required for grouped sorting
 	// If either is missing/invalid, use simple title-only format
@@ -105,7 +105,7 @@ func MakeLibraryItemGSI1SK(itemTitle string, collectionName *string, order *int)
 
 	// Order padded to 5 digits for correct lexicographic sorting (00001-01000)
 	orderStr := fmt.Sprintf("%05d", *order)
-	normalizedCollection := NormalizeForSort(*collectionName)
+	normalizedCollection := NormalizeForMatching(*collectionName)
 	return fmt.Sprintf("item#%s#%s#%s", normalizedCollection, orderStr, normalizedTitle)
 }
 
@@ -115,7 +115,7 @@ func MakeLibraryItemGSI2PK(ownerId string) string {
 
 func MakeLibraryItemGSI2SK(itemTitle string) string {
 	// Normalize for consistent alphabetical sorting regardless of accents
-	return fmt.Sprintf("item#%s", NormalizeForSort(itemTitle))
+	return fmt.Sprintf("item#%s", NormalizeForMatching(itemTitle))
 }
 
 // Collection represents a grouping of items within a library
@@ -153,7 +153,7 @@ func MakeCollectionGSI1PK(ownerId string, libraryId string) string {
 // EntityType attribute distinguishes COLLECTION from BOOK/VIDEO.
 func MakeCollectionGSI1SK(collectionName string) string {
 	// Normalize for consistent alphabetical sorting regardless of accents
-	return fmt.Sprintf("item#%s", NormalizeForSort(collectionName))
+	return fmt.Sprintf("item#%s", NormalizeForMatching(collectionName))
 }
 
 type SharedLibrary struct {

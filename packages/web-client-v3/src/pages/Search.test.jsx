@@ -391,7 +391,7 @@ describe('Search — the query in the URL', () => {
 });
 
 describe('Search — the honest limits', () => {
-  it('prints the match scope AND the accent note when nothing matched', async () => {
+  it('prints the match scope when nothing matched', async () => {
     renderSearch();
 
     await runSearch(TERM_NONE);
@@ -399,7 +399,20 @@ describe('Search — the honest limits', () => {
     expect(
       await screen.findByText(/titles, authors, directors, cast and collections/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/accents/i)).toBeInTheDocument();
+  });
+
+  // This assertion used to require an accent note, and in doing so it pinned copy that had
+  // become false: the server now folds accents on both the indexed text and the query, so a
+  // missing accent costs nothing. It is inverted rather than deleted, because the note is the
+  // kind of thing that gets helpfully re-added — and a caveat that no longer holds is worse
+  // than none, teaching a reader to distrust a spelling that works.
+  it('prints NO accent caveat — the server folds accents, so there is nothing to warn about', async () => {
+    renderSearch();
+
+    await runSearch(TERM_NONE);
+    await screen.findByText(/titles, authors, directors, cast and collections/i);
+
+    expect(screen.queryByText(/accent/i)).toBeNull();
   });
 
   it('prints NEITHER when there are results — a positive assertion cannot detect surplus', async () => {
@@ -409,7 +422,7 @@ describe('Search — the honest limits', () => {
     await screen.findByText('1984');
 
     expect(screen.queryByText(/titles, authors, directors, cast and collections/i)).toBeNull();
-    expect(screen.queryByText(/accents/i)).toBeNull();
+    expect(screen.queryByText(/accent/i)).toBeNull();
   });
 
   it('prints neither before a query exists', async () => {
@@ -417,7 +430,7 @@ describe('Search — the honest limits', () => {
     await past();
 
     expect(screen.queryByText(/titles, authors, directors, cast and collections/i)).toBeNull();
-    expect(screen.queryByText(/accents/i)).toBeNull();
+    expect(screen.queryByText(/accent/i)).toBeNull();
   });
 });
 

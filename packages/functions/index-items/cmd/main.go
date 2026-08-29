@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"alexandria.isnan.eu/functions/internal/persistence"
+	"alexandria.isnan.eu/functions/internal/searchindex"
 	ddbconversions "github.com/aereal/go-dynamodb-attribute-conversions/v2"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -47,32 +48,6 @@ func init() {
 type SharedLibraryEntry struct {
 	OwnerId   string `json:"ownerId"`
 	LibraryId string `json:"libraryId"`
-}
-
-// createBlugeDocument creates a Bluge document from a library item (book or video)
-func createBlugeDocument(item *persistence.LibraryItem) *bluge.Document {
-	docId := item.PK + "|" + item.SK
-	doc := bluge.NewDocument(docId)
-
-	// Text fields for fuzzy search
-	doc.AddField(bluge.NewTextField("title", item.Title).StoreValue())
-
-	// Authors field for books, directors and cast for videos
-	if len(item.Authors) > 0 {
-		doc.AddField(bluge.NewTextField("authors", strings.Join(item.Authors, " ")).StoreValue())
-	}
-	if len(item.Directors) > 0 {
-		doc.AddField(bluge.NewTextField("directors", strings.Join(item.Directors, " ")).StoreValue())
-	}
-	if len(item.Cast) > 0 {
-		doc.AddField(bluge.NewTextField("cast", strings.Join(item.Cast, " ")).StoreValue())
-	}
-
-	// Keyword fields for access filtering
-	doc.AddField(bluge.NewKeywordField("ownerId", item.OwnerId).StoreValue())
-	doc.AddField(bluge.NewKeywordField("libraryId", item.LibraryId).StoreValue())
-
-	return doc
 }
 
 // untarDirectory extracts a tar.gz archive to a directory
@@ -251,7 +226,7 @@ func fullResync() error {
 					continue
 				}
 
-				doc := createBlugeDocument(&libraryItem)
+				doc := searchindex.NewDocument(&libraryItem)
 				batch.Insert(doc)
 				batchSize++
 				totalBooks++ // Counts both books and videos
@@ -426,7 +401,7 @@ func streamHandler(event events.DynamoDBEvent) error {
 					log.Warn().Msgf("Failed to unmarshal item: %s", err.Error())
 					continue
 				}
-				doc := createBlugeDocument(&item)
+				doc := searchindex.NewDocument(&item)
 				if err := writer.Insert(doc); err != nil {
 					log.Warn().Msgf("Failed to insert document: %s", err.Error())
 					continue
@@ -455,11 +430,11 @@ func streamHandler(event events.DynamoDBEvent) error {
 				}
 
 				// Delete old and insert new
-				docId := itemOld.PK + "|" + itemOld.SK
+				docId := searchindex.DocumentId(&itemOld)
 				if err := writer.Delete(bluge.Identifier(docId)); err != nil {
 					log.Warn().Msgf("Failed to delete old document: %s", err.Error())
 				}
-				doc := createBlugeDocument(&itemNew)
+				doc := searchindex.NewDocument(&itemNew)
 				if err := writer.Insert(doc); err != nil {
 					log.Warn().Msgf("Failed to insert updated document: %s", err.Error())
 					continue
@@ -474,7 +449,7 @@ func streamHandler(event events.DynamoDBEvent) error {
 					log.Warn().Msgf("Failed to unmarshal item: %s", err.Error())
 					continue
 				}
-				docId := item.PK + "|" + item.SK
+				docId := searchindex.DocumentId(&item)
 				if err := writer.Delete(bluge.Identifier(docId)); err != nil {
 					log.Warn().Msgf("Failed to delete document: %s", err.Error())
 					continue

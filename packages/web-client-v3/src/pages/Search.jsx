@@ -363,12 +363,15 @@ const Search = () => {
             <p className="caps text-xs font-extrabold tracking-[0.16em] text-ink-soft">
               Nothing matched
             </p>
+            {/* The accent caveat that used to sit here — "one missing accent usually still
+                finds a title, two do not" — described Bluge's fuzziness of 1 doing the work of
+                a fold. The index and the query now fold accents themselves, so a missing accent
+                costs nothing and there is no limitation left to warn about. A caveat that no
+                longer holds is worse than none: it teaches a reader to distrust a spelling that
+                works. */}
             <p className="mt-4 text-sm text-ink">
               Search reads titles, authors, directors, cast and collections — not summaries, and
               not ISBNs.
-            </p>
-            <p className="mt-2 text-sm text-ink-soft">
-              Accents count: one missing accent usually still finds a title, two do not.
             </p>
           </div>
         )}

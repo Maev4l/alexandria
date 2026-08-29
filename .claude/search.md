@@ -8,9 +8,47 @@ Build a single global Bluge index containing **all items** with ownership metada
 
 ### Document Structure
 
+The document layout and the query that reads it both live in
+`packages/functions/internal/searchindex`, deliberately in one package. They have to agree on
+two things and previously did not — the set of searchable fields, and the fold applied to the
+text in them — so keeping them apart made divergence a runtime surprise instead of a
+compile-time concern. The indexer and the search service both call it; neither builds a
+document or a query of its own.
+
 Each indexed document includes:
-- **Text fields** (fuzzy searchable): `title`, `authors`, `collection`
-- **Keyword fields** (exact match for filtering): `ownerId`, `libraryId`
+- **Text fields** (folded, fuzzy searchable): `title`, `authors`, `directors`, `cast`,
+  `collection`
+- **Keyword fields** (exact match for access filtering, never folded): `ownerId`, `libraryId`
+
+`summary` and `isbn` are deliberately absent. `ui-v3.md` prints the searched-field list to the
+reader at the zero-result state and names those two as the fields that were not searched, so
+adding either changes what the app promises.
+
+### Accent folding
+
+Indexed text and query terms both pass through `persistence.NormalizeForMatching`
+(NFD → strip combining marks → NFC → lowercase) — the same fold that builds DynamoDB sort keys,
+called from one place by all three consumers.
+
+Wildcard and fuzzy queries are term-level and bypass Bluge's analyzer, so the fold has to be
+applied explicitly on both sides. Applying it on only one silently stops matching.
+
+Before this, terms were merely lowercased and relied on `NewFuzzyQuery`'s default fuzziness of 1
+to bridge accents: `etranger` reached `étranger` at one edit, but `elephants` never reached
+`éléphants` at two. On a catalogue that is deliberately half French that was a routine miss.
+Fuzziness now covers typos only, which is what it is for.
+
+**A change to the fold, the field list, or the document id requires `make resync-index`** —
+documents already in the index carry the old shape and no amount of waiting rewrites them.
+
+### Result ordering
+
+Bluge scores every match. The service sorts on that score, most relevant first, and the
+repository re-applies that order after fetching from DynamoDB, since `BatchGetItem` answers in
+no order of its own. The score itself is never returned to the client.
+
+Previously only the document id was kept, so the ranking was discarded and results reached the
+reader in effectively arbitrary order.
 
 ### Search Query Logic
 

@@ -293,7 +293,6 @@ func (d *dynamo) GetLibraryItem(ownerId string, libraryId string, itemId string)
 func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.LibraryItem, error) {
 	var keys []map[string]types.AttributeValue
 	for _, v := range matchedKeys {
-		log.Info().Msgf("Matched item: PK: %s - SK: %s", v.PK, v.SK)
 		keys = append(keys, map[string]types.AttributeValue{
 			"PK": &types.AttributeValueMemberS{Value: v.PK},
 			"SK": &types.AttributeValueMemberS{Value: v.SK},
@@ -302,52 +301,63 @@ func (d *dynamo) GetMatchedItems(matchedKeys []domain.IndexItem) ([]*domain.Libr
 
 	result := []*domain.LibraryItem{}
 	if len(keys) > 0 {
-		res, err := d.client.BatchGetItem(context.TODO(), &dynamodb.BatchGetItemInput{
-			RequestItems: map[string]types.KeysAndAttributes{
-				tableName: {
-					Keys: keys,
+		fetch := func(batch []map[string]types.AttributeValue) ([]map[string]types.AttributeValue, []map[string]types.AttributeValue, error) {
+			res, err := d.client.BatchGetItem(context.TODO(), &dynamodb.BatchGetItemInput{
+				RequestItems: map[string]types.KeysAndAttributes{
+					tableName: {Keys: batch},
 				},
-			},
-		})
+			})
+			if err != nil {
+				return nil, nil, err
+			}
 
+			var unprocessed []map[string]types.AttributeValue
+			if pending, ok := res.UnprocessedKeys[tableName]; ok {
+				unprocessed = pending.Keys
+			}
+
+			return res.Responses[tableName], unprocessed, nil
+		}
+
+		records, err := fetchKeysInBatches(keys, fetch)
 		if err != nil {
 			log.Error().Msgf("Failed to fetch matched items: %s", err.Error())
 			return nil, err
 		}
 
-		for _, v := range res.Responses {
-			for _, v2 := range v {
-				record := persistence.LibraryItem{}
-				if err := attributevalue.UnmarshalMap(v2, &record); err != nil {
-					log.Warn().Msgf("Failed to unmarshal matched library item: %s", err.Error())
-				}
-
-				result = append(result, &domain.LibraryItem{
-					Id:             record.Id,
-					Title:          record.Title,
-					OwnerId:        record.OwnerId,
-					OwnerName:      record.OwnerName,
-					LibraryId:      record.LibraryId,
-					LibraryName:    record.LibraryName,
-					Summary:        record.Summary,
-					Authors:        record.Authors,
-					Isbn:           record.Isbn,
-					UpdatedAt:      record.UpdatedAt,
-					Type:           domain.ItemType(record.Type),
-					PictureUrl:     record.PictureUrl,
-					LentTo:         record.LentTo,
-					CollectionId:   record.CollectionId,
-					CollectionName: record.CollectionName,
-					Order:          record.Order,
-					// Video-specific fields
-					Directors:   record.Directors,
-					Cast:        record.Cast,
-					ReleaseYear: record.ReleaseYear,
-					Duration:    record.Duration,
-					TmdbId:      record.TmdbId,
-				})
+		// The caller hands its keys over ranked by relevance, and BatchGetItem
+		// answers in no particular order, so the ranking has to be reapplied.
+		for _, v2 := range orderRecordsByKeys(records, keys) {
+			record := persistence.LibraryItem{}
+			if err := attributevalue.UnmarshalMap(v2, &record); err != nil {
+				log.Warn().Msgf("Failed to unmarshal matched library item: %s", err.Error())
+				continue
 			}
 
+			result = append(result, &domain.LibraryItem{
+				Id:             record.Id,
+				Title:          record.Title,
+				OwnerId:        record.OwnerId,
+				OwnerName:      record.OwnerName,
+				LibraryId:      record.LibraryId,
+				LibraryName:    record.LibraryName,
+				Summary:        record.Summary,
+				Authors:        record.Authors,
+				Isbn:           record.Isbn,
+				UpdatedAt:      record.UpdatedAt,
+				Type:           domain.ItemType(record.Type),
+				PictureUrl:     record.PictureUrl,
+				LentTo:         record.LentTo,
+				CollectionId:   record.CollectionId,
+				CollectionName: record.CollectionName,
+				Order:          record.Order,
+				// Video-specific fields
+				Directors:   record.Directors,
+				Cast:        record.Cast,
+				ReleaseYear: record.ReleaseYear,
+				Duration:    record.Duration,
+				TmdbId:      record.TmdbId,
+			})
 		}
 	}
 
