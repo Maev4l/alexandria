@@ -229,23 +229,30 @@ const Search = () => {
 
   return (
     <div className="flex h-dvh flex-col bg-paper">
-      {/* No wordmark: that's reserved for the libraries root (the header table). This
-          screen is reached BY the pinned field, so its own header is just the way back — the
-          same "onBack, no title" shape ItemDetail's own non-happy-path states already use.
+      {/* No wordmark: that's reserved for the libraries root (the header table). This screen
+          takes its own name instead, like every other built screen — it shipped as back-and-
+          nothing, which is the transitional STUB shape, and a finished screen wearing it is
+          announcing it has nothing to call itself. The two titleless headers left in the app
+          are titleless for reasons this screen does not have: ItemDetail's cover puts the name
+          in the hero, and RouteFallback does not know which route it stands in for.
+          NO `onTitleTap`, deliberately. LibraryBrowse's title scrolls its stream to the top
+          because that stream is alphabetical and the top is a PLACE; a result set arrives in an
+          order `POST /search` does not define, and the sticky field below already keeps the one
+          control that can refine a query permanently in reach.
           `onBack` is a real `history.back()`, not a hardcoded destination, so it returns the
           reader wherever they actually came from (the libraries root or an item's cover). The
           field itself moves into the body below rather than staying in the header: this surface
           IS the field, and a reader arriving mid-lookup must land on the thing they were
           typing into. */}
-      <AppHeader onBack={() => navigate(-1)} search={false} />
+      <AppHeader title="Search" onBack={() => navigate(-1)} search={false} />
 
       <main
         data-scroll-region
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
-        {/* The header carries no title here (just the back control), so the landmark needs its
-            own accessible name — visually hidden, since the field below says what this screen
-            is in the reader's eye line far louder than a heading would. */}
+        {/* Visually hidden because the header carries the name — the same construction as every
+            other titled screen, where the landmark's accessible name and the printed title are
+            the same words rendered once each for the two audiences. */}
         <h1 className="sr-only">Search</h1>
 
         {/* STICKY, because at four hundred results the surface is 42,464px tall and the field

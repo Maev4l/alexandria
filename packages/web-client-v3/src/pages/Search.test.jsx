@@ -120,6 +120,26 @@ describe('Search — the screen keeps its name and its exit', () => {
     renderSearch();
     expect(screen.queryByText('Alexandria')).toBeNull();
   });
+
+  // SCOPED TO THE HEADER, and the scoping is the whole assertion. The sr-only <h1> above already
+  // says "Search" and is independent of `<AppHeader>`'s `title` prop, so an unscoped query stays
+  // green with the title dropped entirely — which is the exact state this screen shipped in and
+  // this probe exists to prevent returning to. Inside the header the query can only be satisfied
+  // by AppHeader's own title span.
+  it('prints its own name in the header — back-and-nothing is the stub shape', () => {
+    renderSearch();
+    const header = within(document.querySelector('header'));
+    expect(header.getByText('Search')).toBeInTheDocument();
+  });
+
+  // The title is deliberately INERT here. LibraryBrowse's is a button because its stream is
+  // alphabetical and the top is a place to return to; a result set has no defined order to
+  // return to the top of, and the sticky field already keeps the refining control in reach.
+  it('does not make that name a control — there is no ordered top to scroll to', () => {
+    renderSearch();
+    const header = within(document.querySelector('header'));
+    expect(header.queryByRole('button', { name: 'Search' })).toBeNull();
+  });
 });
 
 describe('Search — the query', () => {

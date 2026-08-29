@@ -527,9 +527,13 @@ prefix of it — that removes typing artefacts, which are always prefixes, while
 deliberate shorter search. Case is folded, matching the server; **accents never are.** At most five, most
 recent first, each a catalogue tag that re-runs its term. One `Clear` control, no confirmation.
 
-**The search header has no title, so it has no tap-to-scroll-top.** `LibraryBrowse` has that gesture
-because its stream is alphabetical and the top is a place; a result set arrives in an order `POST /search`
-does not define. The problem scroll-to-top would solve is solved by the sticky field.
+**The search header carries its own name, and that name is inert.** It shipped as back-and-nothing —
+the transitional stub shape §2 condemns, on a finished screen — so it now takes `Search` like every
+other built screen. What it does **not** take is `LibraryBrowse`'s tap-to-scroll-top: that gesture
+exists there because the stream is alphabetical and the top is a place, whereas a result set arrives
+in an order `POST /search` does not define. The problem scroll-to-top would solve is solved by the
+sticky field. **A title is not an argument for the gesture** — the two travelled together only because
+`LibraryBrowse` happened to have both.
 
 **The item-detail search plate links to a bare `/search`, deliberately.** A reader may have reached that
 item by browsing and would otherwise be handed their own past query as though they had asked for it. A
