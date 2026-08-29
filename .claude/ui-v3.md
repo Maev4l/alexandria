@@ -434,6 +434,28 @@ Pre-filled; the same form bodies as New. Because `PUT` returns an empty body, th
 after saving, and the row is **replaced, never merged** (§6).
 **API:** `PUT /libraries/{libraryId}/books|videos/{id}`, then `GET .../items/{itemId}`.
 
+**The header names the type from the first frame, and the type travels in `location.state`.** The
+title is `Edit book` or `Edit film`, which is known only after the fetch — so the screen printed
+`Edit item` and then corrected itself a beat later, a visible flicker on every edit. Both openers,
+`ItemActionsSheet` and item detail's `Edit`, hold the whole record when they navigate, so they hand
+the type over and nothing has to be guessed.
+
+**This does not contradict §3's ruling that the add flow's inputs may not ride in state.** That rule
+governs **identifying** inputs — the code or title looked up, the collection being filed into — which
+a cold load must be able to resume from and therefore belong in the query. The type here identifies
+nothing: the URL alone still resolves this screen, and the fetch that follows re-establishes the type
+as fact, which is why **the fetched value overrules the hint** rather than trusting it. Read it with
+`??` and never `||`: a book is type `0`.
+
+**With no opener there is no hint, and then the header prints NOTHING rather than a guess** — the
+construction `LibraryBrowse` already uses for a library name it has not fetched. The `<h1>` keeps
+`Edit item` in that gap, because an unnamed landmark is a defect where a quiet header is not.
+
+**The wrong word stays up for as long as the SLOWER of two requests**, since the mount fetches the
+item and the collection list in one `Promise.all`. Splitting them was considered and refused: it would
+let the form render before its collection picker has its options, trading a title that corrects itself
+for a select that gains options — and changes its shown value — under the reader's eye.
+
 **The form carries no cover control of the "fetch again" kind.** A checkbox reading *"Fetch the cover
 again from its source"* could not be used correctly by anyone: `pictureUrl` is written by detection and
 the reader cannot change it, so re-fetching returns the identical image in every case **except one the

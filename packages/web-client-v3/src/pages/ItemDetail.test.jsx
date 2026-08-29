@@ -1,7 +1,14 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import { fireEvent } from '@testing-library/dom';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, MemoryRouter, RouterProvider, Route, Routes } from 'react-router-dom';
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  RouterProvider,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { handleMockRequest, resetMockState } from '../../tools/mock-api.js';
 import ItemDetail from './ItemDetail.jsx';
@@ -52,6 +59,33 @@ afterEach(() => vi.unstubAllGlobals());
 // The fixture item is `Le Grand Sommeil` (Raymond Chandler, ISBN 9782070404209, lentTo: 'Marie')
 // — comp 3 in docs/ui-design/ui-v3-mockup.html agrees. Not `Notre-Dame de Paris`, which is not a
 // fixture item at all.
+// THE SEAM, the twin of the one in ItemActionsSheet.test.jsx. EditItem prints its own name on
+// its first frame only if the screen that sent the reader there handed over the item's type;
+// EditItem's own probes construct that state by hand and would stay green with this call site
+// passing nothing. Asserted at the destination, so what is checked is the state the router
+// actually delivered rather than the arguments this page passed to `navigate`.
+describe('ItemDetail — what it hands to the edit screen', () => {
+  it('carries the item type, so the edit screen never prints a name and then corrects it', async () => {
+    const Landed = () => <p>TYPE {String(useLocation().state?.type)}</p>;
+    render(
+      <MemoryRouter initialEntries={['/libraries/lib-fiction/items/item-1984']}>
+        <LibrariesProvider>
+          <ToastProvider>
+            <Routes>
+              <Route path="/libraries/:libraryId/items/:itemId" element={<ItemDetail />} />
+              <Route path="/libraries/:libraryId/items/:itemId/edit" element={<Landed />} />
+            </Routes>
+          </ToastProvider>
+        </LibrariesProvider>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: /^edit$/i }));
+    // The fixture book is type 0 — the falsy value a truthiness read would silently drop.
+    expect(screen.getByText('TYPE 0')).toBeInTheDocument();
+  });
+});
+
 describe('ItemDetail', () => {
   it('resolves from the route alone, in one request, so the link survives a refresh', async () => {
     renderPage('item-lent');

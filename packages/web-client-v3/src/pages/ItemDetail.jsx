@@ -605,7 +605,13 @@ const ItemDetail = () => {
                     )}
                     <PlateButton
                       variant="secondary"
-                      onClick={() => navigate(`/libraries/${libraryId}/items/${itemId}/edit`)}
+                      // Same as ItemActionsSheet: hand the type over, so the edit screen names
+                      // itself immediately rather than guessing and correcting.
+                      onClick={() =>
+                        navigate(`/libraries/${libraryId}/items/${itemId}/edit`, {
+                          state: { type: item.type },
+                        })
+                      }
                     >
                       Edit
                     </PlateButton>

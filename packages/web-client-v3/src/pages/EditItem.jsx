@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader.jsx';
 import ItemForm from '@/components/ItemForm.jsx';
 import { collectionsApi, itemsApi } from '@/api';
@@ -9,6 +9,17 @@ const FILM = 1;
 const EditItem = () => {
   const { libraryId, itemId } = useParams();
   const navigate = useNavigate();
+  // THE TYPE ARRIVES BEFORE THE ITEM DOES, on every path a reader actually takes. Both openers
+  // (`ItemActionsSheet`, `ItemDetail`) hold the whole record when they navigate here, so they
+  // hand the type over and this screen can print its real name on its first frame.
+  //
+  // It rides in `location.state` rather than the query because it is not an IDENTIFYING input:
+  // the URL alone still resolves this screen, and the fetch below re-establishes the type as
+  // fact. That is the distinction ui-v3.md draws for the add flow, where the code being looked
+  // up MUST survive a cold load and therefore may not travel here — state carries what is safely
+  // recoverable, and this is recoverable by definition, from the request we make anyway.
+  const { state: openerState } = useLocation();
+  const hintedType = openerState?.type;
   const [item, setItem] = useState(null);
   const [collections, setCollections] = useState([]);
   const [status, setStatus] = useState('loading');
@@ -66,7 +77,18 @@ const EditItem = () => {
     );
   }
 
-  const title = item ? `Edit ${item.type === FILM ? 'film' : 'book'}` : 'Edit item';
+  // The FETCHED type wins wherever both exist — the hint is an optimisation, never the record.
+  // `??` and not `||`, because a book is type 0 and would fall straight through a truthiness test
+  // into the film branch.
+  const knownType = item?.type ?? hintedType;
+
+  // NOTHING, not a guess, when the type is genuinely unknown — a cold load or a refresh, where
+  // there is no opener to have supplied it. The header used to print `Edit item` here and then
+  // swap it for `Edit book`, which the reader sees as a flicker of the app correcting itself;
+  // an empty title that fills in is the construction LibraryBrowse already uses for a library
+  // name it has not fetched yet. The <h1> below keeps a real word in that gap, because a landmark
+  // with no accessible name is a defect where a header with no title is merely quiet.
+  const title = knownType == null ? '' : `Edit ${knownType === FILM ? 'film' : 'book'}`;
 
   return (
     <div className="flex h-dvh flex-col bg-paper">
@@ -75,9 +97,11 @@ const EditItem = () => {
         data-scroll-region
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
-        {/* The header already carries the name once the item has loaded; while it is still
-            "Edit item" this doubles as the visible title too, so nothing is hidden twice. */}
-        <h1 className="sr-only">{title}</h1>
+        {/* Visually hidden because the header carries the name — except in the one gap where it
+            does not, a cold load before the type is known, and there this is the only thing
+            naming the screen. Hence the fallback: an empty <h1> would leave the landmark
+            unnamed. */}
+        <h1 className="sr-only">{title || 'Edit item'}</h1>
         {status === 'ready' && item && (
           <ItemForm
             type={item.type}

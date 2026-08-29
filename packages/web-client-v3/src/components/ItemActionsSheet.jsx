@@ -54,7 +54,15 @@ const ItemActionsSheet = ({ item, libraryId, open, onClose, onChanged, onDeleted
           )}
           <PlateButton
             variant="secondary"
-            onClick={() => navigate(`/libraries/${libraryId}/items/${item.id}/edit`)}
+            // The type travels with the navigation so the edit screen can print `Edit book` or
+            // `Edit film` on its first frame instead of printing `Edit item` and correcting
+            // itself once the fetch lands. We are holding the whole record here; not passing it
+            // makes that screen re-derive a fact this one already has.
+            onClick={() =>
+              navigate(`/libraries/${libraryId}/items/${item.id}/edit`, {
+                state: { type: item.type },
+              })
+            }
           >
             Edit
           </PlateButton>

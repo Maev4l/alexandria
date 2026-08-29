@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ItemActionsSheet from './ItemActionsSheet.jsx';
 import { ToastProvider } from '@/state/ToastContext.jsx';
@@ -131,5 +131,32 @@ describe('ItemActionsSheet', () => {
     expect(screen.getByRole('heading', { name: 'Bandes dessinées' }).className).not.toContain(
       'caps',
     );
+  });
+
+  // THE SEAM. EditItem can only name itself on its first frame if this navigation carries the
+  // type, and EditItem's own probes pass a hand-built entry — they would stay green with this
+  // call site handing over nothing at all. Asserted at the destination rather than by spying on
+  // `navigate`, so it is the router's actual delivered state that is checked.
+  it('hands the item type to the edit screen, so that screen never has to guess its own name', async () => {
+    const Landed = () => <p>TYPE {String(useLocation().state?.type)}</p>;
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <ToastProvider>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <ItemActionsSheet item={atHome} libraryId="lib-1" open onClose={() => {}} />
+              }
+            />
+            <Route path="/libraries/:libraryId/items/:itemId/edit" element={<Landed />} />
+          </Routes>
+        </ToastProvider>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /^edit$/i }));
+    // `atHome` is a book, type 0 — the value a truthiness test would drop.
+    expect(screen.getByText('TYPE 0')).toBeInTheDocument();
   });
 });
