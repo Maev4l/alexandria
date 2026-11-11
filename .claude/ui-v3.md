@@ -1,7 +1,7 @@
 # Alexandria Front-End v3
 
-Target: `packages/web-client-v3`. Visual system: `@../packages/web-client-v3/DESIGN.md`
-("The Noir Imprint"). Product truth: `@../PRODUCT.md`.
+Target: `packages/web-client-v3`. Visual system: `packages/web-client-v3/DESIGN.md`
+("The Noir Imprint"). Product truth: `PRODUCT.md`.
 
 v3 replaced `web-client-v2` in production at `alexandria.isnan.eu`. **v2 is an explicit
 anti-reference** for identity and IA, and a working reference for what the API returns. The backend

@@ -2,7 +2,7 @@
 
 ## Design
 
-- Source code: @../packages/cli
+- Source code: `packages/cli`
 - Admin CLI written in Golang, using cobra
 - Built for the current platform (not Lambda)
 - Config from JSON file (`--config`, defaults to `config.json` next to binary)

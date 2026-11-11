@@ -20,7 +20,7 @@
 
 ## Authentication
 
-See @authn-scheme.md for full authentication documentation (native + Google OAuth, account linking, admin approval).
+See `.claude/authn-scheme.md` for full authentication documentation (native + Google OAuth, account linking, admin approval).
 
 ## Tech stack
 

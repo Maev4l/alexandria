@@ -2,7 +2,7 @@
 
 ## Design
 
-Source code: @../packages/functions (and subfolders)
+Source code: `packages/functions` (and subfolders)
 
 The backend consists a set of AWS Lambda functions, that are detailed below.
 Authentication relies on AWS Cognito.
@@ -13,8 +13,8 @@ Regarding the data persistence:
 
 ### API
 
-Source code: @../packages/functions/api
-OpenAPI spec: @../packages/functions/api/openapi.yaml
+Source code: `packages/functions/api`
+OpenAPI spec: `packages/functions/api/openapi.yaml` (grep it for the endpoint you need; never read it whole)
 
 This function exposes the core HTTP APIS behind and AWS API Gateway.
 
@@ -22,7 +22,7 @@ Features:
 
 - **Book detection**: ISBN-based lookup using Google Books, Babelio, and GoodReads resolvers
 - **Video detection**: OCR-based title extraction (AWS Bedrock/Claude vision) + TMDB metadata lookup
-- **Search**: Fuzzy search powered by Bluge library (see @search.md)
+- **Search**: Fuzzy search powered by Bluge library (see `.claude/search.md`)
 - **CRUD**: Libraries, Books, Videos, Collections, lending history
 
 #### Video Detection Flow
@@ -40,7 +40,7 @@ It is written in Golang.
 
 ### User onboarding
 
-Source code: @../packages/functions/user-onboarding
+Source code: `packages/functions/user-onboarding`
 
 New users that want to signup must be approved by an application admin. The admins are aware of the pending approval via Slack notifications.
 This function is wired with a new user signup event in Cognito, so it sends an SNS notification, that is relayed by an external system (not depicted in this project) to a Slack channel.
@@ -49,7 +49,7 @@ It is written in Golang.
 
 ### User approval
 
-Source code: @../packages/functions/user-approval
+Source code: `packages/functions/user-approval`
 
 SNS-triggered Golang Lambda. Consumes admin approve/reject decisions that the
 `platform/alerter` responder republishes to the `alerting-responses` topic
@@ -62,7 +62,7 @@ It is written in Golang.
 
 ### Image processor
 
-Source code: @../packages/functions/images-processing
+Source code: `packages/functions/images-processing`
 
 This function resizes the book covers uploaded by the user in a S3 bucket, and convert the image in webp format.
 
@@ -85,7 +85,7 @@ changes only its encoding.
 
 ### Consistency-manager
 
-Source code: @../packages/functions/consistency-manager
+Source code: `packages/functions/consistency-manager`
 
 This function ensures the data in the DynamoDB table are consistent by consuming the CRUD events posted in a DynamoDB stream.
 
@@ -98,7 +98,7 @@ It is written in Golang.
 
 ### Indexer
 
-Source code: @../packages/functions/index-items
+Source code: `packages/functions/index-items`
 
 This function consumes the CRUD events from a DynamoDB stream, then indexes the data (books, videos, and libraries) and puts the index into a S3 bucket.
 The indexes are in a format easily consumable by a search engine (used by the search endpoint).
@@ -107,11 +107,11 @@ Triggers on EntityType: `LIBRARY`, `BOOK`, `VIDEO`, `SHARED_LIBRARY`
 
 It is written in Golang.
 
-Related to the search feature: @search.md.
+Related to the search feature: `.claude/search.md`.
 
 ## Infrastructure
 
-The infrastrucuture is hosted on AWS and everything is deployed via Terraform @../packages/infrastrucure
+The infrastrucuture is hosted on AWS and everything is deployed via Terraform (`packages/infrastructure`)
 
 ## Access logging (CloudFront standard logging v2)
 
